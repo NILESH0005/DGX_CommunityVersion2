@@ -1,0 +1,188 @@
+{
+	"guidelines": [
+	  {
+		"id": "be-safe-details",
+		"title": "Be Safe",
+		"description": "Ensuring safety is crucial to maintaining a positive community environment. This includes:",
+		"items": [
+		  {
+			"text": "Avoiding Illegal Activity:",
+			"details": "Do not engage in or promote any illegal activities or harmful behavior that could jeopardize the well-being of our members."
+		  },
+		  {
+			"text": "Respecting Privacy:",
+			"details": "Protect the privacy of fellow community members. Do not share personal or sensitive information without explicit consent."
+		  },
+		  {
+			"text": "Reporting Concerns:",
+			"details": "If you encounter any behavior or content that seems unsafe or concerning, report it promptly to the appropriate moderators or administrators."
+		  },
+		  {
+			"text": "Practicing Online Etiquette:",
+			"details": "Be mindful of your online behavior. Ensure that your interactions contribute to a positive and safe digital environment."
+		  }
+		]
+	  },
+	  {
+		"id": "be-trustworthy-details",
+		"title": "Be Trustworthy",
+		"description": "Trust is the foundation of our community. To maintain trustworthiness:",
+		"items": [
+		  {
+			"text": "Honoring Commitments:",
+			"details": "Follow through on promises and commitments you make to the community. Reliability fosters trust and strengthens relationships."
+		  },
+		  {
+			"text": "Avoiding Deception:",
+			"details": "Engage with others in a manner that demonstrates respect and courtesy, even in disagreement. Professionalism is reflected in how you handle conflicts and differences."
+		  },
+		  {
+			"text": "Providing Accurate Information:",
+			"details": "Share information that is accurate and verified. Misinformation undermines the community’s trust and efficacy."
+		  },
+		  {
+			"text": "Supporting Others:",
+			"details": "Offer help and support to fellow members in a genuine and transparent manner, enhancing the trustworthiness of our collective effort."
+		  }
+		]
+	  },
+	  {
+		"id": "be-professional-details",
+		"title": "Be Professional",
+		"description": "Professionalism contributes to a respectful and constructive environment. This includes:",
+		"items": [
+		  {
+			"text": "Avoiding Inappropriate Content:",
+			"details": "Do not post or share content that is offensive, discriminatory, or unprofessional. Ensure that your contributions are respectful and relevant."
+		  },
+		  {
+			"text": "Maintaining Respectful Communication:",
+			"details": "Engage with others in a manner that demonstrates respect and courtesy, even in disagreement. Professionalism is reflected in how you handle conflicts and differences."
+		  },
+		  {
+			"text": "Upholding Integrity:",
+			"details": "Act with honesty and integrity in all interactions. Your actions should reflect the core values of our community and contribute to a positive environment."
+		  },
+		  {
+			"text": "Encouraging Constructive Dialogue:",
+			"details": "Foster discussions that are insightful and constructive. Aim to contribute positively to conversations, promoting growth and learning for all members."
+		  }
+		]
+	  },
+	  {
+		"id": "respect-and-courtesy-details",
+		"title": "Respect and Courtesy",
+		"description": "Maintaining a respectful and courteous environment is essential. This involves:",
+		"items": [
+		  {
+			"text": "Treating All Members with Respect:",
+			"details": "Engage with others in a polite and respectful manner, even when you disagree with their viewpoints."
+		  },
+		  {
+			"text": "Avoiding Personal Attacks and Harassment:",
+			"details": "Refrain from making negative comments about someone’s character, appearance, or beliefs. Harassment, hate speech, and discriminatory remarks are strictly prohibited."
+		  },
+		  {
+			"text": "Being Mindful of Different Perspectives and Cultures:",
+			"details": "Remember that the community is diverse. Approach conversations with an open mind and consider cultural sensitivities."
+		  }
+		]
+	  },
+	  {
+		"id": "privacy-and-confidentiality-details",
+		"title": "Privacy and Confidentiality",
+		"description": "Respecting privacy and confidentiality is crucial. This includes:",
+		"items": [
+		  {
+			"text": "Respecting Privacy of Other Members:",
+			"details": "Do not ask for or share personal information about other members without their explicit permission."
+		  },
+		  {
+			"text": "Not Sharing Personal Information Without Consent:",
+			"details": "Be cautious about sharing personal details like addresses, phone numbers, or private conversations."
+		  },
+		  {
+			"text": "Avoiding Posting Sensitive or Confidential Information:",
+			"details": "Ensure that any information shared is appropriate for a public forum and does not violate privacy or confidentiality agreements."
+		  }
+		]
+	  },
+	  {
+		"id": "no-spamming-or-self-promotion-details",
+		"title": "No Spamming or Self-Promotion",
+		"description": "To maintain a focused and valuable community, avoid spamming and self-promotion:",
+		"items": [
+		  {
+			"text": "Refraining from Spamming:",
+			"details": "Only post content that is relevant to the community’s interests and purpose."
+		  },
+		  {
+			"text": "Avoiding Unsolicited Advertisements:",
+			"details": "Do not use the platform for unsolicited advertisements or self-promotion unless it’s clearly relevant and permitted by the community guidelines."
+		  },
+		  {
+			"text": "Contributing Valuable and Relevant Content:",
+			"details": "Aim to add meaningful insights and information that benefit the community."
+		  }
+		]
+	  },
+	  {
+		"id": "intellectual-property-details",
+		"title": "Intellectual Property",
+		"description": "Respect for intellectual property is essential. This includes:",
+		"items": [
+		  {
+			"text": "Respecting Intellectual Property Rights:",
+			"details": "Do not share content that you do not have the rights to distribute."
+		  },
+		  {
+			"text": "Not Sharing Infringing Content:",
+			"details": "Ensure that any materials you post (articles, images, videos, etc.) are either your own or used with proper permission."
+		  },
+		  {
+			"text": "Attributing Sources Appropriately:",
+			"details": "When sharing content created by others, always provide proper attribution and links back to the original source."
+		  }
+		]
+	  },
+	  {
+		"id": "content-guidelines-details",
+		"title": "Content Guidelines",
+		"description": "Content guidelines help maintain the quality of discussions. This includes:",
+		"items": [
+		  {
+			"text": "Posting Relevant Content:",
+			"details": "Keep your posts focused on topics that are relevant to the community’s interests."
+		  },
+		  {
+			"text": "Avoiding Inappropriate Material:",
+			"details": "Ensure that all content shared is suitable for all members and adheres to community standards."
+		  },
+		  {
+			"text": "Using Clear and Concise Language:",
+			"details": "Make your contributions easy to read and understand."
+		  }
+		]
+	  },
+	  {
+		"id": "conflict-resolution-details",
+		"title": "Conflict Resolution",
+		"description": "Effective conflict resolution is vital for maintaining harmony. This includes:",
+		"items": [
+		  {
+			"text": "Addressing Conflicts Constructively:",
+			"details": "Approach disagreements with a goal of finding a positive resolution."
+		  },
+		  {
+			"text": "Using Private Messaging for Personal Conflicts:",
+			"details": "If you have an issue with another member, try to resolve it through private messaging rather than public posts."
+		  },
+		  {
+			"text": "Seeking Mediation if Needed:",
+			"details": "If conflicts cannot be resolved between members, seek help from the moderation team."
+		  }
+		]
+	  }
+	]
+  }
+  

@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+      .no-scrollbar::-webkit-scrollbar {
+          /* display: none; */
+          scrollbar-width: 5px;  /* Firefox */
+      }
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: 5px;  /* Firefox */
+          /* scrollbar-width: none;  Firefox */
+    }
+    .two-h-screen{
+        height: 150vh;
+    }
+  }
+
+  
+
+  .hljs-keyword{color: green !important;}
+
+
+.ql-blockquote{
+    display: none !important;
+}
+
+.ql-formula{
+    display: none !important;
+}
+.ql-clean{
+    display: none !important;
+}
+
+/* Add this to your CSS file */
+.ql-container.ql-snow .ql-editor ul,
+.ql-container.ql-snow .ql-editor ol {
+  padding-left: 1.5em !important;
+}
+
+.ql-container.ql-snow .ql-editor ul {
+  list-style-type: disc !important;
+}
+
+.ql-container.ql-snow .ql-editor ol {
+  list-style-type: decimal !important;
+}
+
+.ql-container.ql-snow .ql-editor li {
+  list-style-position: outside !important;
+}
+
+/* For the rendered content (not the editor) */
+.ql-snow .ql-editor ul,
+.ql-snow .ql-editor ol,
+.discussion-content ul,
+.discussion-content ol {
+  padding-left: 1.5em !important;
+}
+
+.ql-snow .ql-editor ul,
+.discussion-content ul {
+  list-style-type: disc !important;
+}
+
+.ql-snow .ql-editor ol,
+.discussion-content ol {
+  list-style-type: decimal !important;
+}
+
+.ql-snow .ql-editor li,
+.discussion-content li {
+  list-style-position: outside !important;
+  margin-bottom: 0.5em;
+}
+
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+/* .jodit-status-bar__item jodit-status-bar__item-right{
+  display: none;
+} */
+.jodit-status-bar-link{
+  display: none;
+}
+
+
+.jodit-container jodit jodit_theme_default jodit-wysiwyg_mode {
+  display: none;
+}

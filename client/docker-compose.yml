@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  app:
+    image: dgx_client:v2
+    build:
+      context: .
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/abesit/Desktop/Deploy_Community/DGX_CommunityGitDep/client/:/app
+    command: serve -s dist

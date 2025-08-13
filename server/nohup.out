@@ -1,0 +1,26 @@
+Database connected successfully.
+Database connection successful.
+node:events:502
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use :::8000
+    at Server.setupListenHandle [as _listen2] (node:net:1912:16)
+    at listenInCluster (node:net:1969:12)
+    at Server.listen (node:net:2074:7)
+    at Function.listen (/home/abesit/Desktop/Deploy_Community/DGX_CommunityGitDep/server/node_modules/express/lib/application.js:635:24)
+    at file:///home/abesit/Desktop/Deploy_Community/DGX_CommunityGitDep/server/index.js:42:9
+    at PrivateConnection.callback2 (file:///home/abesit/Desktop/Deploy_Community/DGX_CommunityGitDep/server/database/mySql.js:22:5)
+    at Immediate.<anonymous> (/home/abesit/Desktop/Deploy_Community/DGX_CommunityGitDep/server/node_modules/msnodesqlv8/lib/connection.js:43:14)
+    at process.processImmediate (node:internal/timers:491:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1948:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 8000
+}
+
+Node.js v22.12.0

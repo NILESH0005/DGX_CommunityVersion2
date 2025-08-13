@@ -1,0 +1,44 @@
+{quizzes.length > 0 ? (
+  quizzes
+    // First filter subjects to only those with at least one non-expired quiz
+    .filter(subject => {
+      const hasActiveQuizzes = subject.quizzes.some(quiz => getQuizStatus(quiz) !== 'expired');
+      return hasActiveQuizzes;
+    })
+    // Then map through the filtered subjects
+    .map((subject) => {
+      // Filter quizzes to only show non-expired ones
+      const activeQuizzes = subject.quizzes.filter(quiz => getQuizStatus(quiz) !== 'expired');
+      
+      return (
+        <div key={subject.id} className="mb-12 group">
+          <div className="relative mb-6">
+            <h3 className="text-2xl font-bold text-gray-700 inline-block relative pb-2">
+              {subject.group_name}
+              <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"></span>
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            {activeQuizzes.map((quiz) => {
+              const status = getQuizStatus(quiz);
+              const timeRemaining = getTimeRemaining(quiz.startDate);
+
+              return (
+                <div
+                  key={quiz.id}
+                  className="bg-white p-6 rounded-lg shadow-xl hover:shadow-2xl transition-all duration-300 border-l-4 border-blue-500 group-hover:border-purple-600 relative overflow-hidden flex flex-col h-full"
+                >
+                  {/* Rest of your quiz card remains the same */}
+                  {/* ... */}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    })
+) : (
+  <div className="text-center py-12">
+    <p className="text-gray-600 text-lg">No quizzes available at the moment.</p>
+  </div>
+)}
