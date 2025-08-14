@@ -32,10 +32,9 @@ const QuizMapp = QuizMapping(sequelize, DataTypes);
 const LMSSubModulesDetails = SubModulesDetails(sequelize, DataTypes);
 const CMSContent = tblCMSContent(sequelize, DataTypes);
 const TableDDReference = DDReference(sequelize, DataTypes);
-const LMSUnitsDetails = UnitsDetails(sequelize, DataTypes)
+const LMSUnitsDetails = UnitsDetails(sequelize, DataTypes);
 
-
-export {
+const db = {
   sequelize,
   User,
   CommunityBlog,
@@ -52,6 +51,8 @@ export {
   CMSContent,
   TableDDReference,
   LMSUnitsDetails,
-  LMSUserProgress
-
+  LMSUserProgress,
 };
+
+export default db;
+export { sequelize };

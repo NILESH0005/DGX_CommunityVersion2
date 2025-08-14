@@ -6,7 +6,7 @@ import {
 
   login,
   registration,
-  getuser,
+  getUser,
   databaseUserVerification,
   changePassword,
   sendInvite,
@@ -41,7 +41,7 @@ router.post('/changePassword', [
   body('newPassword', 'New Password can not be blank').exists()
 ], fetchUser, changePassword)
 
-router.post('/getuser', fetchUser, getuser)
+router.post('/getuser', fetchUser, getUser)
 router.get('/users', getAllUser)
 
 router.post('/sendinvite', [

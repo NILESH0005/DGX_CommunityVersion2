@@ -1,8 +1,9 @@
-import sql from "msnodesqlv8";
+// import sql from "msnodesqlv8";
 import dotenv from "dotenv";
 dotenv.config();
 // const connectionString = 'Driver={ODBC Driver 17 for SQL Server};Server=ANSHUL\\SQLEXPRESS;Database=GIINDIAdgx_Community;Trusted_Connection=yes;';
 const connectionString = process.env.DATABASE_MYSQLURL;
+console.log(connectionString)
 
 let connection;
 
@@ -12,15 +13,15 @@ const connectToDatabase = (callback) => {
     return callback(null, connection);
   }
 
-  sql.open(connectionString, (err, conn) => {
-    if (err) {
-      console.error("Error occurred:", err);
-      return callback(err);
-    }
-    connection = conn;
-    console.log("Database connected successfully.");
-    callback(null, connection);
-  });
+  // sql.open(connectionString, (err, conn) => {
+  //   if (err) {
+  //     console.error("Error occurred:", err);
+  //     return callback(err);
+  //   }
+  //   connection = conn;
+  //   console.log("Database connected successfully.");
+  //   callback(null, connection);
+  // });
 };
 
 const closeConnection = () => {

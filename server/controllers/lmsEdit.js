@@ -523,30 +523,29 @@ export const deleteSubModule = (req, res) => {
 export const updateSubModule = async (req, res) => {
   let success = false;
 
-  // ✅ 1. Authentication check
+  // Authentication and validation (keep existing code)
   const userId = req.user?.UserID || req.user?.id;
   if (!userId) {
     return res.status(401).json({ success, message: "User not authenticated" });
   }
 
-  // ✅ 2. Validate SubModule ID
   const subModuleId = parseInt(req.params.id, 10);
   if (isNaN(subModuleId)) {
     return res.status(400).json({ success, message: "Invalid SubModule ID" });
   }
 
-  // ✅ 3. Extract payload
+  // Key change: Handle description explicitly
   const {
     SubModuleName,
-    SubModuleDescription,
-    SubModuleImagePath, // <-- New Image (if provided)
+    SubModuleDescription, // Don't default this
+    SubModuleImagePath,
     SortingOrder,
   } = req.body;
 
-  if (!SubModuleName || !SubModuleDescription) {
+  if (!SubModuleName) {
     return res.status(400).json({
       success,
-      message: "SubModuleName and SubModuleDescription are required",
+      message: "SubModuleName is required",
     });
   }
 
@@ -560,14 +559,10 @@ export const updateSubModule = async (req, res) => {
       }
 
       try {
-        // ✅ 4. Get user details
+        // User verification (keep existing code)
         let userQuery, userRows;
-
         if (!isNaN(Number(userId))) {
-          userQuery = `
-            SELECT UserID, Name, isAdmin FROM Community_User 
-            WHERE ISNULL(delStatus, 0) = 0 AND UserID = ?
-          `;
+          userQuery = `SELECT UserID, Name, isAdmin FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND UserID = ?`;
           userRows = await queryAsync(conn, userQuery, [Number(userId)]);
         }
 
@@ -576,10 +571,7 @@ export const updateSubModule = async (req, res) => {
           typeof userId === "string" &&
           userId.includes("@")
         ) {
-          userQuery = `
-            SELECT UserID, Name, isAdmin FROM Community_User 
-            WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?
-          `;
+          userQuery = `SELECT UserID, Name, isAdmin FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?`;
           userRows = await queryAsync(conn, userQuery, [userId]);
         }
 
@@ -590,42 +582,33 @@ export const updateSubModule = async (req, res) => {
 
         const user = userRows[0];
 
-        // ✅ 5. If image is changing, move old one to deleted-files
-        if (SubModuleImagePath) {
-          const oldImageQuery = `
-            SELECT SubModuleImagePath FROM SubModulesDetails 
-            WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0
-          `;
+        // Image handling (keep existing code)
+        if (SubModuleImagePath !== undefined) {
+          const oldImageQuery = `SELECT SubModuleImagePath FROM SubModulesDetails WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0`;
           const [existingSubModule] = await queryAsync(conn, oldImageQuery, [
             subModuleId,
           ]);
 
           if (
-            existingSubModule &&
-            existingSubModule.SubModuleImagePath &&
+            existingSubModule?.SubModuleImagePath &&
             existingSubModule.SubModuleImagePath !== SubModuleImagePath
           ) {
             const oldImagePath = path.join(
               process.cwd(),
               existingSubModule.SubModuleImagePath
             );
-
             if (fs.existsSync(oldImagePath)) {
-              // ✅ Ensure deleted-files folder exists
               const deletedFolder = path.join(
                 process.cwd(),
                 "uploads/deleted-files"
               );
-              if (!fs.existsSync(deletedFolder)) {
+              if (!fs.existsSync(deletedFolder))
                 fs.mkdirSync(deletedFolder, { recursive: true });
-              }
 
               const oldFileName = path.basename(
                 existingSubModule.SubModuleImagePath
               );
               const newTrashPath = path.join(deletedFolder, oldFileName);
-
-              // ✅ Move old file → deleted-files folder
               try {
                 fs.renameSync(oldImagePath, newTrashPath);
                 console.log(`Moved old submodule image → ${newTrashPath}`);
@@ -636,41 +619,33 @@ export const updateSubModule = async (req, res) => {
           }
         }
 
-        // ✅ 6. Build dynamic UPDATE query
-        let updateFields = `
-          SubModuleName = ?,
-          SubModuleDescription = ?,
-          AuthLstEdit = ?,
-          editOnDt = ?
-        `;
-        let updateParams = [
-          SubModuleName,
-          SubModuleDescription,
-          user.Name,
-          new Date(),
-        ];
+        // Build UPDATE query - KEY CHANGES HERE
+        let updateFields = `SubModuleName = ?, AuthLstEdit = ?, editOnDt = ?`;
+        let updateParams = [SubModuleName, user.Name, new Date()];
 
-        // ✅ If SubModuleImagePath is provided, update it
-        if (SubModuleImagePath) {
-          updateFields += `, SubModuleImagePath = ?`;
-          updateParams.push(SubModuleImagePath);
+        // Explicit NULL handling for description
+        if (SubModuleDescription !== undefined) {
+          updateFields += `, SubModuleDescription = ?`;
+          // Convert empty string to NULL, keep null as null
+          updateParams.push(
+            SubModuleDescription === "" ? null : SubModuleDescription
+          );
         }
 
-        // ✅ If SortingOrder is provided, update it
+        if (SubModuleImagePath !== undefined) {
+          updateFields += `, SubModuleImagePath = ?`;
+          updateParams.push(SubModuleImagePath || null);
+        }
+
         if (SortingOrder !== undefined) {
           updateFields += `, SortingOrder = ?`;
           updateParams.push(SortingOrder);
         }
 
-        // ✅ Final query
-        const updateQuery = `
-          UPDATE SubModulesDetails
-          SET ${updateFields}
-          WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0
-        `;
+        const updateQuery = `UPDATE SubModulesDetails SET ${updateFields} WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0`;
         updateParams.push(subModuleId);
 
-        // ✅ 7. Execute update
+        // Execute update
         const result = await queryAsync(conn, updateQuery, updateParams);
 
         if (result.affectedRows === 0) {
@@ -681,16 +656,21 @@ export const updateSubModule = async (req, res) => {
           });
         }
 
-        // ✅ 8. Fetch updated submodule
+        // Fetch updated record - IMPORTANT: Verify this matches your table structure
         const fetchQuery = `
-          SELECT SubModuleID, SubModuleName, SubModuleDescription,
-                 SubModuleImagePath, SortingOrder,
-                 AuthLstEdit, editOnDt
+          SELECT 
+            SubModuleID, 
+            SubModuleName, 
+            IFNULL(SubModuleDescription, '') AS SubModuleDescription,
+            SubModuleImagePath, 
+            SortingOrder,
+            AuthLstEdit, 
+            editOnDt
           FROM SubModulesDetails
           WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0
         `;
 
-        const updatedSubModule = await queryAsync(conn, fetchQuery, [
+        const [updatedSubModule] = await queryAsync(conn, fetchQuery, [
           subModuleId,
         ]);
 
@@ -699,7 +679,11 @@ export const updateSubModule = async (req, res) => {
 
         return res.status(200).json({
           success,
-          data: updatedSubModule[0],
+          data: {
+            ...updatedSubModule,
+            // Ensure NULL descriptions are returned as NULL, not empty string
+            SubModuleDescription: updatedSubModule.SubModuleDescription || null,
+          },
           message: "SubModule updated successfully",
         });
       } catch (queryErr) {
@@ -922,7 +906,12 @@ export const addSubmodule = async (req, res) => {
   console.log("User ID:", userId);
 
   try {
-    const { SubModuleName, SubModuleDescription, ModuleID, SubModuleImagePath } = req.body;
+    const {
+      SubModuleName,
+      SubModuleDescription,
+      ModuleID,
+      SubModuleImagePath,
+    } = req.body;
     const SubModuleImage = req.file;
 
     if (!ModuleID) {
@@ -1454,9 +1443,9 @@ export const deleteMultipleFiles = (req, res) => {
       try {
         await queryAsync(conn, "BEGIN TRANSACTION");
 
-        const adminId = req.user?.id; 
+        const adminId = req.user?.id;
         const currentTime = new Date().toISOString();
-        const placeholders = fileIds.map(() => '?').join(', ');
+        const placeholders = fileIds.map(() => "?").join(", ");
         const checkQuery = `
             SELECT FileID, UnitID, FilesName 
             FROM FilesDetails 
@@ -1476,7 +1465,7 @@ export const deleteMultipleFiles = (req, res) => {
         const validFileIds = existingFiles.map((file) => file.FileID);
         const unitIds = [...new Set(existingFiles.map((file) => file.UnitID))]; // Get unique unit IDs
 
-        const validPlaceholders = validFileIds.map(() => '?').join(', ');
+        const validPlaceholders = validFileIds.map(() => "?").join(", ");
         const deleteQuery = `
           UPDATE FilesDetails
           SET 
@@ -1485,7 +1474,11 @@ export const deleteMultipleFiles = (req, res) => {
             AddDel = ?
           WHERE FileID IN (${validPlaceholders})
         `;
-        await queryAsync(conn, deleteQuery, [currentTime, adminId, ...validFileIds]);
+        await queryAsync(conn, deleteQuery, [
+          currentTime,
+          adminId,
+          ...validFileIds,
+        ]);
 
         const results = {};
 
@@ -1530,7 +1523,7 @@ export const deleteMultipleFiles = (req, res) => {
             unitResults: results,
             notFoundIds: fileIds.filter((id) => !validFileIds.includes(id)),
           },
-          
+
           message: `Successfully deleted ${validFileIds.length} file(s)`,
         });
       } catch (error) {

@@ -329,7 +329,6 @@ const logIn = async (authtoken) => {
         }
       })
       .catch((e) => {
-        // console.log("Failed to fetch the user data:", e);
       });
   } catch (error) {
     // console.log("Login error:", error);

@@ -1,5 +1,6 @@
-import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+import { Sequelize } from "sequelize";
+import dotenv from "dotenv";
+
 dotenv.config();
 
 const sequelize = new Sequelize(
@@ -13,12 +14,5 @@ const sequelize = new Sequelize(
     logging: false
   }
 );
-
-try {
-  await sequelize.authenticate();
-  console.log('✅ MySQL connected successfully');
-} catch (err) {
-  console.error('❌ MySQL connection error:', err);
-}
 
 export default sequelize;

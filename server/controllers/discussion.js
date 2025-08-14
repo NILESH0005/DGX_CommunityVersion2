@@ -1,5 +1,6 @@
 import { body, validationResult } from "express-validator";
 import { connectToDatabase, closeConnection } from "../database/mySql.js";
+import * as DiscussionService from "../services/discussionService.js";
 import dotenv from "dotenv";
 import {
   queryAsync,
@@ -349,264 +350,28 @@ export const discussionpost = async (req, res) => {
   }
 };
 
-export const getdiscussion = async (req, res) => {
-  let success = false;
-  const userId = req.body.user;
-
+export const getDiscussion = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
-    console.error(warningMessage, errors.array());
-    res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
-    return;
+    logWarning(warningMessage);
+    return res.status(400).json({
+      success: false,
+      data: errors.array(),
+      message: warningMessage,
+    });
   }
 
   try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Failed to connect to database";
-        res
-          .status(500)
-          .json({ success: false, data: err, message: errorMessage });
-        return;
-      }
-
-      try {
-        let rows = [];
-        if (userId !== null && userId !== undefined) {
-          const query = `SELECT UserID, Name FROM Community_User WHERE isnull(delStatus,0) = 0 AND EmailId = ?`;
-          rows = await queryAsync(conn, query, [userId]);
-        }
-
-        if (rows.length === 0) {
-          rows.push({ UserID: null });
-        }
-
-        // First get all comment counts in one query using your CTE approach
-        const commentCountsQuery = `
-          WITH CommentTree AS (
-              SELECT d.DiscussionID as id, cd.discussionId, cd.[likes], cd.comment, cd.Reference, cd.AddOnDt
-              FROM Community_Discussion cd
-              JOIN Community_Discussion d ON cd.Reference = d.DiscussionID
-              WHERE ISNULL(cd.delStatus, 0) = 0 AND ISNULL(d.delStatus, 0) = 0
-              
-              UNION ALL
-                  SELECT ct.id, t.discussionId, t.[likes], t.comment, t.Reference, t.AddOnDt
-              FROM Community_Discussion t
-              INNER JOIN CommentTree ct
-                  ON t.Reference = ct.discussionId
-              WHERE ISNULL(t.delStatus, 0) = 0
-          )
-          SELECT id as discussionId, count(1) as commentCount 
-          FROM CommentTree 
-          WHERE isnull(comment,'') <> ''
-          GROUP BY id;
-        `;
-        const commentCountsResult = await queryAsync(conn, commentCountsQuery);
-
-        // Convert to a map for easy lookup
-        const commentCountsMap = new Map();
-        commentCountsResult.forEach((row) => {
-          commentCountsMap.set(row.discussionId, row.commentCount);
-        });
-
-        // Recursive function to fetch comments and their replies
-        const fetchCommentsWithReplies = async (parentId) => {
-          const commentsQuery = `
-    SELECT 
-      cd.DiscussionID, 
-      cd.UserID, 
-      cd.Comment, 
-      cu.Name as UserName,
-      cd.AddOnDt as timestamp, 
-      cd.Likes, 
-      cd.Reference,
-      (
-        SELECT COUNT(*) 
-        FROM Community_Discussion 
-        WHERE ISNULL(delStatus, 0) = 0 
-        AND Likes > 0 
-        AND Reference = cd.DiscussionID
-      ) as likeCount,
-      CASE WHEN EXISTS (
-        SELECT 1 FROM Community_Discussion 
-        WHERE ISNULL(delStatus, 0) = 0 
-        AND Likes > 0 
-        AND Reference = cd.DiscussionID 
-        AND UserID = ?
-      ) THEN 1 ELSE 0 END as userLike
-    FROM Community_Discussion cd
-    JOIN Community_User cu ON cd.UserID = cu.UserID
-    WHERE ISNULL(cd.delStatus, 0) = 0 
-      AND cd.Comment IS NOT NULL 
-      AND cd.Reference = ?
-    ORDER BY cd.AddOnDt DESC
-  `;
-          const comments = await queryAsync(conn, commentsQuery, [
-            rows[0].UserID,
-            parentId,
-          ]);
-
-          for (const comment of comments) {
-            comment.comment = await fetchCommentsWithReplies(
-              comment.DiscussionID
-            );
-
-            const likeQuery = `
-      SELECT DiscussionID 
-      FROM Community_Discussion 
-      WHERE ISNULL(delStatus, 0) = 0 
-        AND Likes > 0 
-        AND Reference = ? 
-        AND UserID = ?
-    `;
-            const userLikeResult = await queryAsync(conn, likeQuery, [
-              comment.DiscussionID,
-              rows[0].UserID,
-            ]);
-
-            comment.userLike = userLikeResult.length > 0 ? 1 : 0;
-
-            // Get like count
-            const likeCountQuery = `
-      SELECT COUNT(*) as likeCount 
-      FROM Community_Discussion 
-      WHERE ISNULL(delStatus, 0) = 0 
-        AND Likes > 0 
-        AND Reference = ?
-    `;
-            const likeCountResult = await queryAsync(conn, likeCountQuery, [
-              comment.DiscussionID,
-            ]);
-            comment.likeCount = likeCountResult[0].likeCount || 0;
-
-            // Recursively fetch replies - THIS IS THE KEY LINE THAT WAS MISSING/MODIFIED
-            comment.comment = await fetchCommentsWithReplies(
-              comment.DiscussionID
-            );
-          }
-
-          return comments;
-        };
-
-        // Fetch main discussions with proper username
-        const discussionGetQuery = `
-          SELECT 
-    d.DiscussionID,
-    d.UserID,
-    d.Title,
-    d.Content,
-    d.Likes,
-    d.Comment,
-    d.Tag,
-    d.Visibility,
-    d.Reference,
-    d.ResourceUrl,
-    d.AuthAdd,
-    d.AuthDel,
-    d.AuthLstEdit,
-    d.delOnDt,
-    d.AddOnDt,
-    d.editOnDt,
-    d.delStatus,
-    d.DiscussionImagePath,
-    u.Name AS UserName,
-    r.ddValue AS VisibilityName
-FROM 
-    Community_Discussion d
-JOIN 
-    Community_User u ON d.UserID = u.UserID
-JOIN 
-    tblDDReferences r ON TRY_CAST(d.Visibility AS INT) = r.idCode
-WHERE 
-    ISNULL(d.delStatus, 0) = 0
-    AND d.Reference = 0
-    AND r.ddCategory = 'Privacy'
-    AND r.ddValue = 'Public'
-    AND TRY_CAST(d.Visibility AS INT) IS NOT NULL
-ORDER BY 
-    d.AddOnDt DESC;
-
-        `;
-        const discussionGet = await queryAsync(conn, discussionGetQuery);
-
-        const updatedDiscussions = [];
-
-        for (const item of discussionGet) {
-          // Get like count for the post
-          const likeCountQuery = `
-            SELECT COUNT(*) as likeCount 
-            FROM Community_Discussion 
-            WHERE ISNULL(delStatus, 0) = 0 
-              AND Likes > 0 
-              AND Reference = ?
-          `;
-          const likeCountResult = await queryAsync(conn, likeCountQuery, [
-            item.DiscussionID,
-          ]);
-          const likeCount = likeCountResult[0].likeCount || 0;
-
-          // Check if user liked this post
-          const userLikeQuery = `
-            SELECT DiscussionID 
-            FROM Community_Discussion 
-            WHERE ISNULL(delStatus, 0) = 0 
-              AND Likes > 0 
-              AND Reference = ? 
-              AND UserID = ?
-          `;
-          const userLikeResult = await queryAsync(conn, userLikeQuery, [
-            item.DiscussionID,
-            rows[0].UserID,
-          ]);
-          const userLike = userLikeResult.length > 0 ? 1 : 0;
-
-          // Get comment count from our pre-calculated map
-          const commentCount = commentCountsMap.get(item.DiscussionID) || 0;
-
-          // Fetch comments with all nested replies
-          const comments = await fetchCommentsWithReplies(item.DiscussionID);
-
-          updatedDiscussions.push({
-            ...item,
-            likeCount,
-            userLike,
-            commentCount,
-            comment: comments,
-            ImageUrl: item.DiscussionImagePath
-              ? `${req.protocol}://${req.get("host")}/${
-                  item.DiscussionImagePath
-                }`
-              : null,
-          });
-        }
-
-        success = true;
-        closeConnection();
-        const infoMessage = "Discussion Get Successfully";
-        res.status(200).json({
-          success,
-          data: { updatedDiscussions },
-          message: infoMessage,
-        });
-      } catch (queryErr) {
-        console.error(queryErr);
-        closeConnection();
-        res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: "Something went wrong please try again",
-        });
-      }
-    });
+    const userEmail = req.body.user;
+    const result = await DiscussionService.getDiscussions(userEmail);
+    return res.status(result.status).json(result.response);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    logError(error);
+    return res.status(500).json({
       success: false,
       data: {},
-      message: "Something went wrong please try again",
+      message: "Internal server error. Please try again",
     });
   }
 };
