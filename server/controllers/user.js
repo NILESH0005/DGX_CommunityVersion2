@@ -18,8 +18,10 @@ import {
 import * as UserService from "../services/userService.js";
 import db from "../models/index.js";
 import { registerUser } from "../services/userService.js";
-import { getAllUsersService, deleteUserService } from "../services/userService.js";
-
+import {
+  getAllUsersService,
+  deleteUserService,
+} from "../services/userService.js";
 
 dotenv.config();
 const JWT_SECRET = process.env.JWTSECRET;
@@ -149,7 +151,9 @@ export const getAllUser = async (req, res) => {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ success: false, message: "User ID is required for deletion" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required for deletion" });
     }
 
     const result = await deleteUserService(userId);
@@ -161,144 +165,29 @@ export const getAllUser = async (req, res) => {
     return res.status(result.status).json(result.response);
   }
 
-  return res.status(405).json({ success: false, message: "Method not allowed" });
+  return res
+    .status(405)
+    .json({ success: false, message: "Method not allowed" });
 };
 
-
 export const sendInvite = async (req, res) => {
-  let success = false;
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage =
       "The data format is incorrect. Please ensure it meets the required format and try again.";
-
-    logWarning(warningMessage); // Log the warning
-    return res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
-  }
-
-  try {
-    const userId = req.user.id;
-
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        res.status(500).json({
-          success: false,
-          data: err,
-          message: "Failed to connect to database",
-        });
-        return;
-      }
-
-      try {
-        const baseLink = process.env.RegistrationLink;
-        const query = `SELECT ReferalNumber FROM Community_User WHERE isnull(delStatus,0) = 0 AND EmailId = ?`;
-        const rows = await queryAsync(conn, query, [userId]);
-
-        if (rows.length > 0) {
-          const email = await encrypt(req.body.email);
-          const refercode = await encrypt(rows[0].ReferalNumber);
-
-          const registrationLink = `${baseLink}Register?email=${email}&refercode=${refercode}`;
-
-          const message = `Welcome to the DGX Community!
-
-          Welcome to the DGX Community! We’re thrilled to have you join us. To complete your registration, please click the link below:
-
-          Complete your registration: ${registrationLink}
-
-          If you did not sign up for the DGX Community, you can safely disregard this email.
-
-          Thank you,  
-          The DGX Community Team`;
-
-          const htmlContent = `<!DOCTYPE html>
-          <html>
-          <head>
-              <style>
-                  .button {
-                      display: inline-block;
-                      padding: 10px 20px;
-                      background-color: #28a745;
-                      color: white;
-                      text-decoration: none;
-                      border-radius: 5px;
-                      font-size: 16px;
-                  }
-                  .footer {
-                      font-size: 12px;
-                      color: #777;
-                      margin-top: 20px;
-                  }
-              </style>
-          </head>
-          <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-              <p>Welcome to the DGX Community!,</p>
-              <p>Welcome to the DGX Community! We’re thrilled to have you join us. To complete your registration, please click the button below:</p>
-              <p><a href="${registrationLink}" class="button">Complete Your Registration</a></p>
-              <p>If you did not sign up for the DGX Community, you can safely disregard this email.</p>
-              <p>Thank you,<br>The DGX Community Team</p>
-              <div class="footer">
-                  <p>This is an automated message. Please do not reply directly to this email.</p>
-              </div>
-          </body>
-          </html>`;
-
-          closeConnection();
-          const mailsent = await mailSender(
-            req.body.email,
-            message,
-            htmlContent
-          );
-          if (mailsent.success) {
-            success = true;
-            const infoMessage =
-              "Invite Link send successfuly to ${req.body.email}";
-            logInfo(infoMessage); // Log the success
-            return res.status(200).json({
-              success: true,
-              data: { registrationLink },
-              message: "Mail send successfully",
-            });
-          } else {
-            const errorMessage = "Mail isn't sent successfully";
-            logError(new Error(errorMessage)); // Log the error
-            return res.status(200).json({
-              success: false,
-              data: { username: userEmail },
-              message: errorMessage,
-            });
-          }
-        } else {
-          closeConnection();
-          const warningMessage = "User not found";
-          logWarning(warningMessage);
-          res
-            .status(200)
-            .json({ success: false, data: {}, message: warningMessage });
-        }
-      } catch (queryErr) {
-        logError(queryErr);
-        res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: "Something went wrong please try again",
-        });
-      }
-
-      // res.json({ success: true, data: { BaseLink }, message:  })
-    });
-  } catch (queryErr) {
-    logError(queryErr);
-    res.status(500).json({
+    logWarning(warningMessage);
+    return res.status(400).json({
       success: false,
-      data: queryErr,
-      message: "Something went wrong please try again",
+      data: errors.array(),
+      message: warningMessage,
     });
   }
+
+  const userEmail = req.user.id; // Assuming `req.user.id` stores EmailId
+  const inviteeEmail = req.body.email;
+
+  const result = await UserService.sendInviteService(userEmail, inviteeEmail);
+  res.status(result.status).json(result.response);
 };
 
 export const passwordRecovery = async (req, res) => {
@@ -455,182 +344,71 @@ export const passwordRecovery = async (req, res) => {
   }
 };
 
-export const resetPassword = async (req, res) => {
-  let success = false;
+export const resetPassword = async (
+  email,
+  signature,
+  password,
+  SIGNATURE
+) => {
+  // Find the user
+  const user = await User.findOne({
+    where: {
+      EmailId: email,
+      delStatus: { [Op.or]: [0, null] },
+    },
+  });
 
-  // Validate request body
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const warningMessage =
-      "The data format is incorrect. Please ensure it meets the required format and try again.";
-
-    logWarning(warningMessage); // Log the warning
-    return res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
+  if (!user || user.FlagPasswordChange !== 2) {
+    return { success: false, message: "Invalid link" };
   }
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        res.status(500).json({
-          success: false,
-          data: err,
-          message: "Failed to connect to database",
-        });
-        return;
-      }
-
-      try {
-        const { email, signature, password } = req.body;
-        const query = `SELECT Name, FlagPasswordChange FROM Community_User WHERE isnull(delStatus,0) = 0 AND EmailId = ?`;
-        const rows = await queryAsync(conn, query, [email]);
-
-        if (rows.length > 0 && rows[0].FlagPasswordChange == 2) {
-          try {
-            if (signature == SIGNATURE) {
-              const salt = await bcrypt.genSalt(10);
-              const secPass = await bcrypt.hash(password, salt);
-              const updateQuery = `UPDATE Community_User SET Password = ?, AuthLstEdit= ?, editOnDt = GETDATE(), FlagPasswordChange = 1 WHERE isnull(delStatus,0) = 0 AND EmailId= ?`;
-              const update = await queryAsync(conn, updateQuery, [
-                secPass,
-                rows[0].Name,
-                email,
-              ]);
-              closeConnection();
-              success = true;
-              const infoMessage = "Password Reset successfully";
-              logInfo(infoMessage); // Log the success
-              return res
-                .status(200)
-                .json({ success: true, data: {}, message: infoMessage });
-            } else {
-              closeConnection();
-              const warningMessage = "This link is not valid";
-              logWarning(warningMessage);
-              return res
-                .status(200)
-                .json({ success: false, data: {}, message: warningMessage });
-            }
-          } catch (Err) {
-            closeConnection();
-            logError(Err);
-            res.status(500).json({
-              success: false,
-              data: Err,
-              message: "Something went wrong please try again",
-            });
-          }
-        } else {
-          closeConnection();
-          const warningMessage = "invalid link";
-          logWarning(warningMessage);
-          res
-            .status(200)
-            .json({ success: false, data: {}, message: warningMessage });
-        }
-      } catch (queryErr) {
-        closeConnection();
-        logError(queryErr);
-        res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: "Something went wrong please try again",
-        });
-      }
-    });
-  } catch (Err) {
-    closeConnection();
-    logError(Err);
-    res.status(500).json({
-      success: false,
-      data: Err,
-      message: "Something went wrong please try again",
-    });
+  // Verify signature
+  if (signature !== SIGNATURE) {
+    return { success: false, message: "This link is not valid" };
   }
+
+  // Hash password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  // Update user
+  await user.update({
+    Password: hashedPassword,
+    AuthLstEdt: user.Name,
+    editOnDt: new Date(),
+    FlagPasswordChange: 1,
+  });
+
+  return { success: true, message: "Password Reset successfully" };
 };
 
-export const deleteUser = (req, res) => {
+export const deleteUser = async (req, res) => {
   let success = false;
   const { userId } = req.body;
   const adminName = req.user?.id;
+
   try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        return res.status(500).json({
-          success: false,
-          data: err,
-          message: "Database connection error.",
-        });
-      }
-      try {
-        const checkQuery = `SELECT * FROM Community_User WHERE UserID = ? AND (delStatus IS NULL OR delStatus = 0)`;
-        const result = await queryAsync(conn, checkQuery, [userId]);
-        if (result.length === 0) {
-          return res.status(404).json({
-            success: false,
-            message: "User not found or already deleted.",
-          });
-        } else {
-          try {
-            const updateQuery = `UPDATE Community_User SET delStatus = 1, delOnDt = GETDATE(), AuthDel = ? OUTPUT inserted.UserID, inserted.delStatus, inserted.delOnDt, inserted.AuthDel WHERE UserID = ? AND (delStatus IS NULL OR delStatus = 0)`;
-            const rows = await queryAsync(conn, updateQuery, [
-              adminName,
-              userId,
-            ]);
-            if (rows.length > 0) {
-              success = true;
-              logInfo("User deleted successfully");
-              return res.status(200).json({
-                success,
-                data: {
-                  userId: rows[0].UserID,
-                  AuthDel: rows[0].AuthDel,
-                  delOnDt: rows[0].delOnDt,
-                  delStatus: rows[0].delStatus,
-                },
-                message: "User deleted successfully.",
-              });
-            } else {
-              logWarning("Failed to delete the user.");
-              return res.status(404).json({
-                rows,
-                success: false,
-                message: "Failed to delete the user.",
-              });
-            }
-          } catch (error) {
-            logError(updateErr);
-            return res.status(500).json({
-              success: false,
-              data: updateErr,
-              message: "Error updating user deletion.",
-            });
-          }
-        }
-      } catch (error) {
-        return res.status(404).json({
-          success: false,
-          message: "Error Finding User's data!",
-        });
-      }
-    });
-  } catch (error) {
-    return res.status(404).json({
-      success: false,
-      message: "Unable to connect to the database!",
-    });
+    const result = await deleteUserService(userId, adminName);
+
+    if (!result.success) {
+      logWarning(result.message);
+      return res.status(404).json(result);
+    }
+
+    logInfo(result.message);
+    return res
+      .status(200)
+      .json({ success: true, data: result.data, message: result.message });
+  } catch (err) {
+    logError(err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Error deleting user", data: err });
   }
 };
 
 export const addUser = async (req, res) => {
   let success = false;
-  // const userId = req.user.id;
-  // console.log(userId)
-
-  // Validate request body
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage =
@@ -641,184 +419,46 @@ export const addUser = async (req, res) => {
       .json({ success, data: errors.array(), message: warningMessage });
   }
 
-  const { Name, EmailId, CollegeName, MobileNumber, Category, Designation } =
-    req.body;
-  const referalNumberCount = Category === "F" ? 10 : 2;
-  const FlagPasswordChange = 0;
-
   try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        return res.status(500).json({
-          success: false,
-          message: "Database connection failed",
-          data: err,
-        });
-      }
+    const result = await UserService.addUserService(req.body);
 
-      try {
-        // Check if the email is already registered
-        const existingUserQuery = `SELECT COUNT(UserID) AS userEmailCount FROM Community_User WHERE ISNULL(delStatus,0)=0 AND EmailId = ?`;
-        const existingUsers = await queryAsync(conn, existingUserQuery, [
-          EmailId,
-        ]);
+    if (!result.success) {
+      logWarning(result.message);
+      return res.status(200).json(result);
+    }
 
-        if (existingUsers[0].userEmailCount > 0) {
-          const warningMessage = "User with this email already exists.";
-          logWarning(warningMessage);
-          closeConnection();
-          return res
-            .status(200)
-            .json({ success: false, message: warningMessage, data: {} });
-        }
-
-        // Generate a random password
-        const plainPassword = await generatePassword(10);
-
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(plainPassword, salt);
-
-        // Generate a referral code
-        let referCode;
-        do {
-          referCode = await referCodeGenerator(Name, EmailId, MobileNumber);
-          const checkQuery = `SELECT COUNT(UserID) AS userReferCount FROM Community_User WHERE isnull(delStatus,0) = 0 AND ReferalNumber = ?`;
-          const checkRows = await queryAsync(conn, checkQuery, [referCode]);
-
-          if (checkRows[0].userReferCount === 0) {
-            // Insert new user
-            const insertQuery = `
-               INSERT INTO Community_User 
-              (Name, EmailId, CollegeName, MobileNumber, Category, Designation, ReferalNumberCount, ReferalNumber, Password, FlagPasswordChange, AuthAdd, AddOnDt, delStatus) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?)
-            `;
-            await queryAsync(conn, insertQuery, [
-              Name,
-              EmailId,
-              CollegeName,
-              MobileNumber,
-              Category,
-              Designation,
-              referalNumberCount,
-              referCode,
-              hashedPassword,
-              FlagPasswordChange,
-              Name,
-              0,
-            ]);
-
-            success = true;
-            const infoMessage = "User added successfully.";
-            logInfo(`User added: ${EmailId}`);
-            closeConnection();
-            return res
-              .status(200)
-              .json({ success, message: infoMessage, data: { EmailId } });
-          }
-        } while (!success);
-      } catch (error) {
-        logError(error);
-        closeConnection();
-        return res.status(500).json({
-          success: false,
-          message: "Error processing request",
-          data: error,
-        });
-      }
-    });
-  } catch (error) {
-    logError(error);
+    logInfo(result.message);
+    return res.status(200).json(result);
+  } catch (err) {
+    logError(err);
     return res
       .status(500)
-      .json({ success: false, message: "Internal server error", data: {} });
+      .json({ success: false, message: "Error adding user", data: err });
   }
 };
 
 export const sendContactEmail = async (req, res) => {
   let success = false;
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success,
-      data: errors.array(),
-      message: "Invalid form data",
-    });
+    return res
+      .status(400)
+      .json({ success, data: errors.array(), message: "Invalid form data" });
   }
 
   try {
     const { name, email, message } = req.body;
+    const result = await UserService.sendContactEmailService(name, email, message);
 
-    // Create email content
-    const emailMessage = `New Contact Form Submission:
-    
-    Name: ${name}
-    Email: ${email}
-    Message: ${message}
-    
-    Received at: ${new Date().toLocaleString()}`;
-
-    const htmlContent = `<!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; }
-            .details { margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 5px; }
-            .label { font-weight: bold; color: #333; }
-        </style>
-    </head>
-    <body>
-        <h2>New Contact Form Submission</h2>
-        <div class="details">
-            <p><span class="label">Name:</span> ${name}</p>
-            <p><span class="label">Email:</span> ${email}</p>
-            <p><span class="label">Message:</span><br>${message.replace(
-              /\n/g,
-              "<br>"
-            )}</p>
-        </div>
-        <p>Received at: ${new Date().toLocaleString()}</p>
-    </body>
-    </html>`;
-
-    // Send email to your admin
-    const adminEmail = "nilesh.thakur@giindia.com";
-    const mailSent = await mailSender(adminEmail, emailMessage, htmlContent);
-
-    if (mailSent.success) {
-      // Optional: Send confirmation email to the user
-      const userMessage = `Thank you for contacting us, ${name}!\n\nWe have received your message and will get back to you soon.\n\nYour message:\n${message}`;
-
-      const userHtml = `<!DOCTYPE html>
-      <html>
-      <body>
-          <p>Thank you for contacting us, ${name}!</p>
-          <p>We have received your message and will get back to you soon.</p>
-          <p>Your message:</p>
-          <blockquote>${message.replace(/\n/g, "<br>")}</blockquote>
-          <p>Best regards,<br>The DGX Team</p>
-      </body>
-      </html>`;
-
-      await mailSender(email, userMessage, userHtml);
-
-      return res.status(200).json({
-        success: true,
-        message: "Your message has been sent successfully",
-      });
-    } else {
-      return res.status(500).json({
-        success: false,
-        message: "Failed to send email",
-      });
+    if (!result.success) {
+      return res.status(500).json(result);
     }
-  } catch (error) {
-    console.error("Error in sendContactEmail:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+
+    return res.status(200).json(result);
+  } catch (err) {
+    logError(err);
+    return res
+      .status(500)
+      .json({ success: false, message: "Internal server error", data: err });
   }
 };
