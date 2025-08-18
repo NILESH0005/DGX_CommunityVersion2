@@ -5,10 +5,12 @@ import { mailSender } from "../helper/index.js";
 import { logWarning, logInfo, logError } from "../helper/index.js";
 import jwt from "jsonwebtoken";
 import { Op } from "sequelize"; // ✅ direct import
-import { encrypt } from "../utility/encrypt.js"; 
+import { encrypt } from "../utility/encrypt.js";
 
 const User = db.User;
 const JWT_SECRET = process.env.JWTSECRET;
+const BASE_LINK = process.env.RegistrationLink;
+const SIGNATURE = process.env.SIGNATURE;
 
 export const verifyUserAndSendPassword = async (email) => {
   const user = await User.findOne({ where: { EmailId: email, delStatus: 0 } });
@@ -365,6 +367,9 @@ export const changeUserPassword = async (
 export const getAllUsersService = async () => {
   try {
     const users = await User.findAll({
+      where: {
+        [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+      },
       attributes: [
         "UserID",
         "Name",
@@ -378,9 +383,6 @@ export const getAllUsersService = async () => {
         "isAdmin",
         "delStatus",
       ],
-      // where: {
-      //   [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
-      // },
     });
 
     if (users.length > 0) {
@@ -397,7 +399,7 @@ export const getAllUsersService = async () => {
       logWarning("No users found");
       return {
         status: 404,
-        response: { success: false, data: {}, message: "No users found" },
+        response: { success: false, data: [], message: "No users found" },
       };
     }
   } catch (error) {
@@ -409,33 +411,30 @@ export const getAllUsersService = async () => {
   }
 };
 
-export const deleteUserService = async (userId) => {
+export const deleteUserService = async (userId, adminName) => {
   try {
-    const deletedCount = await User.destroy({
-      where: { UserID: userId },
-    });
+    const [updatedCount] = await User.update(
+      { delStatus: 1, delOnDt: new Date(), AuthDel: adminName },
+      {
+        where: {
+          UserID: userId,
+          [Op.or]: [{ delStatus: null }, { delStatus: 0 }], // only delete if not already deleted
+        },
+      }
+    );
 
-    if (deletedCount > 0) {
-      const successMessage = "User deleted successfully";
-      logInfo(successMessage);
-      return {
-        status: 200,
-        response: { success: true, message: successMessage },
-      };
+    if (updatedCount > 0) {
+      const successMessage = "User marked as deleted successfully";
+      logInfo(`[Admin:${adminName}] ${successMessage}`);
+      return { success: true, message: successMessage };
     } else {
-      const notFoundMessage = "User not found";
-      logWarning(notFoundMessage);
-      return {
-        status: 404,
-        response: { success: false, message: notFoundMessage },
-      };
+      const notFoundMessage = "User not found or already deleted";
+      logWarning(`[Admin:${adminName}] ${notFoundMessage}`);
+      return { success: false, message: notFoundMessage };
     }
   } catch (error) {
     logError(error);
-    return {
-      status: 500,
-      response: { success: false, message: "Error deleting user" },
-    };
+    return { success: false, message: "Error deleting user" };
   }
 };
 
@@ -540,49 +539,38 @@ If you did not sign up, ignore this email.
   }
 };
 
-export const resetPassword = async (req, res) => {
-  let success = false;
+export const resetPasswordService = async (
+  email,
+  signature,
+  password,
+  SIGNATURE
+) => {
+  const user = await User.findOne({
+    where: {
+      EmailId: email,
+      delStatus: { [Op.or]: [0, null] },
+    },
+  });
 
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const warningMessage =
-      "The data format is incorrect. Please ensure it meets the required format and try again.";
-    logWarning(warningMessage);
-    return res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
+  if (!user || user.FlagPasswordChange !== 2) {
+    return { success: false, message: "Invalid link" };
   }
 
-  try {
-    const { email, signature, password } = req.body;
-    const SIGNATURE = process.env.SIGNATURE;
-
-    const result = await resetPasswordService(
-      email,
-      signature,
-      password,
-      SIGNATURE
-    );
-
-    if (result.success) {
-      logInfo(result.message);
-      return res
-        .status(200)
-        .json({ success: true, data: {}, message: result.message });
-    } else {
-      logWarning(result.message);
-      return res
-        .status(200)
-        .json({ success: false, data: {}, message: result.message });
-    }
-  } catch (err) {
-    logError(err);
-    return res.status(500).json({
-      success: false,
-      data: err,
-      message: "Something went wrong please try again",
-    });
+  if (signature !== SIGNATURE) {
+    return { success: false, message: "This link is not valid" };
   }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  await user.update({
+    Password: hashedPassword,
+    AuthLstEdt: user.Name,
+    editOnDt: new Date(),
+    FlagPasswordChange: 1,
+  });
+
+  return { success: true, message: "Password Reset successfully" };
 };
 
 export const deleteUser = async (userId, adminName) => {
@@ -702,4 +690,93 @@ export const sendContactEmailService = async (name, email, message) => {
   await mailSender(email, `Thank you for contacting us, ${name}`, userHtml);
 
   return { success: true, message: "Your message has been sent successfully" };
+};
+
+export const passwordRecovery = async (email) => {
+  try {
+    const user = await User.findOne({
+      where: { EmailId: email, delStatus: 0 },
+      attributes: ["UserID", "EmailId", "Name"],
+    });
+
+    if (!user) {
+      logWarning(`Password recovery failed: User not found for ${email}`);
+      return {
+        status: 200,
+        response: {
+          success: false,
+          message: "User not found",
+          data: {},
+        },
+      };
+    }
+
+    // Encrypt only the email, signature stays as is
+    const encryptedEmail = await encrypt(email);
+
+    // Update FlagPasswordChange to 2
+    await user.update({
+      FlagPasswordChange: 2,
+      AuthLstEdt: "Server",
+      editOnDt: new Date(),
+    });
+
+    const registrationLink = `${BASE_LINK}ResetPassword?email=${encryptedEmail}&signature=${SIGNATURE}`;
+
+    const message = `Hello ${user.Name},
+
+We received a request to reset the password for your DGX Community account. Please click the link below to create a new password:
+
+Reset your password: ${registrationLink}
+
+If you did not request a password reset, please disregard this email. Your account remains secure.
+
+Thank you,
+The DGX Community Team`;
+
+    const htmlContent = `<!DOCTYPE html>
+      <html>
+      <body>
+        <p>Hello ${user.Name},</p>
+        <p>We received a request to reset the password for your DGX Community account. Please click the button below to create a new password:</p>
+        <p><a href="${registrationLink}" style="padding:10px 15px;background-color:#2b6cb0;color:white;text-decoration:none;border-radius:5px;">Reset Your Password</a></p>
+        <p>If you did not request a password reset, you can safely ignore this message. Your account remains secure.</p>
+        <p>Thank you,<br>The DGX Community Team</p>
+      </body>
+      </html>`;
+
+    const mailsent = await mailSender(email, message, htmlContent);
+
+    if (mailsent.success) {
+      logInfo(`Password reset link sent successfully to ${email}`);
+      return {
+        status: 200,
+        response: {
+          success: true,
+          message: "Mail sent successfully",
+          data: { registrationLink },
+        },
+      };
+    } else {
+      logError(new Error("Mail isn't sent successfully"));
+      return {
+        status: 200,
+        response: {
+          success: false,
+          message: "Mail isn't sent successfully",
+          data: {},
+        },
+      };
+    }
+  } catch (error) {
+    logError(error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        message: "Something went wrong, please try again",
+        data: {},
+      },
+    };
+  }
 };
