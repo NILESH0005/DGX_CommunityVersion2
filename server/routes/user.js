@@ -56,11 +56,16 @@ router.post('/passwordrecovery', [
   body('email', 'Enter a valid email').isEmail()
 ], passwordRecovery)
 
-router.post('/resetpassword', [
-  body('email', 'Enter a valid email').isEmail(),
-  body('signature', 'New Password can not be blank').exists(),
-  body('password', 'New Password can not be blank').exists()
-], resetPassword)
+router.post(
+  "/resetpassword",
+  [
+    body("email", "Enter a valid email").isEmail(),
+    body("signature", "Signature is required").exists(),
+    body("password", "New Password can not be blank").exists(),
+  ],
+  resetPassword
+);
+
 router.post('/deleteUser', fetchUser, deleteUser)
 router.post('/addUser', addUser)
 
