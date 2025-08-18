@@ -4,6 +4,8 @@ import { generatePassword, referCodeGenerator } from "../utility/index.js";
 import { mailSender } from "../helper/index.js";
 import { logWarning, logInfo, logError } from "../helper/index.js";
 import jwt from "jsonwebtoken";
+import { Op } from "sequelize"; // ✅ direct import
+import { encrypt } from "../utility/encrypt.js"; 
 
 const User = db.User;
 const JWT_SECRET = process.env.JWTSECRET;
@@ -376,24 +378,26 @@ export const getAllUsersService = async () => {
         "isAdmin",
         "delStatus",
       ],
-      where: {
-        [db.Sequelize.Op.or]: [{ delStatus: null }, { delStatus: 0 }],
-      },
+      // where: {
+      //   [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+      // },
     });
 
     if (users.length > 0) {
-      const infoMessage = "User data retrieved";
-      logInfo(infoMessage);
+      logInfo("User data retrieved");
       return {
         status: 200,
-        response: { success: true, data: users, message: infoMessage },
+        response: {
+          success: true,
+          data: users,
+          message: "User data retrieved",
+        },
       };
     } else {
-      const warningMessage = "No users found";
-      logWarning(warningMessage);
+      logWarning("No users found");
       return {
         status: 404,
-        response: { success: false, data: {}, message: warningMessage },
+        response: { success: false, data: {}, message: "No users found" },
       };
     }
   } catch (error) {
@@ -433,4 +437,269 @@ export const deleteUserService = async (userId) => {
       response: { success: false, message: "Error deleting user" },
     };
   }
+};
+
+export const sendInviteService = async (userEmail, inviteeEmail) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+      },
+      attributes: ["ReferalNumber"],
+    });
+
+    if (!user) {
+      logWarning("User not found");
+      return {
+        status: 404,
+        response: { success: false, message: "User not found" },
+      };
+    }
+
+    const baseLink = process.env.RegistrationLink;
+    const emailEnc = await encrypt(inviteeEmail);
+    const refercodeEnc = await encrypt(user.ReferalNumber);
+
+    const registrationLink = `${baseLink}Register?email=${emailEnc}&refercode=${refercodeEnc}`;
+
+    const plainTextMessage = `Welcome to the DGX Community!
+
+We’re thrilled to have you join us. To complete your registration, click the link below:
+
+${registrationLink}
+
+If you did not sign up, ignore this email.
+
+- The DGX Community Team`;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <style>
+              .button {
+                  display: inline-block;
+                  padding: 10px 20px;
+                  background-color: #28a745;
+                  color: white;
+                  text-decoration: none;
+                  border-radius: 5px;
+                  font-size: 16px;
+              }
+              .footer {
+                  font-size: 12px;
+                  color: #777;
+                  margin-top: 20px;
+              }
+          </style>
+      </head>
+      <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+          <p>Welcome to the DGX Community!</p>
+          <p>We’re thrilled to have you join us. To complete your registration, click below:</p>
+          <p><a href="${registrationLink}" class="button">Complete Your Registration</a></p>
+          <p>If you did not sign up, you can safely disregard this email.</p>
+          <p>Thank you,<br>The DGX Community Team</p>
+          <div class="footer">
+              <p>This is an automated message. Please do not reply directly to this email.</p>
+          </div>
+      </body>
+      </html>
+    `;
+
+    const mailSent = await mailSender(
+      inviteeEmail,
+      plainTextMessage,
+      htmlContent
+    );
+
+    if (mailSent.success) {
+      logInfo(`Invite link sent successfully to ${inviteeEmail}`);
+      return {
+        status: 200,
+        response: {
+          success: true,
+          data: { registrationLink },
+          message: "Mail sent successfully",
+        },
+      };
+    } else {
+      const errMsg = "Mail wasn't sent successfully";
+      logError(new Error(errMsg));
+      return {
+        status: 500,
+        response: { success: false, message: errMsg },
+      };
+    }
+  } catch (err) {
+    logError(err);
+    return {
+      status: 500,
+      response: { success: false, message: "Something went wrong" },
+    };
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  let success = false;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const warningMessage =
+      "The data format is incorrect. Please ensure it meets the required format and try again.";
+    logWarning(warningMessage);
+    return res
+      .status(400)
+      .json({ success, data: errors.array(), message: warningMessage });
+  }
+
+  try {
+    const { email, signature, password } = req.body;
+    const SIGNATURE = process.env.SIGNATURE;
+
+    const result = await resetPasswordService(
+      email,
+      signature,
+      password,
+      SIGNATURE
+    );
+
+    if (result.success) {
+      logInfo(result.message);
+      return res
+        .status(200)
+        .json({ success: true, data: {}, message: result.message });
+    } else {
+      logWarning(result.message);
+      return res
+        .status(200)
+        .json({ success: false, data: {}, message: result.message });
+    }
+  } catch (err) {
+    logError(err);
+    return res.status(500).json({
+      success: false,
+      data: err,
+      message: "Something went wrong please try again",
+    });
+  }
+};
+
+export const deleteUser = async (userId, adminName) => {
+  const user = await User.findOne({
+    where: {
+      UserID: userId,
+      [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+    },
+  });
+
+  if (!user) {
+    return { success: false, message: "User not found or already deleted" };
+  }
+
+  await user.update({
+    delStatus: 1,
+    delOnDt: new Date(),
+    AuthDel: adminName,
+  });
+
+  return { success: true, data: user, message: "User deleted successfully" };
+};
+
+export const addUserService = async (userData) => {
+  const { Name, EmailId, CollegeName, MobileNumber, Category, Designation } =
+    userData;
+  const referalNumberCount = Category === "F" ? 10 : 2;
+
+  // Check if email exists
+  const existing = await User.count({
+    where: {
+      EmailId,
+      [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+    },
+  });
+
+  if (existing > 0) {
+    return {
+      success: false,
+      message: "User with this email already exists",
+      data: {},
+    };
+  }
+
+  // Generate password & hash
+  const plainPassword = await generatePassword(10);
+  const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+  // Generate unique referral code
+  let referCode;
+  while (true) {
+    referCode = await referCodeGenerator(Name, EmailId, MobileNumber);
+    const codeExists = await User.count({
+      where: {
+        ReferalNumber: referCode,
+        [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+      },
+    });
+    if (codeExists === 0) break;
+  }
+
+  // Create user
+  await User.create({
+    Name,
+    EmailId,
+    CollegeName,
+    MobileNumber,
+    Category,
+    Designation,
+    ReferalNumberCount: referalNumberCount,
+    ReferalNumber: referCode,
+    Password: hashedPassword,
+    FlagPasswordChange: 0,
+    AuthAdd: Name,
+    AddOnDt: new Date(),
+    delStatus: 0,
+  });
+
+  return {
+    success: true,
+    message: "User added successfully",
+    data: { EmailId, plainPassword },
+  };
+};
+
+export const sendContactEmailService = async (name, email, message) => {
+  const adminEmail = "nilesh.thakur@giindia.com";
+
+  const emailMessage = `New Contact Form Submission:
+  
+  Name: ${name}
+  Email: ${email}
+  Message: ${message}
+  
+  Received at: ${new Date().toLocaleString()}`;
+
+  const htmlContent = `
+    <h2>New Contact Form Submission</h2>
+    <p><b>Name:</b> ${name}</p>
+    <p><b>Email:</b> ${email}</p>
+    <p><b>Message:</b><br>${message.replace(/\n/g, "<br>")}</p>
+    <p>Received at: ${new Date().toLocaleString()}</p>
+  `;
+
+  const mailSent = await mailSender(adminEmail, emailMessage, htmlContent);
+
+  if (!mailSent.success) {
+    return { success: false, message: "Failed to send email" };
+  }
+
+  // Confirmation to user
+  const userHtml = `
+    <p>Thank you for contacting us, ${name}!</p>
+    <p>We have received your message and will get back to you soon.</p>
+    <blockquote>${message.replace(/\n/g, "<br>")}</blockquote>
+  `;
+  await mailSender(email, `Thank you for contacting us, ${name}`, userHtml);
+
+  return { success: true, message: "Your message has been sent successfully" };
 };
