@@ -18,10 +18,33 @@ import {
 } from "../helper/index.js";
 import path from "path";
 import { promises as fs } from "fs";
+import { getUserDiscussionsService, getUserProfileService } from "../services/userProfileService.js";
 
 dotenv.config();
 const JWT_SECRET = process.env.JWTSECRET;
 const SIGNATURE = process.env.SIGNATURE;
+
+export const getUserProfile = async (req, res) => {
+  const { userId } = req.params; // passed in route
+
+  try {
+    const result = await getUserProfileService(userId);
+
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+
+    logInfo(result.message);
+    return res.status(200).json(result);
+  } catch (error) {
+    logError(error);
+    return res.status(500).json({
+      success: false,
+      data: {},
+      message: error.message || "Something went wrong, please try again",
+    });
+  }
+};
 
 export const profileDetail = async (req, res) => {
   let success = false;
@@ -39,13 +62,11 @@ export const profileDetail = async (req, res) => {
     connectToDatabase(async (err, conn) => {
       if (err) {
         logError(err);
-        res
-          .status(500)
-          .json({
-            success: false,
-            data: err,
-            message: "Failed to connect to database",
-          });
+        res.status(500).json({
+          success: false,
+          data: err,
+          message: "Failed to connect to database",
+        });
         return;
       }
 
@@ -91,23 +112,19 @@ export const profileDetail = async (req, res) => {
             closeConnection();
             const warningMessage = "This link is not valid";
             logWarning(warningMessage);
-            return res
-              .status(200)
-              .json({
-                success: false,
-                data: { userData },
-                message: warningMessage,
-              });
+            return res.status(200).json({
+              success: false,
+              data: { userData },
+              message: warningMessage,
+            });
           } catch (Err) {
             closeConnection();
             logError(Err);
-            res
-              .status(500)
-              .json({
-                success: false,
-                data: Err,
-                message: "Something went wrong please try again",
-              });
+            res.status(500).json({
+              success: false,
+              data: Err,
+              message: "Something went wrong please try again",
+            });
           }
         } else {
           closeConnection();
@@ -120,210 +137,53 @@ export const profileDetail = async (req, res) => {
       } catch (queryErr) {
         closeConnection();
         logError(queryErr);
-        res
-          .status(500)
-          .json({
-            success: false,
-            data: queryErr,
-            message: "Something went wrong please try again",
-          });
+        res.status(500).json({
+          success: false,
+          data: queryErr,
+          message: "Something went wrong please try again",
+        });
       }
     });
   } catch (Err) {
     closeConnection();
     logError(Err);
-    res
-      .status(500)
-      .json({
-        success: false,
-        data: Err,
-        message: "Something went wrong please try again",
-      });
+    res.status(500).json({
+      success: false,
+      data: Err,
+      message: "Something went wrong please try again",
+    });
   }
 };
 
 export const getUserDiscussion = async (req, res) => {
   let success = false;
-  const userId = req.user.id;
-  console.log(userId);
+  const userId = req.user.id || req.user.UserID; 
+  console.log("Fetched userId from JWT:", userId);
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
     logWarning(warningMessage);
-    res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
-    return;
+    return res.status(400).json({ success, data: errors.array(), message: warningMessage });
   }
 
   try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Failed to connect to database";
-        logError(err);
-        res
-          .status(500)
-          .json({ success: false, data: err, message: errorMessage });
-        return;
-      }
+    const result = await getUserDiscussionsService(userId);
 
-      try {
-        const query = `SELECT UserID, Name FROM Community_User WHERE isnull(delStatus,0) = 0 AND EmailId = ?`;
-        const rows = await queryAsync(conn, query, [userId]);
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
 
-        // Get the total count of discussions first
-        const countQuery = `SELECT COUNT(*) as totalCount FROM Community_Discussion WHERE ISNULL(delStatus, 0) = 0 AND UserID = ? AND Reference = 0`;
-        const countResult = await queryAsync(conn, countQuery, [
-          rows[0].UserID,
-        ]);
-        const totalCount = countResult[0].totalCount;
-
-        // Then get the discussions as before
-        const discussionGetQuery = `SELECT DiscussionID, UserID, AuthAdd as UserName, Title, Content, Image, Tag, ResourceUrl, AddOnDt as timestamp FROM Community_Discussion WHERE ISNULL(delStatus, 0) = 0 AND UserID = ? AND Reference = 0 ORDER BY AddOnDt DESC`;
-        const discussionGet = await queryAsync(conn, discussionGetQuery, [
-          rows[0].UserID,
-        ]);
-
-        const updatedDiscussions = [];
-
-        for (const item of discussionGet) {
-          const likeCountQuery = `SELECT DiscussionID, UserID, Likes, AuthAdd as UserName FROM Community_Discussion WHERE ISNULL(delStatus, 0) = 0 AND Likes > 0 AND Reference = ?`;
-          const likeCountResult = await queryAsync(conn, likeCountQuery, [
-            item.DiscussionID,
-          ]);
-          const commentQuery = `SELECT DiscussionID, UserID, Comment, AuthAdd as UserName, AddOnDt as timestamp FROM Community_Discussion WHERE ISNULL(delStatus, 0) = 0 AND  Comment IS NOT NULL AND Reference = ? ORDER BY AddOnDt DESC`;
-          const commentResult = await queryAsync(conn, commentQuery, [
-            item.DiscussionID,
-          ]);
-          const commentsArray = Array.isArray(commentResult)
-            ? commentResult
-            : [];
-          const commentsArrayUpdated = [];
-          let userLike = 0;
-
-          if (
-            likeCountResult.some(
-              (likeItem) =>
-                likeItem.UserID === rows[0].UserID && likeItem.Likes === 1
-            )
-          ) {
-            userLike = 1;
-          }
-
-          if (commentsArray.length > 0) {
-            for (const comment of commentsArray) {
-              const commentsArrayUpdatedSecond = [];
-
-              const likeCountQuery = `SELECT DiscussionID, UserID, Likes, AuthAdd as UserName FROM Community_Discussion WHERE ISNULL(delStatus, 0) = 0 AND Likes > 0 AND Reference = ?`;
-              const likeCountResult = await queryAsync(conn, likeCountQuery, [
-                comment.DiscussionID,
-              ]);
-              const likeCount =
-                likeCountResult.length > 0 ? likeCountResult.length : 0;
-
-              const commentQuery = `SELECT DiscussionID, UserID, Comment, AuthAdd as UserName, AddOnDt as timestamp FROM Community_Discussion WHERE ISNULL(delStatus, 0) = 0 AND  Comment IS NOT NULL AND Reference = ? ORDER BY AddOnDt DESC`;
-              const commentResult = await queryAsync(conn, commentQuery, [
-                comment.DiscussionID,
-              ]);
-              const secondLevelCommentsArray = Array.isArray(commentResult)
-                ? commentResult
-                : [];
-
-              let secondLevelUserLike = 0;
-              if (
-                likeCountResult.some(
-                  (likeItem) =>
-                    likeItem.UserID === rows[0].UserID && likeItem.Likes === 1
-                )
-              ) {
-                secondLevelUserLike = 1;
-              }
-
-              if (secondLevelCommentsArray.length > 0) {
-                for (const secondLevelComment of secondLevelCommentsArray) {
-                  const secondLevelLikeCountQuery = `SELECT DiscussionID, UserID, Likes, AuthAdd as UserName, AddOnDt as timestamp FROM Community_Discussion WHERE ISNULL(delStatus, 0) = 0 AND Likes > 0 AND Reference = ?`;
-                  const secondLevelLikeCountResult = await queryAsync(
-                    conn,
-                    secondLevelLikeCountQuery,
-                    [secondLevelComment.DiscussionID]
-                  );
-                  const secondLevelLikeCount =
-                    secondLevelLikeCountResult.length > 0
-                      ? secondLevelLikeCountResult.length
-                      : 0;
-
-                  let secondLevelUserLike = 0;
-                  if (
-                    secondLevelLikeCountResult.some(
-                      (likeItem) =>
-                        likeItem.UserID === rows[0].UserID &&
-                        likeItem.Likes === 1
-                    )
-                  ) {
-                    secondLevelUserLike = 1;
-                  }
-
-                  commentsArrayUpdatedSecond.push({
-                    ...secondLevelComment,
-                    likeCount: secondLevelLikeCount,
-                    userLike: secondLevelUserLike,
-                  });
-                }
-              }
-
-              commentsArrayUpdated.push({
-                ...comment,
-                likeCount,
-                userLike: secondLevelUserLike,
-                comment: commentsArrayUpdatedSecond,
-              });
-            }
-          }
-
-          const likeCount =
-            likeCountResult.length > 0 ? likeCountResult.length : 0;
-          updatedDiscussions.push({
-            ...item,
-            likeCount,
-            userLike,
-            comment: commentsArrayUpdated,
-          });
-        }
-
-        success = true;
-        closeConnection();
-        const infoMessage = "Discussion Get Successfully";
-        logInfo(infoMessage);
-        res.status(200).json({
-          success,
-          data: {
-            updatedDiscussions,
-            totalCount,
-          },
-          message: infoMessage,
-        });
-      } catch (queryErr) {
-        logError(queryErr);
-        closeConnection();
-        res
-          .status(500)
-          .json({
-            success: false,
-            data: queryErr,
-            message: "Something went wrong please try again",
-          });
-      }
-    });
+    success = true;
+    logInfo(result.message);
+    return res.status(200).json(result);
   } catch (error) {
     logError(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        data: {},
-        message: "Something went wrong please try again",
-      });
+    return res.status(500).json({
+      success: false,
+      data: {},
+      message: "Something went wrong please try again",
+    });
   }
 };
 
@@ -376,24 +236,20 @@ export const deleteUserDiscussion = async (req, res) => {
         res.status(200).json({ success, message: infoMessage });
       } catch (queryErr) {
         logError(queryErr);
-        res
-          .status(500)
-          .json({
-            success: false,
-            message: "Something went wrong, please try again",
-          });
+        res.status(500).json({
+          success: false,
+          message: "Something went wrong, please try again",
+        });
       } finally {
         closeConnection(); // Always close the database connection
       }
     });
   } catch (error) {
     logError(error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Something went wrong, please try again",
-      });
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong, please try again",
+    });
   }
 };
 
@@ -572,7 +428,7 @@ export const updateUserDetails = async (req, res) => {
           WHERE EmailId = ? AND ISNULL(delStatus, 0) = 0
         `;
         const userResult = await queryAsync(conn, userCheckQuery, [userEmail]);
-        
+
         if (userResult.length === 0) {
           closeConnection(conn);
           return res.status(404).json({
@@ -600,13 +456,13 @@ export const updateUserDetails = async (req, res) => {
           MobileNumber,
           Designation,
           userResult[0].Name, // Using the existing name as AuthLstEdit
-          userEmail // Using the email as the identifier
+          userEmail, // Using the email as the identifier
         ];
 
         const result = await queryAsync(conn, updateQuery, updateParams);
 
         closeConnection(conn);
-        
+
         return res.status(200).json({
           success: true,
           message: "Profile updated successfully",
@@ -614,21 +470,20 @@ export const updateUserDetails = async (req, res) => {
             Name,
             CollegeName,
             MobileNumber,
-            Designation
-          }
+            Designation,
+          },
         });
-
       } catch (queryErr) {
         console.error("Database query error:", queryErr);
         closeConnection(conn);
-        
-        if (queryErr.code === 'ER_DUP_ENTRY') {
+
+        if (queryErr.code === "ER_DUP_ENTRY") {
           return res.status(409).json({
             success: false,
             message: "Email already exists",
           });
         }
-        
+
         return res.status(500).json({
           success: false,
           message: "Database operation failed",

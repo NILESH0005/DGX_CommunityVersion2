@@ -179,8 +179,8 @@ dotenv.config();
 //   }
 // };
 
-export const discussionpost = async (req, res) => {
-  // console.log("incoming req body", req.body);
+export const discussionPost = async (req, res) => {
+  console.log("incoming req body", req.body);
   let success = false;
   const userId = req.user.id;
 
@@ -188,164 +188,53 @@ export const discussionpost = async (req, res) => {
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
     logWarning(warningMessage);
-    res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
-    return;
+    return res.status(400).json({
+      success,
+      data: errors.array(),
+      message: warningMessage,
+    });
   }
 
   try {
-    let {
+    const {
       title,
       content,
+      image,
       likes,
       comment,
       tags,
       url,
       visibility,
       reference,
-      bannerImagePath, // This will come from the FileUploader
+      bannerImagePath,  
     } = req.body;
 
-    const threadReference = reference ?? 0;
-    title = title ?? null;
-    content = content ?? null;
-    likes = likes ?? null;
-    comment = comment ?? null;
-    tags = tags ?? null;
-    url = url ?? null;
-    visibility = visibility ?? null;
-    bannerImagePath = bannerImagePath ?? null; // Handle null case for image path
+    const postData = {
+      title: title || null,
+      content: content || null,
+      image: image || null,
+      likes: likes || null,
+      comment: comment || null,
+      tags: tags || null,
+      url: url || null,
+      visibility: visibility || null,
+      reference: reference || 0,
+      bannerImagePath: bannerImagePath || null,
+    };
 
-    // Connect to the database
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Failed to connect to database";
-        logError(err);
-        res
-          .status(500)
-          .json({ success: false, data: err, message: errorMessage });
-        return;
-      }
+    const result = await DiscussionService.createDiscussionPost(
+      userId,
+      postData
+    );
 
-      try {
-        const query = `SELECT UserID, Name FROM Community_User WHERE isnull(delStatus,0) = 0 AND EmailId = ?`;
-        const rows = await queryAsync(conn, query, [userId]);
-
-        if (rows.length > 0) {
-          // Get visibility ID from tblDDReferences
-          let visibilityId = null;
-          if (visibility) {
-            const visibilityQuery = `SELECT idCode FROM tblDDReferences WHERE ddCategory = 'Privacy' AND ddValue = ? AND ISNULL(delStatus,0) = 0`;
-            const visibilityResult = await queryAsync(conn, visibilityQuery, [
-              visibility,
-            ]);
-            if (visibilityResult.length > 0) {
-              visibilityId = visibilityResult[0].idCode;
-            }
-          }
-
-          if (likes !== null) {
-            const likeExistsQuery = `SELECT DiscussionID FROM Community_Discussion WHERE ISNULL(delStatus,0)=0 AND Reference=? AND UserID=? AND Likes IS NOT NULL;`;
-            const likeExists = await queryAsync(conn, likeExistsQuery, [
-              threadReference,
-              rows[0].UserID,
-            ]);
-            if (likeExists.length > 0) {
-              const updateLikeQuery = `UPDATE Community_Discussion SET Likes=?, AuthLstEdit=?, editOnDt=GETDATE() WHERE ISNULL(delStatus,0)=0 AND DiscussionID=?`;
-              await queryAsync(conn, updateLikeQuery, [
-                likes,
-                rows[0].Name,
-                likeExists[0].DiscussionID,
-              ]);
-              closeConnection();
-              res.status(200).json({
-                success: true,
-                data: {},
-                message: "Like Posted Successfully",
-              });
-              return;
-            }
-          }
-
-          const discussionPostQuery = `
-            INSERT INTO Community_Discussion 
-            (UserID, Title, Content, Image, Likes, Comment, Tag, Visibility, Reference, ResourceUrl, AuthAdd, AddOnDt, delStatus, DiscussionImagePath) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, ?); 
-          `;
-
-          await queryAsync(conn, discussionPostQuery, [
-            rows[0].UserID,
-            title,
-            content,
-            null, // Keeping the original Image field as null since we're using DiscussionImagePath
-            likes,
-            comment,
-            tags,
-            visibilityId, // Store the ID instead of the string
-            threadReference,
-            url,
-            rows[0].Name,
-            0,
-            bannerImagePath, // Store the relative path to the uploaded image
-          ]);
-
-          const lastInsertedIdQuery = `SELECT TOP 1 DiscussionID, Visibility FROM Community_Discussion WHERE ISNULL(delStatus,0)=0 ORDER BY DiscussionID DESC;`;
-          const lastInsertedId = await queryAsync(conn, lastInsertedIdQuery);
-
-          const lstInsertedVisibilityValue = `SELECT ddValue FROM tblDDReferences WHERE idCode=? AND ISNULL(delStatus,0)=0`;
-          const visibilityValue = await queryAsync(
-            conn,
-            lstInsertedVisibilityValue,
-            [lastInsertedId[0].Visibility]
-          );
-
-          success = true;
-          closeConnection();
-          const infoMessage = "Discussion Posted Successfully";
-          logInfo(infoMessage);
-          res.status(200).json({
-            success,
-            data: {
-              postId: lastInsertedId[0].DiscussionID,
-              visibility: {
-                value: visibilityValue[0]?.ddValue || null,
-                id: lastInsertedId[0].Visibility,
-              },
-              action:
-                likes !== null ? "like" : comment !== null ? "comment" : "post",
-              imagePath: bannerImagePath, // Return the image path to the client
-            },
-            message: infoMessage,
-          });
-          return;
-        } else {
-          closeConnection();
-          const warningMessage = "User not found login first";
-          logWarning(warningMessage);
-          res
-            .status(200)
-            .json({ success: false, data: {}, message: warningMessage });
-          return;
-        }
-      } catch (queryErr) {
-        closeConnection();
-        // console.error("Database Query Error:", queryErr);
-        logError(queryErr);
-        res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: "Something went wrong please try again",
-        });
-        return;
-      }
-    });
+    logInfo(result.message);
+    return res.status(200).json(result);
   } catch (error) {
     logError(error);
     return res.status(500).json({
       success: false,
       data: {},
-      message: "Something went wrong please try again",
+      message: error.message || "Something went wrong please try again",
     });
   }
 };

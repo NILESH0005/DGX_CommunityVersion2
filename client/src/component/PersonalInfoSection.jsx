@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 
 
 const PersonalInfoSection = ({ user, userToken, fetchData }) => {
+  console.log("userrr deetaiiilss", user)
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -18,6 +19,7 @@ const PersonalInfoSection = ({ user, userToken, fetchData }) => {
   // Initialize form data when user prop changes
   useEffect(() => {
     if (user) {
+      console.log("whooooo", user)
       setEditedData({
         Name: user.Name || "",
         MobileNumber: user.MobileNumber || "",

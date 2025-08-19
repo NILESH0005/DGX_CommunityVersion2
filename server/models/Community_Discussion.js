@@ -16,7 +16,7 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       Content: {
-        type: DataTypes.TEXT("long"), // nvarchar(MAX) → TEXT
+        type: DataTypes.TEXT("long"), 
         allowNull: true,
       },
       Image: {
@@ -37,7 +37,7 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       Visibility: {
-        type: DataTypes.STRING(50),
+        type: DataTypes.INTEGER(50),
         allowNull: true,
       },
       Reference: {

@@ -1,166 +1,109 @@
 import db from "../models/index.js";
-import { logInfo, logError, logWarning } from "../helper/index.js";
 
-const CommunityDiscussion = db.CommunityDiscussion;
-const User = db.User;
+const { User, CommunityDiscussion, TableDDReference } = db;
 
-export const getDiscussions = async (userEmail) => {
+export const createDiscussionPost = async (userId, postData) => {
   try {
-    if (!userEmail) {
-      logWarning("getDiscussions called without userEmail");
-      return {
-        status: 400,
-        response: {
-          success: false,
-          message: "userEmail is required",
-          data: {},
-        },
-      };
-    }
+    // Find user
     const user = await User.findOne({
-      where: { EmailId: userEmail, delStatus: 0 },
+      where: {
+        EmailId: userId,
+        delStatus: 0,
+      },
     });
 
     if (!user) {
-      logWarning(`User not found for email: ${userEmail}`);
-      return {
-        status: 200,
-        response: {
-          success: false,
-          message: "User not found",
-          data: {},
-        },
-      };
+      throw new Error("User not found login first");
     }
 
-    const userId = user.UserID;
-
-    // 2. Get public discussions (Reference = 0)
-    const discussions = await CommunityDiscussion.findAll({
-      where: { delStatus: 0, Reference: 0, Visibility: "Public" },
-      order: [["AddOnDt", "DESC"]],
-      include: [
-        {
-          model: User,
-          as: "user",
-          attributes: ["Name"],
+    // Handle visibility lookup if provided
+    let visibilityId = null;
+    if (postData.visibility) {
+      const visibilityRecord = await TableDDReference.findOne({
+        where: {
+          ddCategory: "Privacy",
+          ddValue: postData.visibility,
+          delStatus: 0,
         },
-      ],
+      });
+      if (visibilityRecord) {
+        visibilityId = visibilityRecord.idCode;
+      }
+    }
+
+    // Handle likes update if reference exists
+    if (postData.likes !== null && postData.reference) {
+      const existingLike = await CommunityDiscussion.findOne({
+        where: {
+          Reference: postData.reference,
+          UserID: user.UserID,
+          delStatus: 0,
+          Likes: { [Op.ne]: null },
+        },
+      });
+
+      if (existingLike) {
+        await existingLike.update({
+          Likes: postData.likes,
+          AuthLstEdit: user.Name,
+          editOnDt: new Date(),
+        });
+
+        return {
+          success: true,
+          data: {
+            postId: existingLike.DiscussionID,
+            action: "like",
+          },
+          message: "Like Posted Successfully",
+        };
+      }
+    }
+
+    // Create new discussion post
+    const newPost = await CommunityDiscussion.create({
+      UserID: user.UserID,
+      Title: postData.title || null,
+      Content: postData.content || null,
+      Image: postData.image || null,
+      Likes: postData.likes || null,
+      Comment: postData.comment || null,
+      Tag: postData.tags || null,
+      Visibility: visibilityId,
+      Reference: postData.reference || 0,
+      ResourceUrl: postData.url || null,
+      DiscussionImagePath: postData.bannerImagePath || null, 
+      AuthAdd: user.Name,
+      AddOnDt: new Date(),
+      delStatus: 0,
     });
 
-    // 3. Recursive function to fetch nested comments
-    const fetchComments = async (parentId) => {
-      const comments = await CommunityDiscussion.findAll({
-        where: {
-          Reference: parentId,
-          delStatus: 0,
-          Comment: { [db.Sequelize.Op.ne]: null },
-        },
-        order: [["AddOnDt", "DESC"]],
-        include: [
-          {
-            model: User,
-            as: "user",
-            attributes: ["Name"],
-          },
-        ],
-      });
-
-      const commentsWithNested = [];
-      for (const comment of comments) {
-        const replies = await fetchComments(comment.DiscussionID);
-
-        const likeCount = await CommunityDiscussion.count({
-          where: {
-            Reference: comment.DiscussionID,
-            Likes: { [db.Sequelize.Op.gt]: 0 },
-            delStatus: 0,
-          },
-        });
-
-        const userLike = await CommunityDiscussion.count({
-          where: {
-            Reference: comment.DiscussionID,
-            Likes: { [db.Sequelize.Op.gt]: 0 },
-            UserID: userId,
-            delStatus: 0,
-          },
-        });
-
-        commentsWithNested.push({
-          ...comment.get({ plain: true }),
-          comment: replies,
-          likeCount,
-          userLike: userLike > 0 ? 1 : 0,
-        });
-      }
-
-      return commentsWithNested;
-    };
-
-    const updatedDiscussions = [];
-    for (const discussion of discussions) {
-      const discussionPlain = discussion.get({ plain: true });
-
-      const likeCount = await CommunityDiscussion.count({
-        where: {
-          Reference: discussion.DiscussionID,
-          Likes: { [db.Sequelize.Op.gt]: 0 },
-          delStatus: 0,
-        },
-      });
-
-      const userLike = await CommunityDiscussion.count({
-        where: {
-          Reference: discussion.DiscussionID,
-          Likes: { [db.Sequelize.Op.gt]: 0 },
-          UserID: userId,
-          delStatus: 0,
-        },
-      });
-
-      const commentCount = await CommunityDiscussion.count({
-        where: {
-          Reference: discussion.DiscussionID,
-          Comment: { [db.Sequelize.Op.ne]: null },
-          delStatus: 0,
-        },
-      });
-
-      const comments = await fetchComments(discussion.DiscussionID);
-
-      updatedDiscussions.push({
-        ...discussionPlain,
-        UserName: discussion.user?.Name || null,
-        likeCount,
-        userLike: userLike > 0 ? 1 : 0,
-        commentCount,
-        comment: comments,
-        ImageUrl: discussion.DiscussionImagePath
-          ? `${process.env.BASE_URL}/${discussion.DiscussionImagePath}`
-          : null,
-      });
+    // Get visibility value if it exists
+    let visibilityValue = null;
+    if (visibilityId) {
+      const visibilityRecord = await TableDDReference.findByPk(visibilityId);
+      visibilityValue = visibilityRecord?.ddValue || null;
     }
 
-    logInfo(`Discussions fetched successfully for user: ${userEmail}`);
     return {
-      status: 200,
-      response: {
-        success: true,
-        message: "Discussions fetched successfully",
-        data: { updatedDiscussions },
+      success: true,
+      data: {
+        postId: newPost.DiscussionID,
+        visibility: {
+          value: visibilityValue,
+          id: visibilityId,
+        },
+        action:
+          postData.likes !== null
+            ? "like"
+            : postData.comment !== null
+            ? "comment"
+            : "post",
       },
+      message: "Discussion Posted Successfully",
     };
   } catch (error) {
-    console.error("getDiscussions error:", error);
-    logError(error);
-    return {
-      status: 500,
-      response: {
-        success: false,
-        message: "Something went wrong, please try again",
-        data: {},
-      },
-    };
+    console.error("Discussion Service Error:", error);
+    throw error;
   }
 };
