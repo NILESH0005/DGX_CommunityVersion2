@@ -54,6 +54,12 @@ const db = {
   LMSUserProgress,
 };
 
+Object.values(db).forEach((model) => {
+  if (model.associate) {
+    model.associate(db);
+  }
+});
+
 User.hasMany(CommunityBlog, { foreignKey: "UserID" });
 CommunityBlog.belongsTo(User, { foreignKey: "UserID" });
 

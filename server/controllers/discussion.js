@@ -206,7 +206,7 @@ export const discussionPost = async (req, res) => {
       url,
       visibility,
       reference,
-      bannerImagePath,  
+      bannerImagePath,
     } = req.body;
 
     const postData = {
@@ -240,27 +240,47 @@ export const discussionPost = async (req, res) => {
 };
 
 export const getDiscussion = async (req, res) => {
+  let success = false;
+  console.log("Request body:", req.body);
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
     logWarning(warningMessage);
-    return res.status(400).json({
-      success: false,
-      data: errors.array(),
-      message: warningMessage,
-    });
+    return res
+      .status(400)
+      .json({ success, data: errors.array(), message: warningMessage });
   }
 
   try {
-    const userEmail = req.body.user;
-    const result = await DiscussionService.getDiscussions(userEmail);
-    return res.status(result.status).json(result.response);
+    const { email } = req.body;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    }
+    const result = await DiscussionService.getPublicDiscussions(email);
+
+    if (result.success) {
+      success = true;
+      const infoMessage = "Discussions fetched successfully";
+      logInfo(infoMessage);
+      return res
+        .status(200)
+        .json({
+          success,
+          data: { updatedDiscussions: result.data },
+          message: infoMessage,
+        });
+    } else {
+      throw result.error;
+    }
   } catch (error) {
     logError(error);
     return res.status(500).json({
       success: false,
       data: {},
-      message: "Internal server error. Please try again",
+      message: "Something went wrong, please try again",
     });
   }
 };

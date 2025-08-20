@@ -8,6 +8,7 @@ import {
   logInfo,
   logWarning,
 } from "../helper/index.js";
+import { createBlogPost } from "../services/blogService.js";
 
 dotenv.config();
 
@@ -148,112 +149,30 @@ export const blogpost_bulk = async (req, res) => {
 };
 
 export const blogpost = async (req, res) => {
-  let success = false;
-  const userId = req.user.id;
-  // console.log("User ID:", userId);
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     logWarning("Data is not in the right format");
     return res.status(400).json({
-      success,
+      success: false,
       data: errors.array(),
       message: "Data is not in the right format",
     });
   }
+
   try {
-    let { title, author, content, image, category, publishedDate } = req.body;
-    title = title ?? null;
-    content = content ?? null;
-    image = image ?? null;
-    category = category ?? null;
-    author = author ?? null;
-    publishedDate = publishedDate ?? null;
+    const userEmail = req.user.id; // Assuming req.user.id is the logged-in user's EmailId
+    const blogData = req.body;
 
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError("Failed to connect to database");
-        closeConnection();
-        return res.status(500).json({
-          success: false,
-          data: err,
-          message: "Failed to connect to database",
-        });
-      }
+    const result = await createBlogPost(userEmail, blogData);
+    console.log("blog post result", result)
 
-      try {
-        // Fetch user details (including admin status)
-        const userQuery = `SELECT UserID, Name, isAdmin FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?`;
-        const userRows = await queryAsync(conn, userQuery, [userId]);
-
-        if (userRows.length > 0) {
-          const user = userRows[0];
-          const isAdmin = user.isAdmin === 1;
-
-          // Determine approval details based on admin status
-          const status = isAdmin ? "Approved" : "Pending";
-          const approvedBy = isAdmin ? user.Name : null;
-          const approvedOn = isAdmin ? new Date() : null;
-
-          // Insert blog post
-          const blogPostQuery = `
-                          INSERT INTO Community_Blog 
-                          (title, author, content, Category, image, publishedDate, AuthAdd, AddOnDt, delStatus, Status, AdminRemark, ApprovedBy, ApprovedOn, UserID) 
-                          VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE(), 0, ?, ?, ?, ?, ?);
-                      `;
-          const blogPost = await queryAsync(conn, blogPostQuery, [
-            title,
-            author,
-            content,
-            category,
-            image,
-            publishedDate,
-            user.Name,
-            status,
-            null,
-            approvedBy,
-            approvedOn,
-            user.UserID,
-          ]);
-
-          // Fetch last inserted Blog ID
-          const lastInsertedIdQuery = `SELECT TOP 1 BlogID FROM Community_Blog WHERE ISNULL(delStatus, 0) = 0 ORDER BY BlogID DESC;`;
-          const lastInsertedId = await queryAsync(conn, lastInsertedIdQuery);
-
-          success = true;
-          closeConnection();
-          logInfo("Blog posted successfully!");
-
-          return res.status(200).json({
-            success,
-            data: { postId: lastInsertedId[0].BlogID },
-            message: "Blog posted successfully!",
-          });
-        } else {
-          closeConnection();
-          logWarning("User not found, please login first.");
-          return res.status(400).json({
-            success: false,
-            data: {},
-            message: "User not found, please login first.",
-          });
-        }
-      } catch (queryErr) {
-        closeConnection();
-        logError("Database Query Error:", queryErr);
-        return res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: "Database Query Error",
-        });
-      }
-    });
-  } catch (error) {
-    logError("Unexpected Error:", error);
+    return res.status(result.status).json(result.response);
+  } catch (err) {
+    logError("Unexpected Error in blogpost controller:", err);
     return res.status(500).json({
       success: false,
-      data: error,
-      message: "Unexpected Error, check logs",
+      data: err,
+      message: "Unexpected error occurred",
     });
   }
 };
