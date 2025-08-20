@@ -17,7 +17,7 @@ const BlogManager = (props) => {
       
       const result = await fetchData(
         'blog/getBlog',
-        'POST',
+        'GET',
         {},
         { 
           'Content-Type': 'application/json',

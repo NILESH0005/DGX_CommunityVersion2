@@ -8,7 +8,12 @@ import {
   logInfo,
   logWarning,
 } from "../helper/index.js";
-import { createBlogPost } from "../services/blogService.js";
+import {
+  createBlogPost,
+  getBlogService,
+  getPublicBlogsService,
+  getUserBlogsService,
+} from "../services/blogService.js";
 
 dotenv.config();
 
@@ -164,7 +169,7 @@ export const blogpost = async (req, res) => {
     const blogData = req.body;
 
     const result = await createBlogPost(userEmail, blogData);
-    console.log("blog post result", result)
+    console.log("blog post result", result);
 
     return res.status(result.status).json(result.response);
   } catch (err) {
@@ -338,7 +343,7 @@ export const blogpost = async (req, res) => {
 
 export const getBlog = async (req, res) => {
   let success = false;
-  const userId = req.user?.id;
+  const userId = req.user?.id; // coming from auth middleware
 
   if (!userId) {
     return res.status(400).json({
@@ -349,96 +354,28 @@ export const getBlog = async (req, res) => {
   }
 
   try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        closeConnection();
-        return res.status(500).json({
-          success,
-          data: err,
-          message: "Failed to connect to database",
-        });
-      }
+    const result = await getBlogService(userId);
 
-      try {
-        const userQuery = `SELECT UserID, Name, isAdmin FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?`;
-        const userRows = await queryAsync(conn, userQuery, [userId]);
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
 
-        if (userRows.length === 0) {
-          closeConnection();
-          return res.status(404).json({
-            success,
-            data: {},
-            message: "User not found",
-          });
-        }
+    logInfo("Blogs fetched successfully");
 
-        const user = userRows[0];
-        const isAdmin = user.isAdmin === 1;
-
-        // For admins - no restrictions, show all blogs
-        // For regular users - show their own blogs + approved blogs from others
-        const visibilityCondition = isAdmin
-          ? ""
-          : `AND (UserID = ${user.UserID} OR Status = 'Approved')`;
-
-        // Get counts
-        const userBlogCountQuery = `
-          SELECT COUNT(*) AS userBlogCount 
-          FROM Community_Blog 
-          WHERE ISNULL(delStatus, 0) = 0 
-          AND UserID = ${user.UserID}
-        `;
-
-        const totalCountQuery = `
-          SELECT COUNT(*) AS totalCount 
-          FROM Community_Blog 
-          WHERE ISNULL(delStatus, 0) = 0
-          ${isAdmin ? "" : "AND Status = 'Approved'"}
-        `;
-
-        const [userCountResult, totalCountResult] = await Promise.all([
-          queryAsync(conn, userBlogCountQuery),
-          queryAsync(conn, totalCountQuery),
-        ]);
-
-        // Get blog data
-        const BlogQuery = `
-        SELECT 
-            BlogID, title, AuthAdd as UserName, author, content, 
-            Category as category, AddOnDt, AddOnDt as timestamp, 
-            image, UserID, Status, AdminRemark
-          FROM Community_Blog  
-          WHERE ISNULL(delStatus, 0) = 0 
-          ${visibilityCondition}
-          ORDER BY AddOnDt DESC;
-        `;
-
-        const BlogGet = await queryAsync(conn, BlogQuery);
-        closeConnection();
-
-        return res.status(200).json({
-          success: true,
-          data: BlogGet,
-          userBlogCount: userCountResult[0].userBlogCount,
-          message: "Blogs fetched successfully",
-        });
-      } catch (queryErr) {
-        closeConnection();
-        logError("Database Query Error:", queryErr);
-        return res.status(500).json({
-          success,
-          data: queryErr,
-          message: "Database Query Error",
-        });
-      }
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      userBlogCount: result.userBlogCount,
+      totalCount: result.totalCount,
+      message: result.message,
     });
   } catch (error) {
-    logError("Unexpected Error:", error);
+    logError(error.message || "Unknown error", error.stack);
+
+    // ✅ FIXED: Send JSON response instead of returning a plain object
     return res.status(500).json({
       success: false,
-      data: error,
-      message: "Unexpected Error, check logs",
+      message: error.message || "Something went wrong",
     });
   }
 };
@@ -619,8 +556,9 @@ export const updateBlog = async (req, res) => {
 
 export const getUserBlogs = async (req, res) => {
   let success = false;
-  const userEmail = req.user?.id;
+  const userEmail = req.user?.id; // middleware should put email in req.user.id
 
+  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
@@ -637,157 +575,50 @@ export const getUserBlogs = async (req, res) => {
   }
 
   try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Failed to connect to database";
-        logError(errorMessage, err);
-        return res
-          .status(500)
-          .json({ success: false, data: err, message: errorMessage });
-      }
+    const result = await getUserBlogsService(userEmail);
 
-      try {
-        const userQuery = `SELECT UserID FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?`;
-        const userRows = await queryAsync(conn, userQuery, [userEmail]);
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
 
-        if (userRows.length === 0) {
-          const warningMessage = "User not found";
-          logWarning(warningMessage);
-          closeConnection();
-          return res
-            .status(404)
-            .json({ success, data: {}, message: warningMessage });
-        }
+    logInfo("User's blogs fetched successfully");
 
-        const userId = userRows[0].UserID;
-        const countQuery = `
-            SELECT COUNT(*) as totalCount 
-            FROM Community_Blog 
-            WHERE ISNULL(delStatus, 0) = 0 
-              AND UserID = ? 
-              AND Status IN ('Pending', 'Rejected', 'Approved')
-          `;
-        const countResult = await queryAsync(conn, countQuery, [userId]);
-        const totalCount = countResult[0].totalCount;
-
-        // Get blog data
-        const BlogQuery = `
-            SELECT 
-              BlogID, 
-              title, 
-              AuthAdd as UserName, 
-              author, 
-              content, 
-              Category as category, 
-              publishedDate, 
-              AddOnDt as timestamp, 
-              image, 
-              UserID, 
-              Status, 
-              AdminRemark
-            FROM Community_Blog 
-            WHERE ISNULL(delStatus, 0) = 0 
-              AND UserID = ? 
-              AND Status IN ('Pending', 'Rejected', 'Approved')
-            ORDER BY AddOnDt DESC;
-          `;
-
-        const blogs = await queryAsync(conn, BlogQuery, [userId]);
-
-        success = true;
-        closeConnection();
-        const infoMessage = "User's blogs fetched successfully";
-        logInfo(infoMessage);
-
-        return res.status(200).json({
-          success,
-          data: {
-            blogs,
-            totalCount,
-          },
-          message: infoMessage,
-        });
-      } catch (queryErr) {
-        const errorMessage = "Database query error";
-        logError(errorMessage, queryErr);
-        closeConnection();
-        return res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: errorMessage,
-        });
-      }
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: result.message,
     });
   } catch (error) {
-    const errorMessage = "Unexpected error occurred";
-    logError(errorMessage, error);
+    logError(error.message || "Unknown error", error.stack);
+
     return res.status(500).json({
       success: false,
-      data: error,
-      message: errorMessage,
+      message: error.message || "Unexpected error occurred",
     });
   }
 };
 
 export const getPublicBlogs = async (req, res) => {
-  let success = false;
-
   try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        closeConnection();
-        return res.status(500).json({
-          success,
-          data: err,
-          message: "Failed to connect to database",
-        });
-      }
+    const result = await getPublicBlogsService();
 
-      try {
-        // Get only approved blogs with basic public information
-        const publicBlogQuery = `
-          SELECT 
-            BlogID, 
-            title, 
-            --author,
-			      AuthAdd,
-				  AddOnDt,
-			      Status,
-            Category as category, 
-            publishedDate, 
-			      content,
-            image
-          FROM Community_Blog 
-          WHERE ISNULL(delStatus, 0) = 0 
-          AND Status = 'Approved'
-          ORDER BY AddOnDt DESC;
-        `;
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
 
-        const publicBlogs = await queryAsync(conn, publicBlogQuery);
-        closeConnection();
+    logInfo("Public blogs fetched successfully");
 
-        return res.status(200).json({
-          success: true,
-          data: publicBlogs,
-          message: "Public blogs fetched successfully",
-        });
-      } catch (queryErr) {
-        closeConnection();
-        logError("Database Query Error:", queryErr);
-        return res.status(500).json({
-          success,
-          data: queryErr,
-          message: "Database Query Error",
-        });
-      }
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      message: result.message,
     });
   } catch (error) {
-    logError("Unexpected Error:", error);
+    logError(error.message || "Unknown error", error.stack);
+
     return res.status(500).json({
       success: false,
-      data: error,
-      message: "Unexpected Error, check logs",
+      message: error.message || "Unexpected error occurred",
     });
   }
 };

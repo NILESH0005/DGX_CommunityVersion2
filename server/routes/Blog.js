@@ -8,9 +8,9 @@ const router = express.Router();
 
 router.post('/blogpost', fetchUser, blogpost)
 router.post('/blogpost_bulk', fetchUser, blogpost_bulk)
-router.post('/getBlog', fetchUser, getBlog)
+router.get('/getBlog', fetchUser, getBlog)
 router.get('/getPublicBlogs', getPublicBlogs)
-router.post('/getUserBlogs', fetchUser, getUserBlogs)
+router.get('/getUserBlogs', fetchUser, getUserBlogs)
 router.post('/updateBlog/:blogId', fetchUser, updateBlog);
 
 
