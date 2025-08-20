@@ -1,7 +1,7 @@
 import express from "express";
 // import { fetchUser } from '../middleware/fetchUser.js';
 import { fetchUser } from '../middleware/fetchUser.js';
-import { profileDetail, getUserDiscussion, deleteUserDiscussion, uploadUserAvatar, updateUserDetails } from "../controllers/userProfile.js";
+import { profileDetail, getUserDiscussion, deleteUserDiscussion, uploadUserAvatar, updateUserDetails, getUserProfile   } from "../controllers/userProfile.js";
 
 const router = express.Router();
 
@@ -10,5 +10,7 @@ router.post('/getUserDiscussion', fetchUser, getUserDiscussion)
 router.post('/deleteUserDiscussion', fetchUser, deleteUserDiscussion)
 router.post('/updateProfilePicture', fetchUser, uploadUserAvatar)
 router.post('/updateUserDetails', fetchUser, updateUserDetails);
+router.get("/profile/:userId", getUserProfile);
+
 
 export default router;

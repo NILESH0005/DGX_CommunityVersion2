@@ -54,5 +54,12 @@ const db = {
   LMSUserProgress,
 };
 
+User.hasMany(CommunityBlog, { foreignKey: "UserID" });
+CommunityBlog.belongsTo(User, { foreignKey: "UserID" });
+
+// User ↔ Discussion
+User.hasMany(CommunityDiscussion, { foreignKey: "UserID" });
+CommunityDiscussion.belongsTo(User, { foreignKey: "UserID" });
+
 export default db;
 export { sequelize };
