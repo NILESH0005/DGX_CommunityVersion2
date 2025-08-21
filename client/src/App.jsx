@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { Routes, Route } from "react-router-dom";
 import Home from "./container/Home.jsx";
 import Navbar from "./component/Navbar.jsx";
@@ -112,6 +112,8 @@ import UnitsWithFiles from "./component/LMS Manager/UnitsWithFiles.jsx";
 import ProfilePage from "./component/ProfilePage.jsx";
 import ModuleOrder from "./Admin/Components/LMS/EditableComponents/ModuleOrder.jsx";
 import { pdfjs } from "react-pdf";
+import { useEffect } from "react";
+import ApiContext from "./context/ApiContext.jsx";
 
 // Use CDN to load the worker (best option with Vite)
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -119,6 +121,50 @@ pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pd
 function App() {
   const [blogs, setBlogs] = useState([]);
   const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const { user, userToken, fetchData, setUserToken } = useContext(ApiContext);
+
+  const fetchEventData = async () => {
+    try {
+      setLoading(true);
+      const endpoint = "eventandworkshop/getEvent";
+      const method = "GET";
+      const headers = {
+        "Content-Type": "application/json",
+        "auth-token": userToken || "", // Handle case where userToken is null
+      };
+
+      console.log("Fetching events with token:", userToken);
+
+      const eventData = await fetchData(endpoint, method, {}, headers);
+      console.log("Full API response:", eventData);
+
+      // Check different possible response structures
+      if (eventData && eventData.success) {
+        // Try different possible data properties
+        const eventsData =
+          eventData.data || eventData.events || eventData.result || [];
+        console.log("Events data extracted:", eventsData);
+        setEvents(eventsData);
+      } else {
+        console.error("Failed to fetch events - no success:", eventData);
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Only fetch events if we have a user token
+    if (userToken) {
+      fetchEventData();
+    } else {
+      console.log("No user token, skipping events fetch");
+    }
+  }, [userToken]); // Run when userToken changes
 
   return (
     <>
@@ -144,8 +190,8 @@ function App() {
                 <UserProfile
                   blogs={blogs}
                   setBlogs={setBlogs}
-                  events={events}
-                  setEvents={setEvents}
+                  events={events} // ← PASSING EVENTS DATA
+                  setEvents={setEvents} // ← PASSING SETTER FUNCTION
                 />
               }
             />
@@ -226,7 +272,6 @@ function App() {
             {/* LMS */}
             <Route path="/Lms" element={<Lms />} />
             <Route path="/ModuleOrder" element={<ModuleOrder />} />
-
 
             <Route path="/teaching-modules" element={<TeachingModules />} />
             <Route path="/edge-ai-robotics-kit" element={<AiRoboticsKit />} />
@@ -354,7 +399,7 @@ function App() {
               path="/submodule/:subModuleId"
               element={<UnitsWithFiles />}
             />
-{/* 
+            {/* 
             <Route path="/module/:moduleId" element={<SubModuleCard />} />
             <Route
               path="/submodule/:subModuleId"

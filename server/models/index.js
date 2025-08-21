@@ -69,5 +69,8 @@ CommunityBlog.belongsTo(User, { foreignKey: "UserID" });
 User.hasMany(CommunityDiscussion, { foreignKey: "UserID" });
 CommunityDiscussion.belongsTo(User, { foreignKey: "UserID" });
 
+CommunityEvents.belongsTo(TableDDReference, { foreignKey: "EventType", targetKey: "idCode", as: "EventTypeRef" });
+CommunityEvents.belongsTo(TableDDReference, { foreignKey: "Category", targetKey: "idCode", as: "CategoryRef" });
+
 export default db;
 export { sequelize };

@@ -56,8 +56,8 @@ const Discussion = () => {
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
     const newImageUrl = `${baseUploadsUrl}/${filePath}`;
 
-    setSelectedImage(newImageUrl); 
-    setBannerFilePath(filePath); 
+    setSelectedImage(newImageUrl);
+    setBannerFilePath(filePath);
   };
 
   const handleAddLink = () => {
@@ -120,6 +120,8 @@ const Discussion = () => {
     );
     return sortedDiscussions.slice(0, 5);
   };
+
+  const BASE_URL = import.meta.env.VITE_API_UPLOADSURL
 
   const getTopUsersByDiscussions = (discussions) => {
     const userMap = {};
@@ -230,63 +232,7 @@ const Discussion = () => {
       setFilteredDiscussions(filtered);
     }
   };
-
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = {
-      title: "",
-      content: "",
-      tags: "",
-      links: "",
-      privacy: "",
-    };
-
-    if (!title.trim()) {
-      newErrors.title = "Title is required";
-      valid = false;
-    } else if (title.length > 100) {
-      newErrors.title = "Title must be less than 100 characters";
-      valid = false;
-    }
-
-    if (!content.trim() || content === "<p><br></p>") {
-      newErrors.content = "Content is required";
-      valid = false;
-    } else if (content.length > 5000) {
-      newErrors.content = "Content must be less than 5000 characters";
-      valid = false;
-    }
-
-    if (tags.length === 0) {
-      newErrors.tags = "At least one tag is required";
-      valid = false;
-    } else if (tags.length > 5) {
-      newErrors.tags = "Maximum 5 tags allowed";
-      valid = false;
-    }
-
-    // if (links.length === 0) {
-    //   newErrors.links = "At least one link is required";
-    //   valid = false;
-    // } else {
-    const urlRegex =
-      /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-    const invalidLinks = links.filter((link) => !urlRegex.test(link));
-    if (invalidLinks.length > 0) {
-      newErrors.links = "Please enter valid URLs (e.g., https://example.com)";
-      valid = false;
-    }
-    // }
-
-    if (!privacy) {
-      newErrors.privacy = "Please select a privacy option";
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
+  
   const validateTitle = () => {
     if (!title.trim()) {
       setErrors((prev) => ({ ...prev, title: "Title is required" }));
@@ -373,6 +319,7 @@ const Discussion = () => {
 
         setLoading(true);
         const result = await fetchData(endpoint, method, body, headers);
+        console.log("ressssss", result);
 
         if (result?.data?.updatedDiscussions) {
           const discussionsWithComments = result.data.updatedDiscussions.map(
@@ -381,6 +328,9 @@ const Discussion = () => {
               userLike: discussion.userLike || 0,
               likeCount: discussion.likeCount || 0,
               commentCount: discussion.commentCount || 0, // Use commentCount from backend
+              ImageUrl: discussion.DiscussionImagePath
+                ? `${BASE_URL}/${discussion.DiscussionImagePath}`
+                : discussion.Image || null,
             })
           );
 
@@ -733,8 +683,6 @@ const Discussion = () => {
       });
     }
   };
-
-  
 
   const handleModalClose = () => {
     setModalIsOpen(false);
