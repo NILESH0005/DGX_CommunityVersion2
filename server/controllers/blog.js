@@ -13,6 +13,7 @@ import {
   getBlogService,
   getPublicBlogsService,
   getUserBlogsService,
+  updateBlogService,
 } from "../services/blogService.js";
 
 dotenv.config();
@@ -381,172 +382,23 @@ export const getBlog = async (req, res) => {
 };
 
 export const updateBlog = async (req, res) => {
-  let success = false;
-  const userId = req.user.id;
-  // console.log("user ID:", userId);
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const warningMessage = "Data is not in the right format";
-    logWarning(warningMessage);
-    res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
-    return;
+    return res.status(400).json({
+      success: false,
+      data: errors.array(),
+      message: "Data is not in the right format",
+    });
   }
 
   try {
-    let {
-      title,
-      author,
-      content,
-      publishedDate,
-      category,
-      image,
-      Status,
-      remark,
-    } = req.body;
-
     const blogId = req.params.blogId;
+    const result = await updateBlogService(blogId, req.user, req.body);
 
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        res.status(500).json({
-          success: false,
-          data: err,
-          message: "Failed to connect to database",
-        });
-        return;
-      }
-
-      try {
-        const checkBlogQuery = `
-              SELECT BlogID, AuthAdd 
-              FROM Community_Blog
-              WHERE BlogID = ? AND isnull(delStatus, 0) = 0;
-            `;
-        const blogRows = await queryAsync(conn, checkBlogQuery, [blogId]);
-
-        if (blogRows.length === 0) {
-          logWarning("Blog not found");
-          closeConnection();
-          res
-            .status(404)
-            .json({ success: false, data: {}, message: "Blog not found" });
-          return;
-        }
-
-        if (req.user.isAdmin !== 1) {
-          logWarning("You are not authorized to perform this action");
-          closeConnection();
-          res.status(403).json({
-            success: false,
-            data: {},
-            message: "You are not authorized",
-          });
-          return;
-        }
-
-        if (Status === "approve" && Status === "Approved") {
-          logWarning("Blog is already approved");
-          closeConnection();
-          res.status(400).json({
-            success: false,
-            data: {},
-            message: "Blog is already approved",
-          });
-          return;
-        }
-
-        if (Status === "reject" && Status === "Rejected") {
-          logWarning("Blog is already rejected");
-          res.status(400).json({
-            success: false,
-            data: {},
-            message: "Blog is already rejected",
-          });
-          return;
-        }
-
-        let query;
-        let queryParams;
-
-        switch (Status) {
-          case "approve":
-            query = `
-                  UPDATE Community_Blog 
-                  SET Status = 'Approved', ApprovedBy = ?, ApprovedOn = GETDATE(), AuthLstEdit = ?, editOnDt = GETDATE() 
-                  WHERE BlogID = ?;
-                `;
-            queryParams = [userId, userId, blogId];
-            break;
-
-          case "reject":
-            if (!remark || typeof remark !== "string") remark = "";
-
-            query = `
-                  UPDATE Community_Blog 
-                  SET Status = 'Rejected', AdminRemark = ?, AuthLstEdit = ?, editOnDt = GETDATE() 
-                  WHERE BlogID = ?;
-                `;
-            queryParams = [String(remark), userId, blogId];
-            break;
-
-          case "delete":
-            query = `
-                  UPDATE Community_Blog 
-                  SET delStatus = 1, AuthLstEdit = ?, delOnDt = GETDATE() 
-                  WHERE BlogID = ?;
-                `;
-            queryParams = [userId, blogId];
-            break;
-
-          default:
-            query = `
-                  UPDATE Community_Blog 
-                  SET title = ?, author = ?, content = ?, publishedDate = ?, Category = ?, image = ?, 
-                      AuthLstEdit = ?, editOnDt = GETDATE() 
-                  WHERE BlogID = ?;
-                `;
-            queryParams = [
-              title,
-              author,
-              content,
-              publishedDate,
-              category,
-              image,
-              userId,
-              blogId,
-            ];
-            break;
-        }
-
-        await queryAsync(conn, query, queryParams);
-        success = true;
-        closeConnection();
-
-        const infoMessage = `Blog ${
-          Status ? Status + "d" : "updated"
-        } successfully!`;
-        logInfo(infoMessage);
-
-        res
-          .status(200)
-          .json({ success, data: { blogId }, message: infoMessage });
-      } catch (queryErr) {
-        closeConnection();
-        logError(`Error updating blog ${blogId} : ${queryErr.message}`);
-        res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: "Something went wrong, please try again",
-        });
-      }
-    });
+    return res.status(result.status).json(result);
   } catch (error) {
-    logError(error);
-    res.status(500).json({
+    console.error("Error in updateBlog controller:", error);
+    return res.status(500).json({
       success: false,
       data: {},
       message: "Something went wrong, please try again",

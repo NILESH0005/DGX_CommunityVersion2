@@ -364,7 +364,7 @@ const Discussion = () => {
   useEffect(() => {
     const fetchDiscussionData = async (userEmail) => {
       try {
-        const body = userEmail ? { user: userEmail } : { user: null };
+        const body = userEmail ? { email: userEmail } : { email: null };
         const endpoint = "discussion/getdiscussion";
         const method = "POST";
         const headers = {
@@ -408,46 +408,6 @@ const Discussion = () => {
       fetchDiscussionData(null);
     }
   }, [user, userToken, fetchData]);
-
-  const searchDiscussion = useCallback(
-    async (searchTerm, userId) => {
-      try {
-        const body = { searchTerm, userId };
-        const endpoint = "discussion/searchdiscussion";
-        const method = "POST";
-        const headers = {
-          "Content-Type": "application/json",
-        };
-
-        setLoading(true);
-        const result = await fetchData(endpoint, method, body, headers);
-
-        if (result && result.data && result.data.updatedDiscussions) {
-          setDemoDiscussions(result.data.updatedDiscussions);
-          setFilteredDiscussions(result.data.updatedDiscussions);
-        } else {
-          if (result && result.message) {
-            Swal.fire({
-              icon: "error",
-              title: "No discussions found",
-              text: result.message,
-            });
-          }
-        }
-        setLoading(false);
-      } catch (error) {
-        setLoading(false);
-        if (error.message && !error.message.includes("Invalid data format")) {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: `Something went wrong: ${error.message}`,
-          });
-        }
-      }
-    },
-    [fetchData]
-  );
 
   const handleAddLike = async (id, currentUserLike) => {
     if (!userToken) {
@@ -774,12 +734,7 @@ const Discussion = () => {
     }
   };
 
-  const handleKeyDown = async (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      await searchDiscussion(searchQuery, user?.EmailId || null);
-    }
-  };
+  
 
   const handleModalClose = () => {
     setModalIsOpen(false);

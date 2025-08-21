@@ -218,3 +218,90 @@ export const getPublicBlogsService = async () => {
     message: "Public blogs fetched successfully",
   };
 };
+
+export const updateBlogService = async (blogId, user, data) => {
+  const { CommunityBlog } = db;
+
+  // Check blog existence
+  const blog = await CommunityBlog.findOne({
+    where: { BlogID: blogId, delStatus: 0 },
+  });
+  if (!blog) {
+    return { success: false, status: 404, message: "Blog not found" };
+  }
+
+  // Check admin rights
+  if (user.isAdmin !== 1) {
+    return { success: false, status: 403, message: "You are not authorized" };
+  }
+
+  let updateData = {};
+  const now = new Date();
+
+  switch (data.Status) {
+    case "approve":
+      if (blog.Status === "Approved") {
+        return {
+          success: false,
+          status: 400,
+          message: "Blog is already approved",
+        };
+      }
+      updateData = {
+        Status: "Approved",
+        ApprovedBy: user.id,
+        ApprovedOn: now,
+        AuthLstEdit: user.id,
+        editOnDt: now,
+      };
+      break;
+
+    case "reject":
+      if (blog.Status === "Rejected") {
+        return {
+          success: false,
+          status: 400,
+          message: "Blog is already rejected",
+        };
+      }
+      updateData = {
+        Status: "Rejected",
+        AdminRemark: data.remark || "",
+        AuthLstEdit: user.id,
+        editOnDt: now,
+      };
+      break;
+
+    case "delete":
+      updateData = {
+        delStatus: 1,
+        AuthLstEdit: user.id,
+        delOnDt: now,
+      };
+      break;
+
+    default:
+      updateData = {
+        title: data.title,
+        author: data.author,
+        content: data.content,
+        publishedDate: data.publishedDate,
+        Category: data.category,
+        image: data.image,
+        AuthLstEdit: user.id,
+        editOnDt: now,
+      };
+      break;
+  }
+
+  await CommunityBlog.update(updateData, { where: { BlogID: blogId } });
+
+  return {
+    success: true,
+    status: 200,
+    message: `Blog ${
+      data.Status ? data.Status + "d" : "updated"
+    } successfully!`,
+    data: { blogId },
+  };
+};

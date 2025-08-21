@@ -60,6 +60,8 @@ Object.values(db).forEach((model) => {
   }
 });
 
+
+
 User.hasMany(CommunityBlog, { foreignKey: "UserID" });
 CommunityBlog.belongsTo(User, { foreignKey: "UserID" });
 
