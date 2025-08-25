@@ -1,5 +1,10 @@
 import { useState, useEffect, useContext } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  AnimatePresence,
+} from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faShare,
@@ -8,7 +13,14 @@ import {
   faClock,
   faUserTie,
 } from "@fortawesome/free-solid-svg-icons";
-import { ChevronDown, Shield, Users, Zap, Flag, ArrowRight } from "lucide-react";
+import {
+  ChevronDown,
+  Shield,
+  Users,
+  Zap,
+  Flag,
+  ArrowRight,
+} from "lucide-react";
 import ApiContext from "../context/ApiContext.jsx";
 import { momentLocalizer } from "react-big-calendar";
 import moment from "moment-timezone";
@@ -24,26 +36,34 @@ const ParticleBackground = () => {
           key={i}
           className="absolute w-1 h-1 bg-white/20 rounded-full"
           initial={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0),
-            opacity: 0
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
+            opacity: 0,
           }}
           animate={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0),
-            opacity: [0, 0.5, 0]
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
+            opacity: [0, 0.5, 0],
           }}
           transition={{
             duration: Math.random() * 15 + 10,
             repeat: Infinity,
             repeatType: "reverse",
-            delay: Math.random() * 5
+            delay: Math.random() * 5,
           }}
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
 const FloatingOrbs = () => {
   return (
@@ -53,15 +73,23 @@ const FloatingOrbs = () => {
           key={i}
           className="absolute w-32 h-32 rounded-full blur-xl"
           style={{
-            background: `rgba(${i % 2 ? '16, 185, 129' : '29, 78, 216'}, 0.1)`
+            background: `rgba(${i % 2 ? "16, 185, 129" : "29, 78, 216"}, 0.1)`,
           }}
           initial={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0),
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
           }}
           animate={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0),
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
           }}
           transition={{
             duration: Math.random() * 30 + 20,
@@ -71,8 +99,8 @@ const FloatingOrbs = () => {
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
 const EventDetailsModal = ({ event, isOpen, onClose }) => {
   if (!isOpen || !event || event.Status !== "Approved") return null;
@@ -99,7 +127,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
           >
             <div className="flex justify-between items-center mb-6">
-              <motion.h2 
+              <motion.h2
                 className="text-3xl font-bold text-white"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -117,7 +145,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
               </motion.button>
             </div>
 
-            <motion.div 
+            <motion.div
               className="bg-white bg-opacity-90 rounded-lg p-6 space-y-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -146,13 +174,13 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                   <p className="text-gray-600 italic">{event.Category}</p>
                 </motion.div>
 
-                <motion.div 
+                <motion.div
                   className="grid grid-cols-1 md:grid-cols-2 gap-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.6, staggerChildren: 0.1 }}
                 >
-                  <motion.div 
+                  <motion.div
                     className="flex items-start"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -164,13 +192,15 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                     <div>
                       <p className="font-semibold">Date & Time</p>
                       <p>
-                        {moment.utc(event.StartDate).format("MMMM D, YYYY h:mm A")}{" "}
+                        {moment
+                          .utc(event.StartDate)
+                          .format("MMMM D, YYYY h:mm A")}{" "}
                         - {moment.utc(event.EndDate).format("h:mm A")}
                       </p>
                     </div>
                   </motion.div>
 
-                  <motion.div 
+                  <motion.div
                     className="flex items-start"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -185,7 +215,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                     </div>
                   </motion.div>
 
-                  <motion.div 
+                  <motion.div
                     className="flex items-start"
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -201,7 +231,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                   </motion.div>
 
                   {event.RegistrationLink && (
-                    <motion.div 
+                    <motion.div
                       className="flex items-start"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -245,13 +275,13 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
   );
 };
 
-const EventWorkshopPage = () => {
+const EventWorkshopPage = ({ events, setEvents }) => {
+  console.log("user side events", events);
   const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
   const headerY = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const [isLoading, setIsLoading] = useState(true);
   const { fetchData, userToken } = useContext(ApiContext);
-  const [dbevents, setDbvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -261,6 +291,7 @@ const EventWorkshopPage = () => {
   }, []);
 
   const handleMoreInfoClick = (event) => {
+    // Fixed parameter name from events to event
     if (!userToken) {
       Swal.fire({
         icon: "warning",
@@ -344,43 +375,53 @@ const EventWorkshopPage = () => {
   };
 
   useEffect(() => {
-    const fetchEventData = async () => {
-      try {
-        const endpoint = "eventandworkshop/getEvent";
-        const eventData = await fetchData(endpoint);
-        console.log("user evee", eventData)
-        const approvedEvents = eventData.data.filter(
-          (event) => event.Status === "Approved"
-        );
-        setDbvents(approvedEvents);
-        setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-      }
-    };
+    if (events && events.length > 0) {
+      setIsLoading(false);
+    } else {
+      // If no events are passed via props, fetch them directly
+      const fetchEventsDirectly = async () => {
+        try {
+          const endpoint = "eventandworkshop/getEvent";
+          const eventData = await fetchData(endpoint);
+          console.log("Directly fetched events:", eventData);
+          if (eventData && eventData.data) {
+            setEvents(eventData.data); // Update parent state
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error("Error fetching events:", error);
+          setIsLoading(false);
+        }
+      };
 
-    fetchEventData();
-  }, [fetchData]);
+      fetchEventsDirectly();
+    }
+  }, [events, fetchData, setEvents]);
+
+  const approvedEvents = events
+    ? events.filter((event) => event.Status === "Approved")
+    : [];
 
   const currentDate = new Date().toISOString();
-  const upcomingEvents = dbevents.filter(
+  const upcomingEvents = approvedEvents.filter(
     (event) => event.StartDate > currentDate
   );
-  const pastEvents = dbevents.filter((event) => event.EndDate < currentDate);
+  const pastEvents = approvedEvents.filter(
+    (event) => event.EndDate < currentDate
+  );
 
   if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header Section */}
-      <motion.section 
+      <motion.section
         style={{ y: headerY }}
         className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-20 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
-
       >
         <ParticleBackground />
         <FloatingOrbs />
-        
+
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -388,7 +429,7 @@ const EventWorkshopPage = () => {
             transition={{ duration: 0.8 }}
           >
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-              DGX Events & 
+              DGX Events &
               <span className="block text-green-300">Workshops</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto leading-relaxed">
@@ -396,7 +437,7 @@ const EventWorkshopPage = () => {
             </p>
           </motion.div>
         </div>
-        
+
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
@@ -412,8 +453,6 @@ const EventWorkshopPage = () => {
         </div>
       </motion.section>
 
-     
-
       {/* Upcoming Events Section */}
       <section className="py-20 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
@@ -425,7 +464,9 @@ const EventWorkshopPage = () => {
             className="text-center mb-16"
           >
             <div className="inline-flex items-center justify-center px-4 py-2 bg-green-100 rounded-full mb-4">
-              <span className="text-sm font-medium text-green-700">Coming Soon</span>
+              <span className="text-sm font-medium text-green-700">
+                Coming Soon
+              </span>
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
               Upcoming Events
@@ -434,9 +475,9 @@ const EventWorkshopPage = () => {
               Mark your calendar for these exciting learning opportunities
             </p>
           </motion.div>
-          
+
           {isLoading ? (
-            <motion.div 
+            <motion.div
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -447,10 +488,10 @@ const EventWorkshopPage = () => {
                   className="bg-white rounded-xl shadow-md overflow-hidden"
                   initial={{ opacity: 0.5 }}
                   animate={{ opacity: 1 }}
-                  transition={{ 
-                    repeat: Infinity, 
+                  transition={{
+                    repeat: Infinity,
                     repeatType: "reverse",
-                    duration: 1.5
+                    duration: 1.5,
                   }}
                 >
                   <div className="h-48 bg-gray-200"></div>
@@ -464,7 +505,7 @@ const EventWorkshopPage = () => {
               ))}
             </motion.div>
           ) : upcomingEvents.length > 0 ? (
-            <motion.div 
+            <motion.div
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -489,7 +530,7 @@ const EventWorkshopPage = () => {
                         whileHover={{ scale: 1.05 }}
                         transition={{ duration: 0.3 }}
                       />
-                      <motion.div 
+                      <motion.div
                         className="absolute top-2 right-2 bg-DGXgreen text-white text-xs font-bold px-2 py-1 rounded"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -518,7 +559,7 @@ const EventWorkshopPage = () => {
                         />
                         <span>{event.Venue}</span>
                       </div>
-                      <motion.div 
+                      <motion.div
                         className="flex justify-between space-x-3"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -538,7 +579,7 @@ const EventWorkshopPage = () => {
                 ))}
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               className="text-center py-12 bg-white rounded-xl shadow-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -554,7 +595,7 @@ const EventWorkshopPage = () => {
       </section>
 
       {/* Calendar Section */}
-      <motion.section 
+      <motion.section
         className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white rounded-xl shadow-sm mb-12"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -564,7 +605,7 @@ const EventWorkshopPage = () => {
           <h2 className="text-3xl font-bold text-DGXblue mb-4">
             Event Calendar
           </h2>
-          <motion.div 
+          <motion.div
             className="w-24 h-1 bg-DGXgreen mx-auto"
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
@@ -579,25 +620,25 @@ const EventWorkshopPage = () => {
             Browse all our events in an interactive calendar
           </motion.p>
         </div>
-        <GeneralUserCalendar events={dbevents} />
+        <GeneralUserCalendar events={events} />
       </motion.section>
 
       {/* Past Events Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <motion.div 
+        <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
         >
           <h2 className="text-3xl font-bold text-DGXblue mb-4">Past Events</h2>
-          <motion.div 
+          <motion.div
             className="w-24 h-1 bg-DGXgreen mx-auto"
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.8 }}
           />
-          <motion.p 
+          <motion.p
             className="mt-4 text-gray-600 max-w-2xl mx-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -607,7 +648,7 @@ const EventWorkshopPage = () => {
           </motion.p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           className="space-y-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -643,7 +684,7 @@ const EventWorkshopPage = () => {
                           {event.Category}
                         </p>
                       </div>
-                      <motion.span 
+                      <motion.span
                         className="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -653,7 +694,7 @@ const EventWorkshopPage = () => {
                       </motion.span>
                     </div>
 
-                    <motion.div 
+                    <motion.div
                       className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -684,7 +725,7 @@ const EventWorkshopPage = () => {
                       </div>
                     </motion.div>
 
-                    <motion.div 
+                    <motion.div
                       className="mt-4 line-clamp-3 text-gray-600"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -714,7 +755,7 @@ const EventWorkshopPage = () => {
               </motion.div>
             ))
           ) : (
-            <motion.div 
+            <motion.div
               className="text-center py-12 bg-white rounded-xl shadow-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
