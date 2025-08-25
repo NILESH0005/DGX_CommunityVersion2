@@ -348,6 +348,7 @@ const EventWorkshopPage = () => {
       try {
         const endpoint = "eventandworkshop/getEvent";
         const eventData = await fetchData(endpoint);
+        console.log("user evee", eventData)
         const approvedEvents = eventData.data.filter(
           (event) => event.Status === "Approved"
         );

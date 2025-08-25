@@ -6,6 +6,7 @@ import { MdTableChart } from "react-icons/md";
 import { FaCalendarAlt } from "react-icons/fa";
 
 const Events = (props) => {
+  console.log("admin events", props.events)
   const { fetchData } = useContext(ApiContext);
   const [showTable, setShowTable] = useState(() => {
     return sessionStorage.getItem("showTable") === "true";

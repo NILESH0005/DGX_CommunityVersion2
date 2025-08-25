@@ -38,6 +38,7 @@ export const getUserProfileService = async (userId) => {
             "AuthAdd",
             "Likes",
             "Comment",
+            "Tag",
           ],
           where: { delStatus: 0 },
           required: false,
@@ -55,6 +56,7 @@ export const getUserProfileService = async (userId) => {
       Content: disc.Content,
       DiscussionImagePath: disc.DiscussionImagePath,
       AuthAdd: disc.AuthAdd,
+      Tag: disc.Tag,
       LikesCount: disc.Likes || 0,
       CommentsCount: disc.Comment ? disc.Comment.split(",").length : 0, // assuming stored as text
     }));

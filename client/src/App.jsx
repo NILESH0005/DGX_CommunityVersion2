@@ -211,7 +211,7 @@ function App() {
             <Route path="/Survey" element={<Survey />} />
             <Route path="/ConfirmationModal" element={<ConfirmationModal />} />
             {/* <Route path='/MyStoryboard' element={<MyStoryboard />} /> */}
-            <Route path="/EventWorkshopPage" element={<EventWorkshopPage />} />
+            <Route path="/EventWorkshopPage" element={<EventWorkshopPage  events={events} setEvents={setEvents} />} />
             <Route
               path="/EventRegistrationPage"
               element={<EventRegistrationPage />}
