@@ -35,6 +35,7 @@ export default (sequelize, DataTypes) => {
       Tag: {
         type: DataTypes.TEXT("long"),
         allowNull: true,
+        field: "Tag",
       },
       Visibility: {
         type: DataTypes.INTEGER(50),
