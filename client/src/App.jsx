@@ -114,6 +114,7 @@ import ModuleOrder from "./Admin/Components/LMS/EditableComponents/ModuleOrder.j
 import { pdfjs } from "react-pdf";
 import { useEffect } from "react";
 import ApiContext from "./context/ApiContext.jsx";
+import UserDetails from "../src/container/UserDetails.jsx";
 
 // Use CDN to load the worker (best option with Vite)
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -182,7 +183,7 @@ function App() {
             <Route path="/SignInn" element={<SignInn />} />
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
             <Route path="/ChangePassword" element={<ChangePassword />} />
-
+            <Route path="UserDetails" element={<UserDetails/>}/>
             {/* User Profile  */}
             <Route
               path="/UserProfile"
