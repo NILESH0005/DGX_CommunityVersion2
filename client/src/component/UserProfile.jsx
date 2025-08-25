@@ -313,23 +313,6 @@ const UserProfile = (props) => {
               <ul className="space-y-2">
                 <div
                   className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "profile"
-                      ? "bg-DGXgreen/40"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => setActiveTab("profile")}
-                >
-                  <CgProfile className="mr-3 text-lg md:text-xl" />
-                  <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "profile" ? "text-DGXblue font-bold" : ""
-                    }`}
-                  >
-                    My Profile
-                  </li>
-                </div>
-                <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
                     activeTab === "posts"
                       ? "bg-DGXgreen/40"
                       : "hover:bg-gray-100"

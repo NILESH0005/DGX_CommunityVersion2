@@ -1,21 +1,11 @@
 import { useState, useEffect } from "react";
 import {
-  Heart,
-  MessageCircle,
-  Share2,
   Calendar,
-  Eye,
   Grid3X3,
   List,
   Search,
-  Moon,
-  Sun,
-  UserPlus,
-  Mail,
-  MapPin,
   Link as LinkIcon,
   Bookmark,
-  TrendingUp,
   Clock,
 } from "lucide-react";
 
@@ -24,10 +14,6 @@ const profileData = {
   name: "Nilesh Thakur",
   username: "@nilesh",
   bio: "Full-stack developer passionate about creating beautiful, functional web experiences. Coffee enthusiast ☕",
-  location: "Noida Sector - 62 , India",
-  website: "DGXCommunity.com ",
-  //   followers: 2847,
-  //   following: 892,
   joinDate: "March 2021",
   avatar: "../../public/No Image.webp",
 };
@@ -39,10 +25,6 @@ const mockBlogs = [
     excerpt:
       "Learn the best practices for creating maintainable React apps that can grow with your team.",
     date: "2024-01-15",
-   
-    views: 1200,
-    readTime: "8 min read",
-    tags: ["React", "JavaScript", "Architecture"],
     image: "/placeholder.svg?height=200&width=300&text=React+Blog",
   },
   {
@@ -51,11 +33,6 @@ const mockBlogs = [
     excerpt:
       "Exploring emerging trends and technologies that will shape the next decade of web development.",
     date: "2024-01-10",
-    likes: 189,
-    comments: 32,
-    views: 890,
-    readTime: "12 min read",
-    tags: ["Web Development", "Trends", "Future"],
     image: "/placeholder.svg?height=200&width=300&text=Future+Web",
   },
   {
@@ -64,11 +41,6 @@ const mockBlogs = [
     excerpt:
       "A comprehensive guide to modern CSS layout techniques with practical examples.",
     date: "2024-01-05",
-    likes: 156,
-    comments: 28,
-    views: 750,
-    readTime: "6 min read",
-    tags: ["CSS", "Layout", "Design"],
     image: "/placeholder.svg?height=200&width=300&text=CSS+Guide",
   },
 ];
@@ -79,30 +51,18 @@ const mockPosts = [
     content:
       "Just shipped a new feature that reduces load time by 40%! The key was implementing proper code splitting and lazy loading. #webperf",
     date: "2024-01-16",
-    likes: 89,
-    comments: 12,
-    shares: 5,
-    tags: ["Performance", "WebDev"],
   },
   {
     id: 2,
     content:
       "Working on an exciting new project using Next.js 14 and the new App Router. The developer experience is incredible! 🚀",
     date: "2024-01-14",
-    likes: 67,
-    comments: 8,
-    shares: 3,
-    tags: ["Next.js", "React"],
   },
   {
     id: 3,
     content:
       "Hot take: The best way to learn a new technology is to build something you actually want to use. What's your latest side project?",
     date: "2024-01-12",
-    likes: 145,
-    comments: 23,
-    shares: 8,
-    tags: ["Learning", "SideProjects"],
   },
 ];
 
@@ -260,47 +220,11 @@ export default function MyProfile() {
 
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {profileData.location}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <LinkIcon className="w-4 h-4" />
-                        {profileData.website}
-                      </div>
-                      <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
                         Joined {profileData.joinDate}
                       </div>
                     </div>
                   </div>
-
-                  {/* <div className="flex flex-col gap-3">
-                    <div className="flex gap-3">
-                      <button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-4 py-2 rounded-lg flex items-center">
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Follow
-                      </button>
-                      <button className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 flex items-center">
-                        <Mail className="w-4 h-4 mr-2" />
-                        Message
-                      </button>
-                    </div>
-
-                     <div className="flex gap-6 text-center">
-                      <div>
-                        <div className="font-bold text-lg text-gray-900 dark:text-white">
-                          {profileData.followers.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Followers</div>
-                      </div>
-                      <div>
-                        <div className="font-bold text-lg text-gray-900 dark:text-white">
-                          {profileData.following.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Following</div>
-                      </div>
-                    </div> 
-                  </div> */}
                 </div>
               </div>
             </div>
@@ -491,7 +415,7 @@ function ContentCard({
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
           )}
-          <div className="p-6 pb-3">
+          <div className="p-6">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300 line-clamp-2">
                 {item.title}
@@ -503,36 +427,8 @@ function ContentCard({
             <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 mt-2">
               {item.excerpt}
             </p>
-          </div>
-          <div className="px-6 pt-0">
-            <div className="flex flex-wrap gap-1 mb-3">
-              {item.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="px-6 pt-0 pb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center gap-1">
-                <Heart className="w-4 h-4" />
-                {item.likes}
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageCircle className="w-4 h-4" />
-                {item.comments}
-              </div>
-              <div className="flex items-center gap-1">
-                <Eye className="w-4 h-4" />
-                {item.views}
-              </div>
-            </div>
-            <div className="text-xs text-gray-400 dark:text-gray-500">
-              {item.readTime}
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-4">
+              {new Date(item.date).toLocaleDateString()}
             </div>
           </div>
         </>
@@ -540,36 +436,10 @@ function ContentCard({
 
       {type === "posts" && (
         <>
-          <div className="p-6 pt-6">
+          <div className="p-6">
             <p className="text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">
               {item.content}
             </p>
-            <div className="flex flex-wrap gap-1 mb-4">
-              {item.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs border border-gray-200 dark:border-gray-700 px-2 py-1 rounded-full"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="px-6 pb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button className="text-gray-500 hover:text-red-500 transition-colors duration-300 flex items-center text-sm">
-                <Heart className="w-4 h-4 mr-1" />
-                {item.likes}
-              </button>
-              <button className="text-gray-500 hover:text-blue-500 transition-colors duration-300 flex items-center text-sm">
-                <MessageCircle className="w-4 h-4 mr-1" />
-                {item.comments}
-              </button>
-              <button className="text-gray-500 hover:text-green-500 transition-colors duration-300 flex items-center text-sm">
-                <Share2 className="w-4 h-4 mr-1" />
-                {item.shares}
-              </button>
-            </div>
             <div className="text-xs text-gray-400 dark:text-gray-500">
               {new Date(item.date).toLocaleDateString()}
             </div>
@@ -594,14 +464,8 @@ function ContentCard({
           </div>
           <div className="px-6 pb-6 flex items-center justify-between">
             <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center gap-1">
-                <TrendingUp className="w-4 h-4" />
-                {item.stars}
-              </div>
-              <div className="flex items-center gap-1">
-                <Share2 className="w-4 h-4" />
-                {item.forks}
-              </div>
+              <div className="flex items-center gap-1">{item.stars}</div>
+              <div className="flex items-center gap-1">{item.forks}</div>
             </div>
             <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
               <Clock className="w-3 h-3" />
