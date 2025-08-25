@@ -16,7 +16,7 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       Content: {
-        type: DataTypes.TEXT("long"), 
+        type: DataTypes.TEXT("long"),
         allowNull: true,
       },
       Image: {
@@ -86,6 +86,13 @@ export default (sequelize, DataTypes) => {
       timestamps: false, // since you already have date fields
     }
   );
+  CommunityDiscussion.associate = (models) => {
+    CommunityDiscussion.belongsTo(models.TableDDReference, {
+      foreignKey: "Visibility",
+      targetKey: "idCode",
+      as: "visibilityRef",
+    });
+  };
 
   return CommunityDiscussion;
 };

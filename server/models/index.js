@@ -54,12 +54,23 @@ const db = {
   LMSUserProgress,
 };
 
+Object.values(db).forEach((model) => {
+  if (model.associate) {
+    model.associate(db);
+  }
+});
+
+
+
 User.hasMany(CommunityBlog, { foreignKey: "UserID" });
 CommunityBlog.belongsTo(User, { foreignKey: "UserID" });
 
 // User ↔ Discussion
 User.hasMany(CommunityDiscussion, { foreignKey: "UserID" });
 CommunityDiscussion.belongsTo(User, { foreignKey: "UserID" });
+
+CommunityEvents.belongsTo(TableDDReference, { foreignKey: "EventType", targetKey: "idCode", as: "EventTypeRef" });
+CommunityEvents.belongsTo(TableDDReference, { foreignKey: "Category", targetKey: "idCode", as: "CategoryRef" });
 
 export default db;
 export { sequelize };

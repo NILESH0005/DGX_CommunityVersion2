@@ -31,6 +31,7 @@ import EditDiscussionModal from "./EditDiscussionModal.jsx";
 import PersonalInfoSection from "./PersonalInfoSection";
 
 const UserProfile = (props) => {
+  console.log("what is in props", props.events)
   const [activeTab, setActiveTab] = useState("posts");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -39,6 +40,7 @@ const UserProfile = (props) => {
   const [backgroundImage, setBackgroundImage] = useState(
     images.NvidiaBackground
   );
+  const BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
   const [userDisscussions, setUserDisscussion] = useState([]);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedDiscussion, setSelectedDiscussion] = useState([]);
@@ -48,9 +50,12 @@ const UserProfile = (props) => {
 
   useEffect(() => {
     if (user?.ProfilePicture) {
+      // Add base URL to profile picture path
+      const fullProfilePictureUrl = `${BASE_URL}/${user.ProfilePicture}`;
+
       const fetchProfileImage = async () => {
         try {
-          const response = await fetch(user.ProfilePicture);
+          const response = await fetch(fullProfilePictureUrl);
           if (response.ok) {
             const blob = await response.blob();
             setProfileImage(URL.createObjectURL(blob));
@@ -93,7 +98,9 @@ const UserProfile = (props) => {
         content: updatedDiscussion.Content,
         tags: updatedDiscussion.Tag || "",
         url: updatedDiscussion.ResourceUrl || "",
-        image: updatedDiscussion.Image || null,
+        image: updatedDiscussion.Image
+          ? `${BASE_URL}${updatedDiscussion.Image}`
+          : null,
         visibility: updatedDiscussion.Visibility || "public",
       };
 
@@ -185,7 +192,7 @@ const UserProfile = (props) => {
           setLoading(true);
           fetchData(endpoint, method, body, headers)
             .then((result) => {
-              console.log("Raw API response:", result);
+              console.log("Raw API responseee:", result);
               if (result && result.data) {
                 return result.data;
               } else {
@@ -195,7 +202,15 @@ const UserProfile = (props) => {
             .then((data) => {
               console.log("Parsed data:", data);
               setLoading(false);
-              setUserDisscussion(data.updatedDiscussions);
+              const discussionsWithFullUrls = data.updatedDiscussions.map(
+                (discussion) => ({
+                  ...discussion,
+                  Image: discussion.Image
+                    ? `${BASE_URL}/${discussion.Image}`
+                    : null,
+                })
+              );
+              setUserDisscussion(discussionsWithFullUrls);
             })
             .catch((error) => {
               setLoading(false);

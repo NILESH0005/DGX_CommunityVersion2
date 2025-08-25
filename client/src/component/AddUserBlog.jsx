@@ -32,7 +32,7 @@ const AddUserBlog = (props) => {
   useEffect(() => {
     const fetchBlogs = async () => {
       const endpoint = "blog/getUserBlogs";
-      const method = "POST";
+      const method = "GET";
       const headers = {
         'Content-Type': 'application/json',
         'auth-token': userToken // Add auth token

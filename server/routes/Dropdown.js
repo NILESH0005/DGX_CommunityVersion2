@@ -9,8 +9,8 @@ router.get('/getQuestionGroupDropdown', getQuestionGroupDropdown);
 router.get('/getQuizDropdown', getQuizDropdown);
 router.get('/getModules', getModules);
 router.get('/getSubModules', getSubModules);
-router.get('/getModuleById', getModuleById);  // For single module by ID
-router.get('/getUnitsWithFiles/:subModuleId', getUnitsWithFiles); // Changed to accept parameter
+router.get('/getModuleById', getModuleById); 
+router.get('/getUnitsWithFiles/:subModuleId', getUnitsWithFiles); 
 
 
 

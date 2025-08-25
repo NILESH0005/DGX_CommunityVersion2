@@ -8,6 +8,8 @@ import { FaReply } from "react-icons/fa";
 import DOMPurify from "dompurify";
 import { motion, AnimatePresence } from "framer-motion";
 
+const BASE_URL = "http://localhost:5000";
+
 const DiscussionModal = ({
   isOpen,
   onRequestClose,
@@ -21,14 +23,35 @@ const DiscussionModal = ({
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeReplyIndex, setActiveReplyIndex] = useState(null);
-  const [activeTab, setActiveTab] = useState("content"); // 'content' or 'comments'
+  const [activeTab, setActiveTab] = useState("content");
+  const [discussionImageUrl, setDiscussionImageUrl] = useState("");
 
-  // Initialize with discussion comments when modal opens
   useEffect(() => {
     if (isOpen) {
       setComments(discussion.comment || []);
     }
   }, [isOpen, discussion.comment]);
+
+  useEffect(() => {
+    if (discussion?.Image) {
+      // Check if the image already has a full URL
+      if (discussion.Image.startsWith("http")) {
+        setDiscussionImageUrl(discussion.Image);
+      } else {
+        // Add base URL to the image path
+        setDiscussionImageUrl(`${BASE_URL}/${discussion.Image}`);
+      }
+    } else if (discussion?.DiscussionImagePath) {
+      // Handle DiscussionImagePath if it exists
+      if (discussion.DiscussionImagePath.startsWith("http")) {
+        setDiscussionImageUrl(discussion.DiscussionImagePath);
+      } else {
+        setDiscussionImageUrl(`${BASE_URL}/${discussion.DiscussionImagePath}`);
+      }
+    } else {
+      setDiscussionImageUrl("");
+    }
+  }, [discussion]);
 
   const handleAuthCheck = () => {
     if (!userToken) {
@@ -120,8 +143,6 @@ const DiscussionModal = ({
 
       // const newCommentCount = (discussion.commentCount || 0) + 1;
       const newCommentCount = updatedComments.length;
-
-      // Update parent state with both count and comments
       if (updateCommentCount) {
         updateCommentCount(
           discussion.DiscussionID,
@@ -192,7 +213,11 @@ const DiscussionModal = ({
 
       const countTotalComments = (comments) => {
         return comments.reduce((total, comment) => {
-          return total + 1 + (comment.comment ? countTotalComments(comment.comment) : 0);
+          return (
+            total +
+            1 +
+            (comment.comment ? countTotalComments(comment.comment) : 0)
+          );
         }, 0);
       };
 
@@ -286,7 +311,7 @@ const DiscussionModal = ({
             {isReplying && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
+                animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 className="mt-2"
               >
@@ -391,14 +416,22 @@ const DiscussionModal = ({
           {/* Mobile Tabs */}
           <div className="md:hidden flex border-b border-gray-200">
             <button
-              className={`flex-1 py-2 text-sm font-medium ${activeTab === 'content' ? 'text-DGXblue border-b-2 border-DGXblue' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('content')}
+              className={`flex-1 py-2 text-sm font-medium ${
+                activeTab === "content"
+                  ? "text-DGXblue border-b-2 border-DGXblue"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setActiveTab("content")}
             >
               Discussion
             </button>
             <button
-              className={`flex-1 py-2 text-sm font-medium ${activeTab === 'comments' ? 'text-DGXblue border-b-2 border-DGXblue' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('comments')}
+              className={`flex-1 py-2 text-sm font-medium ${
+                activeTab === "comments"
+                  ? "text-DGXblue border-b-2 border-DGXblue"
+                  : "text-gray-500"
+              }`}
+              onClick={() => setActiveTab("comments")}
             >
               Comments ({comments.length})
             </button>
@@ -407,19 +440,29 @@ const DiscussionModal = ({
           {/* Main Content */}
           <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
             {/* Discussion Content - Hidden on mobile when comments tab is active */}
-            <div className={`${activeTab === 'content' ? 'block' : 'hidden'} md:block md:w-1/2 p-4 sm:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-gray-200`}>
-              {discussion.DiscussionImagePath && (
+            <div
+              className={`${
+                activeTab === "content" ? "block" : "hidden"
+              } md:block md:w-1/2 p-4 sm:p-6 overflow-y-auto border-b md:border-b-0 md:border-r border-gray-200`}
+            >
+              {discussionImageUrl && (
                 <div className="mb-4 sm:mb-6 rounded-lg overflow-hidden">
                   <img
-                    src={discussion.ImageUrl}
+                    src={discussionImageUrl}
                     alt="Post"
                     className="w-full h-auto max-h-64 sm:max-h-96 object-contain mx-auto"
+                    onError={(e) => {
+                      // If image fails to load, hide the image container
+                      e.target.style.display = "none";
+                      e.target.parentElement.style.display = "none";
+                    }}
                   />
                 </div>
               )}
-
               <div className="mb-4 sm:mb-6">
-                <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">{discussion.Title}</h2>
+                <h2 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-4">
+                  {discussion.Title}
+                </h2>
                 <div
                   className="ql-snow discussion-content text-sm sm:text-base"
                   dangerouslySetInnerHTML={{
@@ -436,30 +479,34 @@ const DiscussionModal = ({
                   <div className="flex flex-wrap gap-1 sm:gap-2">
                     {typeof discussion.Tag === "string"
                       ? discussion.Tag.split(",")
-                        .filter((tag) => tag.trim())
-                        .map((tag, index) => (
+                          .filter((tag) => tag.trim())
+                          .map((tag, index) => (
+                            <span
+                              key={index}
+                              className="bg-DGXgreen text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs"
+                            >
+                              {tag.trim()}
+                            </span>
+                          ))
+                      : discussion.Tag.map((tag, index) => (
                           <span
                             key={index}
                             className="bg-DGXgreen text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs"
                           >
-                            {tag.trim()}
+                            {tag}
                           </span>
-                        ))
-                      : discussion.Tag.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="bg-DGXgreen text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs"
-                        >
-                          {tag}
-                        </span>
-                      ))}
+                        ))}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Comments Section - Hidden on mobile when content tab is active */}
-            <div className={`${activeTab === 'comments' ? 'block' : 'hidden'} md:block md:w-1/2 flex flex-col`}>
+            <div
+              className={`${
+                activeTab === "comments" ? "block" : "hidden"
+              } md:block md:w-1/2 flex flex-col`}
+            >
               {/* Comment Input */}
               <div className="p-3 sm:p-4 border-b border-gray-200">
                 <div className="flex space-x-2">
@@ -493,9 +540,9 @@ const DiscussionModal = ({
               <div
                 className="flex-1 overflow-y-auto p-3 sm:p-4 hide-scrollbar"
                 style={{
-                  maxHeight: '60vh',
-                  scrollbarWidth: 'none',      // Firefox
-                  msOverflowStyle: 'none',     // IE/Edge
+                  maxHeight: "60vh",
+                  scrollbarWidth: "none", // Firefox
+                  msOverflowStyle: "none", // IE/Edge
                 }}
               >
                 <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-4">

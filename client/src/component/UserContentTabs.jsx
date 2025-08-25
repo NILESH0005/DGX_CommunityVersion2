@@ -4,6 +4,7 @@ import AddUserEvent from "./AddUserEvent.jsx";
 import AddUserBlog from "./AddUserBlog.jsx";
 import UserQuiz from "./UserQuiz.jsx";
 import ChangePassword from "./ChangePassword.jsx";
+import MyProfile from "./MyProfile.jsx";
 
 const UserContentTabs = ({
   activeTab,
@@ -19,14 +20,21 @@ const UserContentTabs = ({
   setQuiz,
   userBlogCount, 
   setDiscussionToEdit,          
-  setEditModalIsOpen
+  setEditModalIsOpen,
+  user,
+  profileImage
 }) => {
   const handleEditDiscussion = (discussion) => {
     setDiscussionToEdit(discussion);
     setEditModalIsOpen(true);
   };
+
   return (
     <div className="w-full bg-white rounded-xl shadow-lg mx-auto p-4 sm:p-6">
+      {activeTab === "profile" && (
+        <MyProfile user={user} profileImage={profileImage} />
+      )}
+
       {activeTab === "posts" && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3 sm:gap-0">
@@ -147,7 +155,6 @@ const UserContentTabs = ({
 
       {activeTab === "password" && (
         <div className="space-y-6">
-          
           <ChangePassword />
         </div>
       )}
