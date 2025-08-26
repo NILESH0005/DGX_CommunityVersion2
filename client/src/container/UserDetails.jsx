@@ -1,18 +1,27 @@
 import { useState, useEffect } from "react";
 import {
+  Heart,
+  MessageCircle,
+  Share2,
   Calendar,
+  Eye,
   Grid3X3,
   List,
   Search,
+  Moon,
+  Sun,
+  UserPlus,
+  Mail,
+  MapPin,
   Link as LinkIcon,
   Bookmark,
+  TrendingUp,
   Clock,
 } from "lucide-react";
 
 // Mock data
 const profileData = {
   name: "Nilesh Thakur",
-  username: "@nilesh",
   bio: "Full-stack developer passionate about creating beautiful, functional web experiences. Coffee enthusiast ☕",
   joinDate: "March 2021",
   avatar: "../../public/No Image.webp",
@@ -48,21 +57,36 @@ const mockBlogs = [
 const mockPosts = [
   {
     id: 1,
+    title: "Performance Optimization Success",
     content:
       "Just shipped a new feature that reduces load time by 40%! The key was implementing proper code splitting and lazy loading. #webperf",
     date: "2024-01-16",
+    likes: 89,
+    comments: 12,
+    image: "/placeholder.svg?height=200&width=300&text=Performance",
+    tags: ["Performance", "WebDev", "Optimization"],
   },
   {
     id: 2,
+    title: "Next.js 14 Experience",
     content:
       "Working on an exciting new project using Next.js 14 and the new App Router. The developer experience is incredible! 🚀",
     date: "2024-01-14",
+    likes: 67,
+    comments: 8,
+    image: "/placeholder.svg?height=200&width=300&text=NextJS",
+    tags: ["Next.js", "React", "Frontend"],
   },
   {
     id: 3,
+    title: "Learning Through Projects",
     content:
       "Hot take: The best way to learn a new technology is to build something you actually want to use. What's your latest side project?",
     date: "2024-01-12",
+    likes: 145,
+    comments: 23,
+    image: "/placeholder.svg?height=200&width=300&text=Learning",
+    tags: ["Learning", "SideProjects", "Development"],
   },
 ];
 
@@ -107,6 +131,7 @@ export default function MyProfile() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [likedPosts, setLikedPosts] = useState({});
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 2000);
@@ -120,6 +145,13 @@ export default function MyProfile() {
       document.documentElement.classList.remove("dark");
     }
   }, [isDarkMode]);
+
+  const handleLike = (postId) => {
+    setLikedPosts((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
+  };
 
   const filteredContent = () => {
     let content =
@@ -336,6 +368,8 @@ export default function MyProfile() {
               type="posts"
               hoveredCard={hoveredCard}
               setHoveredCard={setHoveredCard}
+              likedPosts={likedPosts}
+              handleLike={handleLike}
             />
           )}
           {activeTab === "modules" && (
@@ -353,7 +387,15 @@ export default function MyProfile() {
   );
 }
 
-function ContentGrid({ content, viewMode, type, hoveredCard, setHoveredCard }) {
+function ContentGrid({
+  content,
+  viewMode,
+  type,
+  hoveredCard,
+  setHoveredCard,
+  likedPosts,
+  handleLike,
+}) {
   if (content.length === 0) {
     return <EmptyState type={type} />;
   }
@@ -376,6 +418,8 @@ function ContentGrid({ content, viewMode, type, hoveredCard, setHoveredCard }) {
           onHover={() => setHoveredCard(item.id)}
           onLeave={() => setHoveredCard(null)}
           index={index}
+          isLiked={likedPosts ? likedPosts[item.id] : false}
+          onLike={handleLike ? () => handleLike(item.id) : null}
         />
       ))}
     </div>
@@ -390,6 +434,8 @@ function ContentCard({
   onHover,
   onLeave,
   index,
+  isLiked,
+  onLike,
 }) {
   return (
     <div
@@ -436,12 +482,65 @@ function ContentCard({
 
       {type === "posts" && (
         <>
+          {viewMode === "grid" && item.image && (
+            <div className="relative overflow-hidden rounded-t-lg">
+              <img
+                src={item.image || "/placeholder.svg"}
+                alt={item.title}
+                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </div>
+          )}
           <div className="p-6">
-            <p className="text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300 line-clamp-2">
+                {item.title}
+              </h3>
+              <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                <Bookmark className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mt-2 mb-4">
               {item.content}
             </p>
-            <div className="text-xs text-gray-400 dark:text-gray-500">
-              {new Date(item.date).toLocaleDateString()}
+
+            {item.tags && item.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-4">
+                {item.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={onLike}
+                  className={`flex items-center text-sm transition-colors duration-300 ${
+                    isLiked
+                      ? "text-red-500"
+                      : "text-gray-500 hover:text-red-500"
+                  }`}
+                >
+                  <Heart
+                    className={`w-4 h-4 mr-1 ${isLiked ? "fill-current" : ""}`}
+                  />
+                  {item.likes}
+                </button>
+                <button className="text-gray-500 hover:text-blue-500 transition-colors duration-300 flex items-center text-sm">
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                  {item.comments}
+                </button>
+              </div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">
+                {new Date(item.date).toLocaleDateString()}
+              </div>
             </div>
           </div>
         </>
@@ -519,7 +618,6 @@ function EmptyState({ type }) {
   const emptyMessages = {
     blogs: "No blogs found",
     posts: "No posts yet",
-    modules: "No modules available",
   };
 
   return (

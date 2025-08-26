@@ -183,7 +183,7 @@ function App() {
             <Route path="/SignInn" element={<SignInn />} />
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
             <Route path="/ChangePassword" element={<ChangePassword />} />
-            <Route path="UserDetails" element={<UserDetails/>}/>
+            <Route path="/UserDetails" element={<UserDetails/>}/>
             {/* User Profile  */}
             <Route
               path="/UserProfile"
@@ -400,12 +400,6 @@ function App() {
               path="/submodule/:subModuleId"
               element={<UnitsWithFiles />}
             />
-            {/* 
-            <Route path="/module/:moduleId" element={<SubModuleCard />} />
-            <Route
-              path="/submodule/:subModuleId"
-              element={<UnitsWithFiles />}
-            /> */}
           </Routes>
         </div>
         <Footer />

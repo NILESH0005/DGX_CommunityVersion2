@@ -538,7 +538,6 @@ If you did not sign up, ignore this email.
     };
   }
 };
-
 export const resetPasswordService = async (
   email,
   signature,
