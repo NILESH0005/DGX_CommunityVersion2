@@ -5,6 +5,15 @@ import Swal from "sweetalert2";
 import ApiContext from "../../context/ApiContext";
 import { compressImage } from "../../utils/compressImage";
 
+if (
+  !import.meta.env.VITE_TOXICITY_API_URL ||
+  !import.meta.env.VITE_TOXICITY_API_KEY
+) {
+  console.warn(
+    "Toxicity API environment variables are not set. Content moderation will be disabled."
+  );
+}
+
 const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
   const { fetchData, userToken } = useContext(ApiContext);
   const [title, setTitle] = useState("");
@@ -18,6 +27,7 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
   const [linkInput, setLinkInput] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -59,6 +69,71 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
 
     setErrors(newErrors);
     return isValid;
+  };
+
+  const validateToxicity = async () => {
+    setIsCheckingToxicity(true);
+
+    try {
+      // Check both title and content
+      const titleFlag = await checkToxicityFlag(title);
+      const contentFlag = await checkToxicityFlag(
+        content.replace(/<[^>]*>?/gm, "").trim()
+      );
+
+      if (titleFlag.flag === 1 || contentFlag.flag === 1) {
+        // Get detailed toxicity analysis for the problematic content
+        let detailedAnalysis = [];
+
+        if (titleFlag.flag === 1) {
+          const titleAnalysis = await checkToxicity(title);
+          detailedAnalysis.push(...titleAnalysis.results);
+        }
+
+        if (contentFlag.flag === 1) {
+          const contentAnalysis = await checkToxicity(
+            content.replace(/<[^>]*>?/gm, "").trim()
+          );
+          detailedAnalysis.push(...contentAnalysis.results);
+        }
+
+        // Show toxicity warning with reasons
+        const reasons = detailedAnalysis
+          .filter((item) => item.toxicity_score > 0)
+          .map((item) => item.reason)
+          .filter((reason, index, array) => array.indexOf(reason) === index); // Remove duplicates
+
+        if (reasons.length > 0) {
+          await Swal.fire({
+            icon: "warning",
+            title: "Content Moderation Alert",
+            html: `Your content contains potentially inappropriate material:<br/><br/>
+                  <strong>Reasons:</strong><br/>
+                  ${reasons.join("<br/>")}<br/><br/>
+                  Please review and modify your content before posting.`,
+            confirmButtonText: "I understand",
+          });
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Toxicity validation error:", error);
+      // If the API fails, allow posting but show a warning
+      const result = await Swal.fire({
+        icon: "warning",
+        title: "Moderation Service Unavailable",
+        text: "The content moderation service is temporarily unavailable. Please ensure your content follows community guidelines.",
+        showCancelButton: true,
+        confirmButtonText: "Post Anyway",
+        cancelButtonText: "Cancel",
+      });
+
+      return result.isConfirmed;
+    } finally {
+      setIsCheckingToxicity(false);
+    }
   };
 
   const handleTagInputChange = (e) => setTagInput(e.target.value);
@@ -192,6 +267,11 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
       return;
     }
 
+    const isContentAppropriate = await validateToxicity();
+    if (!isContentAppropriate) {
+      return;
+    }
+    console.log("is", isContentAppropriate)
     const result = await Swal.fire({
       title: "Confirm Submission",
       text: "Are you sure you want to post this discussion?",
@@ -331,8 +411,9 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
           <input
             id="title"
             type="text"
-            className={`w-full px-3 py-2 border rounded-lg ${errors.title ? "border-red-500" : ""
-              }`}
+            className={`w-full px-3 py-2 border rounded-lg ${
+              errors.title ? "border-red-500" : ""
+            }`}
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
@@ -360,23 +441,28 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
               setContent(value);
               setErrors((prev) => ({ ...prev, content: null }));
             }}
-            className={`border rounded-lg h-48 ${errors.content ? "border-red-500" : ""
-              }`}
+            className={`border rounded-lg h-48 ${
+              errors.content ? "border-red-500" : ""
+            }`}
             modules={{
               toolbar: [
-                [{ 'header': [1, 2, 3, false] }],
-                ['bold', 'italic', 'underline', 'strike'],
-                ['code-block'],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                ['clean']
-              ]
+                [{ header: [1, 2, 3, false] }],
+                ["bold", "italic", "underline", "strike"],
+                ["code-block"],
+                [{ list: "ordered" }, { list: "bullet" }],
+                ["clean"],
+              ],
             }}
             formats={[
-              'header',
-              'bold', 'italic', 'underline', 'strike',
-              'code-block',
-              'list', 'bullet',
-              'clean'
+              "header",
+              "bold",
+              "italic",
+              "underline",
+              "strike",
+              "code-block",
+              "list",
+              "bullet",
+              "clean",
             ]}
           />
           {errors.content && (
@@ -390,8 +476,9 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
           </label>
           <input
             type="text"
-            className={`w-full px-3 py-2 border rounded-lg ${errors.tags ? "border-red-500" : ""
-              }`}
+            className={`w-full px-3 py-2 border rounded-lg ${
+              errors.tags ? "border-red-500" : ""
+            }`}
             value={tagInput}
             onChange={handleTagInputChange}
             onKeyPress={handleTagInputKeyPress}
@@ -429,8 +516,9 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
           </label>
           <input
             type="text"
-            className={`w-full px-3 py-2 border rounded-lg ${errors.links ? "border-red-500" : ""
-              }`}
+            className={`w-full px-3 py-2 border rounded-lg ${
+              errors.links ? "border-red-500" : ""
+            }`}
             value={linkInput}
             onChange={handleLinkInputChange}
             onKeyPress={handleLinkInputKeyPress}
@@ -468,8 +556,9 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
             type="file"
             accept="image/*"
             onChange={handleImageChange}
-            className={`border w-full p-2 ${errors.image ? "border-red-500" : ""
-              }`}
+            className={`border w-full p-2 ${
+              errors.image ? "border-red-500" : ""
+            }`}
           />
 
           {errors.image && (
@@ -517,8 +606,9 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
                 setErrors((prev) => ({ ...prev, privacy: null }));
               }
             }}
-            className={`w-full px-3 py-2 border rounded-lg ${errors.privacy ? "border-red-500" : ""
-              }`}
+            className={`w-full px-3 py-2 border rounded-lg ${
+              errors.privacy ? "border-red-500" : ""
+            }`}
           >
             <option value="">Select Privacy</option>
             {dropdownValues.map((item) => (
@@ -543,9 +633,13 @@ const AddDiscussion = ({ closeModal, demoDiscussions, setDemoDiscussions }) => {
           <button
             type="submit"
             className="bg-DGXgreen text-white py-2 px-4 rounded-lg"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isCheckingToxicity}
           >
-            {isSubmitting ? "Submitting..." : "Submit"}
+            {isCheckingToxicity
+              ? "Checking content..."
+              : isSubmitting
+              ? "Submitting..."
+              : "Submit"}
           </button>
         </div>
       </form>

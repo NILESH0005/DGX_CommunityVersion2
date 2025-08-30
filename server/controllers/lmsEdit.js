@@ -134,7 +134,7 @@ export const updateModule = async (req, res) => {
         let updateFields = `
           ModuleName = ?,
           ModuleDescription = ?,
-          AuthLstEdit = ?,
+          AuthLstEdt = ?,
           editOnDt = ?
         `;
         let updateParams = [
@@ -178,7 +178,7 @@ export const updateModule = async (req, res) => {
         const fetchQuery = `
           SELECT ModuleID, ModuleName, ModuleDescription,
                  ModuleImagePath, SortingOrder,
-                 AuthLstEdit, editOnDt
+                 AuthLstEdt, editOnDt
           FROM ModulesDetails
           WHERE ModuleID = ? AND ISNULL(delStatus, 0) = 0
         `;
@@ -620,7 +620,7 @@ export const updateSubModule = async (req, res) => {
         }
 
         // Build UPDATE query - KEY CHANGES HERE
-        let updateFields = `SubModuleName = ?, AuthLstEdit = ?, editOnDt = ?`;
+        let updateFields = `SubModuleName = ?, AuthLstEdt = ?, editOnDt = ?`;
         let updateParams = [SubModuleName, user.Name, new Date()];
 
         // Explicit NULL handling for description
@@ -664,7 +664,7 @@ export const updateSubModule = async (req, res) => {
             IFNULL(SubModuleDescription, '') AS SubModuleDescription,
             SubModuleImagePath, 
             SortingOrder,
-            AuthLstEdit, 
+            AuthLstEdt, 
             editOnDt
           FROM SubModulesDetails
           WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0
@@ -1227,7 +1227,7 @@ export const updateUnit = async (req, res) => {
                     SET 
                         UnitName = ?,
                         UnitDescription = ?,
-                        AuthLstEdit = ?,
+                        AuthLstEdt = ?,
                         editOnDt = ?
                     WHERE UnitID = ? AND ISNULL(delStatus, 0) = 0
                 `;
@@ -1235,7 +1235,7 @@ export const updateUnit = async (req, res) => {
         const updateParams = [
           UnitName || null,
           UnitDescription || null,
-          user.Name, // AuthLstEdit
+          user.Name, // AuthLstEdt
           new Date(), // editOnDt
           unitId,
         ];
@@ -1257,7 +1257,7 @@ export const updateUnit = async (req, res) => {
                         UnitID, 
                         UnitName, 
                         UnitDescription,
-                        AuthLstEdit, 
+                        AuthLstEdt, 
                         editOnDt
                     FROM UnitsDetails
                     WHERE UnitID = ? AND ISNULL(delStatus, 0) = 0
@@ -1844,7 +1844,7 @@ export const updateFile = async (req, res) => {
               FilesName = ?,
               Description = ?,
               FilePath = ?,
-              AuthLstEdit = ?,
+              AuthLstEdt = ?,
               editOnDt = GETDATE()
             WHERE FileID = ? AND ISNULL(delStatus, 0) = 0
           `;
@@ -1861,7 +1861,7 @@ export const updateFile = async (req, res) => {
             SET 
               FilesName = ?,
               Description = ?,
-              AuthLstEdit = ?,
+              AuthLstEdt = ?,
               editOnDt = GETDATE()
             WHERE FileID = ? AND ISNULL(delStatus, 0) = 0
           `;
@@ -1895,7 +1895,7 @@ export const updateFile = async (req, res) => {
             FilePath,
             FileType,
             Description,
-            AuthLstEdit, 
+            AuthLstEdt, 
             editOnDt
           FROM FilesDetails
           WHERE FileID = ? AND ISNULL(delStatus, 0) = 0

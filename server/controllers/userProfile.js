@@ -95,7 +95,7 @@ export const profileDetail = async (req, res) => {
               userCollege != null ||
               userAbout != null
             ) {
-              const updateQuery = `UPDATE Community_User SET MobileNumber = ?, Designation = ?, CollegeName = ?, About = ?, ProfilePicture = ?, AuthLstEdit= ?, editOnDt = GETDATE() WHERE isnull(delStatus,0) = 0 AND EmailId= ?`;
+              const updateQuery = `UPDATE Community_User SET MobileNumber = ?, Designation = ?, CollegeName = ?, About = ?, ProfilePicture = ?, AuthLstEdt= ?, editOnDt = GETDATE() WHERE isnull(delStatus,0) = 0 AND EmailId= ?`;
               const update = await queryAsync(conn, updateQuery, [
                 userMobile,
                 userDesignation,
@@ -297,7 +297,7 @@ export const uploadUserAvatar = async (req, res) => {
         }
 
         const user = userRows[0];
-        const authLstEdit = user.Name;
+        const AuthLstEdt = user.Name;
 
         // Validate image format
         const matches = profileImage.match(/^data:image\/(\w+);base64,(.+)$/);
@@ -332,14 +332,14 @@ export const uploadUserAvatar = async (req, res) => {
         // Update user profile with base64 image data
         const updateQuery = `
             UPDATE Community_User 
-            SET ProfilePicture = ?, AuthLstEdit = ?, editOnDt = GETDATE() 
+            SET ProfilePicture = ?, AuthLstEdt = ?, editOnDt = GETDATE() 
             WHERE EmailId = ?;
           `;
         console.log("Executing query: ", updateQuery);
 
         await queryAsync(conn, updateQuery, [
           profileImage, // Store the base64 string directly
-          authLstEdit,
+          AuthLstEdt,
           userId,
         ]);
 
@@ -445,7 +445,7 @@ export const updateUserDetails = async (req, res) => {
             CollegeName = ?,
             MobileNumber = ?,
             Designation = ?,
-            AuthLstEdit = ?,
+            AuthLstEdt = ?,
             editOnDt = CURRENT_TIMESTAMP
           WHERE EmailId = ? AND ISNULL(delStatus, 0) = 0
         `;
@@ -455,7 +455,7 @@ export const updateUserDetails = async (req, res) => {
           CollegeName,
           MobileNumber,
           Designation,
-          userResult[0].Name, // Using the existing name as AuthLstEdit
+          userResult[0].Name, // Using the existing name as AuthLstEdt
           userEmail, // Using the email as the identifier
         ];
 

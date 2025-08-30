@@ -16,7 +16,7 @@ const EditQuizModal = ({ quiz, onClose, categories, quizLevels }) => {
     StartDateAndTime: "",
     EndDateTime: "",
     QuizVisibility: "Public",
-    AuthLstEdit: "",
+    AuthLstEdt: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({
@@ -54,7 +54,7 @@ const EditQuizModal = ({ quiz, onClose, categories, quizLevels }) => {
         StartDateAndTime: formatDateForInput(quiz.StartDateAndTime),
         EndDateTime: formatDateForInput(quiz.EndDateTime),
         QuizVisibility: quiz.QuizVisibility || "Public",
-        AuthLstEdit: user?.username || "",
+        AuthLstEdt: user?.username || "",
       });
     }
   }, [quiz, user]);
@@ -158,12 +158,12 @@ const EditQuizModal = ({ quiz, onClose, categories, quizLevels }) => {
         "auth-token": userToken,
       };
 
-      // Format dates for SQL Server and include username in AuthLstEdit
+      // Format dates for SQL Server and include username in AuthLstEdt
       const formattedData = {
         ...formData,
         StartDateAndTime: convertToUTCIsoString(formData.StartDateAndTime),
         EndDateTime: convertToUTCIsoString(formData.EndDateTime),
-        AuthLstEdit: user?.username || "Unknown",
+        AuthLstEdt: user?.username || "Unknown",
       };
 
       function convertToUTCIsoString(dateString) {

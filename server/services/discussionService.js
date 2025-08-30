@@ -43,7 +43,7 @@ export const createDiscussionPost = async (userId, postData) => {
       if (existingLike) {
         await existingLike.update({
           Likes: postData.likes,
-          AuthLstEdit: user.Name,
+          AuthLstEdt: user.Name,
           editOnDt: new Date(),
         });
 
@@ -339,7 +339,7 @@ export const updateDiscussionService = async (userId, payload) => {
       Tag: tags || null,
       ResourceUrl: url || null,
       Visibility: visibilityId,
-      AuthLstEdit: actualUser.Name,
+      AuthLstEdt: actualUser.Name,
       editOnDt: new Date(),
     },
     {

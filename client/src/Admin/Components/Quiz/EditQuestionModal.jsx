@@ -32,17 +32,17 @@ const EditQuestionModal = ({
       const matchedCategory = categories.find(
         (cat) => cat.group_name === questionData.group_name
       );
-  
+
       // Find the question level ID that matches the question_level from the API
       const matchedLevel = questionLevels.find(
         (level) => level.ddValue === questionData.question_level
       );
-  
+
       // Count correct answers to determine question type
       const correctAnswersCount = questionData.options
         ? questionData.options.filter((opt) => opt.is_correct).length
         : 0;
-  
+
       // Transform the API data into our form structure
       const transformedData = {
         id: questionData.id,
@@ -53,7 +53,7 @@ const EditQuestionModal = ({
         question_type: correctAnswersCount > 1 ? 1 : 0,
         options: questionData.options || [],
       };
-  
+
       // Ensure we have at least 2 options
       if (transformedData.options.length < 2) {
         while (transformedData.options.length < 2) {
@@ -64,13 +64,13 @@ const EditQuestionModal = ({
           });
         }
       }
-  
+
       setFormData(transformedData);
       setImagePreview(transformedData.image || null);
       setOptionImages(transformedData.options.map((opt) => opt.image || null));
     }
   }, [questionData, isOpen, categories, questionLevels]);
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -112,7 +112,9 @@ const EditQuestionModal = ({
 
     // If switching to single choice and multiple options are correct, keep only the first correct one
     if (type === 0) {
-      const firstCorrectIndex = updatedOptions.findIndex((opt) => opt.is_correct);
+      const firstCorrectIndex = updatedOptions.findIndex(
+        (opt) => opt.is_correct
+      );
       updatedOptions.forEach((opt, i) => {
         opt.is_correct = i === firstCorrectIndex;
       });
@@ -259,7 +261,6 @@ const EditQuestionModal = ({
     setIsLoading(true);
 
     try {
-      // Prepare the payload with only valid options
       const validOptions = formData.options
         .filter((opt) => opt.option_text.trim() !== "")
         .map((opt) => ({
@@ -276,13 +277,15 @@ const EditQuestionModal = ({
         image: formData.image || null,
         question_type: formData.question_type,
         options: validOptions,
-        AuthLstEdit: user?.email || "Unknown",
+        AuthLstEdt: user.Name,
       };
+      console.log("payload is", payload);
 
       const response = await fetchData("quiz/updateQuestion", "POST", payload, {
         "Content-Type": "application/json",
         "auth-token": userToken,
       });
+      console.log(response);
       if (response?.success) {
         Swal.fire("Success", "Question updated successfully!", "success").then(
           () => {
@@ -474,7 +477,9 @@ const EditQuestionModal = ({
           <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div className="p-4">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-blue-700">Answer Options</h3>
+                <h3 className="text-lg font-bold text-blue-700">
+                  Answer Options
+                </h3>
                 <button
                   onClick={addOption}
                   className="flex items-center space-x-1 bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors text-sm"
@@ -523,10 +528,16 @@ const EditQuestionModal = ({
                       <input
                         type="text"
                         className="flex-1 p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 text-sm"
-                        placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                        placeholder={`Option ${String.fromCharCode(
+                          65 + index
+                        )}`}
                         value={option.option_text}
                         onChange={(e) =>
-                          handleOptionChange(index, "option_text", e.target.value)
+                          handleOptionChange(
+                            index,
+                            "option_text",
+                            e.target.value
+                          )
                         }
                       />
 

@@ -5,6 +5,7 @@ export default (sequelize, DataTypes) => {
     {
       FileID: {
         type: DataTypes.INTEGER,
+        autoIncrement: true, 
         primaryKey: true,
         allowNull: false,
       },
@@ -32,7 +33,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING(800),
         allowNull: true,
       },
-      AuthLstEdit: {
+      AuthLstEdt: {
         type: DataTypes.STRING(800),
         allowNull: true,
       },

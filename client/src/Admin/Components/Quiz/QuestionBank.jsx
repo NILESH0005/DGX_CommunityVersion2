@@ -26,9 +26,9 @@ const QuizBank = () => {
       setIsMobileView(window.innerWidth <= 768);
     };
     checkMobileView();
-    window.addEventListener('resize', checkMobileView);
+    window.addEventListener("resize", checkMobileView);
     return () => {
-      window.removeEventListener('resize', checkMobileView);
+      window.removeEventListener("resize", checkMobileView);
     };
   }, []);
 
@@ -45,7 +45,7 @@ const QuizBank = () => {
       if (data?.success) {
         setCategories(
           data.data?.sort((a, b) => a.group_name.localeCompare(b.group_name)) ||
-          []
+            []
         );
         return data.data;
       }
@@ -93,71 +93,39 @@ const QuizBank = () => {
         fetchCategories(),
         fetchQuestionLevels(),
       ]);
+
       if (questionsData.success) {
-        const questionMap = new Map();
+        // The new response structure has data.quizzes array with options included
+        const quizzes = questionsData.data.quizzes || [];
 
-        questionsData.data.quizzes.forEach((quiz) => {
-          const questionKey = `${quiz.question_text}_${quiz.id}`;
-          const existingQuestion = questionMap.get(questionKey);
+        const processedQuestions = quizzes.map((quiz) => {
+          // Find correct answers
+          const correctOptions = quiz.options
+            .filter((option) => option.is_correct === 1)
+            .map((option) => option.option_text);
 
-          if (existingQuestion) {
-            questionMap.set(questionKey, {
-              ...existingQuestion,
-              options: [
-                ...(existingQuestion.options || []),
-                {
-                  option_text: quiz.option_text,
-                  is_correct: quiz.is_correct === 1,
-                  image: quiz.image_url || null,
-                },
-              ],
-              correctAnswer:
-                quiz.is_correct === 1
-                  ? [
-                      ...(Array.isArray(existingQuestion.correctAnswer)
-                        ? existingQuestion.correctAnswer
-                        : [existingQuestion.correctAnswer]),
-                      quiz.option_text,
-                    ]
-                  : existingQuestion.correctAnswer,
-            });
-          } else {
-            questionMap.set(questionKey, {
-              id: quiz.id,
-              question_id: quiz.id,
-              question_text: quiz.question_text,
-              correctAnswer: quiz.is_correct === 1 ? quiz.option_text : [],
-              group: quiz.group_name,
-              group_id: quiz.group_id,
-              Ques_level: quiz.ddValue,
-              count: quiz.quiz_count || 0,
-              image: quiz.question_image || null,
-              options: [
-                {
-                  option_text: quiz.option_text,  
-                  is_correct: quiz.is_correct === 1,
-                  image: quiz.image_url || null,
-                },
-              ],
-            });
-          }
+          // Join correct answers with " | " separator
+          const correctAnswer = correctOptions.join(" | ");
+
+          return {
+            id: quiz.question_id,
+            question_id: quiz.question_id,
+            question_text: quiz.question_text,
+            correctAnswer: correctAnswer,
+            group: quiz.group_name,
+            group_id: quiz.QuizID, // Using QuizID instead of group_id
+            Ques_level: quiz.ddValue,
+            count: quiz.quiz_count || 0,
+            image: null, // Add this if available in response
+            options: quiz.options.map((option) => ({
+              option_text: option.option_text,
+              is_correct: option.is_correct === 1,
+              image: null, // Add this if available in response
+            })),
+          };
         });
 
-        const mappedQuestions = Array.from(questionMap.values()).map(
-          (question) => {
-            let correctAnswers = question.correctAnswer;
-            if (Array.isArray(correctAnswers)) {
-              correctAnswers = correctAnswers.join(" | ");
-            }
-
-            return {
-              ...question,
-              correctAnswer: correctAnswers,
-            };
-          }
-        );
-
-        setFinalQuestions(mappedQuestions);
+        setFinalQuestions(processedQuestions);
       } else {
         setError(questionsData.message || "Failed to fetch questions.");
         Swal.fire(
@@ -235,13 +203,16 @@ const QuizBank = () => {
       group_id: questionToEdit.group_id?.toString(),
       group_name: questionToEdit.group,
       Ques_level: questionToEdit.Ques_level,
-      question_type: 0, 
+      question_type:
+        questionToEdit.options.filter((opt) => opt.is_correct).length > 1
+          ? 1
+          : 0, // Determine type based on correct answers
       image: questionToEdit.image,
-      options: questionToEdit.options.map(option => ({
+      options: questionToEdit.options.map((option) => ({
         option_text: option.option_text,
         is_correct: option.is_correct,
-        image: option.image
-      }))
+        image: option.image,
+      })),
     };
 
     setSelectedQuestion(transformedQuestion);
@@ -310,7 +281,10 @@ const QuizBank = () => {
   });
 
   const renderMobileQuestionCard = (question, index) => (
-    <div key={`${question.id}_${index}`} className="p-4 mb-4 rounded-lg shadow bg-white">
+    <div
+      key={`${question.id}_${index}`}
+      className="p-4 mb-4 rounded-lg shadow bg-white"
+    >
       <div className="flex justify-between items-start">
         <div>
           <h3 className="font-bold text-lg">Question {index + 1}</h3>
@@ -404,7 +378,7 @@ const QuizBank = () => {
             </button>
           )}
         </div>
-        
+
         <div className="w-full md:w-auto md:min-w-[200px]">
           <select
             value={selectedGroup}
@@ -423,7 +397,7 @@ const QuizBank = () => {
       {filteredQuestions.length > 0 ? (
         isMobileView ? (
           <div className="space-y-3">
-            {filteredQuestions.map((question, index) => 
+            {filteredQuestions.map((question, index) =>
               renderMobileQuestionCard(question, index)
             )}
           </div>

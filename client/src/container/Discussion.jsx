@@ -15,6 +15,10 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import FileUploader from "../container/FileUploader.jsx";
+import {
+  checkToxicity,
+  checkToxicityFlag,
+} from "../utils/toxicityDetection.js";
 
 const Discussion = () => {
   const navigate = useNavigate();
@@ -32,6 +36,7 @@ const Discussion = () => {
     links: "",
     privacy: "",
   });
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add this state
 
   const resetForm = () => {
     setTitle("");
@@ -49,6 +54,80 @@ const Discussion = () => {
       links: "",
       privacy: "",
     });
+  };
+
+  const validateToxicity = async () => {
+    setIsCheckingToxicity(true);
+
+    try {
+      console.log("Starting toxicity validation...");
+
+      // Step 1: check toxicity flag
+      const titleFlag = await checkToxicityFlag(title);
+      const linksFlag = await checkToxicityFlag(links);
+      const contentFlag = await checkToxicityFlag(
+        content.replace(/<[^>]*>?/gm, "").trim()
+      );
+
+      // 🚨 If flag === 0 → blocked
+      if (titleFlag.flag === 0 || contentFlag.flag === 0) {
+        let detailedAnalysis = [];
+
+        // Step 2: fetch full reasons from /detect_toxicity
+        if (titleFlag.flag === 0) {
+          const titleAnalysis = await checkToxicity(title);
+          detailedAnalysis.push(...titleAnalysis.results);
+        }
+        if (contentFlag.flag === 0) {
+          const contentAnalysis = await checkToxicity(
+            content.replace(/<[^>]*>?/gm, "").trim()
+          );
+          detailedAnalysis.push(...contentAnalysis.results);
+        }
+
+        if (linksFlag.flag === 0) {
+          const linkAnalysis = await checkToxicity(links);
+          detailedAnalysis.push(...linkAnalysis.results);
+        }
+
+        const reasons = detailedAnalysis
+          .filter((item) => item.toxicity_score > 0)
+          .map((item) => item.reason)
+          .filter((reason, index, array) => array.indexOf(reason) === index);
+
+        // Show reasons to the user
+        await Swal.fire({
+          icon: "warning",
+          title: "Content Blocked",
+          html: `Your content contains potentially inappropriate material:<br/><br/>
+              <strong>Reasons:</strong><br/>
+              ${reasons.join("<br/>")}<br/><br/>
+              Please review and modify your content before posting.`,
+          confirmButtonText: "I understand",
+          confirmButtonColor: "#3085d6",
+        });
+
+        return false;
+      }
+
+      return true; // ✅ safe to post
+    } catch (error) {
+      console.error("Toxicity validation error:", error);
+
+      const result = await Swal.fire({
+        icon: "warning",
+        title: "Moderation Service Unavailable",
+        text: "The moderation service is temporarily unavailable. Please ensure your content follows community guidelines.",
+        showCancelButton: true,
+        confirmButtonText: "Post Anyway",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#3085d6",
+      });
+
+      return result.isConfirmed;
+    } finally {
+      setIsCheckingToxicity(false);
+    }
   };
 
   const handleDiscussionImageUpload = (uploadResult) => {
@@ -121,7 +200,7 @@ const Discussion = () => {
     return sortedDiscussions.slice(0, 5);
   };
 
-  const BASE_URL = import.meta.env.VITE_API_UPLOADSURL
+  const BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
 
   const getTopUsersByDiscussions = (discussions) => {
     const userMap = {};
@@ -232,7 +311,7 @@ const Discussion = () => {
       setFilteredDiscussions(filtered);
     }
   };
-  
+
   const validateTitle = () => {
     if (!title.trim()) {
       setErrors((prev) => ({ ...prev, title: "Title is required" }));
@@ -605,6 +684,11 @@ const Discussion = () => {
         confirmButtonColor: "#3085d6",
       });
       return;
+    }
+
+    const isContentAppropriate = await validateToxicity();
+    if (!isContentAppropriate) {
+      return; // Stop submission if content is inappropriate
     }
 
     const endpoint = "discussion/discussionpost";
@@ -1210,10 +1294,36 @@ const Discussion = () => {
                     type="submit"
                     className="bg-DGXgreen text-white py-2 px-4 rounded-lg hover:bg-DGXblue disabled:opacity-50"
                     disabled={
-                      loading || Object.values(errors).some((error) => error)
+                      loading ||
+                      isCheckingToxicity ||
+                      Object.values(errors).some((error) => error)
                     }
                   >
-                    {loading ? (
+                    {isCheckingToxicity ? (
+                      <span className="flex items-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Checking content...
+                      </span>
+                    ) : loading ? (
                       <span className="flex items-center">
                         <svg
                           className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
