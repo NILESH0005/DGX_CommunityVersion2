@@ -14,7 +14,7 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       Ques_level: {
-        type: DataTypes.STRING(50),
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
       image: {
