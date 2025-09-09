@@ -1,0 +1,353 @@
+import path from "path";
+import fs from "fs";
+import db from "../models/index.js";
+import { logInfo, logWarning, logError } from "../helper/index.js";
+import { Op } from "sequelize";
+
+
+const User = db.User;
+const ModuleDetails = db.LMSModulesDetails;
+const SubModulesDetails = db.LMSSubModulesDetails;
+
+
+
+export const updateModuleService = async (userEmail, moduleId, payload) => {
+    try {
+        const user = await User.findOne({
+            where: {
+                EmailId: userEmail,
+                delStatus: { [Op.or]: [0, null] },
+            },
+        });
+
+        if (!user) {
+            logWarning("User not found during module update");
+            return {
+                status: 404,
+                response: {
+                    success: false,
+                    data: {},
+                    message: "User not found",
+                },
+            };
+        }
+
+        // Fetch existing module
+        const existingModule = await ModuleDetails.findOne({
+            where: { ModuleID: moduleId, delStatus: 0 },
+        });
+
+        if (!existingModule) {
+            return {
+                status: 404,
+                response: {
+                    success: false,
+                    data: {},
+                    message: "Module not found or already deleted",
+                },
+            };
+        }
+
+        // Handle old image cleanup
+        if (payload.ModuleImagePath && existingModule.ModuleImagePath !== payload.ModuleImagePath) {
+            if (existingModule.ModuleImagePath) {  // Add this guard
+                const oldImagePath = path.join(process.cwd(), existingModule.ModuleImagePath);
+
+                if (fs.existsSync(oldImagePath)) {
+                    const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
+                    if (!fs.existsSync(deletedFolder)) fs.mkdirSync(deletedFolder, { recursive: true });
+
+                    const oldFileName = path.basename(existingModule.ModuleImagePath);
+                    const newTrashPath = path.join(deletedFolder, oldFileName);
+
+                    try {
+                        fs.renameSync(oldImagePath, newTrashPath);
+                    } catch (moveErr) {
+                        logError("Failed to move old image", moveErr);
+                    }
+                }
+            }
+        }
+
+        // Perform update
+        await existingModule.update({
+            ModuleName: payload.ModuleName,
+            ModuleDescription: payload.ModuleDescription,
+            AuthLstEdt: user.Name,
+            editOnDt: new Date(),
+            ModuleImagePath: payload.ModuleImagePath ?? existingModule.ModuleImagePath,
+            SortingOrder: payload.SortingOrder ?? existingModule.SortingOrder,
+        });
+
+        logInfo("Module updated successfully");
+
+        return {
+            status: 200,
+            response: {
+                success: true,
+                data: existingModule,
+                message: "Module updated successfully",
+            },
+        };
+    } catch (error) {
+        logError("Module update failed", error);
+        console.error("Detailed Error:", error);  // Add this line for debug visibility
+
+        return {
+            status: 500,
+            response: {
+                success: false,
+                data: error,
+                message: "Something went wrong during module update",
+            },
+        };
+    }
+};
+
+export const updateModuleOrderService = async (modules) => {
+    const transaction = await db.sequelize.transaction();
+
+    try {
+        for (const module of modules) {
+            await ModuleDetails.update(
+                {
+                    SortingOrder: module.SortingOrder,
+                    editOnDt: new Date(),
+                },
+                {
+                    where: { ModuleID: module.ModuleID },
+                    transaction,
+                }
+            );
+        }
+
+        await transaction.commit();
+
+        logInfo("Module order updated successfully");
+        return {
+            status: 200,
+            response: {
+                success: true,
+                message: "Module order updated successfully",
+            },
+        };
+    } catch (error) {
+        await transaction.rollback();
+        logError("Failed to update module order", error);
+
+        return {
+            status: 500,
+            response: {
+                success: false,
+                message: "Error updating module order",
+                data: error,
+            },
+        };
+    }
+};
+
+export const updateSubModuleService = async (userEmail, subModuleId, payload) => {
+    try {
+        const user = await User.findOne({
+            where: {
+                EmailId: userEmail,
+                delStatus: { [Op.or]: [0, null] },
+            },
+        });
+
+        if (!user) {
+            logWarning("User not found during submodule update");
+            return {
+                status: 404,
+                response: { success: false, data: {}, message: "User not found" },
+            };
+        }
+
+        const subModule = await SubModulesDetails.findOne({
+            where: { SubModuleID: subModuleId, delStatus: 0 }
+        });
+
+        if (!subModule) {
+            return {
+                status: 404,
+                response: { success: false, data: {}, message: "SubModule not found or already deleted" },
+            };
+        }
+
+        if (
+            payload.SubModuleImagePath &&
+            typeof subModule.SubModuleImagePath === "string" &&
+            subModule.SubModuleImagePath !== payload.SubModuleImagePath
+        ) {
+            const oldImagePath = path.join(process.cwd(), subModule.SubModuleImagePath);
+
+            if (fs.existsSync(oldImagePath)) {
+                const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
+                if (!fs.existsSync(deletedFolder)) fs.mkdirSync(deletedFolder, { recursive: true });
+
+                const oldFileName = path.basename(subModule.SubModuleImagePath);
+                const newTrashPath = path.join(deletedFolder, oldFileName);
+
+                try {
+                    fs.renameSync(oldImagePath, newTrashPath);
+                    logInfo(`Moved old submodule image → ${newTrashPath}`);
+                } catch (err) {
+                    logError("Failed to move old submodule image", err);
+                }
+            }
+        }
+
+        await subModule.update({
+            SubModuleName: payload.SubModuleName,
+            SubModuleDescription: payload.SubModuleDescription === "" ? null : payload.SubModuleDescription,
+            SubModuleImagePath: payload.SubModuleImagePath ?? subModule.SubModuleImagePath,
+            SortingOrder: payload.SortingOrder ?? subModule.SortingOrder,
+            AuthLstEdt: user.Name,
+            editOnDt: new Date()
+        });
+
+        logInfo("SubModule updated successfully");
+
+        return {
+            status: 200,
+            response: { success: true, data: subModule, message: "SubModule updated successfully" },
+        };
+    } catch (error) {
+        logError("SubModule update failed", error);
+        return {
+            status: 500,
+            response: { success: false, data: error, message: "Something went wrong during submodule update" },
+        };
+    }
+};
+
+export const deleteModuleService = async (moduleId) => {
+  try {
+    // Find the module by ID and delStatus
+    const existingModule = await ModuleDetails.findOne({
+      where: { ModuleID: moduleId, delStatus: 0 }
+    });
+
+    if (!existingModule) {
+      return {
+        status: 404,
+        response: { success: false, message: "Module not found or already deleted" }
+      };
+    }
+
+    // Move image to deleted-files folder if present
+    if (existingModule.ModuleImagePath && typeof existingModule.ModuleImagePath === "string") {
+      const originalPath = path.join(process.cwd(), existingModule.ModuleImagePath);
+
+      if (fs.existsSync(originalPath)) {
+        const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
+        if (!fs.existsSync(deletedFolder)) {
+          fs.mkdirSync(deletedFolder, { recursive: true });
+        }
+
+        const fileName = path.basename(existingModule.ModuleImagePath);
+        const newPath = path.join(deletedFolder, fileName);
+
+        try {
+          fs.renameSync(originalPath, newPath);
+          logInfo(`Moved module image to trash → ${newPath}`);
+        } catch (err) {
+          logError("Error moving module image to trash", err);
+        }
+      }
+    }
+
+    // Perform soft delete
+    existingModule.delStatus = 1;
+    existingModule.delOnDt = new Date();
+    await existingModule.save();
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: { moduleId, deletedAt: existingModule.delOnDt, movedToTrash: true },
+        message: "Module soft-deleted & image moved to trash"
+      }
+    };
+  } catch (error) {
+    logError("Module deletion failed", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: error,
+        message: "Something went wrong during module deletion"
+      }
+    };
+  }
+};
+
+export const deleteSubModuleService = async (subModuleId, adminId) => {
+  try {
+    const existingSubModule = await SubModulesDetails.findOne({
+      where: { SubModuleID: subModuleId, delStatus: 0 }
+    });
+
+    if (!existingSubModule) {
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "Sub-module not found or already deleted"
+        }
+      };
+    }
+
+    if (existingSubModule.SubModuleImagePath && typeof existingSubModule.SubModuleImagePath === "string") {
+      const originalPath = path.join(process.cwd(), existingSubModule.SubModuleImagePath);
+
+      if (fs.existsSync(originalPath)) {
+        const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
+        if (!fs.existsSync(deletedFolder)) {
+          fs.mkdirSync(deletedFolder, { recursive: true });
+        }
+
+        const fileName = path.basename(existingSubModule.SubModuleImagePath);
+        const newPath = path.join(deletedFolder, fileName);
+
+        try {
+          fs.renameSync(originalPath, newPath);
+          logInfo(`Moved submodule image to trash → ${newPath}`);
+        } catch (err) {
+          logError("Error moving submodule image to trash", err);
+        }
+      }
+    }
+
+    existingSubModule.delStatus = 1;
+    existingSubModule.delOnDt = new Date();
+    existingSubModule.AddDel = adminId;
+    await existingSubModule.save();
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: {
+          subModuleId,
+          deletedAt: existingSubModule.delOnDt,
+          deletedBy: adminId,
+        },
+        message: "Sub-module soft-deleted & image moved to trash"
+      }
+    };
+  } catch (error) {
+    logError("Sub-module deletion failed", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: { message: error.message, stack: error.stack },
+        message: "Something went wrong during sub-module deletion"
+      }
+    };
+  }
+};
+
+
