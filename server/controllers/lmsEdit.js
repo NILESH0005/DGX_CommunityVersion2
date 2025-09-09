@@ -523,7 +523,6 @@ export const deleteSubModule = (req, res) => {
 export const updateSubModule = async (req, res) => {
   let success = false;
 
-  // Authentication and validation (keep existing code)
   const userId = req.user?.UserID || req.user?.id;
   if (!userId) {
     return res.status(401).json({ success, message: "User not authenticated" });
@@ -534,7 +533,6 @@ export const updateSubModule = async (req, res) => {
     return res.status(400).json({ success, message: "Invalid SubModule ID" });
   }
 
-  // Key change: Handle description explicitly
   const {
     SubModuleName,
     SubModuleDescription, // Don't default this

@@ -171,6 +171,7 @@ const LearningMaterialManager = () => {
             FilePath: file.filePath || '',
             FileType: file.fileType || '',
             Percentage: file.percentage || 0,
+            EstimatedTime: file.estimatedTime || 0,
             AuthAdd: currentUser,
             AddOnDt: now,
             delStatus: 0
@@ -234,7 +235,8 @@ const LearningMaterialManager = () => {
               uploadedAt: file.uploadedAt,
               filePath: file.filePath,
               downloadUrl: file.downloadUrl,
-              percentage: file.percentage
+              percentage: file.percentage,
+              estimatedTime: file.estimatedTime || 0
 
             }))
           }))

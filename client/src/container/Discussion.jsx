@@ -62,18 +62,15 @@ const Discussion = () => {
     try {
       console.log("Starting toxicity validation...");
 
-      // Step 1: check toxicity flag
       const titleFlag = await checkToxicityFlag(title);
       const linksFlag = await checkToxicityFlag(links);
       const contentFlag = await checkToxicityFlag(
         content.replace(/<[^>]*>?/gm, "").trim()
       );
 
-      // 🚨 If flag === 0 → blocked
       if (titleFlag.flag === 0 || contentFlag.flag === 0) {
         let detailedAnalysis = [];
 
-        // Step 2: fetch full reasons from /detect_toxicity
         if (titleFlag.flag === 0) {
           const titleAnalysis = await checkToxicity(title);
           detailedAnalysis.push(...titleAnalysis.results);

@@ -116,6 +116,7 @@ export class LMSService {
                 AddOnDt: new Date(),
                 delStatus: 0,
                 Percentage: file.Percentage || 0,
+                 EstimatedTime: file.EstimatedTime || 0,
               },
               { transaction: t }
             );
