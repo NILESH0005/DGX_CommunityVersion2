@@ -16,6 +16,7 @@ import tblCMSContent from "./tblCMSContent.js";
 import DDReference from "./DDReference.js";
 import UnitsDetails from "./UnitsDetails.js";
 import UserLmsProgress from "./UserLmsProgress.js";
+import QuizDetailsModel from "./QuizDetails.js";
 
 const User = UserModel(sequelize, DataTypes);
 const LMSUserProgress = UserLmsProgress(sequelize, DataTypes);
@@ -33,6 +34,7 @@ const LMSSubModulesDetails = SubModulesDetails(sequelize, DataTypes);
 const CMSContent = tblCMSContent(sequelize, DataTypes);
 const TableDDReference = DDReference(sequelize, DataTypes);
 const LMSUnitsDetails = UnitsDetails(sequelize, DataTypes);
+const QuizDetails = QuizDetailsModel(sequelize, DataTypes);
 
 const db = {
   sequelize,
@@ -46,6 +48,7 @@ const db = {
   QuizQuestionOptions,
   QuizQuestions,
   QuizScore,
+  QuizDetails,
   QuizMapp,
   LMSSubModulesDetails,
   CMSContent,
@@ -60,17 +63,68 @@ Object.values(db).forEach((model) => {
   }
 });
 
-
-
+db.LMSUnitsDetails.hasMany(db.LMSFilesDetails, { foreignKey: "UnitID" });
+db.LMSFilesDetails.belongsTo(db.LMSUnitsDetails, { foreignKey: "UnitID" });
+// User ↔ Blog
 User.hasMany(CommunityBlog, { foreignKey: "UserID" });
 CommunityBlog.belongsTo(User, { foreignKey: "UserID" });
+
+db.LMSSubModulesDetails.hasMany(db.LMSUnitsDetails, {
+  foreignKey: "SubModuleID",
+  as: "Units",
+});
+db.LMSUnitsDetails.belongsTo(db.LMSSubModulesDetails, {
+  foreignKey: "SubModuleID",
+});
+
+db.LMSFilesDetails.hasMany(db.LMSUserProgress, { foreignKey: "FileID" });
+db.LMSUserProgress.belongsTo(db.LMSFilesDetails, { foreignKey: "FileID" });
 
 // User ↔ Discussion
 User.hasMany(CommunityDiscussion, { foreignKey: "UserID" });
 CommunityDiscussion.belongsTo(User, { foreignKey: "UserID" });
 
-CommunityEvents.belongsTo(TableDDReference, { foreignKey: "EventType", targetKey: "idCode", as: "EventTypeRef" });
-CommunityEvents.belongsTo(TableDDReference, { foreignKey: "Category", targetKey: "idCode", as: "CategoryRef" });
+// Events ↔ Reference Table
+CommunityEvents.belongsTo(TableDDReference, {
+  foreignKey: "EventType",
+  targetKey: "idCode",
+  as: "EventTypeRef",
+});
+CommunityEvents.belongsTo(TableDDReference, {
+  foreignKey: "Category",
+  targetKey: "idCode",
+  as: "CategoryRef",
+});
+
+//Questions ↔ GroupMaster
+db.QuizQuestions.belongsTo(db.Group_Master, { foreignKey: "group_id" });
+
+// Questions ↔ DDReference
+db.QuizQuestions.belongsTo(db.TableDDReference, {
+  foreignKey: "Ques_level",
+  targetKey: "idCode",
+});
+
+// Questions ↔ Options
+db.QuizQuestions.hasMany(db.QuizQuestionOptions, { foreignKey: "question_id" });
+db.QuizQuestionOptions.belongsTo(db.QuizQuestions, {
+  foreignKey: "question_id",
+});
+
+// Questions ↔ QuizMapping
+db.QuizQuestions.hasMany(db.QuizMapp, { foreignKey: "QuestionsID" });
+db.QuizMapp.belongsTo(db.QuizQuestions, { foreignKey: "QuestionsID" });
+
+// QuizDetails ↔ QuizQuestions (via QuizMapping, but direct optional)
+db.QuizQuestions.belongsTo(db.QuizDetails, {
+  foreignKey: "id",
+  targetKey: "QuizID",
+});
+db.QuizDetails.hasMany(db.QuizMapp, { foreignKey: "quizId", as: "QuizMapps" });
+db.QuizMapp.belongsTo(db.QuizDetails, {
+  foreignKey: "quizId",
+  as: "QuizDetails",
+});
 
 export default db;
 export { sequelize };

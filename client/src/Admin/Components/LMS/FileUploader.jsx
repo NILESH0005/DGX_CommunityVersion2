@@ -9,9 +9,12 @@ const FileUploader = ({
   moduleId,
   submoduleId,
   unitId,
+  onTimeSelect, // New prop to pass the selected time to parent
+  selectedTime = 0, // Default value for selected time
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [localFiles, setLocalFiles] = useState([]);
+  const [estimatedTime, setEstimatedTime] = useState(selectedTime); // State for time input
 
   useEffect(() => {
     const storedFiles = localStorage.getItem("pendingUploads");
@@ -20,9 +23,15 @@ const FileUploader = ({
         const parsedFiles = JSON.parse(storedFiles);
         setLocalFiles(parsedFiles);
       } catch (error) {
+        console.error("Error parsing stored files:", error);
       }
     }
   }, []);
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setEstimatedTime(selectedTime);
+  }, [selectedTime]);
 
   const handleDragEnter = (e) => {
     e.preventDefault();
@@ -57,6 +66,14 @@ const FileUploader = ({
     }
   };
 
+  const handleTimeChange = (e) => {
+    const time = parseInt(e.target.value) || 0;
+    setEstimatedTime(time);
+    if (onTimeSelect) {
+      onTimeSelect(time);
+    }
+  };
+
   const handleFiles = (files) => {
     const validFiles = Array.from(files).filter((file) => {
       return true; 
@@ -73,6 +90,7 @@ const FileUploader = ({
           type: newFile.type,
           lastModified: newFile.lastModified,
         },
+        estimatedTime, // Store the estimated time with the file
         moduleId,
         submoduleId,
         unitId,
@@ -234,6 +252,31 @@ const FileUploader = ({
           </label>
         </div>
 
+        {/* Time Input Field */}
+        {selectedFile && selectedFile.name && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-6 overflow-hidden"
+          >
+            <h4 className="font-medium text-gray-800 mb-3">Estimated Time</h4>
+            <div className="flex items-center space-x-3 mb-4">
+              <input
+                type="number"
+                min="1"
+                value={estimatedTime}
+                onChange={handleTimeChange}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-DGXblue focus:border-transparent"
+                placeholder="Minutes"
+              />
+              <span className="text-gray-600">minutes</span>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Set the estimated time needed to read/watch this material
+            </p>
+          </motion.div>
+        )}
+
         {selectedFile && selectedFile.name && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -254,6 +297,11 @@ const FileUploader = ({
                     <p className="text-sm text-gray-500">
                       {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
                     </p>
+                    {estimatedTime > 0 && (
+                      <p className="text-sm text-DGXblue font-medium mt-1">
+                        Estimated time: {estimatedTime} minute{estimatedTime !== 1 ? 's' : ''}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button

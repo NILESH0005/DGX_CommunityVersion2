@@ -10,11 +10,11 @@ export default (sequelize, DataTypes) => {
         allowNull: false,
       },
       question_text: {
-        type: DataTypes.TEXT, // nvarchar(MAX) → TEXT
+        type: DataTypes.TEXT, 
         allowNull: true,
       },
       Ques_level: {
-        type: DataTypes.STRING(50),
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
       image: {

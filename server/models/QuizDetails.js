@@ -1,60 +1,60 @@
-// models/CommunityEvents.js
+// models/QuizDetails.js
 export default (sequelize, DataTypes) => {
-  const CommunityEvents = sequelize.define(
-    "CommunityEvents",
+  const QuizDetails = sequelize.define(
+    "QuizDetails",
     {
-      EventID: {
+      QuizID: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
         allowNull: false,
       },
-      EventTitle: {
-        type: DataTypes.TEXT, // nvarchar(MAX) equivalent
+      QuizCategory: {
+        type: DataTypes.STRING(400),
         allowNull: true,
       },
-      StartDate: {
-        type: DataTypes.DATE,
+      QuizName: {
+        type: DataTypes.STRING(400),
         allowNull: true,
       },
-      EndDate: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      EventType: {
+      QuizLevel: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      Venue: {
-        type: DataTypes.TEXT, // nvarchar(MAX) equivalent
+      QuizDuration: {
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
-      Host: {
-        type: DataTypes.STRING(500),
+      NegativeMarking: {
+        type: DataTypes.BOOLEAN,
         allowNull: true,
       },
-      RegistrationLink: {
-        type: DataTypes.TEXT,
+      StartDateAndTime: {
+        type: DataTypes.DATE,
         allowNull: true,
       },
-      EventImage: {
-        type: DataTypes.TEXT,
+      EndDateTime: {
+        type: DataTypes.DATE,
         allowNull: true,
       },
-      EventDescription: {
-        type: DataTypes.TEXT,
+      QuizVisibility: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+      },
+      QuizImage: {
+        type: DataTypes.TEXT, 
         allowNull: true,
       },
       AuthAdd: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING(800),
         allowNull: true,
       },
       AuthDel: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING(800),
         allowNull: true,
       },
       AuthLstEdt: {
-        type: DataTypes.TEXT,
+        type: DataTypes.STRING(800),
         allowNull: true,
       },
       delOnDt: {
@@ -70,39 +70,43 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       delStatus: {
-        type: DataTypes.BOOLEAN, // bit equivalent
-        allowNull: true,
-      },
-      Category: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      Status: {
+      UniqueParticipants: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      TotalMarks: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      NumberOfAttempts: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      PassingPercentage: {
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true,
+      },
+      refId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      TotalQuestions: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      refName: {
         type: DataTypes.STRING(100),
-        allowNull: true,
-      },
-      AdminRemark: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-      },
-      ApprovedBy: {
-        type: DataTypes.STRING(255),
-        allowNull: true,
-      },
-      ApprovedOn: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      UserID: {
-        type: DataTypes.INTEGER,
         allowNull: true,
       },
     },
     {
-      tableName: "Community_Events",
+      tableName: "QuizDetails",
       timestamps: false,
     }
   );
 
-  return CommunityEvents;
+  return QuizDetails;
 };

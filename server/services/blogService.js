@@ -252,7 +252,7 @@ export const updateBlogService = async (blogId, user, data) => {
         Status: "Approved",
         ApprovedBy: user.id,
         ApprovedOn: now,
-        AuthLstEdit: user.id,
+        AuthLstEdt: user.id,
         editOnDt: now,
       };
       break;
@@ -268,7 +268,7 @@ export const updateBlogService = async (blogId, user, data) => {
       updateData = {
         Status: "Rejected",
         AdminRemark: data.remark || "",
-        AuthLstEdit: user.id,
+        AuthLstEdt: user.id,
         editOnDt: now,
       };
       break;
@@ -276,7 +276,7 @@ export const updateBlogService = async (blogId, user, data) => {
     case "delete":
       updateData = {
         delStatus: 1,
-        AuthLstEdit: user.id,
+        AuthLstEdt: user.id,
         delOnDt: now,
       };
       break;
@@ -289,7 +289,7 @@ export const updateBlogService = async (blogId, user, data) => {
         publishedDate: data.publishedDate,
         Category: data.category,
         image: data.image,
-        AuthLstEdit: user.id,
+        AuthLstEdt: user.id,
         editOnDt: now,
       };
       break;

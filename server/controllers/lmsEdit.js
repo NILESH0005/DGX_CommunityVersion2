@@ -12,262 +12,50 @@ import { log } from "util";
 import { Console } from "console";
 import fs from "fs";
 import path from "path";
+import { deleteModuleService, deleteSubModuleService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
 
 dotenv.config();
 
 export const updateModule = async (req, res) => {
-  let success = false;
-
-  // ✅ 1. Authentication check
   const userId = req.user?.UserID || req.user?.id;
-  if (!userId) {
-    return res.status(401).json({ success, message: "User not authenticated" });
-  }
-
-  // ✅ 2. Validate module ID
   const moduleId = parseInt(req.params.id, 10);
-  if (isNaN(moduleId)) {
-    return res.status(400).json({ success, message: "Invalid module ID" });
+  const { ModuleName, ModuleDescription, ModuleImagePath, SortingOrder } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, message: "User not authenticated" });
   }
 
-  // ✅ 3. Extract payload
-  const {
-    ModuleName,
-    ModuleDescription,
-    ModuleImagePath, // <-- New Image (if provided)
-    SortingOrder,
-  } = req.body;
+  if (isNaN(moduleId)) {
+    return res.status(400).json({ success: false, message: "Invalid module ID" });
+  }
 
   if (!ModuleName || !ModuleDescription) {
-    return res.status(400).json({
-      success,
-      message: "ModuleName and ModuleDescription are required",
-    });
+    return res.status(400).json({ success: false, message: "ModuleName and ModuleDescription are required" });
   }
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError("Database connection failed", err);
-        return res.status(500).json({
-          success,
-          message: "Database connection error",
-        });
-      }
+  const result = await updateModuleService(userId, moduleId, {
+    ModuleName,
+    ModuleDescription,
+    ModuleImagePath,
+    SortingOrder,
+  });
 
-      try {
-        // ✅ 4. Get user details
-        let userQuery, userRows;
-
-        if (!isNaN(Number(userId))) {
-          userQuery = `
-            SELECT UserID, Name, isAdmin FROM Community_User 
-            WHERE ISNULL(delStatus, 0) = 0 AND UserID = ?
-          `;
-          userRows = await queryAsync(conn, userQuery, [Number(userId)]);
-        }
-
-        if (
-          (!userRows || userRows.length === 0) &&
-          typeof userId === "string" &&
-          userId.includes("@")
-        ) {
-          userQuery = `
-            SELECT UserID, Name, isAdmin FROM Community_User 
-            WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?
-          `;
-          userRows = await queryAsync(conn, userQuery, [userId]);
-        }
-
-        if (!userRows || userRows.length === 0) {
-          closeConnection(conn);
-          return res.status(404).json({ success, message: "User not found" });
-        }
-
-        const user = userRows[0];
-
-        // ✅ 5. If image is changing, move old one to deleted-files
-        if (ModuleImagePath) {
-          const oldImageQuery = `
-            SELECT ModuleImagePath FROM ModulesDetails 
-            WHERE ModuleID = ? AND ISNULL(delStatus, 0) = 0
-          `;
-          const [existingModule] = await queryAsync(conn, oldImageQuery, [
-            moduleId,
-          ]);
-
-          if (
-            existingModule &&
-            existingModule.ModuleImagePath &&
-            existingModule.ModuleImagePath !== ModuleImagePath
-          ) {
-            const oldImagePath = path.join(
-              process.cwd(),
-              existingModule.ModuleImagePath
-            );
-
-            if (fs.existsSync(oldImagePath)) {
-              // ✅ Ensure deleted-files folder exists
-              const deletedFolder = path.join(
-                process.cwd(),
-                "uploads/deleted-files"
-              );
-              if (!fs.existsSync(deletedFolder)) {
-                fs.mkdirSync(deletedFolder, { recursive: true });
-              }
-
-              const oldFileName = path.basename(existingModule.ModuleImagePath);
-              const newTrashPath = path.join(deletedFolder, oldFileName);
-
-              // ✅ Move old file → deleted-files folder
-              try {
-                fs.renameSync(oldImagePath, newTrashPath);
-                console.log(`Moved old image → ${newTrashPath}`);
-              } catch (moveErr) {
-                console.error("Failed to move old image:", moveErr);
-              }
-            }
-          }
-        }
-
-        // ✅ 6. Build dynamic UPDATE query
-        let updateFields = `
-          ModuleName = ?,
-          ModuleDescription = ?,
-          AuthLstEdit = ?,
-          editOnDt = ?
-        `;
-        let updateParams = [
-          ModuleName,
-          ModuleDescription,
-          user.Name,
-          new Date(),
-        ];
-
-        // ✅ If ModuleImagePath is provided, update it
-        if (ModuleImagePath) {
-          updateFields += `, ModuleImagePath = ?`;
-          updateParams.push(ModuleImagePath);
-        }
-
-        // ✅ If SortingOrder is provided, update it
-        if (SortingOrder !== undefined) {
-          updateFields += `, SortingOrder = ?`;
-          updateParams.push(SortingOrder);
-        }
-
-        const updateQuery = `
-          UPDATE ModulesDetails
-          SET ${updateFields}
-          WHERE ModuleID = ? AND ISNULL(delStatus, 0) = 0
-        `;
-        updateParams.push(moduleId);
-
-        // ✅ 7. Execute update
-        const result = await queryAsync(conn, updateQuery, updateParams);
-
-        if (result.affectedRows === 0) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success,
-            message: "Module not found or already deleted",
-          });
-        }
-
-        // ✅ 8. Fetch updated module
-        const fetchQuery = `
-          SELECT ModuleID, ModuleName, ModuleDescription,
-                 ModuleImagePath, SortingOrder,
-                 AuthLstEdit, editOnDt
-          FROM ModulesDetails
-          WHERE ModuleID = ? AND ISNULL(delStatus, 0) = 0
-        `;
-        const updatedModule = await queryAsync(conn, fetchQuery, [moduleId]);
-
-        success = true;
-        closeConnection(conn);
-
-        return res.status(200).json({
-          success,
-          data: updatedModule[0],
-          message: "Module updated successfully",
-        });
-      } catch (queryErr) {
-        closeConnection(conn);
-        logError("Database query failed", queryErr);
-        return res.status(500).json({
-          success,
-          message: "Database operation failed",
-          details: queryErr.message,
-        });
-      }
-    });
-  } catch (error) {
-    logError("Unexpected error", error);
-    return res.status(500).json({
-      success,
-      message: "Unexpected server error",
-      details: error.message,
-    });
-  }
+  return res.status(result.status).json(result.response);
 };
 
+
 export const updateModuleOrder = async (req, res) => {
-  let success = false;
   const { modules } = req.body;
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        return res.status(500).json({
-          success,
-          message: "Database connection error",
-        });
-      }
-
-      try {
-        await conn.beginTransaction();
-
-        // Update each module's sorting order
-        for (const module of modules) {
-          const updateQuery = `
-                        UPDATE ModulesDetails 
-                        SET 
-                            SortingOrder = ?,
-                            editOnDt = CURRENT_TIMESTAMP
-                        WHERE ModuleID = ?
-                    `;
-          await queryAsync(conn, updateQuery, [
-            module.SortingOrder,
-            module.ModuleID,
-          ]);
-        }
-
-        await conn.commit();
-        success = true;
-        res.status(200).json({
-          success,
-          message: "Module order updated successfully",
-        });
-      } catch (queryErr) {
-        await conn.rollback();
-        logError(queryErr);
-        res.status(500).json({
-          success,
-          message: "Error updating module order",
-        });
-      } finally {
-        closeConnection();
-      }
-    });
-  } catch (error) {
-    logError(error);
-    res.status(500).json({
-      success,
-      message: "Server error",
+  if (!Array.isArray(modules) || modules.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Modules array is required and cannot be empty",
     });
   }
+
+  const result = await updateModuleOrderService(modules);
+  return res.status(result.status).json(result.response);
 };
 
 // export const deleteModule = (req, res) => {
@@ -347,364 +135,74 @@ export const updateModuleOrder = async (req, res) => {
 //   }
 // };
 
-export const deleteModule = (req, res) => {
-  const { moduleId } = req.body;
+export const deleteModule = async (req, res) => {
+   const { moduleId } = req.body;
 
   if (!moduleId || isNaN(moduleId)) {
     return res.status(400).json({
       success: false,
-      message: "Invalid module ID provided",
+      message: "Invalid module ID provided",  // Ensure correct message
     });
   }
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        return res
-          .status(500)
-          .json({ success: false, message: "Database connection error" });
-      }
+  const result = await deleteModuleService(moduleId);
 
-      try {
-        const checkQuery = `
-          SELECT ModuleImagePath FROM ModulesDetails 
-          WHERE ModuleID = ? AND (delStatus IS NULL OR delStatus = 0)
-        `;
-        const [existingModule] = await queryAsync(conn, checkQuery, [moduleId]);
-
-        if (!existingModule) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success: false,
-            message: "Module not found or already deleted",
-          });
-        }
-
-        if (existingModule.ModuleImagePath) {
-          const originalPath = path.join(
-            process.cwd(),
-            existingModule.ModuleImagePath
-          );
-
-          if (fs.existsSync(originalPath)) {
-            const deletedFolder = path.join(
-              process.cwd(),
-              "uploads/deleted-files/"
-            );
-            if (!fs.existsSync(deletedFolder)) {
-              fs.mkdirSync(deletedFolder, { recursive: true });
-            }
-
-            const fileName = path.basename(existingModule.ModuleImagePath);
-            const newPath = path.join(deletedFolder, fileName);
-            fs.renameSync(originalPath, newPath);
-          }
-        }
-        const deleteQuery = `
-          UPDATE ModulesDetails
-          SET delStatus = 1, delOnDt = GETDATE()
-          WHERE ModuleID = ? AND (delStatus IS NULL OR delStatus = 0)
-        `;
-        const result = await queryAsync(conn, deleteQuery, [moduleId]);
-        closeConnection(conn);
-
-        if (result.affectedRows === 0) {
-          return res.status(404).json({
-            success: false,
-            message: "Module not found or already deleted",
-          });
-        }
-
-        return res.status(200).json({
-          success: true,
-          data: {
-            moduleId,
-            deletedAt: new Date().toISOString(),
-            movedToTrash: true,
-          },
-          message: "Module soft-deleted & file moved to trash folder",
-        });
-      } catch (error) {
-        closeConnection(conn);
-        return res.status(500).json({
-          success: false,
-          message: `Error deleting module: ${error.message}`,
-        });
-      }
-    });
-  } catch (outerError) {
-    return res.status(500).json({
-      success: false,
-      message: `Unexpected error: ${outerError.message}`,
-    });
-  }
+  return res.status(result.status).json(result.response);
 };
 
-export const deleteSubModule = (req, res) => {
+export const deleteSubModule = async (req, res) => {
   const { subModuleId } = req.body;
+  const adminId = req.user?.id;
 
-  // Input validation
   if (!subModuleId || isNaN(subModuleId)) {
     return res.status(400).json({
       success: false,
-      message: "Invalid sub-module ID provided",
+      message: "Invalid sub-module ID provided"
     });
   }
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        return res.status(500).json({
-          success: false,
-          message: "Database connection error",
-        });
-      }
-
-      try {
-        // Check if sub-module exists and isn't deleted
-        const checkQuery = `
-                    SELECT * FROM SubModulesDetails 
-                    WHERE SubModuleID = ? AND (delStatus IS NULL OR delStatus = 0)
-                `;
-        const [existingSubModule] = await queryAsync(conn, checkQuery, [
-          subModuleId,
-        ]);
-
-        if (!existingSubModule) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success: false,
-            message: "Sub-module not found or already deleted",
-          });
-        }
-
-        // Perform the soft delete
-        const deleteQuery = `
-                    UPDATE SubModulesDetails
-                    SET 
-                        delStatus = 1,
-                        delOnDt = GETDATE(),
-                        AddDel = ?
-                    WHERE SubModuleID = ? AND (delStatus IS NULL OR delStatus = 0)
-                `;
-
-        const adminId = req.user?.id; // Get current user ID
-        await queryAsync(conn, deleteQuery, [adminId, subModuleId]);
-        closeConnection(conn);
-
-        return res.status(200).json({
-          success: true,
-          data: {
-            subModuleId: subModuleId,
-            deletedAt: new Date().toISOString(),
-            deletedBy: adminId,
-          },
-          message: "Sub-module deleted successfully",
-        });
-      } catch (error) {
-        closeConnection(conn);
-        logError(`Error deleting sub-module: ${error.message}`);
-        return res.status(500).json({
-          success: false,
-          message: "Database error during deletion",
-        });
-      }
-    });
-  } catch (outerError) {
-    logError(`Unexpected error: ${outerError.message}`);
-    return res.status(500).json({
+  if (!adminId) {
+    return res.status(401).json({
       success: false,
-      message: "Unexpected server error",
+      message: "User not authenticated"
     });
   }
+
+  const result = await deleteSubModuleService(subModuleId, adminId);
+
+  return res.status(result.status).json(result.response);
 };
+
 
 export const updateSubModule = async (req, res) => {
-  let success = false;
-
-  // Authentication and validation (keep existing code)
-  const userId = req.user?.UserID || req.user?.id;
-  if (!userId) {
-    return res.status(401).json({ success, message: "User not authenticated" });
-  }
-
+  const userEmail = req.user?.EmailId || req.user?.email || req.user?.id;
   const subModuleId = parseInt(req.params.id, 10);
-  if (isNaN(subModuleId)) {
-    return res.status(400).json({ success, message: "Invalid SubModule ID" });
+
+  if (!userEmail) {
+    return res.status(401).json({ success: false, message: "User not authenticated" });
   }
 
-  // Key change: Handle description explicitly
-  const {
+  if (isNaN(subModuleId)) {
+    return res.status(400).json({ success: false, message: "Invalid SubModule ID" });
+  }
+
+  const { SubModuleName, SubModuleDescription, SubModuleImagePath, SortingOrder } = req.body;
+
+  if (!SubModuleName || !SubModuleDescription) {
+    return res.status(400).json({ success: false, message: "SubModuleName and SubModuleDescription are required" });
+  }
+
+  const result = await updateSubModuleService(userEmail, subModuleId, {
     SubModuleName,
-    SubModuleDescription, // Don't default this
+    SubModuleDescription,
     SubModuleImagePath,
     SortingOrder,
-  } = req.body;
+  });
 
-  if (!SubModuleName) {
-    return res.status(400).json({
-      success,
-      message: "SubModuleName is required",
-    });
-  }
-
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError("Database connection failed", err);
-        return res
-          .status(500)
-          .json({ success, message: "Database connection error" });
-      }
-
-      try {
-        // User verification (keep existing code)
-        let userQuery, userRows;
-        if (!isNaN(Number(userId))) {
-          userQuery = `SELECT UserID, Name, isAdmin FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND UserID = ?`;
-          userRows = await queryAsync(conn, userQuery, [Number(userId)]);
-        }
-
-        if (
-          (!userRows || userRows.length === 0) &&
-          typeof userId === "string" &&
-          userId.includes("@")
-        ) {
-          userQuery = `SELECT UserID, Name, isAdmin FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?`;
-          userRows = await queryAsync(conn, userQuery, [userId]);
-        }
-
-        if (!userRows || userRows.length === 0) {
-          closeConnection(conn);
-          return res.status(404).json({ success, message: "User not found" });
-        }
-
-        const user = userRows[0];
-
-        // Image handling (keep existing code)
-        if (SubModuleImagePath !== undefined) {
-          const oldImageQuery = `SELECT SubModuleImagePath FROM SubModulesDetails WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0`;
-          const [existingSubModule] = await queryAsync(conn, oldImageQuery, [
-            subModuleId,
-          ]);
-
-          if (
-            existingSubModule?.SubModuleImagePath &&
-            existingSubModule.SubModuleImagePath !== SubModuleImagePath
-          ) {
-            const oldImagePath = path.join(
-              process.cwd(),
-              existingSubModule.SubModuleImagePath
-            );
-            if (fs.existsSync(oldImagePath)) {
-              const deletedFolder = path.join(
-                process.cwd(),
-                "uploads/deleted-files"
-              );
-              if (!fs.existsSync(deletedFolder))
-                fs.mkdirSync(deletedFolder, { recursive: true });
-
-              const oldFileName = path.basename(
-                existingSubModule.SubModuleImagePath
-              );
-              const newTrashPath = path.join(deletedFolder, oldFileName);
-              try {
-                fs.renameSync(oldImagePath, newTrashPath);
-                console.log(`Moved old submodule image → ${newTrashPath}`);
-              } catch (moveErr) {
-                console.error("Failed to move old submodule image:", moveErr);
-              }
-            }
-          }
-        }
-
-        // Build UPDATE query - KEY CHANGES HERE
-        let updateFields = `SubModuleName = ?, AuthLstEdit = ?, editOnDt = ?`;
-        let updateParams = [SubModuleName, user.Name, new Date()];
-
-        // Explicit NULL handling for description
-        if (SubModuleDescription !== undefined) {
-          updateFields += `, SubModuleDescription = ?`;
-          // Convert empty string to NULL, keep null as null
-          updateParams.push(
-            SubModuleDescription === "" ? null : SubModuleDescription
-          );
-        }
-
-        if (SubModuleImagePath !== undefined) {
-          updateFields += `, SubModuleImagePath = ?`;
-          updateParams.push(SubModuleImagePath || null);
-        }
-
-        if (SortingOrder !== undefined) {
-          updateFields += `, SortingOrder = ?`;
-          updateParams.push(SortingOrder);
-        }
-
-        const updateQuery = `UPDATE SubModulesDetails SET ${updateFields} WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0`;
-        updateParams.push(subModuleId);
-
-        // Execute update
-        const result = await queryAsync(conn, updateQuery, updateParams);
-
-        if (result.affectedRows === 0) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success,
-            message: "SubModule not found or already deleted",
-          });
-        }
-
-        // Fetch updated record - IMPORTANT: Verify this matches your table structure
-        const fetchQuery = `
-          SELECT 
-            SubModuleID, 
-            SubModuleName, 
-            IFNULL(SubModuleDescription, '') AS SubModuleDescription,
-            SubModuleImagePath, 
-            SortingOrder,
-            AuthLstEdit, 
-            editOnDt
-          FROM SubModulesDetails
-          WHERE SubModuleID = ? AND ISNULL(delStatus, 0) = 0
-        `;
-
-        const [updatedSubModule] = await queryAsync(conn, fetchQuery, [
-          subModuleId,
-        ]);
-
-        success = true;
-        closeConnection(conn);
-
-        return res.status(200).json({
-          success,
-          data: {
-            ...updatedSubModule,
-            // Ensure NULL descriptions are returned as NULL, not empty string
-            SubModuleDescription: updatedSubModule.SubModuleDescription || null,
-          },
-          message: "SubModule updated successfully",
-        });
-      } catch (queryErr) {
-        closeConnection(conn);
-        logError("Database query failed", queryErr);
-        return res.status(500).json({
-          success,
-          message: "Database operation failed",
-          details: queryErr.message,
-        });
-      }
-    });
-  } catch (error) {
-    logError("Unexpected error", error);
-    return res.status(500).json({
-      success,
-      message: "Unexpected server error",
-      details: error.message,
-    });
-  }
+  return res.status(result.status).json(result.response);
 };
+
+
 
 export const updateSubmoduleOrder = async (req, res) => {
   let success = false;
@@ -1227,7 +725,7 @@ export const updateUnit = async (req, res) => {
                     SET 
                         UnitName = ?,
                         UnitDescription = ?,
-                        AuthLstEdit = ?,
+                        AuthLstEdt = ?,
                         editOnDt = ?
                     WHERE UnitID = ? AND ISNULL(delStatus, 0) = 0
                 `;
@@ -1235,7 +733,7 @@ export const updateUnit = async (req, res) => {
         const updateParams = [
           UnitName || null,
           UnitDescription || null,
-          user.Name, // AuthLstEdit
+          user.Name, // AuthLstEdt
           new Date(), // editOnDt
           unitId,
         ];
@@ -1257,7 +755,7 @@ export const updateUnit = async (req, res) => {
                         UnitID, 
                         UnitName, 
                         UnitDescription,
-                        AuthLstEdit, 
+                        AuthLstEdt, 
                         editOnDt
                     FROM UnitsDetails
                     WHERE UnitID = ? AND ISNULL(delStatus, 0) = 0
@@ -1844,7 +1342,7 @@ export const updateFile = async (req, res) => {
               FilesName = ?,
               Description = ?,
               FilePath = ?,
-              AuthLstEdit = ?,
+              AuthLstEdt = ?,
               editOnDt = GETDATE()
             WHERE FileID = ? AND ISNULL(delStatus, 0) = 0
           `;
@@ -1861,7 +1359,7 @@ export const updateFile = async (req, res) => {
             SET 
               FilesName = ?,
               Description = ?,
-              AuthLstEdit = ?,
+              AuthLstEdt = ?,
               editOnDt = GETDATE()
             WHERE FileID = ? AND ISNULL(delStatus, 0) = 0
           `;
@@ -1895,7 +1393,7 @@ export const updateFile = async (req, res) => {
             FilePath,
             FileType,
             Description,
-            AuthLstEdit, 
+            AuthLstEdt, 
             editOnDt
           FROM FilesDetails
           WHERE FileID = ? AND ISNULL(delStatus, 0) = 0

@@ -41,7 +41,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING(255),
         allowNull: true,
       },
-      AuthLstEdit: {
+      AuthLstEdt: {
         type: DataTypes.STRING(255),
         allowNull: true,
       },

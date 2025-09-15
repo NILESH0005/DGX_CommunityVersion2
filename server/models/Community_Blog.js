@@ -8,7 +8,7 @@ export default (sequelize, DataTypes) => {
     publishedDate: { type: DataTypes.DATE, allowNull: true },
     AuthAdd: { type: DataTypes.STRING(800), allowNull: true },
     AuthDel: { type: DataTypes.STRING(800), allowNull: true },
-    AuthLstEdit: { type: DataTypes.STRING(800), allowNull: true },
+    AuthLstEdt: { type: DataTypes.STRING(800), allowNull: true },
     delOnDt: { type: DataTypes.DATE, allowNull: true },
     AddOnDt: { type: DataTypes.DATE, allowNull: true },
     editOnDt: { type: DataTypes.DATE, allowNull: true },

@@ -27,18 +27,7 @@ const UnitsWithFiles = () => {
   const [subModuleName, setSubModuleName] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState(new Set());
 
-  // Get module and submodule names from location state if available
-  // useEffect(() => {
-  //   if (location.state?.moduleName) {
-  //     setModuleName(location.state.moduleName);
-  //   }
-  //   if (location.state?.submoduleName) {
-  //     setSubModuleName(location.state.submoduleName);
-  //   }
-  // }, [location.state]);
-  // In your useEffect for getting module/submodule names
   useEffect(() => {
-    // Set names from location state or localStorage
     const moduleName =
       location.state?.moduleName || localStorage.getItem("moduleName");
     const submoduleName =
@@ -47,7 +36,6 @@ const UnitsWithFiles = () => {
     if (moduleName) setModuleName(moduleName);
     if (submoduleName) setSubModuleName(submoduleName);
 
-    // Handle missing subModuleId
     if (!subModuleId) {
       const storedSubModuleId = localStorage.getItem("subModuleId");
       if (storedSubModuleId) {
@@ -153,7 +141,6 @@ const UnitsWithFiles = () => {
 
   const recordFileView = async (fileId, unitId) => {
     try {
-      // Check if THIS USER has already viewed THIS FILE
       if (viewedFiles.has(fileId)) {
         console.log("File already viewed by this user");
         return;

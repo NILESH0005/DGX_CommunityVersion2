@@ -7,7 +7,7 @@ const SubModuleComponent = ({ module, onSave, onCancel, onSelectSubmodule }) => 
       <SubModuleManager
         module={module}
         onSave={onSave}
-        onCancel={onCancel}
+        onCancel={onCancel}a
         onSelectSubmodule={onSelectSubmodule}
       />
     </div>

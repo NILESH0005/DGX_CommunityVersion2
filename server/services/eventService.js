@@ -1,4 +1,6 @@
 import db from "../models/index.js";
+import { Op } from "sequelize"; // ✅ direct import
+
 const CommunityEvents = db.CommunityEvents;
 const User = db.User;
 const MasterTable = db.TableDDReference;
@@ -99,10 +101,128 @@ export const getEventService = async (userId) => {
   });
   console.log("Query conditions:", { delStatus: 0, UserID: userId });
 
-
   const totalCount = await CommunityEvents.count({
     where: { delStatus: 0, UserID: userId },
   });
 
   return { events, totalCount };
+};
+
+export const updateEventService = async (eventId, user, payload) => {
+  try {
+    // 1. Check if event exists
+    const event = await CommunityEvents.findOne({
+      where: {
+        EventID: eventId,
+        [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+      },
+    });
+
+    if (!event) {
+      return { success: false, status: 404, message: "Event not found" };
+    }
+
+    // 2. Authorization check
+    if (user.isAdmin !== 1) {
+      return {
+        success: false,
+        status: 403,
+        message: "You are not authorized to perform this action",
+      };
+    }
+
+    let updateData = {};
+    const {
+      title,
+      start,
+      end,
+      category,
+      companyCategory,
+      venue,
+      host,
+      registerLink,
+      poster,
+      description,
+      Status,
+      remark,
+    } = payload;
+
+    // 3. Handle Status actions
+    switch (Status) {
+      case "approve":
+        if (event.Status === "Approved") {
+          return {
+            success: false,
+            status: 400,
+            message: "Event is already approved",
+          };
+        }
+        updateData = {
+          Status: "Approved",
+          AuthLstEdt: user.id,
+          editOnDt: new Date(),
+        };
+        break;
+
+      case "reject":
+        if (event.Status === "Rejected") {
+          return {
+            success: false,
+            status: 400,
+            message: "Event is already rejected",
+          };
+        }
+        updateData = {
+          Status: "Rejected",
+          AdminRemark: remark || "",
+          AuthLstEdt: user.id,
+          editOnDt: new Date(),
+        };
+        break;
+
+      case "delete":
+        updateData = {
+          delStatus: 1,
+          AuthLstEdt: user.id,
+          editOnDt: new Date(),
+        };
+        break;
+
+      default:
+        // normal update
+        updateData = {
+          EventTitle: title,
+          StartDate: start,
+          EndDate: end,
+          EventType: category,
+          Category: companyCategory,
+          Venue: venue,
+          Host: host,
+          RegistrationLink: registerLink,
+          EventImage: poster,
+          EventDescription: description,
+          AuthLstEdt: user.id,
+          editOnDt: new Date(),
+        };
+        break;
+    }
+
+    // 4. Perform update
+    await CommunityEvents.update(updateData, { where: { EventID: eventId } });
+
+    return {
+      success: true,
+      status: 200,
+      data: { eventId },
+      message: `Event ${Status ? Status + "ed" : "updated"} successfully!`,
+    };
+  } catch (error) {
+    console.error("Error in updateEventService:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Something went wrong, please try again",
+      error,
+    };
+  }
 };

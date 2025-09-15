@@ -191,8 +191,10 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
     unitId,
     file,
     customFileName,
+    estimatedTime = 0,
     description,
     url = null
+
   ) => {
     if (!file) {
       Swal.fire("Error", "No file selected", "error");
@@ -231,6 +233,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       uploadedAt: new Date().toISOString(),
       percentage: equalPercentage,
       fileSize: file.size,
+      estimatedTime: estimatedTime, // Store estimated time
+
     };
 
     setSubModules((prev) => {
@@ -264,6 +268,7 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         formData.append("unitId", unitId);
         formData.append("percentage", equalPercentage);
         formData.append("customFileName", customFileName || file.name);
+        formData.append("estimatedTime", estimatedTime);
       } else if (url) {
         formData.append("url", url);
         formData.append("name", customFileName || file.name);
@@ -306,6 +311,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         uploadedAt: new Date().toISOString(),
         percentage: equalPercentage,
         fileSize: result.fileSize || file.size,
+        estimatedTime: estimatedTime, // Store estimated time in final file
+
       };
 
       const updated = subModules.map((subModule) => {
@@ -522,11 +529,10 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
           whileTap={{ scale: 0.98 }}
           onClick={handleSaveAll}
           disabled={subModules.length === 0}
-          className={`px-6 py-2.5 rounded-lg flex items-center gap-2 ${
-            subModules.length === 0
-              ? "bg-DGXgray/30 text-DGXgray cursor-not-allowed"
-              : "bg-DGXgreen hover:bg-[#68a600] text-DGXwhite"
-          }`}
+          className={`px-6 py-2.5 rounded-lg flex items-center gap-2 ${subModules.length === 0
+            ? "bg-DGXgray/30 text-DGXgray cursor-not-allowed"
+            : "bg-DGXgreen hover:bg-[#68a600] text-DGXwhite"
+            }`}
         >
           <Save className="w-5 h-5" />
           Save & Continue

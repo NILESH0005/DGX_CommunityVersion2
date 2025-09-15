@@ -1,18 +1,20 @@
+// FileUploadModal.jsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, UploadCloud, FileText, Loader2 } from 'lucide-react';
+import { X, UploadCloud, FileText, Loader2, Clock } from 'lucide-react';
 import FileUploader from '../FileUploader';
 
-const FileUploadModal = ({ 
-    show, 
-    onClose, 
-    unitName, 
-    onFileSelect, 
-    onSubmit, 
-    isSubmitting, 
-    uploadedFile 
+const FileUploadModal = ({
+    show,
+    onClose,
+    unitName,
+    onFileSelect,
+    onSubmit,
+    isSubmitting,
+    uploadedFile
 }) => {
     const [customFileName, setCustomFileName] = useState('');
+    const [estimatedTime, setEstimatedTime] = useState(0);
     const [errors, setErrors] = useState({});
 
     const handleSubmit = () => {
@@ -20,14 +22,18 @@ const FileUploadModal = ({
             setErrors({ file: 'Please select a file to upload' });
             return;
         }
-        
+
         if (!customFileName.trim()) {
             setErrors({ fileName: 'Please enter a file name' });
             return;
         }
-        
-        // Pass both the file and custom name to the parent component
-        onSubmit(uploadedFile, customFileName.trim());
+
+        // Pass file, custom name, AND estimated time to parent component
+        onSubmit(uploadedFile, customFileName.trim(), estimatedTime);
+    };
+
+    const handleTimeChange = (time) => {
+        setEstimatedTime(time);
     };
 
     const handleFileSelected = (file) => {
@@ -81,6 +87,7 @@ const FileUploadModal = ({
                                 <FileUploader
                                     selectedFile={uploadedFile}
                                     onFileSelect={handleFileSelected}
+                                    onTimeSelect={handleTimeChange} // Pass time handler
                                 />
                                 {errors.file && (
                                     <p className="mt-1 text-sm text-red-600">{errors.file}</p>
@@ -88,25 +95,46 @@ const FileUploadModal = ({
                             </div>
 
                             {uploadedFile && (
-                                <div className="mb-6">
-                                    <label htmlFor="fileName" className="block text-sm font-medium text-DGXgray mb-1">
-                                        File Display Name
-                                    </label>
-                                    <input
-                                        type="text"
-                                        id="fileName"
-                                        value={customFileName}
-                                        onChange={(e) => {
-                                            setCustomFileName(e.target.value);
-                                            setErrors({ ...errors, fileName: null });
-                                        }}
-                                        className="w-full px-3 py-2 border border-DGXgray/30 rounded-lg focus:ring-DGXgreen focus:border-DGXgreen"
-                                        placeholder="Enter a display name for the file"
-                                    />
-                                    {errors.fileName && (
-                                        <p className="mt-1 text-sm text-red-600">{errors.fileName}</p>
-                                    )}
-                                </div>
+                                <>
+                                    <div className="mb-6">
+                                        <label htmlFor="fileName" className="block text-sm font-medium text-DGXgray mb-1">
+                                            File Display Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="fileName"
+                                            value={customFileName}
+                                            onChange={(e) => {
+                                                setCustomFileName(e.target.value);
+                                                setErrors({ ...errors, fileName: null });
+                                            }}
+                                            className="w-full px-3 py-2 border border-DGXgray/30 rounded-lg focus:ring-DGXgreen focus:border-DGXgreen"
+                                            placeholder="Enter a display name for the file"
+                                        />
+                                        {errors.fileName && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.fileName}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Time Input Field */}
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-DGXgray mb-1 flex items-center gap-2">
+                                            <Clock className="w-4 h-4" />
+                                            Estimated Reading/Viewing Time (minutes)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={estimatedTime}
+                                            onChange={(e) => handleTimeChange(parseInt(e.target.value) || 0)}
+                                            className="w-32 px-3 py-2 border border-DGXgray/30 rounded-lg focus:ring-DGXgreen focus:border-DGXgreen"
+                                            placeholder="e.g., 15"
+                                        />
+                                        <p className="text-xs text-DGXgray mt-1">
+                                            Set the estimated time needed to read/watch this material
+                                        </p>
+                                    </div>
+                                </>
                             )}
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-DGXgray/20">
@@ -123,11 +151,10 @@ const FileUploadModal = ({
                                     whileTap={{ scale: 0.98 }}
                                     onClick={handleSubmit}
                                     disabled={!uploadedFile || isSubmitting}
-                                    className={`px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors ${
-                                        !uploadedFile || isSubmitting
-                                            ? 'bg-DGXgray/30 text-DGXgray cursor-not-allowed'
-                                            : 'bg-DGXgreen hover:bg-[#68a600] text-DGXwhite'
-                                    }`}
+                                    className={`px-6 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors ${!uploadedFile || isSubmitting
+                                        ? 'bg-DGXgray/30 text-DGXgray cursor-not-allowed'
+                                        : 'bg-DGXgreen hover:bg-[#68a600] text-DGXwhite'
+                                        }`}
                                 >
                                     {isSubmitting ? (
                                         <>

@@ -5,19 +5,24 @@ console.log("Toxicity API Config:", {
   API_KEY: API_KEY ? "Set" : "Not Set",
 });
 export const checkToxicity = async (text) => {
+  // Convert array to string if needed
+  const textToCheck = Array.isArray(text) ? text.join(" ") : text;
+
+  console.log("checkToxicityFlag received:", textToCheck, "type:", typeof textToCheck);
+
   try {
     console.log("Sending toxicity check request:", {
-      text: text.substring(0, 50) + (text.length > 50 ? "..." : ""),
+      text: textToCheck.substring(0, 50) + (textToCheck.length > 50 ? "..." : ""),
       apiUrl: `${API_URL}/detect_toxicity`,
     });
     const response = await fetch(`${API_URL}/detect_toxicity`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "access-token": API_KEY, // ✅ correct header
+        "access-token": API_KEY,
       },
       body: JSON.stringify({
-        text: text,
+        text: textToCheck,
         model: "meta-llama/Llama-3.2-3B-Instruct",
         tokenizer: "string",
       }),
@@ -41,19 +46,23 @@ export const checkToxicity = async (text) => {
 };
 
 export const checkToxicityFlag = async (text) => {
+  const textToCheck = Array.isArray(text) ? text.join(" ") : text;
+
+  console.log("checkToxicityFlag received:", textToCheck, "type:", typeof textToCheck);
+
   try {
     console.log("Sending toxicity check request:", {
-      text: text.substring(0, 50) + "...",
+      text: textToCheck.substring(0, 500) + (textToCheck.length > 500 ? "..." : ""),
     });
 
     const response = await fetch(`${API_URL}/detect_toxicity_flag`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "access-token": API_KEY, // ✅ correct header
+        "access-token": API_KEY,
       },
       body: JSON.stringify({
-        text: text,
+        text: textToCheck,
         model: "meta-llama/Llama-3.2-3B-Instruct",
         tokenizer: "string",
       }),

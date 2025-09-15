@@ -340,7 +340,7 @@ export const updateDiscussionService = async (userId, payload) => {
       Tag: tags || null,
       ResourceUrl: url || null,
       Visibility: visibilityId,
-      AuthLstEdit: actualUser.Name,
+      AuthLstEdt: actualUser.Name,
       editOnDt: new Date(),
     },
     {

@@ -1,8 +1,9 @@
 import express from "express";
 import { fetchUser } from '../middleware/fetchUser.js';
 import { createQuiz, getQuizzes, deleteQuiz, createQuestion, deleteQuestion, getQuestionsByGroupAndLevel, updateQuiz, 
-    createQuizQuestionMapping, getUserQuizCategory, getQuizQuestions, submitQuiz,getQuestion, unmappQuestion, updateQuestion,
-    getLeaderboardRanking, getUserQuizHistory, getQuizzesByRefId, getQuizQuestionsByQuizId } from "../controllers/quiz.js";
+    createQuizQuestionMapping, getUserQuizCategory, getQuizQuestions, submitQuiz,getQuestion, updateQuestion,
+    getLeaderboardRanking, getUserQuizHistory, getQuizzesByRefId, getQuizQuestionsByQuizId, 
+    unmapQuestion} from "../controllers/quiz.js";
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ router.post('/getQuizQuestions', fetchUser, getQuizQuestions)
 router.post('/getQuizQuestionsByQuizId', fetchUser, getQuizQuestionsByQuizId)
 
 router.post('/submitQuiz', fetchUser, submitQuiz)
-router.post('/unmappQuestion', fetchUser, unmappQuestion)
+router.post('/unmappQuestion', fetchUser, unmapQuestion)
 // router.get('/getQuizResults/:quizId', fetchUser, getQuizResults)
 router.post('/updateQuiz', fetchUser, updateQuiz)
 router.post('/updateQuestion', fetchUser, updateQuestion)

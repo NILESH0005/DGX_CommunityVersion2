@@ -265,6 +265,10 @@ const SubModuleCard = () => {
                       {subModule.SubModuleDescription}
                     </p>
                   </div>
+                  <ProgressBar
+                    subModuleID={subModule.SubModuleID}
+                    progressData={progressData}
+                  />
                 </div>
               </div>
             ))
