@@ -87,6 +87,7 @@ const BlogPage = () => {
         let headers = { 'Content-Type': 'application/json' };
 
         const result = await fetchData(endpoint, method, {}, headers);
+        console.log("blogggg",result)
         if (result && result.data) {
           setBlogs(result.data);
         } else {

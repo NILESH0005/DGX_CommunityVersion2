@@ -18,7 +18,13 @@ import {
 } from "../helper/index.js";
 import path from "path";
 import { promises as fs } from "fs";
-import { getUserDiscussionsService, getUserProfileService } from "../services/userProfileService.js";
+import {
+  getUserDiscussionsService,
+  getUserProfileService,
+} from "../services/userProfileService.js";
+
+import db from "../models/index.js";
+const { User } = db;
 
 dotenv.config();
 const JWT_SECRET = process.env.JWTSECRET;
@@ -157,14 +163,16 @@ export const profileDetail = async (req, res) => {
 
 export const getUserDiscussion = async (req, res) => {
   let success = false;
-  const userId = req.user.id || req.user.UserID; 
+  const userId = req.user.id || req.user.UserID;
   console.log("Fetched userId from JWT:", userId);
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
     logWarning(warningMessage);
-    return res.status(400).json({ success, data: errors.array(), message: warningMessage });
+    return res
+      .status(400)
+      .json({ success, data: errors.array(), message: warningMessage });
   }
 
   try {
@@ -253,124 +261,8 @@ export const deleteUserDiscussion = async (req, res) => {
   }
 };
 
-export const uploadUserAvatar = async (req, res) => {
-  let success = false;
-  const userId = req.user.id;
-
-  console.log("User ID:", userId);
-
-  try {
-    let { profileImage } = req.body;
-
-    console.log("Request Body:", req.body);
-
-    // Manual validation
-    if (!profileImage) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
-    }
-
-    // Set default values for null checks
-    profileImage = profileImage ?? null;
-
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        console.error("Failed to connect to database");
-        return res
-          .status(500)
-          .json({ success: false, message: "Failed to connect to database" });
-      }
-      console.log("Database connection established successfully");
-
-      try {
-        const userQuery = `SELECT UserID, Name, isAdmin FROM Community_User WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?`;
-        const userRows = await queryAsync(conn, userQuery, [userId]);
-        console.log("User Rows:", userRows);
-
-        if (userRows.length === 0) {
-          console.log("User not found, please login first.");
-          return res.status(400).json({
-            success: false,
-            message: "User not found, please login first.",
-          });
-        }
-
-        const user = userRows[0];
-        const authLstEdit = user.Name;
-
-        // Validate image format
-        const matches = profileImage.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid image format",
-          });
-        }
-
-        const imageType = matches[1].toLowerCase();
-        const imageData = matches[2];
-
-        // Validate image type
-        const allowedTypes = ["jpeg", "jpg", "png", "webp"];
-        if (!allowedTypes.includes(imageType)) {
-          return res.status(400).json({
-            success: false,
-            message: `Only ${allowedTypes.join(", ")} images are allowed`,
-          });
-        }
-
-        // Validate image size
-        const buffer = Buffer.from(imageData, "base64");
-        if (buffer.length > 5 * 1024 * 1024) {
-          return res.status(400).json({
-            success: false,
-            message: "Image size should be less than 5MB",
-          });
-        }
-
-        // Update user profile with base64 image data
-        const updateQuery = `
-            UPDATE Community_User 
-            SET ProfilePicture = ?, AuthLstEdit = ?, editOnDt = GETDATE() 
-            WHERE EmailId = ?;
-          `;
-        console.log("Executing query: ", updateQuery);
-
-        await queryAsync(conn, updateQuery, [
-          profileImage, // Store the base64 string directly
-          authLstEdit,
-          userId,
-        ]);
-
-        success = true;
-        console.log("Profile picture updated successfully!");
-        return res.status(200).json({
-          success,
-          data: { imageUrl: profileImage }, // Return the base64 string
-          message: "Profile picture updated successfully!",
-        });
-      } catch (queryErr) {
-        console.error("Database Query Error:", queryErr.message || queryErr);
-        return res
-          .status(500)
-          .json({ success: false, message: "Database Query Error" });
-      } finally {
-        closeConnection(conn);
-      }
-    });
-  } catch (error) {
-    console.error("Unexpected Error:", error.stack || JSON.stringify(error));
-    console.error("Error Details:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Unexpected Error, check logs" });
-  }
-};
-
 export const updateUserDetails = async (req, res) => {
   console.log("Incoming user update request:", req.body);
-  let success = false;
 
   // Verify authentication
   if (!req.user || !req.user.id) {
@@ -380,22 +272,23 @@ export const updateUserDetails = async (req, res) => {
     });
   }
 
-  const userEmail = req.user.id; // Assuming req.user.id contains the email
+  const userEmail = req.user.id; // Assuming req.user.id = EmailId
 
   try {
     // Validate request body
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
-        success,
+        success: false,
         errors: errors.array(),
         message: "Invalid data format",
       });
     }
 
-    const { Name, CollegeName, MobileNumber, Designation } = req.body;
+    const { Name, CollegeName, MobileNumber, Designation, UserDescription } =
+      req.body;
 
-    // Additional validation
+    // Required fields check
     if (!Name || !CollegeName || !MobileNumber || !Designation) {
       return res.status(400).json({
         success: false,
@@ -403,7 +296,7 @@ export const updateUserDetails = async (req, res) => {
       });
     }
 
-    // Mobile number validation (basic check for 10 digits)
+    // Mobile number validation
     if (!/^\d{10}$/.test(MobileNumber)) {
       return res.status(400).json({
         success: false,
@@ -411,85 +304,39 @@ export const updateUserDetails = async (req, res) => {
       });
     }
 
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        console.error("Database connection error:", err);
-        return res.status(500).json({
-          success: false,
-          message: "Database connection failed",
-        });
-      }
+    // Find user
+    const user = await User.findOne({
+      where: { EmailId: userEmail, delStatus: 0 },
+    });
 
-      try {
-        // Verify user exists - using EmailId instead of UserID
-        const userCheckQuery = `
-          SELECT Name 
-          FROM Community_User 
-          WHERE EmailId = ? AND ISNULL(delStatus, 0) = 0
-        `;
-        const userResult = await queryAsync(conn, userCheckQuery, [userEmail]);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
-        if (userResult.length === 0) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success: false,
-            message: "User not found",
-          });
-        }
+    // Update user
+    await user.update({
+      Name,
+      CollegeName,
+      MobileNumber,
+      Designation,
+      UserDescription: UserDescription || "",
+      AuthLstEdt: user.Name, // keeping last editor
+      editOnDt: new Date(),
+    });
 
-        // Update user details - using EmailId as the identifier
-        const updateQuery = `
-          UPDATE Community_User 
-          SET 
-            Name = ?,
-            CollegeName = ?,
-            MobileNumber = ?,
-            Designation = ?,
-            AuthLstEdit = ?,
-            editOnDt = CURRENT_TIMESTAMP
-          WHERE EmailId = ? AND ISNULL(delStatus, 0) = 0
-        `;
-
-        const updateParams = [
-          Name,
-          CollegeName,
-          MobileNumber,
-          Designation,
-          userResult[0].Name, // Using the existing name as AuthLstEdit
-          userEmail, // Using the email as the identifier
-        ];
-
-        const result = await queryAsync(conn, updateQuery, updateParams);
-
-        closeConnection(conn);
-
-        return res.status(200).json({
-          success: true,
-          message: "Profile updated successfully",
-          data: {
-            Name,
-            CollegeName,
-            MobileNumber,
-            Designation,
-          },
-        });
-      } catch (queryErr) {
-        console.error("Database query error:", queryErr);
-        closeConnection(conn);
-
-        if (queryErr.code === "ER_DUP_ENTRY") {
-          return res.status(409).json({
-            success: false,
-            message: "Email already exists",
-          });
-        }
-
-        return res.status(500).json({
-          success: false,
-          message: "Database operation failed",
-          error: queryErr.message,
-        });
-      }
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: {
+        Name,
+        CollegeName,
+        MobileNumber,
+        Designation,
+        UserDescription: UserDescription || "",
+      },
     });
   } catch (error) {
     console.error("Unexpected error:", error);
@@ -497,5 +344,28 @@ export const updateUserDetails = async (req, res) => {
       success: false,
       message: "Internal server error",
     });
+  }
+};
+
+
+// controllers/userProfile.js
+export const uploadUserAvatar = async (req, res) => {
+  try {
+    const { email, avatar } = req.body; // avatar = base64 string
+
+    if (!email || !avatar) {
+      return res.status(400).json({ success: false, message: "Email and avatar are required" });
+    }
+
+    // Update using EmailId (string) not UserID (integer)
+    await User.update(
+      { ProfilePicture: avatar },
+      { where: { EmailId: email, delStatus: 0 } }
+    );
+
+    return res.json({ success: true, message: "Avatar updated successfully" });
+  } catch (err) {
+    console.error("Error uploading avatar:", err);
+    return res.status(500).json({ success: false, message: "Error uploading avatar" });
   }
 };

@@ -43,7 +43,7 @@ export const createDiscussionPost = async (userId, postData) => {
       if (existingLike) {
         await existingLike.update({
           Likes: postData.likes,
-          AuthLstEdit: user.Name,
+          AuthLstEdt: user.Name,
           editOnDt: new Date(),
         });
 
@@ -103,6 +103,7 @@ export const createDiscussionPost = async (userId, postData) => {
     throw error;
   }
 };
+
 
 const getCommentsRecursive = async (discussionId, userId) => {
   const comments = await CommunityDiscussion.findAll({

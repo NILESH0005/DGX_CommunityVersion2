@@ -196,6 +196,7 @@ export const getPublicBlogsService = async () => {
     },
     order: [["AddOnDt", "DESC"]],
     attributes: [
+      "UserID",
       "BlogID",
       "title",
       "AuthAdd", // alias for username

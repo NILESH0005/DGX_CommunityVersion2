@@ -13,6 +13,7 @@ import ApiContext from "../context/ApiContext.jsx";
 import { decrypt } from "../utils/decrypt.js";
 import LoadPage from "./LoadPage.jsx";
 import Swal from "sweetalert2";
+import { images } from '../../public/index.js'; // Added missing import
 
 const Register = () => {
   const [loading, setLoading] = useState(false);
@@ -308,7 +309,7 @@ const Register = () => {
         Swal.fire({
           icon: "error",
           title: "Registration Error",
-          text: "Error in Registration",
+          text: data.message || "Error in Registration",
         });
         return;
       } else if (data.success) {
@@ -548,6 +549,19 @@ const Register = () => {
                 "email",
                 "Email Address",
                 email,
+                () => {},
+                () => {},
+                "",
+                true
+              )}
+
+              {/* Referral Code Field */}
+              {renderInputField(
+                "referralCode",
+                "referralCode",
+                "text",
+                "Referral Code",
+                referCode,
                 () => {},
                 () => {},
                 "",

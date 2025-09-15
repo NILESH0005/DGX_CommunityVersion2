@@ -1,7 +1,6 @@
 import db from "../models/index.js";
 const { User, CommunityBlog, CommunityDiscussion } = db;
-import { Op } from "sequelize"; // ✅ direct import
-
+import { Op } from "sequelize"; 
 
 export const getUserProfileService = async (userId) => {
   try {
@@ -9,6 +8,7 @@ export const getUserProfileService = async (userId) => {
     const user = await User.findOne({
       where: { UserID: userId, delStatus: 0 },
       attributes: [
+        "UserID",
         "ProfilePicture",
         "UserDescription",
         "Name",
@@ -32,6 +32,8 @@ export const getUserProfileService = async (userId) => {
         {
           model: CommunityDiscussion,
           attributes: [
+            "DiscussionID",
+            "UserID",
             "Title",
             "Content",
             "DiscussionImagePath",
@@ -39,8 +41,12 @@ export const getUserProfileService = async (userId) => {
             "Likes",
             "Comment",
             "Tag",
+            "AddOnDt",
           ],
-          where: { delStatus: 0 },
+          where: {
+            [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+            Reference: 0, // ✅ Only top-level discussions
+          },
           required: false,
         },
       ],
@@ -50,21 +56,56 @@ export const getUserProfileService = async (userId) => {
       return { success: false, message: "User not found" };
     }
 
-    // Transform discussions to include counts
-    const discussions = user.CommunityDiscussions.map((disc) => ({
-      Title: disc.Title,
-      Content: disc.Content,
-      DiscussionImagePath: disc.DiscussionImagePath,
-      AuthAdd: disc.AuthAdd,
-      Tag: disc.Tag,
-      LikesCount: disc.Likes || 0,
-      CommentsCount: disc.Comment ? disc.Comment.split(",").length : 0, // assuming stored as text
-    }));
+    // Transform discussions safely
+    const discussions = (user.CommunityDiscussions || []).map((disc) => {
+      let likesCount = 0;
+      let commentsCount = 0;
+
+      // ✅ Handle Likes (array, JSON, string, or number)
+      if (Array.isArray(disc.Likes)) {
+        likesCount = disc.Likes.length;
+      } else if (typeof disc.Likes === "string") {
+        likesCount = disc.Likes.trim() ? disc.Likes.split(",").length : 0;
+      } else if (typeof disc.Likes === "number") {
+        likesCount = disc.Likes;
+      }
+
+      // ✅ Handle Comments (array, JSON, or string)
+      if (Array.isArray(disc.Comment)) {
+        commentsCount = disc.Comment.length;
+      } else if (typeof disc.Comment === "string") {
+        commentsCount = disc.Comment.trim()
+          ? disc.Comment.split(",").length
+          : 0;
+      }
+
+      return {
+        DiscussionID: disc.DiscussionID,
+        UserID: disc.UserID,
+        Title: disc.Title,
+        Content: disc.Content,
+        DiscussionImagePath: disc.DiscussionImagePath,
+        AuthAdd: disc.AuthAdd,
+        AddOnDt: disc.AddOnDt,
+        Tag: disc.Tag,
+        LikesCount: likesCount,
+        CommentsCount: commentsCount,
+      };
+    });
+
+    // ✅ Ensure uniqueness by DiscussionID
+    const uniqueDiscussions = Object.values(
+      discussions.reduce((acc, disc) => {
+        acc[disc.DiscussionID] = disc;
+        return acc;
+      }, {})
+    );
 
     return {
       success: true,
       data: {
         user: {
+          UserID: user.UserID,
           ProfilePicture: user.ProfilePicture,
           UserDescription: user.UserDescription,
           Name: user.Name,
@@ -72,7 +113,7 @@ export const getUserProfileService = async (userId) => {
           EmailId: user.EmailId,
         },
         blogs: user.Community_Blogs,
-        discussions,
+        discussions: uniqueDiscussions,
       },
       message: "User profile fetched successfully",
     };
@@ -215,3 +256,4 @@ export const getUserDiscussionsService = async (userEmail) => {
     throw error;
   }
 };
+

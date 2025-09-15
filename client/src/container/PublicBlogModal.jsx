@@ -5,11 +5,31 @@ import { TbUserSquareRounded } from "react-icons/tb";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../context/ApiContext";
+import { useNavigate } from "react-router-dom";
+import {
+  ProfileImage,
+  ProfileLink,
+  handleProfileRedirect,
+} from "../utils/handleProfileRedirect.jsx";
+import images from "../../public/images.js";
 
 const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
+  console.log("Blog data:", blog);
+
   const { title, image, author, published_date, content, Status, BlogID } =
     blog || {};
   const { fetchData, userToken, user } = useContext(ApiContext);
+  const navigate = useNavigate();
+  console.log("user is", user);
+
+  const handleProfileClick = (userData, e) => {
+    e.stopPropagation();
+    if (userData?.id) {
+      handleProfileRedirect(userData.id, navigate);
+    } else {
+      console.error("Invalid User ID:", userData);
+    }
+  };
 
   const updateBlogStatus = async (blogId, Status, remark = "") => {
     const endpoint = `blog/updateBlog/${blogId}`;
@@ -107,6 +127,11 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
     }
   };
 
+  // Get user image from blog data or use default
+  const getUserImage = (blogData) => {
+    return blogData?.UserImage || images.defaultProfile;
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -160,8 +185,19 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
                 className="mb-6 flex flex-col items-center"
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <TbUserSquareRounded className="text-indigo-600 text-3xl" />
-                  <span className="text-gray-600 font-medium">{author}</span>
+                  <ProfileImage
+                    src={getUserImage(blog)}
+                    className="w-8 h-8 rounded-full object-cover cursor-pointer"
+                    alt="Author"
+                    onClick={(e) => handleProfileClick({ id: blog?.UserID }, e)}
+                  />
+
+                  <span
+                    className="text-gray-600 font-medium hover:text-DGXblue transition-colors cursor-pointer"
+                    onClick={(e) => handleProfileClick({ id: blog?.UserID }, e)}
+                  >
+                    {author}
+                  </span>
                 </div>
                 <p className="text-gray-500 text-sm">{published_date}</p>
               </motion.div>

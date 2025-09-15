@@ -1,150 +1,113 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import {
   Heart,
   MessageCircle,
-  Share2,
   Calendar,
-  Eye,
   Grid3X3,
   List,
   Search,
-  Moon,
-  Sun,
-  UserPlus,
-  Mail,
-  MapPin,
-  Link as LinkIcon,
   Bookmark,
-  TrendingUp,
-  Clock,
+  ArrowLeft,
 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import ApiContext from "../context/ApiContext";
 
-// Mock data
-const profileData = {
-  name: "Nilesh Thakur",
-  bio: "Full-stack developer passionate about creating beautiful, functional web experiences. Coffee enthusiast ☕",
-  joinDate: "March 2021",
-  avatar: "../../public/No Image.webp",
-};
+export default function UserDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { fetchData } = useContext(ApiContext);
+  const userId = id;
 
-const mockBlogs = [
-  {
-    id: 1,
-    title: "Building Scalable React Applications",
-    excerpt:
-      "Learn the best practices for creating maintainable React apps that can grow with your team.",
-    date: "2024-01-15",
-    image: "/placeholder.svg?height=200&width=300&text=React+Blog",
-  },
-  {
-    id: 2,
-    title: "The Future of Web Development",
-    excerpt:
-      "Exploring emerging trends and technologies that will shape the next decade of web development.",
-    date: "2024-01-10",
-    image: "/placeholder.svg?height=200&width=300&text=Future+Web",
-  },
-  {
-    id: 3,
-    title: "Mastering CSS Grid and Flexbox",
-    excerpt:
-      "A comprehensive guide to modern CSS layout techniques with practical examples.",
-    date: "2024-01-05",
-    image: "/placeholder.svg?height=200&width=300&text=CSS+Guide",
-  },
-];
-
-const mockPosts = [
-  {
-    id: 1,
-    title: "Performance Optimization Success",
-    content:
-      "Just shipped a new feature that reduces load time by 40%! The key was implementing proper code splitting and lazy loading. #webperf",
-    date: "2024-01-16",
-    likes: 89,
-    comments: 12,
-    image: "/placeholder.svg?height=200&width=300&text=Performance",
-    tags: ["Performance", "WebDev", "Optimization"],
-  },
-  {
-    id: 2,
-    title: "Next.js 14 Experience",
-    content:
-      "Working on an exciting new project using Next.js 14 and the new App Router. The developer experience is incredible! 🚀",
-    date: "2024-01-14",
-    likes: 67,
-    comments: 8,
-    image: "/placeholder.svg?height=200&width=300&text=NextJS",
-    tags: ["Next.js", "React", "Frontend"],
-  },
-  {
-    id: 3,
-    title: "Learning Through Projects",
-    content:
-      "Hot take: The best way to learn a new technology is to build something you actually want to use. What's your latest side project?",
-    date: "2024-01-12",
-    likes: 145,
-    comments: 23,
-    image: "/placeholder.svg?height=200&width=300&text=Learning",
-    tags: ["Learning", "SideProjects", "Development"],
-  },
-];
-
-const mockModules = [
-  {
-    id: 1,
-    name: "React Component Library",
-    description:
-      "A collection of reusable React components with TypeScript support",
-    stars: 342,
-    forks: 89,
-    language: "TypeScript",
-    updated: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "CSS Animation Toolkit",
-    description:
-      "Lightweight CSS animations and transitions for modern web apps",
-    stars: 156,
-    forks: 34,
-    language: "CSS",
-    updated: "2024-01-10",
-  },
-  {
-    id: 3,
-    name: "API Response Cache",
-    description:
-      "Smart caching solution for REST API responses with automatic invalidation",
-    stars: 89,
-    forks: 23,
-    language: "JavaScript",
-    updated: "2024-01-08",
-  },
-];
-
-export default function MyProfile() {
   const [activeTab, setActiveTab] = useState("blogs");
   const [viewMode, setViewMode] = useState("grid");
   const [sortBy, setSortBy] = useState("date");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [likedPosts, setLikedPosts] = useState({});
+  const [userData, setUserData] = useState(null);
+  const [blogs, setBlogs] = useState([]);
+  const [discussions, setDiscussions] = useState([]);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+    console.log("User Data:", userData);
+    console.log("Discussions:", discussions);
+    console.log("First discussion UserID:", discussions[0]?.UserID);
+  }, [userData, discussions]);
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
+    if (userId) {
+      fetchUserProfile();
     }
-  }, [isDarkMode]);
+  }, [userId]);
+
+  const fetchUserProfile = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const endpoint = `userprofile/profile/${userId}`;
+      const method = "GET";
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      console.log("Fetching user profile for ID:", userId);
+
+      const response = await fetchData(endpoint, method, headers);
+
+      // Check if response is valid and has the expected structure
+      console.log("API Response:", response);
+
+      // Handle different possible response structures
+      if (response && (response.success || response.data || response.user)) {
+        // The data might be in different places depending on API structure
+        const userData =
+          response.data?.user || response.user || response.data || {};
+        const userBlogs = response.data?.blogs || response.blogs || [];
+        const userDiscussions =
+          response.data?.discussions || response.discussions || [];
+
+        console.log("User data:", userData);
+        console.log("Blogs:", userBlogs);
+        console.log("Discussions:", userDiscussions);
+
+        setUserData({
+          ProfilePicture:
+            userData.ProfilePicture || userData.profilePicture || null,
+          UserDescription:
+            userData.UserDescription ||
+            userData.userDescription ||
+            "No description available.",
+          Name: userData.Name || userData.name || "Unknown User",
+          AddOnDt: userData.AddOnDt || userData.addOnDt || null,
+          EmailId: userData.EmailId || userData.emailId || "No email available",
+        });
+
+        setBlogs(userBlogs);
+        setDiscussions(userDiscussions);
+      } else {
+        const errorMsg = response?.message || "Failed to fetch user profile";
+        console.error("API Error:", errorMsg);
+        setError(errorMsg);
+      }
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      setError(
+        error.message || "Failed to fetch user profile. Please try again later."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (isLoading) {
+      document.documentElement.classList.add("loading");
+    } else {
+      document.documentElement.classList.remove("loading");
+    }
+  }, [isLoading]);
 
   const handleLike = (postId) => {
     setLikedPosts((prev) => ({
@@ -153,43 +116,36 @@ export default function MyProfile() {
     }));
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
   const filteredContent = () => {
-    let content =
-      activeTab === "blogs"
-        ? mockBlogs
-        : activeTab === "posts"
-        ? mockPosts
-        : mockModules;
+    let content = activeTab === "blogs" ? blogs : discussions;
 
     if (searchQuery) {
       content = content.filter((item) =>
-        item.title
-          ? item.title.toLowerCase().includes(searchQuery.toLowerCase())
-          : item.content
-          ? item.content.toLowerCase().includes(searchQuery.toLowerCase())
-          : item.name
-          ? item.name.toLowerCase().includes(searchQuery.toLowerCase())
-          : false
+        (item.title || item.Title || "")
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
       );
     }
 
     return content.sort((a, b) => {
       if (sortBy === "date") {
-        const dateA = a.date
-          ? new Date(a.date)
-          : a.updated
-          ? new Date(a.updated)
-          : new Date();
-        const dateB = b.date
-          ? new Date(b.date)
-          : b.updated
-          ? new Date(b.updated)
-          : new Date();
+        const dateA =
+          a.publishedDate || a.AuthAdd
+            ? new Date(a.publishedDate || a.AuthAdd)
+            : new Date(0);
+        const dateB =
+          b.publishedDate || b.AuthAdd
+            ? new Date(b.publishedDate || b.AuthAdd)
+            : new Date(0);
         return dateB.getTime() - dateA.getTime();
       }
       if (sortBy === "popularity") {
-        const popularityA = a.likes ? a.likes : a.stars ? a.stars : 0;
-        const popularityB = b.likes ? b.likes : b.stars ? b.stars : 0;
+        const popularityA = a.LikesCount || a.likes || 0;
+        const popularityB = b.LikesCount || b.likes || 0;
         return popularityB - popularityA;
       }
       return 0;
@@ -200,17 +156,51 @@ export default function MyProfile() {
     return <LoadingState />;
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-2xl mb-4">Error</div>
+          <div className="text-gray-600 dark:text-gray-300 mb-6">{error}</div>
+          <button
+            onClick={handleBack}
+            className="bg-DGXgreen hover:bg-DGXblue text-white px-4 py-2 rounded-lg transition-colors duration-300"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-gray-600 dark:text-gray-300 mb-6">
+            User not found
+          </div>
+          <button
+            onClick={handleBack}
+            className="bg-DGXgreen hover:bg-DGXblue text-white px-4 py-2 rounded-lg transition-colors duration-300"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? "dark bg-gray-900" : "bg-gray-50"
-      }`}
-    >
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      {/* Back Button */}
+      <div className="fixed top-4 left-4 z-50">
+        <button
+          onClick={handleBack}
+          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full p-2 shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-colors duration-300"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Hero Section */}
@@ -225,35 +215,42 @@ export default function MyProfile() {
             <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
               <div className="relative group">
                 <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl group-hover:scale-105 transition-transform duration-300 overflow-hidden">
-                  <img
-                    src={profileData.avatar || "/placeholder.svg"}
-                    alt={profileData.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="w-16 h-16 flex items-center justify-center bg-gradient-to-br from-DGXgreen to-DGXblue text-white text-2xl font-bold rounded-full">
-                    {profileData.avatar ? "" : "AR"}
-                  </div>
+                  {userData.ProfilePicture ? (
+                    <img
+                      src={userData.ProfilePicture}
+                      alt={userData.Name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-DGXgreen to-DGXblue flex items-center justify-center text-white text-4xl font-bold">
+                      {userData.Name
+                        ? userData.Name.charAt(0).toUpperCase()
+                        : "U"}
+                    </div>
+                  )}
                 </div>
-                <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white shadow-lg"></div>
               </div>
 
               <div className="flex-1">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                      {profileData.name}
+                      {userData.Name || "Unknown User"}
                     </h1>
-                    <p className="text-lg text-purple-600 dark:text-purple-400 mb-3">
-                      {profileData.username}
+                    <p className="text-lg text-DGXblue dark:text-DGXblue/80 mb-3">
+                      {userData.EmailId}
                     </p>
                     <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
-                      {profileData.bio}
+                      {userData.UserDescription || "No description available."}
                     </p>
 
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        Joined {profileData.joinDate}
+                        Joined{" "}
+                        {userData.AddOnDt
+                          ? new Date(userData.AddOnDt).toLocaleDateString()
+                          : "Unknown date"}
                       </div>
                     </div>
                   </div>
@@ -266,23 +263,50 @@ export default function MyProfile() {
 
       {/* Content Section */}
       <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-DGXblue dark:text-DGXblue/80">
+              {blogs.length}
+            </div>
+            <div className="text-gray-600 dark:text-gray-300">Blogs</div>
+          </div>
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-DGXblue dark:text-DGXblue/80">
+              {discussions.length}
+            </div>
+            <div className="text-gray-600 dark:text-gray-300">Discussions</div>
+          </div>
+          {/* <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-6 text-center">
+            <div className="text-3xl font-bold text-DGXblue dark:text-DGXblue/80">
+              {discussions.reduce(
+                (total, discussion) => total + (discussion.LikesCount || 0),
+                0
+              ) + blogs.reduce((total, blog) => total + (blog.likes || 0), 0)}
+            </div>
+            <div className="text-gray-600 dark:text-gray-300">
+              Discussion total Likes
+            </div>
+          </div> */}
+        </div>
+
         {/* Sticky Tabs and Controls */}
         <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 py-4 mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="w-full lg:w-auto">
               <div className="grid w-full lg:w-auto grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                {["blogs", "posts"].map((tab) => (
+                {["blogs", "discussions"].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`px-4 py-2 rounded-lg transition-all duration-300 ${
                       activeTab === tab
-                        ? "bg-white dark:bg-gray-700 shadow-md text-purple-600 dark:text-purple-400"
+                        ? "bg-white dark:bg-gray-700 shadow-md text-DGXblue dark:text-DGXblue/80"
                         : "text-gray-600 dark:text-gray-300"
                     }`}
                   >
                     {tab === "blogs" && "📄 Blogs"}
-                    {tab === "posts" && "📝 Posts"}
+                    {tab === "discussions" && "💬 Discussions"}
                   </button>
                 ))}
               </div>
@@ -292,10 +316,10 @@ export default function MyProfile() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
-                  placeholder="Search content..."
+                  placeholder={`Search ${activeTab}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="pl-10 w-64 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-DGXblue focus:border-transparent"
                 />
               </div>
 
@@ -303,25 +327,11 @@ export default function MyProfile() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="appearance-none w-40 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="appearance-none w-40 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-DGXblue focus:border-transparent"
                 >
                   <option value="date">Latest</option>
                   <option value="popularity">Popular</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
               </div>
 
               <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-2">
@@ -329,7 +339,7 @@ export default function MyProfile() {
                   onClick={() => setViewMode("grid")}
                   className={`p-2 rounded-md ${
                     viewMode === "grid"
-                      ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                      ? "bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80"
                       : ""
                   }`}
                 >
@@ -339,7 +349,7 @@ export default function MyProfile() {
                   onClick={() => setViewMode("list")}
                   className={`p-2 rounded-md ${
                     viewMode === "list"
-                      ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                      ? "bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80"
                       : ""
                   }`}
                 >
@@ -361,24 +371,15 @@ export default function MyProfile() {
               setHoveredCard={setHoveredCard}
             />
           )}
-          {activeTab === "posts" && (
+          {activeTab === "discussions" && (
             <ContentGrid
               content={filteredContent()}
               viewMode={viewMode}
-              type="posts"
+              type="discussions"
               hoveredCard={hoveredCard}
               setHoveredCard={setHoveredCard}
               likedPosts={likedPosts}
               handleLike={handleLike}
-            />
-          )}
-          {activeTab === "modules" && (
-            <ContentGrid
-              content={filteredContent()}
-              viewMode={viewMode}
-              type="modules"
-              hoveredCard={hoveredCard}
-              setHoveredCard={setHoveredCard}
             />
           )}
         </div>
@@ -410,16 +411,16 @@ function ContentGrid({
     >
       {content.map((item, index) => (
         <ContentCard
-          key={item.id}
+          key={index}
           item={item}
           type={type}
           viewMode={viewMode}
-          isHovered={hoveredCard === item.id}
-          onHover={() => setHoveredCard(item.id)}
+          isHovered={hoveredCard === index}
+          onHover={() => setHoveredCard(index)}
           onLeave={() => setHoveredCard(null)}
           index={index}
-          isLiked={likedPosts ? likedPosts[item.id] : false}
-          onLike={handleLike ? () => handleLike(item.id) : null}
+          isLiked={likedPosts ? likedPosts[index] : false}
+          onLike={handleLike ? () => handleLike(index) : null}
         />
       ))}
     </div>
@@ -437,6 +438,53 @@ function ContentCard({
   isLiked,
   onLike,
 }) {
+  const getTitle = () => {
+    if (type === "blogs") return item.title || "Untitled Blog";
+    if (type === "discussions") return item.Title || "Untitled Discussion";
+    return "Untitled";
+  };
+
+  const getContent = () => {
+    if (type === "blogs") return item.content || "No content available";
+    if (type === "discussions") return item.Content || "No content available";
+    return "No content available";
+  };
+
+  const getImage = () => {
+    if (type === "blogs") return item.image;
+    if (type === "discussions") return item.DiscussionImagePath || item.image;
+    return null;
+  };
+
+  const getDate = () => {
+    if (type === "blogs") return item.publishedDate || item.AuthAdd;
+    if (type === "discussions") return item.AddOnDt; // Fixed: Use AddOnDt instead of AuthAdd
+    return null;
+  };
+
+  const getLikes = () => {
+    if (type === "discussions") return item.LikesCount || 0;
+    if (type === "blogs") return item.likes || 0;
+    return 0;
+  };
+
+  const getComments = () => {
+    if (type === "discussions") return item.CommentsCount || 0;
+    if (type === "blogs") return item.comments || 0;
+    return 0;
+  };
+
+  const getTags = () => {
+    if (type === "discussions" && item.Tag) {
+      // Handle the Tag property which is a string like "#Technology #AI #Innovation"
+      if (typeof item.Tag === "string") {
+        return item.Tag.split(" ").filter((tag) => tag.startsWith("#"));
+      }
+      return Array.isArray(item.Tag) ? item.Tag : [item.Tag];
+    }
+    return [];
+  };
+
   return (
     <div
       className={`group cursor-pointer transition-all duration-500 hover:shadow-2xl rounded-xl border-0 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md hover:bg-white/80 dark:hover:bg-gray-800/80 overflow-hidden ${
@@ -446,129 +494,139 @@ function ContentCard({
       onMouseLeave={onLeave}
       style={{
         animationDelay: `${index * 100}ms`,
-        animation: "fadeInUp 0.6s ease-out forwards",
       }}
     >
       {type === "blogs" && (
         <>
-          {viewMode === "grid" && item.image && (
+          {viewMode === "grid" && getImage() && (
             <div className="relative overflow-hidden rounded-t-lg">
               <img
-                src={item.image || "/placeholder.svg"}
-                alt={item.title}
+                src={getImage()}
+                alt={getTitle()}
                 className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
           )}
           <div className="p-6">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300 line-clamp-2">
-                {item.title}
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-DGXblue dark:group-hover:text-DGXblue/80 transition-colors duration-300 line-clamp-2">
+                {getTitle()}
               </h3>
               <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
                 <Bookmark className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 mt-2">
-              {item.excerpt}
-            </p>
-            <div className="text-xs text-gray-400 dark:text-gray-500 mt-4">
-              {new Date(item.date).toLocaleDateString()}
-            </div>
+            <div
+              className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mt-2"
+              dangerouslySetInnerHTML={{ __html: getContent() }}
+            />
+
+            {item.Category && (
+              <div className="mt-2">
+                <span className="text-xs bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80 px-2 py-1 rounded-full">
+                  {item.Category}
+                </span>
+              </div>
+            )}
+            {getDate() && (
+              <div className="w-full text-right">
+                <span className="text-xs text-gray-400 dark:text-gray-500 mt-4">
+                  {new Date(getDate()).toLocaleDateString()}
+                </span>
+              </div>
+            )}  
+            {/* Add likes and comments for blogs too */}
+            {/* <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center text-sm text-gray-500">
+                  <Heart className="w-4 h-4 mr-1" />
+                  {getLikes()}
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                  {getComments()}
+                </div>
+              </div>
+            </div> */}
           </div>
         </>
       )}
 
-      {type === "posts" && (
+      {type === "discussions" && (
         <>
-          {viewMode === "grid" && item.image && (
+          {viewMode === "grid" && getImage() && (
             <div className="relative overflow-hidden rounded-t-lg">
               <img
-                src={item.image || "/placeholder.svg"}
-                alt={item.title}
+                src={getImage()}
+                alt={getTitle()}
                 className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </div>
           )}
           <div className="p-6">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300 line-clamp-2">
-                {item.title}
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-DGXblue dark:group-hover:text-DGXblue/80 transition-colors duration-300 line-clamp-2">
+                {getTitle()}
               </h3>
               <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
                 <Bookmark className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 text-sm mt-2 mb-4">
-              {item.content}
-            </p>
+            <div
+              className="text-gray-600 dark:text-gray-300 text-sm mt-2 mb-4"
+              dangerouslySetInnerHTML={{ __html: getContent() }}
+            />
 
-            {item.tags && item.tags.length > 0 && (
+            {getTags().length > 0 && (
               <div className="flex flex-wrap gap-1 mb-4">
-                {item.tags.map((tag) => (
+                {getTags().map((tag, tagIndex) => (
                   <span
-                    key={tag}
-                    className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-full"
+                    key={tagIndex}
+                    className="text-xs bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80 px-2 py-1 rounded-full"
                   >
-                    #{tag}
+                    {tag}
                   </span>
                 ))}
               </div>
             )}
-
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <button
-                  onClick={onLike}
-                  className={`flex items-center text-sm transition-colors duration-300 ${
-                    isLiked
-                      ? "text-red-500"
-                      : "text-gray-500 hover:text-red-500"
-                  }`}
-                >
-                  <Heart
-                    className={`w-4 h-4 mr-1 ${isLiked ? "fill-current" : ""}`}
-                  />
-                  {item.likes}
-                </button>
-                <button className="text-gray-500 hover:text-blue-500 transition-colors duration-300 flex items-center text-sm">
+                {onLike && (
+                  <button
+                    onClick={onLike}
+                    className={`flex items-center text-sm transition-colors duration-300 ${
+                      isLiked
+                        ? "text-red-500"
+                        : "text-gray-500 hover:text-red-500"
+                    }`}
+                  >
+                    <Heart
+                      className={`w-4 h-4 mr-1 ${
+                        isLiked ? "fill-current" : ""
+                      }`}
+                    />
+                    {getLikes()}
+                  </button>
+                )}
+                <div className="text-gray-500 flex items-center text-sm">
                   <MessageCircle className="w-4 h-4 mr-1" />
-                  {item.comments}
-                </button>
+                  {getComments()}
+                </div>
               </div>
-              <div className="text-xs text-gray-400 dark:text-gray-500">
-                {new Date(item.date).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
 
-      {type === "modules" && (
-        <>
-          <div className="p-6">
-            <div className="flex items-start justify-between">
-              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors duration-300">
-                {item.name}
-              </h3>
-              <span className="text-xs border border-gray-200 dark:border-gray-700 px-2 py-1 rounded-full">
-                {item.language}
-              </span>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
-              {item.description}
-            </p>
-          </div>
-          <div className="px-6 pb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center gap-1">{item.stars}</div>
-              <div className="flex items-center gap-1">{item.forks}</div>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-              <Clock className="w-3 h-3" />
-              {new Date(item.updated).toLocaleDateString()}
+              {getDate() && (
+                <div className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
+                  {new Date(getDate()).toLocaleDateString()}
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -576,11 +634,10 @@ function ContentCard({
     </div>
   );
 }
-
 function LoadingState() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="h-64 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-800"></div>
+      <div className="h-64 bg-gradient-to-br from-DGXgreen to-DGXblue"></div>
       <div className="max-w-6xl mx-auto px-6 -mt-32">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
           <div className="flex items-center gap-6">
@@ -617,7 +674,7 @@ function LoadingState() {
 function EmptyState({ type }) {
   const emptyMessages = {
     blogs: "No blogs found",
-    posts: "No posts yet",
+    discussions: "No discussions yet",
   };
 
   return (
@@ -629,14 +686,8 @@ function EmptyState({ type }) {
         {emptyMessages[type]}
       </h3>
       <p className="text-gray-500 dark:text-gray-400 mb-6">
-        Try adjusting your search or filters to find what you're looking for.
+        This user hasn't created any {type} yet.
       </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300"
-      >
-        Clear Filters
-      </button>
     </div>
   );
 }
