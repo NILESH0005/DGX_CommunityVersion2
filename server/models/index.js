@@ -128,3 +128,7 @@ db.QuizMapp.belongsTo(db.QuizDetails, {
 
 export default db;
 export { sequelize };
+
+
+
+

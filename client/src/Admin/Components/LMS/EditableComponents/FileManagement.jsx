@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import Swal from "sweetalert2";
-import { FaEdit, FaTrash, FaFolder, FaSave, FaTimes, FaUpload, FaFile, FaLink } from "react-icons/fa";
+import { FaEdit, FaTrash, FaFolder, FaSave, FaTimes, FaUpload, FaFile, FaLink, FaClock } from "react-icons/fa";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import FilesOrder from "./FilesOrder";
-
 
 const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
   const [files, setFiles] = useState([]);
@@ -14,12 +13,14 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
   const [fileLink, setFileLink] = useState("");
   const [linkName, setLinkName] = useState("");
   const [linkDescription, setLinkDescription] = useState("");
+  const [estimatedTime, setEstimatedTime] = useState(0); // For new uploads
   const [isUploading, setIsUploading] = useState(false);
   const [editingFile, setEditingFile] = useState(null);
   const [editedFileData, setEditedFileData] = useState({
     fileName: "",
     description: "",
     link: "",
+    estimatedTime: 0 // For editing
   });
   const [showFilesOrder, setShowFilesOrder] = useState(false);
   const fileInputRef = useRef(null);
@@ -85,6 +86,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
         formData.append('subModuleId', selectedUnit.SubModuleID);
         formData.append('unitId', selectedUnit.UnitID);
         formData.append('customFileName', fileObj.customName || fileObj.file.name);
+        formData.append('estimatedTime', estimatedTime.toString()); // Add estimated time
 
         await fetch(`${import.meta.env.VITE_API_BASEURL}lms/upload-learning-material-update`, {
           method: 'POST',
@@ -104,6 +106,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
             fileName: linkName || "Link",
             description: linkDescription || "",
             fileType: "link",
+            estimatedTime: estimatedTime || 0 // Add estimated time for links
           },
           { "Content-Type": "application/json", "auth-token": userToken }
         );
@@ -134,6 +137,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
     setFileLink("");
     setLinkName("");
     setLinkDescription("");
+    setEstimatedTime(0); // Reset estimated time
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -204,12 +208,13 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
       fileName: file.FilesName,
       description: file.Description || "",
       link: file.FileType === "link" ? file.FilePath : "",
+      estimatedTime: file.EstimatedTime || 0 // Set estimated time for editing
     });
   };
 
   const handleCancelEditFile = () => {
     setEditingFile(null);
-    setEditedFileData({ fileName: "", description: "", link: "" });
+    setEditedFileData({ fileName: "", description: "", link: "", estimatedTime: 0 });
   };
 
   const handleUpdateFile = async () => {
@@ -221,6 +226,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
         fileId: editingFile.FileID,
         fileName: editedFileData.fileName,
         description: editedFileData.description,
+        estimatedTime: editedFileData.estimatedTime, // Include estimated time
         ...(editingFile.FileType === "link" && { link: editedFileData.link })
       };
 
@@ -235,6 +241,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
             ...file,
             FilesName: editedFileData.fileName,
             Description: editedFileData.description,
+            EstimatedTime: editedFileData.estimatedTime, // Update estimated time
             ...(editingFile.FileType === "link" && { FilePath: editedFileData.link }),
           } : file
         ));
@@ -296,6 +303,18 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
     );
   };
 
+  // Helper function to format estimated time
+  const formatEstimatedTime = (minutes) => {
+    if (!minutes || minutes === 0) return "0 min";
+    if (minutes < 60) return `${minutes} min`;
+    
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+    return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} min`;
+  };
+
   if (!selectedUnit) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 p-6 text-center">
@@ -324,7 +343,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
 
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Filesss</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Files</h3>
           <button
             onClick={() => setShowFilesOrder(true)}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -333,8 +352,31 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
             Reorder Files
           </button>
         </div>
+
+        {/* File Upload Form */}
         <div className="mb-6 p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
           <div className="space-y-4">
+            {/* Estimated Time Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Estimated Time (minutes)
+              </label>
+              <div className="flex items-center gap-2">
+                <FaClock className="text-gray-500 dark:text-gray-400" />
+                <input
+                  type="number"
+                  min="0"
+                  value={estimatedTime}
+                  onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)}
+                  placeholder="Enter estimated time in minutes"
+                  className="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded"
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formatEstimatedTime(estimatedTime)}
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Upload Files
@@ -356,6 +398,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
                 />
               </div>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Or Add Link
@@ -459,10 +502,13 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
                     />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    File Name
+                    File Nameee
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Estimated Time
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Uploaded By
@@ -477,9 +523,9 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
                   <React.Fragment key={file.FileID}>
                     {editingFile?.FileID === file.FileID ? (
                       <tr className="bg-blue-50 dark:bg-gray-700">
-                        <td colSpan="5" className="px-6 py-4">
+                        <td colSpan="6" className="px-6 py-4">
                           <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                   {file.FileType === "link" ? "Link Title" : "File Name"}
@@ -490,6 +536,24 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
                                   onChange={(e) => setEditedFileData({ ...editedFileData, fileName: e.target.value })}
                                   className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded"
                                 />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                  Estimated Time (minutes)
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={editedFileData.estimatedTime}
+                                  onChange={(e) => setEditedFileData({ 
+                                    ...editedFileData, 
+                                    estimatedTime: parseInt(e.target.value) || 0 
+                                  })}
+                                  className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded"
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  {formatEstimatedTime(editedFileData.estimatedTime)}
+                                </p>
                               </div>
                               {file.FileType === "link" && (
                                 <div>
@@ -556,6 +620,12 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500 dark:text-gray-400">
                             {file.FileType}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <FaClock className="text-gray-400" />
+                            {formatEstimatedTime(file.EstimatedTime)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

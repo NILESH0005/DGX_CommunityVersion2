@@ -15,6 +15,7 @@ import {
   FaFile,
   FaLink,
   FaChevronRight,
+  FaClock,
 } from "react-icons/fa";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import { Link } from "react-router-dom";
@@ -37,7 +38,8 @@ const ViewContent = ({ submodule, onBack }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [newFiles, setNewFiles] = useState([]);
   const [fileLinks, setFileLinks] = useState([]);
-  const [fileLink, setFileLink] = useState(""); 
+  const [fileLink, setFileLink] = useState("");
+  const [estimatedTime, setEstimatedTime] = useState(0); // For new uploads
   const [linkName, setLinkName] = useState("");
   const [linkDescription, setLinkDescription] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -46,10 +48,21 @@ const ViewContent = ({ submodule, onBack }) => {
     fileName: "",
     description: "",
     link: "",
+    estimatedTime: 0 // Add estimated time
   });
 
   const { fetchData, userToken } = useContext(ApiContext);
 
+  const formatEstimatedTime = (minutes) => {
+    if (!minutes || minutes === 0) return "0 min";
+    if (minutes < 60) return `${minutes} min`;
+
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+
+    if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+    return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} min`;
+  };
   const fetchFilesForUnit = useCallback(
     async (unitId) => {
       try {
@@ -222,10 +235,10 @@ const ViewContent = ({ submodule, onBack }) => {
             );
             return updatedFile
               ? {
-                  ...file,
-                  SortingOrder: updatedFile.SortingOrder,
-                  Percentage: updatedFile.Percentage,
-                }
+                ...file,
+                SortingOrder: updatedFile.SortingOrder,
+                Percentage: updatedFile.Percentage,
+              }
               : file;
           })
           .sort((a, b) => (a.SortingOrder || 0) - (b.SortingOrder || 0));
@@ -257,6 +270,7 @@ const ViewContent = ({ submodule, onBack }) => {
       fileName: file.FilesName,
       description: file.Description || "",
       link: file.FileType === "link" ? file.FilePath : "",
+      estimatedTime: file.EstimatedTime || 0 // Add estimated time
     });
   };
 
@@ -266,6 +280,8 @@ const ViewContent = ({ submodule, onBack }) => {
       fileName: "",
       description: "",
       link: "",
+      estimatedTime: 0 // Reset estimated time
+
     });
     resetForm();
   };
@@ -279,6 +295,7 @@ const ViewContent = ({ submodule, onBack }) => {
         fileId: editingFile.FileID,
         fileName: editedFileData.fileName,
         description: editedFileData.description,
+        estimatedTime: editedFileData.estimatedTime || 0,
       };
 
       if (editingFile.FileType === "link") {
@@ -295,13 +312,15 @@ const ViewContent = ({ submodule, onBack }) => {
           prevFiles.map((file) =>
             file.FileID === editingFile.FileID
               ? {
-                  ...file,
-                  FilesName: editedFileData.fileName,
-                  Description: editedFileData.description,
-                  ...(editingFile.FileType === "link" && {
-                    FilePath: editedFileData.link,
-                  }),
-                }
+                ...file,
+                FilesName: editedFileData.fileName,
+                Description: editedFileData.description,
+                EstimatedTime: editedFileData.estimatedTime || 0,
+                FileAuthAdd: file.FileAuthAdd,
+                ...(editingFile.FileType === "link" && {
+                  FilePath: editedFileData.link,
+                }),
+              }
               : file
           )
         );
@@ -567,9 +586,8 @@ const ViewContent = ({ submodule, onBack }) => {
         try {
           // Update progress
           const progress = Math.floor(((i + 1) / newFiles.length) * 100);
-          const message = `Uploading ${i + 1}/${newFiles.length}: ${
-            fileObj.name
-          }`;
+          const message = `Uploading ${i + 1}/${newFiles.length}: ${fileObj.name
+            }`;
           updateProgress(progress, message);
 
           // Validate file type
@@ -596,9 +614,8 @@ const ViewContent = ({ submodule, onBack }) => {
 
           // Generate prefixed filename
           const filePrefix = generateFilePrefix();
-          const prefixedFilename = `${filePrefix}_${
-            fileObj.customName || fileObj.name
-          }`;
+          const prefixedFilename = `${filePrefix}_${fileObj.customName || fileObj.name
+            }`;
 
           // Prepare form data
           const formData = new FormData();
@@ -607,11 +624,12 @@ const ViewContent = ({ submodule, onBack }) => {
           formData.append("subModuleId", submodule.SubModuleID);
           formData.append("unitId", selectedUnit.UnitID);
           formData.append("customFileName", prefixedFilename);
+          formData.append('estimatedTime', estimatedTime.toString());
+
 
           // Upload file
           const response = await fetch(
-            `${
-              import.meta.env.VITE_API_BASEURL
+            `${import.meta.env.VITE_API_BASEURL
             }lms/upload-learning-material-update`,
             {
               method: "POST",
@@ -633,7 +651,7 @@ const ViewContent = ({ submodule, onBack }) => {
               FileType: fileExt,
               FilePath: result.data.filePath || "",
               Description: "",
-              AuthAdd: result.data.uploadedBy || "You",
+              FileAuthAdd: result.data.uploadedBy || "You",
               ...result.data,
             };
 
@@ -657,7 +675,6 @@ const ViewContent = ({ submodule, onBack }) => {
       if (fileLink.trim()) {
         try {
           updateProgress(95, "Uploading link...");
-
           const linkResponse = await fetchData(
             "lms/files",
             "POST",
@@ -667,6 +684,7 @@ const ViewContent = ({ submodule, onBack }) => {
               fileName: linkName || "Link",
               description: linkDescription || "",
               fileType: "link",
+              estimatedTime: estimatedTime || 0, 
             },
             { "Content-Type": "application/json", "auth-token": userToken }
           );
@@ -677,8 +695,9 @@ const ViewContent = ({ submodule, onBack }) => {
               FilesName: linkName || "Link",
               FileType: "link",
               FilePath: fileLink,
+              estimatedTime: estimatedTime || 0,
               Description: linkDescription || "",
-              AuthAdd: linkResponse.data.uploadedBy || "You",
+              FileAuthAdd: linkResponse.data.uploadedBy || "You",
               ...linkResponse.data,
             };
 
@@ -714,19 +733,17 @@ const ViewContent = ({ submodule, onBack }) => {
         html: `
         <div class="text-left">
           <p>${successfulUploads.length} file(s) uploaded successfully</p>
-          ${
-            failedUploads.length > 0
-              ? `
-            <p class="mt-2 text-red-500">${
-              failedUploads.length
+          ${failedUploads.length > 0
+            ? `
+            <p class="mt-2 text-red-500">${failedUploads.length
             } file(s) failed:</p>
             <ul class="list-disc pl-5 mt-1 text-sm text-red-500">
               ${failedUploads
-                .map((f) => `<li>${f.name}: ${f.error}</li>`)
-                .join("")}
+              .map((f) => `<li>${f.name}: ${f.error}</li>`)
+              .join("")}
             </ul>
           `
-              : ""
+            : ""
           }
         </div>
       `,
@@ -788,6 +805,9 @@ const ViewContent = ({ submodule, onBack }) => {
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
               Uploaded By
             </th>
+            <th className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Estimated Time
+            </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
               Actions
             </th>
@@ -798,9 +818,8 @@ const ViewContent = ({ submodule, onBack }) => {
             <React.Fragment key={file.FileID}>
               {/* Normal Row */}
               <tr
-                className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                  editingFile?.FileID === file.FileID ? "hidden" : ""
-                }`}
+                className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${editingFile?.FileID === file.FileID ? "hidden" : ""
+                  }`}
               >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input
@@ -842,9 +861,15 @@ const ViewContent = ({ submodule, onBack }) => {
                     )}
                   </div>
                 </td>
+                <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                    <FaClock className="text-gray-400" />
+                    {formatEstimatedTime(file.EstimatedTime || 0)}
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {file.AuthAdd}
+                    {file.FileAuthAdd}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -875,7 +900,6 @@ const ViewContent = ({ submodule, onBack }) => {
                 </td>
               </tr>
 
-              {/* Edit Row - Only shown when this file is being edited */}
               {editingFile?.FileID === file.FileID && (
                 <tr className="bg-blue-50 dark:bg-gray-700">
                   <td colSpan="5" className="px-6 py-4">
@@ -912,6 +936,31 @@ const ViewContent = ({ submodule, onBack }) => {
                             }
                             className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
                           />
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              Estimated Time (minutes)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <FaClock className="text-gray-500 dark:text-gray-400" />
+                              <input
+                                type="number"
+                                min="0"
+                                value={editedFileData.estimatedTime || 0}
+                                onChange={(e) =>
+                                  setEditedFileData({
+                                    ...editedFileData,
+                                    estimatedTime: parseInt(e.target.value) || 0,
+                                  })
+                                }
+                                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {formatEstimatedTime(editedFileData.estimatedTime || 0)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                       {file.FileType === "link" && (
@@ -1100,11 +1149,10 @@ const ViewContent = ({ submodule, onBack }) => {
                     .map((unit) => (
                       <div
                         key={unit.UnitID}
-                        className={`p-4 cursor-pointer transition-colors duration-200 ${
-                          selectedUnit?.UnitID === unit.UnitID
-                            ? "bg-blue-50 dark:bg-gray-700"
-                            : "hover:bg-gray-50 dark:hover:bg-gray-700"
-                        }`}
+                        className={`p-4 cursor-pointer transition-colors duration-200 ${selectedUnit?.UnitID === unit.UnitID
+                          ? "bg-blue-50 dark:bg-gray-700"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
                         onClick={() => setSelectedUnit(unit)}
                       >
                         <div className="flex justify-between items-start">
@@ -1293,6 +1341,25 @@ const ViewContent = ({ submodule, onBack }) => {
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Estimated Time (minutes)
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <FaClock className="text-gray-500 dark:text-gray-400" />
+                              <input
+                                type="number"
+                                min="0"
+                                value={estimatedTime}
+                                onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)}
+                                placeholder="Enter estimated time in minutes"
+                                className="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 text-sm sm:text-base"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatEstimatedTime(estimatedTime)}
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                               Upload Files
                             </label>
                             <div
@@ -1346,16 +1413,33 @@ const ViewContent = ({ submodule, onBack }) => {
                               />
                               <textarea
                                 value={linkDescription}
-                                onChange={(e) =>
-                                  setLinkDescription(e.target.value)
-                                }
+                                onChange={(e) => setLinkDescription(e.target.value)}
                                 placeholder="Link description"
                                 rows={3}
                                 className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 text-sm sm:text-base"
                               />
+                              {/* Add Estimated Time specifically for links */}
+                              <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  Estimated Time for Link (minutes)
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <FaClock className="text-gray-500 dark:text-gray-400" />
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={estimatedTime}
+                                    onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)}
+                                    placeholder="Enter estimated time in minutes"
+                                    className="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 text-sm sm:text-base"
+                                  />
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatEstimatedTime(estimatedTime)}
+                                </p>
+                              </div>
                             </div>
                           </div>
-
                           {/* Files to Upload List */}
                           {newFiles.length > 0 && (
                             <div className="space-y-2 mt-4">
@@ -1406,9 +1490,9 @@ const ViewContent = ({ submodule, onBack }) => {
                                             prev.map((f, i) =>
                                               i === index
                                                 ? {
-                                                    ...f,
-                                                    customName: e.target.value,
-                                                  }
+                                                  ...f,
+                                                  customName: e.target.value,
+                                                }
                                                 : f
                                             )
                                           )
@@ -1520,6 +1604,9 @@ const ViewContent = ({ submodule, onBack }) => {
                                 Type
                               </th>
                               <th className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                Estimated Time
+                              </th>
+                              <th className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                 Uploaded By
                               </th>
                               <th className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -1531,11 +1618,10 @@ const ViewContent = ({ submodule, onBack }) => {
                             {files.map((file) => (
                               <React.Fragment key={file.FileID}>
                                 <tr
-                                  className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                                    editingFile?.FileID === file.FileID
-                                      ? "hidden"
-                                      : ""
-                                  }`}
+                                  className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${editingFile?.FileID === file.FileID
+                                    ? "hidden"
+                                    : ""
+                                    }`}
                                 >
                                   <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
                                     <input
@@ -1582,8 +1668,14 @@ const ViewContent = ({ submodule, onBack }) => {
                                     </div>
                                   </td>
                                   <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
+                                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <FaClock className="text-gray-400" />
+                                      {formatEstimatedTime(file.EstimatedTime)}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
                                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                                      {file.AuthAdd}
+                                      {file.FileAuthAdd}
                                     </div>
                                   </td>
                                   <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-sm font-medium">
