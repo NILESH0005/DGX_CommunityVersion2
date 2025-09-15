@@ -5,22 +5,26 @@ import {
   UploadCloud,
   Trash2,
   Image as ImageIcon,
+  Link as LinkIcon,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import AddUnitForm from "./AddUnitForm";
 import UnitDetails from "./UnitDetails";
 import FilesTable from "./FilesTable";
 import FileUploadModal from "./FileUploadModal";
+import LinkUploadModal from "./LinkUploadModal"; // We'll create this next
 
 const SubModuleDetails = ({
   subModule,
   onAddUnit,
   onRemoveUnit,
   onUploadFile,
+  onUploadLink, // We'll need to add this function
   errors,
   setErrors,
 }) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false); // New state for link modal
   const [currentUnit, setCurrentUnit] = useState(null);
   const [uploadedFile, setUploadedFile] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,6 +55,11 @@ const SubModuleDetails = ({
   const handleOpenUploadModal = (unit) => {
     setCurrentUnit(unit);
     setShowUploadModal(true);
+  };
+
+  const handleOpenLinkModal = (unit) => {
+    setCurrentUnit(unit);
+    setShowLinkModal(true);
   };
 
   const handleFileSelect = (file) => {
@@ -114,6 +123,55 @@ const SubModuleDetails = ({
     }
   };
 
+  // Add this function to your SubModuleDetails component
+  const handleLinkSubmit = async (url, linkName, description, estimatedTime) => {
+    if (!url || !linkName) {
+      setErrors({
+        link: !url ? 'Please enter a URL' : 'Please enter a link name'
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const success = await onUploadLink(
+        url,
+        linkName,
+        description,
+        estimatedTime
+      );
+
+      if (success) {
+        Swal.fire({
+          title: "Success!",
+          text: "Link added successfully",
+          icon: "success",
+          confirmButtonText: "OK",
+          customClass: {
+            confirmButton: "bg-DGXgreen hover:bg-[#68a600]",
+          },
+        }).then(() => {
+          setShowLinkModal(false);
+        });
+      } else {
+        throw new Error("Failed to add link");
+      }
+    } catch (error) {
+      Swal.fire({
+        title: "Failed to Add Link",
+        text: error.message,
+        icon: "error",
+        confirmButtonText: "OK",
+        customClass: {
+          confirmButton: "bg-DGXgreen hover:bg-[#68a600]",
+        },
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       {/* Unit Details */}
@@ -165,6 +223,7 @@ const SubModuleDetails = ({
                       )}
                     </div>
                     <div className="flex gap-2">
+                      {/* Upload File Button */}
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -172,8 +231,20 @@ const SubModuleDetails = ({
                         className="p-2 rounded-lg bg-DGXgreen hover:bg-[#68a600] text-DGXwhite flex items-center gap-1 text-sm"
                       >
                         <UploadCloud className="w-4 h-4" />
-                        Upload
+                        Upload File
                       </motion.button>
+
+                      {/* Upload Link Button */}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleOpenLinkModal(unit)}
+                        className="p-2 rounded-lg bg-DGXblue hover:bg-blue-700 text-DGXwhite flex items-center gap-1 text-sm"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                        Add Link
+                      </motion.button>
+
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -210,18 +281,6 @@ const SubModuleDetails = ({
       )}
 
       {/* File Upload Modal */}
-      {/* <FileUploadModal
-        show={showUploadModal}
-        onClose={() => {
-          setShowUploadModal(false);
-          setUploadedFile(null);
-        }}
-        unitName={currentUnit?.UnitName}
-        onFileSelect={handleFileSelect}
-        onSubmit={handleUploadSubmit}
-        isSubmitting={isSubmitting}
-        uploadedFile={uploadedFile}
-      /> */}
       <FileUploadModal
         show={showUploadModal}
         onClose={() => {
@@ -233,6 +292,15 @@ const SubModuleDetails = ({
         onSubmit={handleUploadSubmit}
         isSubmitting={isSubmitting}
         uploadedFile={uploadedFile}
+      />
+
+      {/* Link Upload Modal */}
+      <LinkUploadModal
+        show={showLinkModal}
+        onClose={() => setShowLinkModal(false)}
+        unitName={currentUnit?.UnitName}
+        onSubmit={handleLinkSubmit} // Use the new handler
+        isSubmitting={isSubmitting}
       />
     </>
   );

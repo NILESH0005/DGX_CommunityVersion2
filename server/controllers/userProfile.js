@@ -320,7 +320,6 @@ export const uploadUserAvatar = async (req, res) => {
           });
         }
 
-        // Validate image size
         const buffer = Buffer.from(imageData, "base64");
         if (buffer.length > 5 * 1024 * 1024) {
           return res.status(400).json({

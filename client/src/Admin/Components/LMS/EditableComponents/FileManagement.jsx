@@ -324,7 +324,7 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
 
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Files</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Filesss</h3>
           <button
             onClick={() => setShowFilesOrder(true)}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -333,8 +333,6 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
             Reorder Files
           </button>
         </div>
-
-        {/* File Upload Form */}
         <div className="mb-6 p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
           <div className="space-y-4">
             <div>
@@ -358,7 +356,6 @@ const FileManagement = ({ selectedUnit, fetchData, userToken }) => {
                 />
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Or Add Link
