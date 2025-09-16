@@ -44,6 +44,14 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+       StartTime: {                
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      EndTime: {                 
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       tableName: "UserLmsProgress",

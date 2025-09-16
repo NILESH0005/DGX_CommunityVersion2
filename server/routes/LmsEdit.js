@@ -4,7 +4,7 @@ import { fetchUser } from '../middleware/fetchUser.js';
 
 import { updateModule, deleteModule, deleteSubModule, updateSubModule, addSubmodule, deleteUnit, 
     updateUnit, deleteFile, addUnit, recordFileView, updateModuleOrder, updateSubmoduleOrder, 
-    updateUnitOrder, updateFilesOrder, deleteMultipleFiles, updateFile } from "../controllers/lmsEdit.js";
+    updateUnitOrder, updateFilesOrder, deleteMultipleFiles, updateFile, updateFileViewEndTime } from "../controllers/lmsEdit.js";
 
 const router = express.Router();
 
@@ -26,6 +26,8 @@ router.post('/addUnit', fetchUser, addUnit)
 router.post('/recordFileView', fetchUser, recordFileView)
 
 router.post('/updateFile', fetchUser, updateFile)
+router.post('/updateFileViewEndTime', fetchUser, updateFileViewEndTime)
+
 
 
 

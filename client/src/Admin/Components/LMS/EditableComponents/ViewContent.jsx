@@ -63,6 +63,7 @@ const ViewContent = ({ submodule, onBack }) => {
     if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
     return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} min`;
   };
+  
   const fetchFilesForUnit = useCallback(
     async (unitId) => {
       try {
@@ -75,7 +76,7 @@ const ViewContent = ({ submodule, onBack }) => {
         if (response?.success) {
           setFiles(response.data);
           setEditingFile(null);
-          setEditedFileData({ fileName: "", description: "", link: "" });
+          setEditedFileData({ fileName: "", description: "", link: "", estimatedTime: 0 });
         } else {
           setFiles([]);
         }
@@ -145,7 +146,7 @@ const ViewContent = ({ submodule, onBack }) => {
 
   useEffect(() => {
     setEditingFile(null);
-    setEditedFileData({ fileName: "", description: "", link: "" });
+    setEditedFileData({ fileName: "", description: "", link: "", estimatedTime: 0 });
   }, [selectedUnit]);
 
   const handleDeleteMultipleFiles = async (fileIds) => {
@@ -281,7 +282,6 @@ const ViewContent = ({ submodule, onBack }) => {
       description: "",
       link: "",
       estimatedTime: 0 // Reset estimated time
-
     });
     resetForm();
   };
@@ -295,7 +295,7 @@ const ViewContent = ({ submodule, onBack }) => {
         fileId: editingFile.FileID,
         fileName: editedFileData.fileName,
         description: editedFileData.description,
-        estimatedTime: editedFileData.estimatedTime || 0,
+        estimatedTime: editedFileData.estimatedTime || 0, // Include estimated time
       };
 
       if (editingFile.FileType === "link") {
@@ -861,15 +861,15 @@ const ViewContent = ({ submodule, onBack }) => {
                     )}
                   </div>
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {file.FileAuthAdd}
+                  </div>
+                </td>
                 <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                     <FaClock className="text-gray-400" />
                     {formatEstimatedTime(file.EstimatedTime || 0)}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {file.FileAuthAdd}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -902,10 +902,10 @@ const ViewContent = ({ submodule, onBack }) => {
 
               {editingFile?.FileID === file.FileID && (
                 <tr className="bg-blue-50 dark:bg-gray-700">
-                  <td colSpan="5" className="px-6 py-4">
+                  <td colSpan="6" className="px-6 py-4">
                     <div className="flex flex-col space-y-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <div className="flex-1 w-full">
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             File Name
                           </label>
@@ -921,7 +921,7 @@ const ViewContent = ({ submodule, onBack }) => {
                             className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
                           />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 w-full">
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Description
                           </label>
@@ -937,32 +937,34 @@ const ViewContent = ({ submodule, onBack }) => {
                             className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
                           />
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              Estimated Time (minutes)
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <FaClock className="text-gray-500 dark:text-gray-400" />
-                              <input
-                                type="number"
-                                min="0"
-                                value={editedFileData.estimatedTime || 0}
-                                onChange={(e) =>
-                                  setEditedFileData({
-                                    ...editedFileData,
-                                    estimatedTime: parseInt(e.target.value) || 0,
-                                  })
-                                }
-                                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
-                              />
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {formatEstimatedTime(editedFileData.estimatedTime || 0)}
-                            </p>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row items-start gap-4">
+                        <div className="flex-1 w-full">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Estimated Time (minutes)
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <FaClock className="text-gray-500 dark:text-gray-400" />
+                            <input
+                              type="number"
+                              min="0"
+                              value={editedFileData.estimatedTime || 0}
+                              onChange={(e) =>
+                                setEditedFileData({
+                                  ...editedFileData,
+                                  estimatedTime: parseInt(e.target.value) || 0,
+                                })
+                              }
+                              className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
+                            />
                           </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {formatEstimatedTime(editedFileData.estimatedTime || 0)}
+                          </p>
                         </div>
                       </div>
+                      
                       {file.FileType === "link" && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1094,12 +1096,6 @@ const ViewContent = ({ submodule, onBack }) => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Breadcrumb Navigation - Made responsive */}
         <div className="text-sm sm:text-base flex flex-wrap items-center text-gray-600 dark:text-gray-300 mb-6">
-          {/* <button
-            onClick={() => onBack(EditModule)}
-            className="hover:text-blue-600 dark:hover:text-blue-400 flex items-center whitespace-nowrap"
-          >
-            Modules
-          </button> */}
           <FaChevronRight className="mx-1 sm:mx-2 text-xs" />
           <button
             onClick={onBack}
@@ -1604,10 +1600,10 @@ const ViewContent = ({ submodule, onBack }) => {
                                 Type
                               </th>
                               <th className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Estimated Time
+                                Uploaded By
                               </th>
                               <th className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                Uploaded By
+                                Estimated Time
                               </th>
                               <th className="px-3 py-2 sm:px-6 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                                 Actions
@@ -1668,14 +1664,14 @@ const ViewContent = ({ submodule, onBack }) => {
                                     </div>
                                   </td>
                                   <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                      <FaClock className="text-gray-400" />
-                                      {formatEstimatedTime(file.EstimatedTime)}
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                      {file.FileAuthAdd}
                                     </div>
                                   </td>
                                   <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap">
-                                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                                      {file.FileAuthAdd}
+                                    <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                      <FaClock className="text-gray-400" />
+                                      {formatEstimatedTime(file.EstimatedTime || 0)}
                                     </div>
                                   </td>
                                   <td className="px-3 py-2 sm:px-6 sm:py-4 whitespace-nowrap text-sm font-medium">
@@ -1710,26 +1706,71 @@ const ViewContent = ({ submodule, onBack }) => {
                                 {editingFile?.FileID === file.FileID && (
                                   <tr className="bg-blue-50 dark:bg-gray-700">
                                     <td
-                                      colSpan="5"
+                                      colSpan="6"
                                       className="px-3 py-2 sm:px-6 sm:py-4"
                                     >
                                       <div className="space-y-4">
-                                        <div>
-                                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            File Name
-                                          </label>
-                                          <input
-                                            type="text"
-                                            value={editedFileData.fileName}
-                                            onChange={(e) =>
-                                              setEditedFileData({
-                                                ...editedFileData,
-                                                fileName: e.target.value,
-                                              })
-                                            }
-                                            className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
-                                            placeholder="File Name"
-                                          />
+                                        <div className="flex flex-col sm:flex-row items-start gap-4">
+                                          <div className="flex-1 w-full">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                              File Name
+                                            </label>
+                                            <input
+                                              type="text"
+                                              value={editedFileData.fileName}
+                                              onChange={(e) =>
+                                                setEditedFileData({
+                                                  ...editedFileData,
+                                                  fileName: e.target.value,
+                                                })
+                                              }
+                                              className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
+                                              placeholder="File Name"
+                                            />
+                                          </div>
+                                          <div className="flex-1 w-full">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                              Description
+                                            </label>
+                                            <input
+                                              type="text"
+                                              value={editedFileData.description}
+                                              onChange={(e) =>
+                                                setEditedFileData({
+                                                  ...editedFileData,
+                                                  description: e.target.value,
+                                                })
+                                              }
+                                              className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
+                                              placeholder="Description"
+                                            />
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col sm:flex-row items-start gap-4">
+                                          <div className="flex-1 w-full">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                              Estimated Time (minutes)
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                              <FaClock className="text-gray-500 dark:text-gray-400" />
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                value={editedFileData.estimatedTime || 0}
+                                                onChange={(e) =>
+                                                  setEditedFileData({
+                                                    ...editedFileData,
+                                                    estimatedTime: parseInt(e.target.value) || 0,
+                                                  })
+                                                }
+                                                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
+                                              />
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                              {formatEstimatedTime(editedFileData.estimatedTime || 0)}
+                                            </p>
+                                          </div>
                                         </div>
 
                                         {editingFile.FileType === "link" && (
@@ -1751,24 +1792,6 @@ const ViewContent = ({ submodule, onBack }) => {
                                             />
                                           </div>
                                         )}
-
-                                        <div>
-                                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Description
-                                          </label>
-                                          <textarea
-                                            value={editedFileData.description}
-                                            onChange={(e) =>
-                                              setEditedFileData({
-                                                ...editedFileData,
-                                                description: e.target.value,
-                                              })
-                                            }
-                                            className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
-                                            placeholder="Description"
-                                            rows={3}
-                                          />
-                                        </div>
 
                                         <div className="flex space-x-3">
                                           <button

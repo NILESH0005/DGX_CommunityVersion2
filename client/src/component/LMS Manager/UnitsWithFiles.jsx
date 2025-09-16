@@ -26,6 +26,8 @@ const UnitsWithFiles = () => {
   const [moduleName, setModuleName] = useState("");
   const [subModuleName, setSubModuleName] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState(new Set());
+  const currentFileIdRef = useRef(null);
+
 
   useEffect(() => {
     const moduleName =
@@ -175,32 +177,43 @@ const UnitsWithFiles = () => {
   };
 
   const handleFileSelect = (file, unit) => {
+    // If already viewing a file, trigger EndTime update for the previous file
+    if (currentFileIdRef.current) {
+      sendFileViewEndTime(currentFileIdRef.current);
+    }
+
+    currentFileIdRef.current = file.FileID;
+
     setSelectedQuiz(null);
     setSelectedFile({
       ...file,
       unitName: unit.UnitName,
       unitDescription: unit.UnitDescription,
     });
+
     recordFileView(file.FileID, unit.UnitID);
   };
+
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
   const handleBackToSubmodules = () => {
+    if (currentFileIdRef.current) {
+      sendFileViewEndTime(currentFileIdRef.current);
+      currentFileIdRef.current = null;
+    }
+
     const moduleId = localStorage.getItem("moduleId");
     const moduleName = localStorage.getItem("moduleName");
 
     if (moduleId && moduleName) {
       navigate(`/module/${moduleId}`, {
-        state: {
-          moduleName: moduleName,
-          moduleId: moduleId
-        }
+        state: { moduleName, moduleId },
       });
     } else {
-      navigate(-1); // Fallback to browser back if no module info is available
+      navigate(-1);
     }
   };
 

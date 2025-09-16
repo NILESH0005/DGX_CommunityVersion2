@@ -1,14 +1,4 @@
 import { upload } from "../config/multerConfig.js";
-import {
-  queryAsync,
-  mailSender,
-  logError,
-  logInfo,
-  logWarning,
-} from "../helper/index.js";
-import { connectToDatabase, closeConnection } from "../database/mySql.js";
-import { log } from "console";
-import path from "path";
 import { checkModuleExists, LMSService } from "../services/lmsService.js";
 
 export class LMS {
