@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import PropTypes from "prop-types";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import ApiContext from "../../context/ApiContext";
@@ -141,13 +141,34 @@ const UnitsWithFiles = () => {
     }
   }, [subModuleId, fetchData, userToken]);
 
+  const sendFileViewEndTime = async (fileId) => {
+    if (!fileId) return;
+
+    try {
+      await fetchData(
+        "lmsEdit/updateFileViewEndTime",
+        "POST",
+        { FileID: fileId },
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        }
+      );
+    } catch (error) {
+      console.error("Error sending file view end time:", error);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (currentFileIdRef.current) {
+        sendFileViewEndTime(currentFileIdRef.current);
+      }
+    };
+  }, []);
+
   const recordFileView = async (fileId, unitId) => {
     try {
-      if (viewedFiles.has(fileId)) {
-        console.log("File already viewed by this user");
-        return;
-      }
-
       const response = await fetchData(
         "lmsEdit/recordFileView",
         "POST",
@@ -159,31 +180,22 @@ const UnitsWithFiles = () => {
       );
 
       if (response?.success) {
-        if (response.message !== "File view already recorded for this user") {
-          setViewedFiles((prev) => new Set(prev).add(fileId));
-        }
+        const { trackingId } = response;
+        currentTrackingIdRef.current = trackingId;  // Store tracking ID
       } else {
-        console.error(
-          "Error recording file view:",
-          response?.message || "Unknown error"
-        );
+        console.error("Error recording file view:", response?.message);
       }
     } catch (error) {
-      console.error(
-        "Error recording file view:",
-        error.message || "Unknown error"
-      );
+      console.error("Error recording file view:", error.message);
     }
   };
 
+
   const handleFileSelect = (file, unit) => {
-    // If already viewing a file, trigger EndTime update for the previous file
     if (currentFileIdRef.current) {
       sendFileViewEndTime(currentFileIdRef.current);
     }
-
     currentFileIdRef.current = file.FileID;
-
     setSelectedQuiz(null);
     setSelectedFile({
       ...file,
@@ -193,7 +205,6 @@ const UnitsWithFiles = () => {
 
     recordFileView(file.FileID, unit.UnitID);
   };
-
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);

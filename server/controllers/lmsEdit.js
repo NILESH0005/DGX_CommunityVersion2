@@ -1230,7 +1230,7 @@ export const updateFile = async (req, res) => {
 
 export const updateFileViewEndTime = async (req, res) => {
   try {
-    const userEmail = req.user?.id;
+    const userEmail = req.user?.id; // Assuming your auth middleware adds req.user
     const { FileID } = req.body;
 
     const result = await updateFileViewEndTimeService(userEmail, FileID);

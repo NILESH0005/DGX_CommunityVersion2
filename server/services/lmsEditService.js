@@ -3,6 +3,7 @@ import fs from "fs";
 import db from "../models/index.js";
 import { logInfo, logWarning, logError } from "../helper/index.js";
 import { Op } from "sequelize";
+import UserLmsProgress from "../models/UserLmsProgress.js";
 
 
 const User = db.User;
@@ -466,7 +467,11 @@ export const recordFileViewService = async (userEmail, FileID) => {
       delStatus: 0,
     });
 
-    return { success: true, message: "File view recorded successfully" };
+    return {
+      success: true,
+      message: "File view recorded successfully",
+      startTime: new Date(),  // <-- send this back
+    };
   } catch (error) {
     console.error("Error in recordFileViewService:", error);
     return {
@@ -477,12 +482,13 @@ export const recordFileViewService = async (userEmail, FileID) => {
   }
 };
 
-export const updateFileViewEndTimeService = async (userEmail, FileID) => {
-  if (!FileID) {
-    return { success: false, status: 400, message: "FileID is required" };
+export const updateFileViewEndTimeService = async (userEmail, fileId) => {
+  if (!fileId || !userEmail) {
+    return { success: false, status: 400, message: "FileID and userEmail are required" };
   }
 
   try {
+    // Find user by email
     const user = await User.findOne({
       where: { EmailId: userEmail, delStatus: 0 },
     });
@@ -491,12 +497,13 @@ export const updateFileViewEndTimeService = async (userEmail, FileID) => {
       return { success: false, status: 404, message: "User not found" };
     }
 
+    // Update the EndTime for the UserLmsProgress record
     const [updatedCount] = await LMSUserProgress.update(
-      { EndTime: new Date() },
+      { EndTime: new Date(), editOnDt: new Date() },
       {
         where: {
           UserID: user.UserID,
-          FileID,
+          FileID: fileId,
           delStatus: 0,
         },
       }
@@ -506,7 +513,7 @@ export const updateFileViewEndTimeService = async (userEmail, FileID) => {
       return {
         success: false,
         status: 404,
-        message: "No matching record found to update",
+        message: "No matching progress record found to update",
       };
     }
 
@@ -519,7 +526,7 @@ export const updateFileViewEndTimeService = async (userEmail, FileID) => {
     return {
       success: false,
       status: 500,
-      message: "Failed to update file view end time",
+      message: "Internal server error",
     };
   }
 };
