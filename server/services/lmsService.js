@@ -157,6 +157,7 @@ export class LMSService {
         delStatus: 0,
         Percentage: equalPercentage,
         Description: data.Description || null,
+        EstimatedTime: data.EstimatedTime || 0,
       };
 
       const newFile = await LMSFilesDetails.create(fileData, {
@@ -172,7 +173,8 @@ export class LMSService {
     userName,
     file,
     description,
-    sortingOrder
+    sortingOrder,
+    estimatedTime 
   ) {
     return await db.sequelize.transaction(async (t) => {
       await LMSFilesDetails.create(
@@ -186,6 +188,7 @@ export class LMSService {
           delStatus: 0,
           Description: description || null,
           SortingOrder: sortingOrder || 0,
+          EstimatedTime: estimatedTime || 0,
         },
         { transaction: t }
       );

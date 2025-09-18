@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import PropTypes from "prop-types";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import ApiContext from "../../context/ApiContext";
@@ -26,6 +26,8 @@ const UnitsWithFiles = () => {
   const [moduleName, setModuleName] = useState("");
   const [subModuleName, setSubModuleName] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState(new Set());
+  const currentFileIdRef = useRef(null);
+
 
   useEffect(() => {
     const moduleName =
@@ -139,11 +141,37 @@ const UnitsWithFiles = () => {
     }
   }, [subModuleId, fetchData, userToken]);
 
+  const sendFileViewEndTime = async (fileId) => {
+    if (!fileId || !userToken) return;
+
+    try {
+      await fetchData(
+        "lmsEdit/updateFileViewEndTime",
+        "POST",
+        { FileID: fileId },
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        }
+      );
+    } catch (error) {
+      console.error("Error sending file view end time:", error);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (currentFileIdRef.current) {
+        sendFileViewEndTime(currentFileIdRef.current);
+      }
+    };
+  }, []);
+
   const recordFileView = async (fileId, unitId) => {
     try {
-      if (viewedFiles.has(fileId)) {
-        console.log("File already viewed by this user");
-        return;
+      // First, end the current file view if any
+      if (currentFileIdRef.current) {
+        await sendFileViewEndTime(currentFileIdRef.current);
       }
 
       const response = await fetchData(
@@ -160,27 +188,30 @@ const UnitsWithFiles = () => {
         if (response.message !== "File view already recorded for this user") {
           setViewedFiles((prev) => new Set(prev).add(fileId));
         }
+        // Set the current file ID
+        currentFileIdRef.current = fileId;
       } else {
-        console.error(
-          "Error recording file view:",
-          response?.message || "Unknown error"
-        );
+        console.error("Error recording file view:", response?.message);
       }
     } catch (error) {
-      console.error(
-        "Error recording file view:",
-        error.message || "Unknown error"
-      );
+      console.error("Error recording file view:", error);
     }
   };
 
   const handleFileSelect = (file, unit) => {
+    // End current file view if any
+    if (currentFileIdRef.current) {
+      sendFileViewEndTime(currentFileIdRef.current);
+    }
+
+    currentFileIdRef.current = file.FileID;
     setSelectedQuiz(null);
     setSelectedFile({
       ...file,
       unitName: unit.UnitName,
       unitDescription: unit.UnitDescription,
     });
+
     recordFileView(file.FileID, unit.UnitID);
   };
 
@@ -189,20 +220,23 @@ const UnitsWithFiles = () => {
   };
 
   const handleBackToSubmodules = () => {
+    if (currentFileIdRef.current) {
+      sendFileViewEndTime(currentFileIdRef.current);
+      currentFileIdRef.current = null;
+    }
+
     const moduleId = localStorage.getItem("moduleId");
     const moduleName = localStorage.getItem("moduleName");
 
     if (moduleId && moduleName) {
       navigate(`/module/${moduleId}`, {
-        state: {
-          moduleName: moduleName,
-          moduleId: moduleId
-        }
+        state: { moduleName, moduleId },
       });
     } else {
-      navigate(-1); // Fallback to browser back if no module info is available
+      navigate(-1);
     }
   };
+
 
   const needsReadMore = (text) => {
     if (!text) return false;

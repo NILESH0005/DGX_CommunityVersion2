@@ -1135,8 +1135,8 @@ export const submitQuizService = async (userId, { quizId, answers }) => {
       const selectedOptions = answer.selectedOptionIds
         ? answer.selectedOptionIds
         : answer.selectedOptionId
-        ? [answer.selectedOptionId]
-        : [];
+          ? [answer.selectedOptionId]
+          : [];
 
       if (selectedOptions.length === 0) continue;
 
@@ -1196,4 +1196,130 @@ export const submitQuizService = async (userId, { quizId, answers }) => {
 
     return { obtainedMarks, totalMarks: totalPossibleMarks, noOfAttempts };
   });
+};
+
+
+export const getQuizQuestionsByQuizIdService = async (userEmail, QuizID) => {
+  try {
+    if (!QuizID || isNaN(parseInt(QuizID))) {
+      return {
+        status: 400,
+        response: {
+          success: false,
+          data: null,
+          message: "QuizID is required and must be a valid number",
+        },
+      };
+    }
+
+    const quizId = parseInt(QuizID);
+
+    const questions = await QuizMapping.findAll({
+      where: { quizId, delStatus: 0 },
+      include: [
+        { model: QuizQuestions, include: [{ model: QuestionOptions }] },
+        { model: QuizDetails },
+        { model: Group_Master },
+        { model: TableDDReference, foreignKey: "Ques_level", targetKey: "idCode" },
+      ],
+    });
+
+    if (!questions || questions.length === 0) {
+      return {
+        status: 404,
+        response: {
+          success: false,
+          data: null,
+          message: "No questions found for this quiz",
+        },
+      };
+    }
+
+    const questionMap = {};
+    questions.forEach((q) => {
+      const ques = q.QuizQuestion;
+      const quizDetail = q.QuizDetail;
+      const group = q.GroupMaster;
+
+      if (!questionMap[ques.id]) {
+        questionMap[ques.id] = {
+          idCode: q.idCode,
+          quizGroupID: q.quizGroupID,
+          group_name: group?.group_name || null,
+          quizId: q.quizId,
+          QuestionsID: ques.id,
+          QuestionTxt: ques.question_text,
+          Ques_level: ques.Ques_level,
+          question_type: ques.question_type,
+          negativeMarks: q.negativeMarks,
+          negativeMarking: quizDetail?.NegativeMarking,
+          totalMarks: q.totalMarks,
+          AuthAdd: q.AuthAdd,
+          AddOnDt: q.AddOnDt,
+          delStatus: q.delStatus,
+          QuizName: quizDetail?.QuizName,
+          QuizDuration: quizDetail?.QuizDuration,
+          question_level: ques.Ques_level, // Or from TableDDReference if needed
+          question_image: ques.image,
+          options: [],
+        };
+      }
+
+      q.QuizQuestion.QuestionOptions.forEach((opt) => {
+        questionMap[ques.id].options.push({
+          id: opt.id,
+          option_text: opt.option_text,
+          is_correct: opt.is_correct === 1,
+        });
+      });
+    });
+
+    const formattedQuestions = Object.values(questionMap);
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: {
+          quizId,
+          quizName: formattedQuestions[0]?.QuizName || "",
+          quizDuration: formattedQuestions[0]?.QuizDuration || 0,
+          questions: formattedQuestions,
+        },
+        message: "Quiz questions fetched successfully",
+      },
+    };
+  } catch (error) {
+    logError("Error in getQuizQuestionsByQuizIdService:", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: null,
+        message: "Failed to fetch quiz questions",
+      },
+    };
+  }
+};
+
+
+export const getQuizzesByRefIdService = async (refId) => {
+  if (!refId) {
+    return { success: false, status: 400, message: "refId is required" };
+  }
+
+  try {
+    const quizzes = await QuizDetails.findAll({
+      where: {
+        refId,
+        delStatus: 0,
+      },
+      order: [["QuizName", "ASC"]],
+    });
+
+    return { success: true, data: quizzes };
+  } catch (error) {
+    console.error("Error fetching quizzes:", error);
+    return { success: false, status: 500, message: "Failed to fetch quizzes" };
+  }
 };

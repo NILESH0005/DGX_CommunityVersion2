@@ -12,7 +12,7 @@ import { log } from "util";
 import { Console } from "console";
 import fs from "fs";
 import path from "path";
-import { deleteModuleService, deleteSubModuleService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
+import { deleteModuleService, deleteSubModuleService, recordFileViewService, updateFileService, updateFileViewEndTimeService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
 
 dotenv.config();
 
@@ -136,7 +136,7 @@ export const updateModuleOrder = async (req, res) => {
 // };
 
 export const deleteModule = async (req, res) => {
-   const { moduleId } = req.body;
+  const { moduleId } = req.body;
 
   if (!moduleId || isNaN(moduleId)) {
     return res.status(400).json({
@@ -1161,93 +1161,23 @@ export const addUnit = async (req, res) => {
 /*-----------------------progress api -------------------------*/
 
 export const recordFileView = async (req, res) => {
-  console.log("Incoming file view request");
-  var success = false;
-  var infoMessage = "";
-  const userId = req.user.id;
-
   try {
+    const userId = req.user?.id;
     const { FileID } = req.body;
 
-    if (!FileID) {
-      const warningMessage = "FileID is required";
-      logWarning(warningMessage);
-      return res.status(400).json({ success, message: warningMessage });
-    }
+    const result = await recordFileViewService(userId, FileID);
 
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Database connection failed";
-        logError(err);
-        return res.status(500).json({ success: false, message: errorMessage });
-      }
-
-      try {
-        // Get current user details
-        const userQuery = `SELECT UserID, Name FROM Community_User 
-                                 WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?`;
-        const userRows = await queryAsync(conn, userQuery, [userId]);
-
-        if (userRows.length === 0) {
-          closeConnection(conn);
-          const warningMessage = "User not found";
-          logWarning(warningMessage);
-          return res
-            .status(404)
-            .json({ success: false, message: warningMessage });
-        }
-
-        const user = userRows[0];
-
-        // Check if THIS USER has already viewed THIS FILE
-        const checkQuery = `SELECT UserID, FileID FROM UserLmsProgress 
-                                  WHERE FileID = ? AND UserID = ? AND isnull(delStatus,0)=0`;
-        const existingViews = await queryAsync(conn, checkQuery, [
-          FileID,
-          user.UserID,
-        ]);
-
-        if (existingViews.length > 0) {
-          // This user has already viewed this file
-          infoMessage = "File view already recorded for this user";
-          success = true;
-        } else {
-          // Record new view for this user
-          const insertQuery = `
-                        INSERT INTO UserLmsProgress 
-                        (UserID, FileID, AuthAdd, AddOnDt, delStatus) 
-                        VALUES (?, ?, ?, GETDATE(), 0);
-                    `;
-
-          await queryAsync(conn, insertQuery, [user.UserID, FileID, user.Name]);
-          success = true;
-          infoMessage = "File view recorded successfully";
-        }
-
-        closeConnection(conn);
-        logInfo(infoMessage);
-        return res.status(200).json({
-          success,
-          message: infoMessage,
-        });
-      } catch (queryErr) {
-        closeConnection(conn);
-        console.error("Database Query Error:", queryErr);
-        logError(queryErr);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to record file view",
-        });
-      }
+    return res.status(result.status || 200).json({
+      success: result.success,
+      message: result.message,
+      progressId: result.progressId,
     });
   } catch (error) {
-    logError(error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    console.error("Unexpected error in recordFileView controller:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 
 export const updateFile = async (req, res) => {
   console.log("incoming req body", req.body);
@@ -1260,176 +1190,54 @@ export const updateFile = async (req, res) => {
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
     logWarning(warningMessage);
-    res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
-    return;
+    return res.status(400).json({
+      success,
+      data: errors.array(),
+      message: warningMessage
+    });
   }
 
   try {
-    console.log(req.body);
-    const { fileId, fileName, description, link } = req.body; // Extract fileId from body
+    const { fileId, fileName, description, link, estimatedTime } = req.body;
 
     if (!fileId) {
       const warningMessage = "File ID is required";
       logWarning(warningMessage);
-      res.status(400).json({ success, message: warningMessage });
-      return;
+      return res.status(400).json({
+        success,
+        message: warningMessage
+      });
     }
 
-    // Connect to the database
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Failed to connect to database";
-        logError(err);
-        res
-          .status(500)
-          .json({ success: false, data: err, message: errorMessage });
-        return;
-      }
-
-      try {
-        // Get user details (same as before)
-        let userQuery, userRows;
-        if (!isNaN(Number(userId))) {
-          userQuery = `SELECT UserID, Name FROM Community_User WHERE isnull(delStatus,0) = 0 AND UserID = ?`;
-          userRows = await queryAsync(conn, userQuery, [Number(userId)]);
-        }
-
-        if (
-          (!userRows || userRows.length === 0) &&
-          typeof userId === "string" &&
-          userId.includes("@")
-        ) {
-          userQuery = `SELECT UserID, Name FROM Community_User WHERE isnull(delStatus,0) = 0 AND EmailId = ?`;
-          userRows = await queryAsync(conn, userQuery, [userId]);
-        }
-
-        if (!userRows || userRows.length === 0) {
-          closeConnection();
-          const warningMessage = "User not found - please login first";
-          logWarning(warningMessage);
-          res
-            .status(200)
-            .json({ success: false, data: {}, message: warningMessage });
-          return;
-        }
-
-        const user = userRows[0];
-
-        // Get current file details to determine type
-        const getFileQuery = `SELECT FileType FROM FilesDetails WHERE FileID = ? AND ISNULL(delStatus, 0) = 0`;
-        const fileRows = await queryAsync(conn, getFileQuery, [fileId]); // Use fileId from body
-
-        if (!fileRows || fileRows.length === 0) {
-          closeConnection();
-          const warningMessage = "File not found or already deleted";
-          logWarning(warningMessage);
-          res
-            .status(200)
-            .json({ success: false, data: {}, message: warningMessage });
-          return;
-        }
-
-        const fileType = fileRows[0].FileType;
-
-        // Build update query based on file type
-        let updateQuery, updateParams;
-        if (fileType === "link") {
-          updateQuery = `
-            UPDATE FilesDetails
-            SET 
-              FilesName = ?,
-              Description = ?,
-              FilePath = ?,
-              AuthLstEdt = ?,
-              editOnDt = GETDATE()
-            WHERE FileID = ? AND ISNULL(delStatus, 0) = 0
-          `;
-          updateParams = [
-            fileName ?? null,
-            description ?? null,
-            link ?? null,
-            user.Name,
-            fileId, // Use fileId from body
-          ];
-        } else {
-          updateQuery = `
-            UPDATE FilesDetails
-            SET 
-              FilesName = ?,
-              Description = ?,
-              AuthLstEdt = ?,
-              editOnDt = GETDATE()
-            WHERE FileID = ? AND ISNULL(delStatus, 0) = 0
-          `;
-          updateParams = [
-            fileName ?? null,
-            description ?? null,
-            user.Name,
-            fileId, // Use fileId from body
-          ];
-        }
-
-        // Execute update
-        const result = await queryAsync(conn, updateQuery, updateParams);
-
-        if (result.affectedRows === 0) {
-          closeConnection();
-          const warningMessage =
-            "File not updated - may not exist or already deleted";
-          logWarning(warningMessage);
-          res
-            .status(200)
-            .json({ success: false, data: {}, message: warningMessage });
-          return;
-        }
-
-        // Get updated file details
-        const fetchQuery = `
-          SELECT 
-            FileID,
-            FilesName,
-            FilePath,
-            FileType,
-            Description,
-            AuthLstEdt, 
-            editOnDt
-          FROM FilesDetails
-          WHERE FileID = ? AND ISNULL(delStatus, 0) = 0
-        `;
-        const updatedFile = await queryAsync(conn, fetchQuery, [fileId]);
-
-        success = true;
-        closeConnection();
-        const infoMessage = "File updated successfully";
-        logInfo(infoMessage);
-        res.status(200).json({
-          success,
-          data: updatedFile[0],
-          message: infoMessage,
-        });
-        return;
-      } catch (queryErr) {
-        closeConnection();
-        console.error("Database Query Error:", queryErr);
-        logError(queryErr);
-        res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: queryErr.message.includes("Conversion failed")
-            ? "Invalid data type in database operation"
-            : "Something went wrong please try again",
-        });
-        return;
-      }
+    // Call the service
+    const result = await updateFileService(userId, fileId, {
+      fileName,
+      description,
+      link,
+      estimatedTime
     });
+
+    return res.status(result.success ? 200 : 400).json(result);
   } catch (error) {
     logError(error);
     return res.status(500).json({
       success: false,
       data: {},
-      message: "Something went wrong please try again",
+      message: "Something went wrong please try again"
     });
+  }
+};
+
+export const updateFileViewEndTime = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { FileID  } = req.body;
+
+    const result = await updateFileViewEndTimeService(userId, FileID );
+
+    return res.status(result.status || 200).json({ success: result.success, message: result.message });
+  } catch (error) {
+    console.error("Unexpected error in updateFileViewEndTime controller:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

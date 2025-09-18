@@ -1,14 +1,4 @@
 import { upload } from "../config/multerConfig.js";
-import {
-  queryAsync,
-  mailSender,
-  logError,
-  logInfo,
-  logWarning,
-} from "../helper/index.js";
-import { connectToDatabase, closeConnection } from "../database/mySql.js";
-import { log } from "console";
-import path from "path";
 import { checkModuleExists, LMSService } from "../services/lmsService.js";
 
 export class LMS {
@@ -124,7 +114,7 @@ export class LMS {
 
   static async saveFileOrLink(req, res) {
     try {
-      const { unitId, link, fileName, fileType, description } = req.body;
+      const { unitId, link, fileName, fileType, description, estimatedTime } = req.body;
       const userName = req.user?.id;
 
       if (!unitId) {
@@ -140,6 +130,7 @@ export class LMS {
           FilePath: `/uploads/${req.file.filename}`,
           FileType: req.file.mimetype,
           Description: description,
+          EstimatedTime: estimatedTime || 0,
         };
       } else if (link) {
         fileData = {
@@ -147,6 +138,7 @@ export class LMS {
           FilePath: link,
           FileType: fileType || "link",
           Description: description,
+          EstimatedTime: estimatedTime || 0,
         };
       } else {
         return res
@@ -169,7 +161,7 @@ export class LMS {
     }
   }
 
-  static async uploadUpdatedFile(req, res) {
+ static async uploadUpdatedFile(req, res) {
     try {
       if (!req.file) {
         return res
@@ -177,7 +169,7 @@ export class LMS {
           .json({ success: false, message: "No file uploaded" });
       }
 
-      const { unitId, description, sortingOrder } = req.body;
+      const { unitId, description, sortingOrder, estimatedTime } = req.body;
       const userName = req.user.id;
 
       const result = await LMSService.uploadUpdatedFile(
@@ -185,7 +177,8 @@ export class LMS {
         userName,
         req.file,
         description,
-        sortingOrder
+        sortingOrder,
+        estimatedTime
       );
 
       res.status(201).json({
@@ -197,7 +190,7 @@ export class LMS {
       console.error(error);
       res.status(500).json({ success: false, message: error.message });
     }
-  }
+  } 
 }
 
 export const checkModuleExist = async (req, res) => {

@@ -112,10 +112,10 @@ export const getModuleByIdService = async (moduleId) => {
     let moduleData = module.toJSON();
     moduleData.ModuleImage = module.ModuleImage
       ? {
-          data: Buffer.isBuffer(module.ModuleImage)
-            ? module.ModuleImage.toString("base64")
-            : module.ModuleImage,
-        }
+        data: Buffer.isBuffer(module.ModuleImage)
+          ? module.ModuleImage.toString("base64")
+          : module.ModuleImage,
+      }
       : null;
 
     return {
@@ -272,6 +272,7 @@ export const getUnitsWithFilesService = async (subModuleId) => {
             "Description",
             ["AuthAdd", "FileAuthAdd"],
             "Percentage",
+            "EstimatedTime", // ✅ Added this line
             ["SortingOrder", "FileSortingOrder"],
           ],
         },
@@ -295,6 +296,7 @@ export const getUnitsWithFilesService = async (subModuleId) => {
         [LMSFilesDetails, "FileID", "ASC"],
       ],
     });
+
     const result = units.map((unit) => {
       const unitData = unit.toJSON();
 
@@ -317,6 +319,7 @@ export const getUnitsWithFilesService = async (subModuleId) => {
     throw new Error(error.message || "Error fetching units with files");
   }
 };
+
 
 // export const getUnitsWithFilesService = async (subModuleId, sequelize) => {
 //   try {
