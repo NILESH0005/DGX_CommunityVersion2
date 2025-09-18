@@ -44,12 +44,16 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-       StartTime: {                
+      StartTime: {
         type: DataTypes.DATE,
         allowNull: true,
       },
-      EndTime: {                 
+      EndTime: {
         type: DataTypes.DATE,
+        allowNull: true,
+      },
+      TimeSpentSeconds: {
+        type: DataTypes.INTEGER,
         allowNull: true,
       },
     },

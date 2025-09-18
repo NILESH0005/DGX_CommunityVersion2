@@ -142,7 +142,7 @@ const UnitsWithFiles = () => {
   }, [subModuleId, fetchData, userToken]);
 
   const sendFileViewEndTime = async (fileId) => {
-    if (!fileId) return;
+    if (!fileId || !userToken) return;
 
     try {
       await fetchData(
@@ -169,6 +169,11 @@ const UnitsWithFiles = () => {
 
   const recordFileView = async (fileId, unitId) => {
     try {
+      // First, end the current file view if any
+      if (currentFileIdRef.current) {
+        await sendFileViewEndTime(currentFileIdRef.current);
+      }
+
       const response = await fetchData(
         "lmsEdit/recordFileView",
         "POST",
@@ -180,21 +185,25 @@ const UnitsWithFiles = () => {
       );
 
       if (response?.success) {
-        const { trackingId } = response;
-        currentTrackingIdRef.current = trackingId;  // Store tracking ID
+        if (response.message !== "File view already recorded for this user") {
+          setViewedFiles((prev) => new Set(prev).add(fileId));
+        }
+        // Set the current file ID
+        currentFileIdRef.current = fileId;
       } else {
         console.error("Error recording file view:", response?.message);
       }
     } catch (error) {
-      console.error("Error recording file view:", error.message);
+      console.error("Error recording file view:", error);
     }
   };
 
-
   const handleFileSelect = (file, unit) => {
+    // End current file view if any
     if (currentFileIdRef.current) {
       sendFileViewEndTime(currentFileIdRef.current);
     }
+
     currentFileIdRef.current = file.FileID;
     setSelectedQuiz(null);
     setSelectedFile({
@@ -227,6 +236,7 @@ const UnitsWithFiles = () => {
       navigate(-1);
     }
   };
+
 
   const needsReadMore = (text) => {
     if (!text) return false;

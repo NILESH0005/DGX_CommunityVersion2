@@ -591,8 +591,8 @@ const Discussion = () => {
     }
   };
 
-  // const toggleNav = () => setIsNavOpen(!isNavOpen);
-  // const handleLike = () => setLikeCount(likeCount + 1);
+  const toggleNav = () => setIsNavOpen(!isNavOpen);
+  const handleLike = () => setLikeCount(likeCount + 1);
 
   const handleComment = (discussion) => {
     setCommentCount((prevCount) => prevCount + 1);

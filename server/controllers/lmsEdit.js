@@ -136,7 +136,7 @@ export const updateModuleOrder = async (req, res) => {
 // };
 
 export const deleteModule = async (req, res) => {
-   const { moduleId } = req.body;
+  const { moduleId } = req.body;
 
   if (!moduleId || isNaN(moduleId)) {
     return res.status(400).json({
@@ -1162,22 +1162,22 @@ export const addUnit = async (req, res) => {
 
 export const recordFileView = async (req, res) => {
   try {
-    const userEmail = req.user?.id; // assuming req.user.id contains email
+    const userId = req.user?.id;
     const { FileID } = req.body;
 
-    const result = await recordFileViewService(userEmail, FileID);
+    const result = await recordFileViewService(userId, FileID);
 
-    return res
-      .status(result.status || 200)
-      .json({ success: result.success, message: result.message });
+    return res.status(result.status || 200).json({
+      success: result.success,
+      message: result.message,
+      progressId: result.progressId,
+    });
   } catch (error) {
     console.error("Unexpected error in recordFileView controller:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 
 export const updateFile = async (req, res) => {
   console.log("incoming req body", req.body);
@@ -1230,19 +1230,14 @@ export const updateFile = async (req, res) => {
 
 export const updateFileViewEndTime = async (req, res) => {
   try {
-    const userEmail = req.user?.id; // Assuming your auth middleware adds req.user
-    const { FileID } = req.body;
+    const userId = req.user?.id;
+    const { FileID  } = req.body;
 
-    const result = await updateFileViewEndTimeService(userEmail, FileID);
+    const result = await updateFileViewEndTimeService(userId, FileID );
 
-    return res
-      .status(result.status || 200)
-      .json({ success: result.success, message: result.message });
+    return res.status(result.status || 200).json({ success: result.success, message: result.message });
   } catch (error) {
     console.error("Unexpected error in updateFileViewEndTime controller:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

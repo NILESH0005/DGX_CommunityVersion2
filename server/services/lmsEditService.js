@@ -436,7 +436,6 @@ export const recordFileViewService = async (userEmail, FileID) => {
   }
 
   try {
-    // Find user by email
     const user = await User.findOne({
       where: { EmailId: userEmail, delStatus: 0 },
     });
@@ -445,32 +444,20 @@ export const recordFileViewService = async (userEmail, FileID) => {
       return { success: false, status: 404, message: "User not found" };
     }
 
-    // Check if user has already viewed this file
-    const existingView = await LMSUserProgress.findOne({
-      where: { UserID: user.UserID, FileID, delStatus: 0 },
-    });
-
-    if (existingView) {
-      return {
-        success: true,
-        message: "File view already recorded for this user",
-      };
-    }
-
-    // Record new view with StartTime
-    await LMSUserProgress.create({
+    // Create a new progress record with StartTime
+    const progress = await LMSUserProgress.create({
       UserID: user.UserID,
       FileID,
       AuthAdd: user.Name,
       AddOnDt: new Date(),
-      StartTime: new Date(), // <-- record start time
+      StartTime: new Date(),
       delStatus: 0,
     });
 
     return {
       success: true,
       message: "File view recorded successfully",
-      startTime: new Date(),  // <-- send this back
+      progressId: progress.ProgressID,  // Important! Return ProgressID
     };
   } catch (error) {
     console.error("Error in recordFileViewService:", error);
@@ -482,13 +469,12 @@ export const recordFileViewService = async (userEmail, FileID) => {
   }
 };
 
-export const updateFileViewEndTimeService = async (userEmail, fileId) => {
-  if (!fileId || !userEmail) {
+export const updateFileViewEndTimeService = async (userEmail, FileID) => {
+  if (!FileID || !userEmail) {
     return { success: false, status: 400, message: "FileID and userEmail are required" };
   }
 
   try {
-    // Find user by email
     const user = await User.findOne({
       where: { EmailId: userEmail, delStatus: 0 },
     });
@@ -497,29 +483,59 @@ export const updateFileViewEndTimeService = async (userEmail, fileId) => {
       return { success: false, status: 404, message: "User not found" };
     }
 
-    // Update the EndTime for the UserLmsProgress record
-    const [updatedCount] = await LMSUserProgress.update(
-      { EndTime: new Date(), editOnDt: new Date() },
+    // Find the latest progress record
+    const latestProgress = await LMSUserProgress.findOne({
+      where: {
+        FileID: FileID,
+        UserID: user.UserID,
+        delStatus: 0,
+        EndTime: null, // only active record
+      },
+      order: [["StartTime", "DESC"]],
+    });
+
+    if (!latestProgress) {
+      return {
+        success: false,
+        status: 404,
+        message: "No active progress record found to update",
+      };
+    }
+
+    const endTime = new Date();
+    const startTime = latestProgress.StartTime;
+
+    if (!startTime) {
+      return {
+        success: false,
+        status: 400,
+        message: "Start time not recorded for this file",
+      };
+    }
+
+    // Calculate time spent in seconds
+    const diffMs = endTime - new Date(startTime);
+    const diffSeconds = Math.floor(diffMs / 1000); // seconds
+
+    // Update with EndTime + calculated time
+    await LMSUserProgress.update(
+      {
+        EndTime: endTime,
+        TimeSpentSeconds: diffSeconds,
+        editOnDt: new Date(),
+      },
       {
         where: {
+          ID: latestProgress.ID, // use your actual PK column
           UserID: user.UserID,
-          FileID: fileId,
           delStatus: 0,
         },
       }
     );
 
-    if (updatedCount === 0) {
-      return {
-        success: false,
-        status: 404,
-        message: "No matching progress record found to update",
-      };
-    }
-
     return {
       success: true,
-      message: "File view end time updated successfully",
+      message: `File view end time updated successfully. Time spent: ${diffSeconds} seconds`,
     };
   } catch (error) {
     console.error("Error in updateFileViewEndTimeService:", error);
@@ -530,6 +546,9 @@ export const updateFileViewEndTimeService = async (userEmail, fileId) => {
     };
   }
 };
+
+
+
 
 
 
