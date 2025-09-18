@@ -308,7 +308,7 @@ const AdminUsers = () => {
                     <th className="p-2 border text-center w-12">#</th>
                     <th className="p-2 border text-center min-w-[150px]">Name</th>
                     <th className="p-2 border text-center min-w-[200px]">Email</th>
-                    <th className="p-2 border text-center min-w-[150px]">College Name</th>
+                    <th className="p-2 border text-center min-w-[150px]">Orginization Name</th>
                     <th className="p-2 border text-center min-w-[120px]">Designation</th>
                     <th className="p-2 border text-center min-w-[120px]">Mobile Number</th>
                     <th className="p-2 border text-center min-w-[100px]">Category</th>
@@ -378,7 +378,7 @@ const AdminUsers = () => {
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">College Name</label>
+                <label className="block text-sm font-medium text-gray-700">Orginization Name</label>
                 <input
                   type="text"
                   name="CollegeName"

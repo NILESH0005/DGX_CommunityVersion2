@@ -20,27 +20,32 @@ export const handleProfileRedirect = (userId, navigate) => {
 export const ProfileImage = ({ 
   userId, 
   src, 
-  alt, 
+  alt = "Profile", 
   style, 
   className, 
-  imgStyle, 
   imgClassName, 
   ...imgProps 
 }) => {
   const navigate = useNavigate();
+  
   
   const handleClick = () => {
     handleProfileRedirect(userId, navigate);
   };
   
   return (
-    <div 
+    <img
+      src={src}
+      alt={alt}
       onClick={handleClick}
-      style={{ cursor: 'pointer', display: 'inline-block', ...style }}
-      className={className}
-    >
-     
-    </div>
+      className={`${className} cursor-pointer ${imgClassName || ""}`}
+      style={style}
+      {...imgProps}
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src = "/default-profile.png"; // 👈 fallback image
+      }}
+    />
   );
 };
 

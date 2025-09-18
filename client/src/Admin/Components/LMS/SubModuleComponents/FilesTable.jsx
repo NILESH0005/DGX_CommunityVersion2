@@ -1,9 +1,9 @@
 import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { motion } from 'framer-motion';
-import { File, Image, Download, Eye, AlertCircle } from 'lucide-react';
+import { File, Image, Download, Eye, AlertCircle, Link as LinkIcon } from 'lucide-react';
 
-const FilesTable = ({ files = [] }) => {
+const FilesTable = ({ files = [], onImageClick }) => {
     if (!files || files.length === 0) {
         return (
             <motion.div
@@ -45,11 +45,12 @@ const FilesTable = ({ files = [] }) => {
                     </thead>
                     <tbody className="bg-DGXwhite divide-y divide-DGXgray/20">
                         {files.map((file, index) => {
-                            const isLink = file.FileType === 'link' || file.FileType === 'text/uri-list';
-                            const fileName = file.FilesName || 'Untitled';
-                            const filePath = file.FilePath;
-                            const fileType = file.FileType || 'application/octet-stream';
+                            const isLink = file.FileType === 'link' || file.FileType === 'text/uri-list' || file.isLink;
+                            const fileName = file.FilesName || file.originalName || 'Untitled';
+                            const filePath = file.FilePath || file.filePath;
+                            const fileType = file.FileType || file.fileType || 'application/octet-stream';
                             const isImage = fileType.startsWith('image/');
+                            const uploadDate = file.AddOnDt || file.uploadedAt;
 
                             return (
                                 <motion.tr
@@ -64,7 +65,7 @@ const FilesTable = ({ files = [] }) => {
                                         <div className="flex items-center">
                                             <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-lg bg-DGXgray/10">
                                                 {isLink ? (
-                                                    <FaLink className="w-5 h-5 text-DGXblue" />
+                                                    <LinkIcon className="w-5 h-5 text-DGXblue" />
                                                 ) : isImage ? (
                                                     <Image className="w-5 h-5 text-DGXgreen" />
                                                 ) : (
@@ -80,7 +81,8 @@ const FilesTable = ({ files = [] }) => {
                                                         href={filePath}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-xs text-DGXgray hover:underline"
+                                                        className="text-xs text-DGXgray hover:underline truncate max-w-xs block"
+                                                        title={filePath}
                                                     >
                                                         {filePath}
                                                     </a>
@@ -99,7 +101,7 @@ const FilesTable = ({ files = [] }) => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-DGXgray">
-                                            {new Date(file.AddOnDt).toLocaleDateString()}
+                                            {uploadDate ? new Date(uploadDate).toLocaleDateString() : 'N/A'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -118,7 +120,17 @@ const FilesTable = ({ files = [] }) => {
                                                 </motion.a>
                                             ) : (
                                                 <>
-                                                    {filePath && (
+                                                    {filePath && isImage && onImageClick ? (
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => onImageClick(filePath)}
+                                                            className="p-2 rounded-lg text-DGXwhite bg-DGXgreen hover:bg-[#68a600] transition-colors"
+                                                            title="View image"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </motion.button>
+                                                    ) : filePath && !isImage ? (
                                                         <motion.button
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
@@ -128,8 +140,8 @@ const FilesTable = ({ files = [] }) => {
                                                         >
                                                             <Eye className="w-4 h-4" />
                                                         </motion.button>
-                                                    )}
-                                                    {filePath && (
+                                                    ) : null}
+                                                    {filePath && !isImage && (
                                                         <motion.a
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}

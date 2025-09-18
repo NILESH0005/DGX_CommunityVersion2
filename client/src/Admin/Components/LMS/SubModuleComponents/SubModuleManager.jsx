@@ -192,51 +192,53 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
     file,
     customFileName,
     estimatedTime = 0,
-    description,
+    description = "",
     url = null
-
   ) => {
-    if (!file) {
-      Swal.fire("Error", "No file selected", "error");
+    // Check for authentication FIRST
+    if (!userToken) {
+      Swal.fire("Error", "Authentication token missing. Please log in again.", "error");
       return false;
     }
 
-    const allowedExtensions = [
-      ".jpg",
-      ".jpeg",
-      ".png",
-      ".gif",
-      ".pdf",
-      ".doc",
-      ".docx",
-      ".ppt",
-      ".pptx",
-      ".mp4",
-      ".mov",
-      ".ipynb",
-      ".py",
-    ];
-
-    const fileExt = file.name.split(".").pop().toLowerCase();
-    if (!allowedExtensions.includes(`.${fileExt}`)) {
-      Swal.fire("Error", "File type not allowed", "error");
+    // Validate inputs
+    if (!file && !url) {
+      Swal.fire("Error", "Either file or URL must be provided", "error");
       return false;
+    }
+
+    if (file) {
+      // File upload validation (existing code)
+      const allowedExtensions = [
+        ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx",
+        ".ppt", ".pptx", ".mp4", ".mov", ".ipynb", ".py",
+      ];
+
+      const fileExt = file.name.split(".").pop().toLowerCase();
+      if (!allowedExtensions.includes(`.${fileExt}`)) {
+        Swal.fire("Error", "File type not allowed", "error");
+        return false;
+      }
     }
 
     const tempId = uuidv4();
     const equalPercentage = 100;
+
+    // Create temporary file/link object
     const tempFile = {
       id: tempId,
-      originalName: customFileName || file.name,
-      filePath: URL.createObjectURL(file),
-      fileType: file.type,
+      originalName: customFileName || (file ? file.name : "Link"),
+      filePath: file ? URL.createObjectURL(file) : url,
+      fileType: file ? file.type : "link",
       uploadedAt: new Date().toISOString(),
       percentage: equalPercentage,
-      fileSize: file.size,
-      estimatedTime: estimatedTime, // Store estimated time
-
+      fileSize: file ? file.size : 0,
+      estimatedTime: estimatedTime,
+      description: description,
+      isLink: !!url // Add flag to identify links
     };
 
+    // Update state with temporary file/link
     setSubModules((prev) => {
       return prev.map((subModule) => {
         if (subModule.id !== subModuleId) return subModule;
@@ -254,33 +256,30 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
 
     try {
       const uploadToast = Swal.fire({
-        title: "Uploading file...",
+        title: file ? "Uploading file..." : "Adding link...",
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading(),
       });
 
       const formData = new FormData();
+      formData.append("moduleId", module.id);
+      formData.append("subModuleId", subModuleId);
+      formData.append("unitId", unitId);
+      formData.append("percentage", equalPercentage);
+      formData.append("customFileName", customFileName || (file ? file.name : "Link"));
+      formData.append("estimatedTime", estimatedTime.toString());
 
       if (file) {
         formData.append("file", file);
-        formData.append("moduleId", module.id);
-        formData.append("subModuleId", subModuleId);
-        formData.append("unitId", unitId);
-        formData.append("percentage", equalPercentage);
-        formData.append("customFileName", customFileName || file.name);
-        formData.append("estimatedTime", estimatedTime);
+        formData.append("type", "file");
       } else if (url) {
         formData.append("url", url);
-        formData.append("name", customFileName || file.name);
         formData.append("description", description);
-        formData.append("subModuleId", subModuleId);
-        formData.append("unitId", unitId);
         formData.append("type", "link");
-      } else {
-        throw new Error("Either file or URL must be provided");
+        // For links, we need to append a dummy file or modify the server to accept links without files
+        // This is a workaround - you might need to modify your server API
+        formData.append("isLink", "true");
       }
-
-      if (!userToken) throw new Error("Authentication token missing");
 
       const response = await fetch(
         `${import.meta.env.VITE_API_BASEURL}lms/upload-learning-material`,
@@ -299,22 +298,23 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       }
 
       const result = await response.json();
-
-      console.log("result after the upload", result);
       await uploadToast.close();
 
+      // Create final file/link object
       const finalFile = {
         id: uuidv4(),
-        originalName: customFileName || result.fileName || file.name,
-        filePath: result.filePath, // Directly use the response path
-        fileType: result.mimeType || file.type,
+        originalName: customFileName || result.fileName || (file ? file.name : "Link"),
+        filePath: result.filePath || url,
+        fileType: result.mimeType || (file ? file.type : "link"),
         uploadedAt: new Date().toISOString(),
         percentage: equalPercentage,
-        fileSize: result.fileSize || file.size,
-        estimatedTime: estimatedTime, // Store estimated time in final file
-
+        fileSize: result.fileSize || (file ? file.size : 0),
+        estimatedTime: estimatedTime,
+        description: description,
+        isLink: !!url
       };
 
+      // Update state with final file/link
       const updated = subModules.map((subModule) => {
         if (subModule.id !== subModuleId) return subModule;
 
@@ -330,6 +330,7 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
 
       setSubModules(updated);
 
+      // Save to localStorage and parent component
       const updatedModule = {
         ...module,
         subModules: updated,
@@ -341,13 +342,13 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       );
       if (onSave) onSave(updatedModule);
 
-      Swal.fire("Success", "File uploaded successfully", "success");
+      Swal.fire("Success", file ? "File uploaded successfully" : "Link added successfully", "success");
       return true;
     } catch (error) {
       console.error("Upload error:", error);
       Swal.fire("Error", error.message || "Upload failed", "error");
 
-      // Remove the temp file on failure
+      // Remove the temp file/link on failure
       setSubModules((prev) => {
         return prev.map((subModule) => {
           if (subModule.id !== subModuleId) return subModule;
@@ -369,6 +370,59 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
     }
   };
 
+  const handleUploadLink = async (url, linkName, description, estimatedTime) => {
+    // Check for authentication FIRST
+    if (!userToken) {
+      Swal.fire("Error", "Authentication token missing. Please log in again.", "error");
+      return false;
+    }
+
+    if (!selectedSubModule) {
+      Swal.fire("Error", "Please select a submodule first", "error");
+      return false;
+    }
+
+    // Use the first unit or create a new one if none exists
+    let unitId;
+    let updatedSubModules = [...subModules];
+
+    if (selectedSubModule.units.length === 0) {
+      // Create a default unit for links
+      const newUnit = {
+        id: uuidv4(),
+        UnitName: "Resources",
+        UnitDescription: "External resources and links",
+        files: []
+      };
+
+      updatedSubModules = subModules.map(sub => {
+        if (sub.id === selectedSubModule.id) {
+          return {
+            ...sub,
+            units: [...sub.units, newUnit]
+          };
+        }
+        return sub;
+      });
+
+      setSubModules(updatedSubModules);
+      unitId = newUnit.id;
+    } else {
+      // Use the first unit
+      unitId = selectedSubModule.units[0].id;
+    }
+
+    // Call the handleUploadFile function with URL parameters
+    return await handleUploadFile(
+      selectedSubModule.id,
+      unitId,
+      null, // No file
+      linkName,
+      estimatedTime,
+      description,
+      url
+    );
+  };
   const handleSaveAll = () => {
     if (subModules.length === 0) {
       setErrors({ subModules: "Please add at least one submodule" });
@@ -472,6 +526,7 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
               onAddUnit={handleAddUnit}
               onRemoveUnit={handleRemoveUnit}
               onUploadFile={handleUploadFile}
+              onUploadLink={handleUploadLink} // Add this line
               errors={errors}
               setErrors={setErrors}
             />

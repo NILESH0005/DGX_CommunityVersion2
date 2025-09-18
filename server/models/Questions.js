@@ -18,7 +18,7 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       image: {
-        type: DataTypes.TEXT, // nvarchar(MAX) → TEXT
+        type: DataTypes.TEXT, 
         allowNull: true,
       },
       group_id: {

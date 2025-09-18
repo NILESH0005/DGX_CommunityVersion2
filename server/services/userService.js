@@ -110,7 +110,7 @@ export const verifyUserAndSendPassword = async (email) => {
 <body>
     <div class="container">
         <div style="text-align:center;">
-            <img src="https://upload.wikimedia.org/wikipedia/en/2/21/Nvidia_logo.svg" width="200px" alt="DGX Logo">
+            <img src="http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png" width="200px" alt="DGX Logo">
         </div>
         <p>Hi ${user.Name},</p>
         <p>We’re thrilled to have you join the <strong>NVIDIA DGX Community!</strong> You’re just one step away from
@@ -273,7 +273,7 @@ export const registerUser = async ({
 <body>
     <div class="container">
         <div style="text-align:center;">
-            <img src="https://upload.wikimedia.org/wikipedia/en/2/21/Nvidia_logo.svg" width="200px" alt="DGX Logo">
+            <img src="http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png" width="200px" alt="DGX Logo">
         </div>
         <p>Hi ${name},</p>
         <p>We’re thrilled to have you join the <strong>NVIDIA DGX Community!</strong> To complete your registration, here are your credentials:</p>
@@ -327,7 +327,7 @@ export const registerUser = async ({
     };
   }
 };
- 
+
 export const loginUser = async (email, password) => {
   try {
     const user = await User.findOne({
@@ -600,7 +600,7 @@ export const sendInviteService = async (userEmail, inviteeEmail) => {
         EmailId: userEmail,
         [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
       },
-      attributes: ["ReferalNumber"],
+      attributes: ["ReferalNumber", "Name"], // <-- Fetch user name also
     });
 
     if (!user) {
@@ -619,7 +619,7 @@ export const sendInviteService = async (userEmail, inviteeEmail) => {
 
     const plainTextMessage = `Hi,
 
-As a valued NVIDIA DGX user, you're already harnessing the power of DGX for your AI and computing projects. Now, it’s time to take your experience to the next level! We’re excited to invite you to join the NVIDIA DGX Community.
+${user.Name} has referred you to join the NVIDIA DGX Community, a powerful platform to enhance your skill sets in the field of AI & Deep Learning.
 
 Why should you join?
 - Connect with Experts
@@ -669,10 +669,14 @@ The DGX Community Team`;
       <body>
           <div style='width:750px;margin:0 auto; padding:10px; background:#013d54;border-radius:5px;color:#ffffff;'>
               <div style='margin:0 auto;text-align:center;'>
-                  <img src='nvidiapp-Lvu2GrY9.png' width='200px'>
+                  <img src="http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png" width="200px" alt="DGX Community Logo" />
               </div>
 
               <p>Hi ${inviteeEmail.split("@")[0]},</p>
+
+              <p><strong>${
+                user.Name
+              }</strong> has referred you to join the <strong>NVIDIA DGX Community</strong>, a powerful platform to enhance your skill sets in the field of AI & Deep Learning.</p>
 
               <p>As a valued <strong>NVIDIA DGX</strong> user, you're already harnessing the power of DGX for your AI and computing projects. Now, it’s time to take your experience to the next level! We’re excited to invite you to join the <strong>NVIDIA DGX Community</strong> - a place built specifically for users like you.</p>
 
@@ -684,14 +688,11 @@ The DGX Community Team`;
                   <li><strong>Stay Informed: </strong>Be the first to know about new updates, exclusive features, and exciting future releases.</li>
               </ul>
 
-              <p><strong>Your Access to the DGX Community</strong><br />
-              As a DGX user, you have exclusive access to this community. Click the button below to register:</p>
-
               <p style="text-align:center;">
                   <a href="${registrationLink}" class="button">Complete Your Registration</a>
               </p>
 
-              <p>We know you have a wealth of experience with DGX, and we’re excited to see you bring that to the community. Let’s innovate together!</p>
+              <p>We hope that you flourish with your experience in AI research work, leveraging the knowledge of NVIDIA GPU platforms.</p>
 
               <p>Best Regards,<br>The DGX Community Team</p>
               <div class="footer">
@@ -861,7 +862,6 @@ Verify your account: ${verificationLink}
 
 Steps after verification:
 1. Login with your registered email.
-2. Use the temporary password provided by the system: ${plainPassword}.
 3. You will be asked to change your password on first login.
 
 Thank you,
@@ -910,7 +910,7 @@ The DGX Community Team`;
   <body>
       <div style='width:750px;margin:0 auto; padding:15px; background:#013d54;border-radius:5px;color:#ffffff;'>
           <div style='margin:0 auto;text-align:center;'>
-              <img src='nvidiapp-Lvu2GrY9.png' width='200px'>
+              <img src='http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png' width='200px'>
           </div>
 
           <div class="confetti">🎉🎉 Congratulations 🎉🎉</div>
@@ -1086,13 +1086,13 @@ The DGX Community Team`;
     <body>
         <div style='width:750px;margin:0 auto; padding:10px; background:#013d54;border-radius:5px;color:#ffffff;'>
             <div style='margin:0 auto;text-align:center;'>
-                <img src='nvidiapp-Lvu2GrY9.png' width='200px'>
+                <img src='http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png' width='200px'>
             </div>
 
             <p>Hi ${user.Name},</p>
 
             <p>We're here to help you regain access to your account on the <strong>NVIDIA DGX Community</strong>. 
-            Your security is our top priority, and we’re committed to keeping your data safe.</p>
+           </p>
 
             <p><strong>To reset your password, please click the button below:</strong></p>
             <p style="text-align:center;">
@@ -1102,7 +1102,7 @@ The DGX Community Team`;
             <p><strong>Important Tips for Keeping Your Password Safe:</strong></p>
             <ul>
                 <li>Use a unique password that you don’t use for other accounts.</li>
-                <li>Consider using a mix of letters, numbers, and special characters.</li>
+                <li>Your password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.</li>
                 <li>Avoid sharing your password with anyone.</li>
             </ul>
 

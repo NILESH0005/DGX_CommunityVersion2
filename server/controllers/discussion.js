@@ -9,6 +9,11 @@ import {
   logInfo,
   logWarning,
 } from "../helper/index.js";
+import db from "../models/index.js";
+import { Op } from "sequelize";
+
+const { CommunityDiscussion, User } = db;
+ 
 
 dotenv.config();
 
@@ -72,50 +77,92 @@ export const discussionPost = async (req, res) => {
   }
 };
 
+
+
 export const getDiscussion = async (req, res) => {
-  let success = false;
-  console.log("Request body:", req.body);
-
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const warningMessage = "Data is not in the right format";
-    logWarning(warningMessage);
-    return res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
-  }
-
   try {
-    const { email } = req.body;
-    if (!email) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email is required" });
-    }
+    console.log("📌 Starting getDiscussion");
 
-    const result = await DiscussionService.getPublicDiscussionsService(email);
+    const userId = req.user?.uniqueId || null; // ✅ from token
 
-    if (result.success) {
-      success = true;
-      const infoMessage = "Discussions fetched successfully";
-      logInfo(infoMessage);
-      return res.status(200).json({
-        success,
-        data: { updatedDiscussions: result.data },
-        message: infoMessage,
-      });
-    } else {
-      throw result.error;
-    }
-  } catch (error) {
-    logError(error);
-    return res.status(500).json({
-      success: false,
-      data: {},
-      message: "Something went wrong, please try again",
+    const discussions = await CommunityDiscussion.findAll({
+      where: {
+        Reference: { [Op.or]: [null, 0] }, // only top-level posts
+        delStatus: { [Op.or]: [0, null] },
+      },
+      include: [
+        {
+          model: User,
+          attributes: ["UserID", "Name", "ProfilePicture"],
+        },
+        {
+          model: TableDDReference,
+          as: "visibilityRef",
+          attributes: ["ddValue"],
+          where: {
+            ddCategory: "Privacy",
+            ddValue: "Public", // ✅ only public posts
+          },
+        },
+      ],
+      attributes: {
+        include: [
+          // ✅ Like count
+          [
+            Sequelize.literal(`(
+              SELECT COUNT(*) FROM Community_Discussions AS likes
+              WHERE ISNULL(likes.delStatus, 0) = 0 
+              AND likes.Likes > 0 
+              AND likes.Reference = CommunityDiscussion.DiscussionID
+            )`),
+            "likeCount",
+          ],
+
+          // ✅ User like (if logged in)
+          [
+            Sequelize.literal(`(
+              SELECT COUNT(*) FROM Community_Discussions AS likes
+              WHERE ISNULL(likes.delStatus, 0) = 0 
+              AND likes.Likes > 0 
+              AND likes.Reference = CommunityDiscussion.DiscussionID
+              ${userId ? `AND likes.UserID = ${userId}` : ""}
+            )`),
+            "userLike",
+          ],
+
+          // ✅ Comment count
+          [
+            Sequelize.literal(`(
+              SELECT COUNT(*) FROM Community_Discussions AS comments
+              WHERE ISNULL(comments.delStatus, 0) = 0 
+              AND comments.Reference = CommunityDiscussion.DiscussionID
+              AND comments.Comment IS NOT NULL
+            )`),
+            "commentCount",
+          ],
+        ],
+      },
+      order: [["AddOnDt", "DESC"]],
     });
+
+    // Add image URL if path exists
+    const updatedDiscussions = discussions.map((d) => {
+      const discussion = d.toJSON();
+      discussion.ImageUrl = discussion.DiscussionImagePath
+        ? `${req.protocol}://${req.get("host")}/${discussion.DiscussionImagePath}`
+        : null;
+      return discussion;
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, discussions: updatedDiscussions });
+  } catch (error) {
+    console.error("❌ getDiscussion error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 export const updateDiscussion = async (req, res) => {
   let success = false;
@@ -176,3 +223,4 @@ export const deleteDiscussion = async (req, res) => {
     });
   }
 };
+

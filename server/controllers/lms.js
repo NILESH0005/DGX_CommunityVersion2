@@ -15,23 +15,20 @@ export class LMS {
   static upload = upload;
 
   static async uploadFile(req, res) {
-    try {
+  try {
+    const { moduleId, subModuleId, unitId, type, url, description, isLink } = req.body;
+
+    // Handle file upload
+    if (type === 'file' || !isLink) {
       if (!req.file) {
-        return res
-          .status(400)
-          .json({ success: false, message: "No file uploaded" });
+        return res.status(400).json({ success: false, message: "No file uploaded" });
       }
 
-      const { moduleId, subModuleId, unitId } = req.body;
-
-      // ✅ Multer already saved in the correct folder
-      // req.file.path is the actual saved path (e.g. uploads/LMS/module-banners/file.jpg)
-      const savedPath = req.file.path.replace(/\\/g, "/"); // fix Windows slashes
-      console.log(req);
-
+      const savedPath = req.file.path.replace(/\\/g, "/");
+      
       const fileData = {
         fileName: req.file.originalname,
-        filePath: savedPath, // ✅ real path, no need to rebuild manually
+        filePath: savedPath,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
         moduleId,
@@ -43,16 +40,45 @@ export class LMS {
       return res.status(201).json({
         success: true,
         message: "File uploaded successfully",
-        ...fileData, // spread so response matches your frontend expectations
-      });
-    } catch (error) {
-      console.error("Upload error:", error);
-      return res.status(500).json({
-        success: false,
-        message: error.message || "File upload failed",
+        ...fileData,
       });
     }
+
+    // Handle link submission
+    if (type === 'link' || isLink) {
+      if (!url) {
+        return res.status(400).json({ success: false, message: "URL is required for links" });
+      }
+
+      const linkData = {
+        fileName: req.body.customFileName || "Link",
+        filePath: url,
+        fileSize: 0,
+        mimeType: "link",
+        moduleId,
+        subModuleId,
+        unitId,
+        uploadedBy: req.user?.id || "system",
+        description: description || "",
+      };
+
+      return res.status(201).json({
+        success: true,
+        message: "Link added successfully",
+        ...linkData,
+      });
+    }
+
+    return res.status(400).json({ success: false, message: "Invalid request type" });
+
+  } catch (error) {
+    console.error("Upload error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Upload failed",
+    });
   }
+}
 
   static async getSubModules(req, res) {
     try {
