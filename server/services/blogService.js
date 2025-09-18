@@ -29,6 +29,18 @@ export const createBlogPost = async (userEmail, blogData) => {
     const approvedBy = isAdmin ? user.Name : null;
     const approvedOn = isAdmin ? new Date() : null;
 
+    let repostUserId = 0;
+    if (blogData.repostId && blogData.repostId !== 0) {
+      const originalBlog = await Blog.findOne({
+        where: { BlogID: blogData.repostId, delStatus: 0 },
+        attributes: ["UserID"],
+      });
+
+      if (originalBlog) {
+        repostUserId = originalBlog.UserID;
+      }
+    }
+
     const blogPost = await Blog.create({
       title: blogData.title ?? null,
       author: blogData.author ?? null,
@@ -43,7 +55,9 @@ export const createBlogPost = async (userEmail, blogData) => {
       AdminRemark: null,
       ApprovedBy: approvedBy,
       ApprovedOn: approvedOn,
-      UserID: user.UserID,
+      UserID: user.UserID,   // new blog is owned by reposting user
+      RepostID: blogData.repostId ?? 0,   // which blog was reposted
+      RepostUserID: repostUserId ?? 0,    // whose blog it was
     });
 
     logInfo("Blog posted successfully!");
@@ -68,6 +82,7 @@ export const createBlogPost = async (userEmail, blogData) => {
     };
   }
 };
+
 
 export const getBlogService = async (userEmail) => {
   // Check user exists
@@ -104,8 +119,8 @@ export const getBlogService = async (userEmail) => {
       ...(isAdmin
         ? {}
         : {
-            [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
-          }),
+          [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
+        }),
     },
     order: [["AddOnDt", "DESC"]],
     attributes: [
@@ -299,9 +314,8 @@ export const updateBlogService = async (blogId, user, data) => {
   return {
     success: true,
     status: 200,
-    message: `Blog ${
-      data.Status ? data.Status + "d" : "updated"
-    } successfully!`,
+    message: `Blog ${data.Status ? data.Status + "d" : "updated"
+      } successfully!`,
     data: { blogId },
   };
 };

@@ -19,7 +19,10 @@ export default (sequelize, DataTypes) => {
     AdminRemark: { type: DataTypes.TEXT, allowNull: true },
     ApprovedBy: { type: DataTypes.STRING(255), allowNull: true },
     ApprovedOn: { type: DataTypes.DATE, allowNull: true },
-    UserID: { type: DataTypes.INTEGER, allowNull: true }
+    UserID: { type: DataTypes.INTEGER, allowNull: true },
+    RepostID: { type: DataTypes.INTEGER, allowNull: true },
+    RepostUserID : { type: DataTypes.INTEGER, allowNull: true }
+
   }, {
     tableName: 'Community_Blog',
     timestamps: false
