@@ -5,18 +5,11 @@ import { TbUserSquareRounded } from "react-icons/tb";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../context/ApiContext";
-import { useNavigate } from "react-router-dom";
-import {
-  ProfileImage,
-  ProfileLink,
-  handleProfileRedirect,
-} from "../utils/handleProfileRedirect.jsx";
-import images from "../../public/images.js";
+import { FiRepeat } from "react-icons/fi";
+
 
 const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
-  console.log("Blog data:", blog);
-
-  const { title, image, author, published_date, content, Status, BlogID } =
+  const { title, image, author, AuthAdd, published_date, content, Status, BlogID } =
     blog || {};
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
@@ -127,10 +120,42 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
     }
   };
 
-  // Get user image from blog data or use default
-  const getUserImage = (blogData) => {
-    return blogData?.UserImage || images.defaultProfile;
+  const handleRepost = async () => {
+    const endpoint = "blog/blogpost"; // adjust to your API route
+    const method = "POST";
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
+    };
+
+    const body = {
+      title,           // keep same title or allow editing before repost
+      author: user.Name,
+      content,
+      image,
+      category: blog.Category,
+      publishedDate: new Date(),
+      repostId: BlogID,
+    };
+
+    try {
+      const result = await fetchData(endpoint, method, body, headers);
+      if (result.success) {
+        Swal.fire({
+          title: "Success!",
+          text: "Blog reposted successfully!",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+        closeModal();
+      } else {
+        Swal.fire("Error!", result.message, "error");
+      }
+    } catch (error) {
+      Swal.fire("Error!", error.message, "error");
+    }
   };
+
 
   return (
     <AnimatePresence>
@@ -185,19 +210,8 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
                 className="mb-6 flex flex-col items-center"
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <ProfileImage
-                    src={getUserImage(blog)}
-                    className="w-8 h-8 rounded-full object-cover cursor-pointer"
-                    alt="Author"
-                    onClick={(e) => handleProfileClick({ id: blog?.UserID }, e)}
-                  />
-
-                  <span
-                    className="text-gray-600 font-medium hover:text-DGXblue transition-colors cursor-pointer"
-                    onClick={(e) => handleProfileClick({ id: blog?.UserID }, e)}
-                  >
-                    {author}
-                  </span>
+                  <TbUserSquareRounded className="text-indigo-600 text-3xl" />
+                  <span className="text-gray-600 font-medium">{AuthAdd || author || "Unknown author"}</span>
                 </div>
                 <p className="text-gray-500 text-sm">{published_date}</p>
               </motion.div>
@@ -240,6 +254,7 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
                     >
                       Reject
                     </motion.button>
+
                   </>
                 )}
                 <motion.button
@@ -252,6 +267,18 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
                   className="bg-DGXblue hover:bg-DGXgreen text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
                 >
                   Close
+                </motion.button>
+                <motion.button
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleRepost}
+                  className="bg-DGXgreen hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
+                >
+                  <FiRepeat className="inline mr-2" />
+                  Repost
                 </motion.button>
               </motion.div>
             </div>

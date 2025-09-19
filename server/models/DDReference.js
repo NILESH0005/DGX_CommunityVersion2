@@ -3,7 +3,8 @@ export default (sequelize, DataTypes) => {
     idCode: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      primaryKey: true
+      primaryKey: true,
+      autoIncrement: true
     },
     ddValue: {
       type: DataTypes.STRING(100),
