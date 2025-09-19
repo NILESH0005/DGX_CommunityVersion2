@@ -95,7 +95,12 @@ const UnitsWithFiles = () => {
         setError(null);
         const unitsResponse = await fetchData(
           `dropdown/getUnitsWithFiles/${subModuleId}`,
-          "GET"
+          "GET",
+          {}, // no body needed for GET
+          {
+            "Content-Type": "application/json",
+            "auth-token": userToken,  // <-- send user token
+          }
         );
         console.log("rrrrrrrrrrrrrr", unitsResponse);
 
@@ -487,7 +492,8 @@ const UnitsWithFiles = () => {
                       {unit.files.map((file) => {
                         const isViewed = viewedFiles.has(file.FileID);
                         const isSelected = selectedFile?.FileID === file.FileID;
-
+                        const timeSpent = file.UserLmsProgresses?.[0]?.TimeSpentSeconds || 0;
+                        const percentageSpent = Math.min((timeSpent / estimatedTime) * 100, 100);
                         return (
                           <div
                             key={file.FileID}

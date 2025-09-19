@@ -34,7 +34,7 @@ export class LMSService {
           ModuleName: data.ModuleName,
           ModuleImagePath: data.ModuleImagePath
             ? typeof data.ModuleImagePath === "object"
-              ? JSON.stringify(data.ModuleImagePath)
+              ? data.ModuleImagePath.filePath   // ✅ save only filePath
               : data.ModuleImagePath
             : null,
           ModuleDescription: data.ModuleDescription || null,
@@ -64,7 +64,7 @@ export class LMSService {
             SubModuleName: sub.SubModuleName,
             SubModuleImagePath: sub.SubModuleImagePath
               ? typeof sub.SubModuleImagePath === "object"
-                ? JSON.stringify(sub.SubModuleImagePath)
+                ? sub.SubModuleImagePath.filePath  
                 : sub.SubModuleImagePath
               : null,
             SubModuleDescription: sub.SubModuleDescription || null,
@@ -116,7 +116,7 @@ export class LMSService {
                 AddOnDt: new Date(),
                 delStatus: 0,
                 Percentage: file.Percentage || 0,
-                 EstimatedTime: file.EstimatedTime || 0,
+                EstimatedTime: file.EstimatedTime || 0,
               },
               { transaction: t }
             );
@@ -174,7 +174,7 @@ export class LMSService {
     file,
     description,
     sortingOrder,
-    estimatedTime 
+    estimatedTime
   ) {
     return await db.sequelize.transaction(async (t) => {
       await LMSFilesDetails.create(

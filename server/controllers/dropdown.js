@@ -195,18 +195,22 @@ export const getSubModules = async (req, res) => {
 };
 
 export const getUnitsWithFiles = async (req, res) => {
-  let success = false;
   const { subModuleId } = req.params;
 
-  try {
-    const result = await getUnitsWithFilesService(subModuleId);
+  if (!req.user || !req.user.uniqueId) {
+    return res.status(401).json({ success: false, message: "User not authenticated" });
+  }
 
-    success = true;
+  const userId = req.user.uniqueId; // <-- numeric ID
+  // const userEmail = req.user.id; // if you need email
+
+  try {
+    const result = await getUnitsWithFilesService(subModuleId, userId);
     return res.status(200).json(result);
   } catch (error) {
     console.error("Controller error:", error);
     return res.status(500).json({
-      success,
+      success: false,
       message: "Unexpected error occurred",
       data: error.message,
     });

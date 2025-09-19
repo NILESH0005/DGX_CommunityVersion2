@@ -7,6 +7,7 @@ const {
   LMSSubModulesDetails,
   LMSUnitsDetails,
   LMSFilesDetails,
+  LMSUserProgress,
 } = db;
 import { Op } from "sequelize";
 
@@ -243,13 +244,10 @@ export const getSubModulesService = async (moduleId, baseUrl) => {
   }
 };
 
-export const getUnitsWithFilesService = async (subModuleId) => {
+export const getUnitsWithFilesService = async (subModuleId, userId) => {
   try {
     const units = await LMSUnitsDetails.findAll({
-      where: {
-        SubModuleID: subModuleId,
-        delStatus: 0,
-      },
+      where: { SubModuleID: subModuleId, delStatus: 0 },
       attributes: [
         "UnitID",
         "UnitName",
@@ -257,7 +255,7 @@ export const getUnitsWithFilesService = async (subModuleId) => {
         "UnitDescription",
         "SubModuleID",
         "AuthAdd",
-        ["SortingOrder", "UnitSortingOrder"],
+        ["SortingOrder", "UnitSortingOrder"]
       ],
       include: [
         {
@@ -272,49 +270,42 @@ export const getUnitsWithFilesService = async (subModuleId) => {
             "Description",
             ["AuthAdd", "FileAuthAdd"],
             "Percentage",
-            "EstimatedTime", // ✅ Added this line
-            ["SortingOrder", "FileSortingOrder"],
+            "EstimatedTime",
+            ["SortingOrder", "FileSortingOrder"]
           ],
-        },
+          include: [
+            {
+              model: LMSUserProgress,
+              required: false,
+              attributes: ["TimeSpentSeconds"], // fetch raw values
+              where: { UserID: userId, delStatus: 0 }
+            }
+          ]
+        }
       ],
       order: [
-        [
-          sequelize.literal(
-            "CASE WHEN `UnitsDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"
-          ),
-          "ASC",
-        ],
+        [sequelize.literal("CASE WHEN `UnitsDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"), "ASC"],
         ["SortingOrder", "ASC"],
         ["UnitID", "ASC"],
-        [
-          sequelize.literal(
-            "CASE WHEN `FilesDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"
-          ),
-          "ASC",
-        ],
+        [sequelize.literal("CASE WHEN `FilesDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"), "ASC"],
         [LMSFilesDetails, "SortingOrder", "ASC"],
         [LMSFilesDetails, "FileID", "ASC"],
-      ],
+      ]
     });
 
-    const result = units.map((unit) => {
+    // aggregate totalTimeSpent in JS instead of SQL
+    const result = units.map(unit => {
       const unitData = unit.toJSON();
+      const filesWithTime = (unitData.FilesDetails || []).map(file => {
+        const totalTime = (file.LMSUserProgress || [])
+          .reduce((sum, progress) => sum + (progress.TimeSpentSeconds || 0), 0);
+        return { ...file, totalTimeSpent: totalTime };
+      });
 
-      return {
-        ...unitData,
-        files: (unitData.FilesDetails || []).sort(
-          (a, b) =>
-            (a.FileSortingOrder ?? Number.MAX_SAFE_INTEGER) -
-            (b.FileSortingOrder ?? Number.MAX_SAFE_INTEGER)
-        ),
-      };
+      return { ...unitData, files: filesWithTime };
     });
 
-    return {
-      success: true,
-      data: result,
-      message: "Units with files fetched successfully",
-    };
+    return { success: true, data: result, message: "Units with files fetched successfully" };
   } catch (error) {
     throw new Error(error.message || "Error fetching units with files");
   }
