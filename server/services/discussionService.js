@@ -104,65 +104,56 @@ export const createDiscussionPost = async (userId, postData) => {
   }
 };
 
-const getCommentsRecursive = async (discussionId, userId) => {
+const getCommentsRecursive = async (parentId, currentUserId) => {
   const comments = await CommunityDiscussion.findAll({
     where: {
-      Reference: discussionId,
+      Reference: parentId,
       delStatus: { [Op.or]: [0, null] },
-      Comment: { [Op.not]: null },
+      Comment: { [Op.ne]: null }, // ✅ only actual comments
     },
-    order: [["AddOnDt", "DESC"]],
-    attributes: [
-      "DiscussionID",
-      "UserID",
-      "Comment",
-      "AddOnDt",
-      "Likes",
-      "Reference",
-      "AuthAdd",
+    include: [
+      {
+        model: User,
+        attributes: ["UserID", "Name", "ProfilePicture"],
+      },
     ],
+    order: [["AddOnDt", "ASC"]],
   });
 
-  const updatedComments = await Promise.all(
-    comments.map(async (comment) => {
-      const likeCount = await CommunityDiscussion.count({
-        where: {
-          Reference: comment.DiscussionID,
-          Likes: { [Op.gt]: 0 },
-          delStatus: { [Op.or]: [0, null] },
-        },
-      });
-
+  return Promise.all(
+    comments.map(async (c) => {
+      const raw = c.toJSON();
+      // userLike for this comment
       const userLike = await CommunityDiscussion.findOne({
         where: {
-          Reference: comment.DiscussionID,
-          UserID: userId,
+          Reference: c.DiscussionID,
+          UserID: currentUserId,
           Likes: 1,
           delStatus: { [Op.or]: [0, null] },
         },
       });
 
+      // recursively fetch nested replies
       const nestedComments = await getCommentsRecursive(
-        comment.DiscussionID,
-        userId
+        c.DiscussionID,
+        currentUserId
       );
 
       return {
-        DiscussionID: comment.DiscussionID,
-        UserID: comment.UserID,
-        Comment: comment.Comment,
-        UserName: comment.AuthAdd,
-        timestamp: comment.AddOnDt,
-        Likes: comment.Likes,
-        Reference: comment.Reference,
-        likeCount,
+        DiscussionID: raw.DiscussionID,
+        UserID: raw.UserID,
+        UserName: raw.User?.Name || raw.UserName, // fallback to stored UserName
+        UserImage: raw.User?.ProfilePicture || null, // <-- add this
+        Comment: raw.Comment,
+        timestamp: raw.AddOnDt || raw.timestamp,
+        Likes: raw.Likes,
+        Reference: raw.Reference,
+        likeCount: raw.Likes || 0,
         userLike: userLike ? 1 : 0,
         comment: nestedComments,
       };
     })
   );
-
-  return updatedComments;
 };
 
 /**
@@ -198,11 +189,15 @@ export const getPublicDiscussionsService = async (email) => {
     // Step 2: Get top-level public discussions
     const discussions = await CommunityDiscussion.findAll({
       where: {
-        delStatus: {
-          [Op.or]: [{ [Op.eq]: 0 }, { [Op.is]: null }],
-        },
+        delStatus: { [Op.or]: [{ [Op.eq]: 0 }, { [Op.is]: null }] },
         Reference: 0,
       },
+      include: [
+        {
+          model: User,
+          attributes: ["UserID", "Name", "ProfilePicture"], // pick fields you need
+        },
+      ],
       order: [["AddOnDt", "DESC"]],
       logging: (sql) => console.log("📝 SQL Executed:", sql),
     });
@@ -210,66 +205,40 @@ export const getPublicDiscussionsService = async (email) => {
 
     // Step 3: Process discussions
     const updatedDiscussions = await Promise.all(
-      discussions.map(async (discussion, index) => {
-        console.log(
-          `\n➡️ Processing discussion #${index + 1}:`,
-          discussion.toJSON()
-        );
-
-        const likeCount = await CommunityDiscussion.count({
-          where: {
-            Reference: discussion.DiscussionID,
-            Likes: { [Op.gt]: 0 },
-            delStatus: { [Op.or]: [0, null] },
-          },
-        });
-        console.log(
-          `👍 Like count for discussion ${discussion.DiscussionID}:`,
-          likeCount
-        );
-
-        const userLike = await CommunityDiscussion.findOne({
-          where: {
-            Reference: discussion.DiscussionID,
-            UserID: userId,
-            Likes: 1,
-            delStatus: { [Op.or]: [0, null] },
-          },
-        });
-        console.log(
-          `❤️ User liked? (discussion ${discussion.DiscussionID}):`,
-          !!userLike
-        );
-
-        // fetch nested comments
+      discussions.map(async (discussion) => {
         const comments = await getCommentsRecursive(
           discussion.DiscussionID,
           userId
-        );
-        console.log(
-          `💬 Comments fetched for discussion ${discussion.DiscussionID}:`,
-          comments
-        );
-
-        const commentCount = countAllComments(comments);
-        console.log(
-          `📊 Comment count for discussion ${discussion.DiscussionID}:`,
-          commentCount
         );
 
         return {
           ...discussion.toJSON(),
           UserName: discussion.AuthAdd,
           VisibilityName: discussion.visibilityRef?.ddValue || null,
-          likeCount,
-          userLike: userLike ? 1 : 0,
-          commentCount,
+          likeCount: await CommunityDiscussion.count({
+            where: {
+              Reference: discussion.DiscussionID, // likes are stored as child rows
+              Likes: { [Op.gt]: 0 }, // only where Likes > 0
+              delStatus: { [Op.or]: [0, null] },
+            },
+          }),
+
+          userLike: (await CommunityDiscussion.findOne({
+            where: {
+              Reference: discussion.DiscussionID,
+              UserID: userId, // current user
+              Likes: { [Op.gt]: 0 }, // only likes
+              delStatus: { [Op.or]: [0, null] },
+            },
+          }))
+            ? 1
+            : 0,
+          commentCount: countAllComments(comments),
           comment: comments,
-          ImageUrl: discussion.DiscussionImagePath || null,
+          ImageUrl: discussion.User?.ProfilePicture || null, // main post author
         };
       })
     );
-
     console.log("🎯 Final updated discussions:", updatedDiscussions);
 
     return { success: true, data: updatedDiscussions };

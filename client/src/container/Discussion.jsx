@@ -253,6 +253,36 @@ const Discussion = () => {
     );
   };
 
+  const updateDiscussionLikeCount = (
+    discussionId,
+    newLikeCount,
+    isLiked = null
+  ) => {
+    setDemoDiscussions((prevDiscussions) =>
+      prevDiscussions.map((discussion) =>
+        discussion.DiscussionID === discussionId
+          ? {
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
+          : discussion
+      )
+    );
+
+    setFilteredDiscussions((prevDiscussions) =>
+      prevDiscussions.map((discussion) =>
+        discussion.DiscussionID === discussionId
+          ? {
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
+          : discussion
+      )
+    );
+  };
+
   const filterDiscussions = (discussions, query, scope) => {
     if (!query.trim()) return discussions;
 
@@ -450,49 +480,22 @@ const Discussion = () => {
       return;
     }
 
-    // Optimistic update - toggle like state
     const newLikeState = currentUserLike === 1 ? 0 : 1;
     const likeIncrement = newLikeState === 1 ? 1 : -1;
 
-    // Update demoDiscussions
-    setDemoDiscussions((prevDiscussions) =>
-      prevDiscussions.map((discussion) => {
-        if (discussion.DiscussionID === id) {
-          return {
-            ...discussion,
-            userLike: newLikeState,
-            likeCount: Math.max(0, (discussion.likeCount || 0) + likeIncrement),
-          };
-        }
-        return discussion;
-      })
+    // Use the new update function for optimistic update
+    updateDiscussionLikeCount(
+      id,
+      Math.max(
+        0,
+        (demoDiscussions.find((d) => d.DiscussionID === id)?.likeCount || 0) +
+          likeIncrement
+      ),
+      newLikeState
     );
-
-    // Update filteredDiscussions
-    setFilteredDiscussions((prevDiscussions) =>
-      prevDiscussions.map((discussion) => {
-        if (discussion.DiscussionID === id) {
-          return {
-            ...discussion,
-            userLike: newLikeState,
-            likeCount: Math.max(0, (discussion.likeCount || 0) + likeIncrement),
-          };
-        }
-        return discussion;
-      })
-    );
-
-    // Update selectedDiscussion if it's the one being liked
-    if (selectedDiscussion && selectedDiscussion.DiscussionID === id) {
-      setSelectedDiscussion((prev) => ({
-        ...prev,
-        userLike: newLikeState,
-        likeCount: Math.max(0, (prev.likeCount || 0) + likeIncrement),
-      }));
-    }
 
     // API call
-    const endpoint = "discussion/discussionpost";
+    const endpoint = "discussion/likeDiscussion";
     const method = "POST";
     const headers = {
       "Content-Type": "application/json",
@@ -509,79 +512,26 @@ const Discussion = () => {
 
       if (!data.success) {
         // Revert if API call fails
-        setDemoDiscussions((prevDiscussions) =>
-          prevDiscussions.map((discussion) => {
-            if (discussion.DiscussionID === id) {
-              return {
-                ...discussion,
-                userLike: currentUserLike,
-                likeCount: discussion.likeCount || 0,
-              };
-            }
-            return discussion;
-          })
+        updateDiscussionLikeCount(
+          id,
+          demoDiscussions.find((d) => d.DiscussionID === id)?.likeCount || 0,
+          currentUserLike
         );
-
-        setFilteredDiscussions((prevDiscussions) =>
-          prevDiscussions.map((discussion) => {
-            if (discussion.DiscussionID === id) {
-              return {
-                ...discussion,
-                userLike: currentUserLike,
-                likeCount: discussion.likeCount || 0,
-              };
-            }
-            return discussion;
-          })
-        );
-
-        if (selectedDiscussion && selectedDiscussion.DiscussionID === id) {
-          setSelectedDiscussion((prev) => ({
-            ...prev,
-            userLike: currentUserLike,
-            likeCount: prev.likeCount || 0,
-          }));
-        }
-
         console.error("Error occurred while liking the post");
         return;
       }
+
+      // Update with actual data from backend if needed
+      if (data.newLikeCount !== undefined) {
+        updateDiscussionLikeCount(id, data.newLikeCount, newLikeState);
+      }
     } catch (error) {
       // Revert on error
-      setDemoDiscussions((prevDiscussions) =>
-        prevDiscussions.map((discussion) => {
-          if (discussion.DiscussionID === id) {
-            return {
-              ...discussion,
-              userLike: currentUserLike,
-              likeCount: discussion.likeCount || 0,
-            };
-          }
-          return discussion;
-        })
+      updateDiscussionLikeCount(
+        id,
+        demoDiscussions.find((d) => d.DiscussionID === id)?.likeCount || 0,
+        currentUserLike
       );
-
-      setFilteredDiscussions((prevDiscussions) =>
-        prevDiscussions.map((discussion) => {
-          if (discussion.DiscussionID === id) {
-            return {
-              ...discussion,
-              userLike: currentUserLike,
-              likeCount: discussion.likeCount || 0,
-            };
-          }
-          return discussion;
-        })
-      );
-
-      if (selectedDiscussion && selectedDiscussion.DiscussionID === id) {
-        setSelectedDiscussion((prev) => ({
-          ...prev,
-          userLike: currentUserLike,
-          likeCount: prev.likeCount || 0,
-        }));
-      }
-
       console.error("Error:", error);
       Swal.fire({
         icon: "error",
@@ -595,7 +545,6 @@ const Discussion = () => {
   const handleLike = () => setLikeCount(likeCount + 1);
 
   const handleComment = (discussion) => {
-    setCommentCount((prevCount) => prevCount + 1);
     openModal(discussion);
   };
 
@@ -864,7 +813,8 @@ const Discussion = () => {
           setDiscussions={setDiscussions}
           discussions={discussions}
           setDemoDiscussion={setDemoDiscussions}
-          updateCommentCount={updateDiscussionCommentCount} // Add this line
+          updateCommentCount={updateDiscussionCommentCount}
+          updateLikeCount={updateDiscussionLikeCount} // Add this new prop
         />
       )}
       <div className="flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4">

@@ -1,7 +1,7 @@
 import sequelize from "../config/database.js";
 import { DataTypes } from "sequelize";
-import UserModel from "./User.js";
-import Community_Blog from "./Community_Blog.js";
+import UserModel from "../models/User.js";
+import Community_Blog from "../models/Community_Blog.js";
 import Community_Discussion from "./Community_Discussion.js";
 import Community_Events from "./Community_Events.js";
 import FilesDetails from "./FilesDetails.js";

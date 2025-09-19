@@ -7,11 +7,16 @@ import { useNavigate } from "react-router-dom";
 import { FaReply } from "react-icons/fa";
 import DOMPurify from "dompurify";
 import { motion, AnimatePresence } from "framer-motion";
-
+import {
+  ProfileImage,
+  ProfileLink,
+  handleProfileRedirect,
+} from "../../utils/handleProfileRedirect.jsx";
 const BASE_URL = "http://localhost:5000";
 
 const DiscussionModal = ({
   isOpen,
+  comment,
   onRequestClose,
   discussion,
   setDemoDiscussion,
@@ -52,6 +57,15 @@ const DiscussionModal = ({
       setDiscussionImageUrl("");
     }
   }, [discussion]);
+
+  const handleProfileClick = (userId, e) => {
+    e.stopPropagation(); // Prevent triggering the modal click event
+    if (userId && userId !== "undefined") {
+      handleProfileRedirect(userId, navigate);
+    } else {
+      console.error("Invalid User ID:", userId);
+    }
+  };
 
   const handleAuthCheck = () => {
     if (!userToken) {
@@ -141,7 +155,6 @@ const DiscussionModal = ({
       setComments(updatedComments);
       setNewComment("");
 
-      // const newCommentCount = (discussion.commentCount || 0) + 1;
       const newCommentCount = updatedComments.length;
       if (updateCommentCount) {
         updateCommentCount(
@@ -221,8 +234,6 @@ const DiscussionModal = ({
         }, 0);
       };
 
-      // const newCommentCount = (discussion.commentCount || 0) + 1;
-
       const newCommentCount = countTotalComments(updatedComments);
       // Update parent state with both count and comments
       if (updateCommentCount) {
@@ -280,18 +291,27 @@ const DiscussionModal = ({
     return (
       <div className={`mt-3 ${depth > 0 ? "ml-4 sm:ml-8" : ""}`}>
         <div className="flex space-x-3">
-          <img
-            src={getUserImage(comment)}
-            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
-            alt="User"
-          />
+          {/* Use ProfileImage component instead of custom onClick handler */}
+          {comment && (
+            <ProfileImage
+              userId={comment.UserID} // 👈 commenter’s UserID, not logged-in user
+              src={comment.UserImage || images.defaultProfile}
+              className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 object-cover"
+              alt="User"
+            />
+          )}
+
           <div className="flex-1">
             <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="font-semibold text-sm sm:text-base text-gray-800">
+                  {/* Use ProfileLink component instead of custom onClick handler */}
+                  <ProfileLink
+                    userId={comment.UserID}
+                    className="font-semibold text-sm sm:text-base text-gray-800 hover:text-DGXblue transition-colors"
+                  >
                     {comment.UserName}
-                  </span>
+                  </ProfileLink>
                   <span className="text-xs text-gray-500 ml-2">
                     {formatDate(comment.timestamp)}
                   </span>
@@ -316,7 +336,8 @@ const DiscussionModal = ({
                 className="mt-2"
               >
                 <div className="flex space-x-2">
-                  <img
+                  <ProfileImage
+                    userId={user?.UserID}
                     src={user?.ProfilePicture || images.defaultProfile}
                     className="w-6 h-6 rounded-full"
                     alt="User"
@@ -385,17 +406,26 @@ const DiscussionModal = ({
           {/* Header */}
           <div className="flex justify-between items-start p-4 sm:p-6 border-b border-gray-200">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <img
-                src={getUserImage(discussion)}
-                className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 object-cover rounded-full"
-                alt="Profile"
+              {/* Use ProfileImage component for the main discussion author's profile image */}
+              <ProfileImage
+                userId={discussion.User?.UserID} // Use discussion owner’s ID here
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-300 bg-cover bg-center"
+                src={discussion.User?.ProfilePicture || images.defaultProfile}
+                alt="User"
               />
+
               <div>
                 <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 line-clamp-1">
                   {discussion.Title}
                 </h1>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 md:space-x-4 text-xs sm:text-sm text-gray-500">
-                  <span>{discussion.UserName || "Unknown author"}</span>
+                  {/* Use ProfileLink component for the main discussion author's username */}
+                  <ProfileLink
+                    userId={discussion.UserID}
+                    className="hover:text-DGXblue transition-colors"
+                  >
+                    {discussion.UserName || "Unknown author"}
+                  </ProfileLink>
                   <span className="hidden sm:block">•</span>
                   <span>
                     {discussion.AddOnDt
@@ -439,7 +469,7 @@ const DiscussionModal = ({
 
           {/* Main Content */}
           <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-            {/* Discussion Content - Hidden on mobile when comments tab is active */}
+            {/* Discussion Content */}
             <div
               className={`${
                 activeTab === "content" ? "block" : "hidden"
@@ -452,7 +482,6 @@ const DiscussionModal = ({
                     alt="Post"
                     className="w-full h-auto max-h-64 sm:max-h-96 object-contain mx-auto"
                     onError={(e) => {
-                      // If image fails to load, hide the image container
                       e.target.style.display = "none";
                       e.target.parentElement.style.display = "none";
                     }}
@@ -501,7 +530,7 @@ const DiscussionModal = ({
               )}
             </div>
 
-            {/* Comments Section - Hidden on mobile when content tab is active */}
+            {/* Comments Section */}
             <div
               className={`${
                 activeTab === "comments" ? "block" : "hidden"
@@ -510,11 +539,14 @@ const DiscussionModal = ({
               {/* Comment Input */}
               <div className="p-3 sm:p-4 border-b border-gray-200">
                 <div className="flex space-x-2">
-                  <img
+                  {/* FIX THIS PART */}
+                  <ProfileImage
+                    userId={user?.UserID}
                     src={user?.ProfilePicture || images.defaultProfile}
-                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 object-cover"
                     alt="User"
                   />
+
                   <div className="flex-1">
                     <textarea
                       rows={2}
@@ -541,8 +573,8 @@ const DiscussionModal = ({
                 className="flex-1 overflow-y-auto p-3 sm:p-4 hide-scrollbar"
                 style={{
                   maxHeight: "60vh",
-                  scrollbarWidth: "none", // Firefox
-                  msOverflowStyle: "none", // IE/Edge
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
                 }}
               >
                 <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-4">

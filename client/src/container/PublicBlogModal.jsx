@@ -12,6 +12,17 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
   const { title, image, author, AuthAdd, published_date, content, Status, BlogID, RepostUser } =
     blog || {};
   const { fetchData, userToken, user } = useContext(ApiContext);
+  const navigate = useNavigate();
+  console.log("user is", user);
+
+  const handleProfileClick = (userData, e) => {
+    e.stopPropagation();
+    if (userData?.id) {
+      handleProfileRedirect(userData.id, navigate);
+    } else {
+      console.error("Invalid User ID:", userData);
+    }
+  };
 
   const updateBlogStatus = async (blogId, Status, remark = "") => {
     const endpoint = `blog/updateBlog/${blogId}`;

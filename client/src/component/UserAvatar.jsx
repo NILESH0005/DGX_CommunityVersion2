@@ -1,9 +1,9 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
-import { images } from '../../public/index.js';
-import { FaCamera, FaCheck, FaTimes, FaSpinner } from 'react-icons/fa';
-import ApiContext from '../context/ApiContext.jsx';
-import Swal from 'sweetalert2';
-import { compressImage } from '../utils/compressImage.js';
+import React, { useState, useContext, useRef, useEffect } from "react";
+import { images } from "../../public/index.js";
+import { FaCamera, FaCheck, FaTimes, FaSpinner } from "react-icons/fa";
+import ApiContext from "../context/ApiContext.jsx";
+import Swal from "sweetalert2";
+import { compressImage } from "../utils/compressImage.js";
 
 const UserAvatar = ({ user, onImageUpdate }) => {
   const { userToken, fetchData, setUser } = useContext(ApiContext);
@@ -19,21 +19,21 @@ const UserAvatar = ({ user, onImageUpdate }) => {
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!validTypes.includes(file.type)) {
       Swal.fire({
-        icon: 'error',
-        title: 'Invalid File',
-        text: 'Only JPG, PNG, and WEBP images are allowed',
+        icon: "error",
+        title: "Invalid File",
+        text: "Only JPG, PNG, and WEBP images are allowed",
       });
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       Swal.fire({
-        icon: 'error',
-        title: 'File Too Large',
-        text: 'Image size should be less than 5MB',
+        icon: "error",
+        title: "File Too Large",
+        text: "Image size should be less than 5MB",
       });
       return;
     }
@@ -44,11 +44,11 @@ const UserAvatar = ({ user, onImageUpdate }) => {
       const compressedDataURL = await compressImage(file);
       setPreviewImage(compressedDataURL);
     } catch (error) {
-      console.error('Error processing image:', error);
+      console.error("Error processing image:", error);
       Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Failed to process the image',
+        icon: "error",
+        title: "Error",
+        text: "Failed to process the image",
       });
     } finally {
       setIsLoading(false);
@@ -61,55 +61,58 @@ const UserAvatar = ({ user, onImageUpdate }) => {
     setIsLoading(true);
 
     try {
-      if (setUser) {
-        setUser(prev => ({
-          ...prev,
-          ProfilePicture: previewImage // Use the compressed preview image
-        }));
-      }
-
-      const response = await fetchData('userprofile/updateProfilePicture', 'POST', {
-        profileImage: previewImage
-      }, {
-        'Content-Type': 'application/json',
-        'auth-token': userToken
-      });
+      // Send the complete data URL as the backend expects
+      const response = await fetchData(
+        "userprofile/updateProfilePicture",
+        "POST",
+        { 
+          email: user?.EmailId,
+          avatar: previewImage // Send the complete data URL
+        },
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        }
+      );
 
       if (!response) {
-        throw new Error('No response from server');
+        throw new Error("No response from server");
       }
 
       if (response.success) {
         if (setUser) {
-          setUser(prev => ({
+          setUser((prev) => ({
             ...prev,
-            ProfilePicture: response.data.imageUrl
+            ProfilePicture: previewImage,
           }));
         }
 
         setPreviewImage(null);
 
         if (onImageUpdate) {
-          onImageUpdate(response.data.imageUrl);
+          onImageUpdate(previewImage);
         }
 
         Swal.fire({
-          icon: 'success',
-          title: 'Success!',
-          text: 'Profile image updated successfully!',
+          icon: "success",
+          title: "Success!",
+          text: "Profile image updated successfully!",
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
       } else {
-        throw new Error(response.message || 'Failed to update profile image');
+        throw new Error(response.message || "Failed to update profile image");
       }
     } catch (error) {
-      console.error('Error saving profile image:', error);
+      console.error("Error saving profile image:", error);
       Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.message || 'Failed to update profile image',
+        icon: "error",
+        title: "Error",
+        text: error.message || "Failed to update profile image",
       });
+      
+      // Revert the preview if there's an error
+      setPreviewImage(null);
     } finally {
       setIsLoading(false);
     }
@@ -143,12 +146,16 @@ const UserAvatar = ({ user, onImageUpdate }) => {
             />
 
             <div
-              className={`absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-full transition-all duration-300 ${previewImage ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} cursor-pointer`}
+              className={`absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-full transition-all duration-300 ${
+                previewImage
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100"
+              } cursor-pointer`}
               onClick={triggerFileInput}
             >
               <FaCamera className="text-2xl text-white mb-1" />
               <span className="text-white text-sm font-medium">
-                {previewImage ? 'Change Photo' : 'Upload Photo'}
+                {previewImage ? "Change Photo" : "Upload Photo"}
               </span>
             </div>
           </div>
@@ -164,9 +171,11 @@ const UserAvatar = ({ user, onImageUpdate }) => {
         </div>
 
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">{user?.Name || 'User'}</h2>
-          <p className="text-DGXgray font-medium">{user?.Designation || ''}</p>
-          <p className="text-sm text-gray-500">{user?.EmailId || ''}</p>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {user?.Name || "User"}
+          </h2>
+          <p className="text-DGXgray font-medium">{user?.Designation || ""}</p>
+          <p className="text-sm text-gray-500">{user?.EmailId || ""}</p>
         </div>
 
         <div className="w-full max-w-md space-y-4">
