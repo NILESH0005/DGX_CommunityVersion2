@@ -17,6 +17,8 @@ import DDReference from "./DDReference.js";
 import UnitsDetails from "./UnitsDetails.js";
 import UserLmsProgress from "./UserLmsProgress.js";
 import QuizDetailsModel from "./QuizDetails.js";
+import UserActivityModel from "./UserActivity.js";
+import ContentEngagementModel from "./ContentEngagement.js";
 
 const User = UserModel(sequelize, DataTypes);
 const LMSUserProgress = UserLmsProgress(sequelize, DataTypes);
@@ -35,6 +37,8 @@ const CMSContent = tblCMSContent(sequelize, DataTypes);
 const TableDDReference = DDReference(sequelize, DataTypes);
 const LMSUnitsDetails = UnitsDetails(sequelize, DataTypes);
 const QuizDetails = QuizDetailsModel(sequelize, DataTypes);
+const UserActivity = UserActivityModel(sequelize, DataTypes);
+const ContentEngagement = ContentEngagementModel(sequelize, DataTypes);
 
 const db = {
   sequelize,
@@ -55,6 +59,8 @@ const db = {
   TableDDReference,
   LMSUnitsDetails,
   LMSUserProgress,
+  UserActivity,
+  ContentEngagement,
 };
 
 Object.values(db).forEach((model) => {
