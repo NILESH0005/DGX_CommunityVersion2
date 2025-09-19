@@ -213,13 +213,23 @@ export const getPublicBlogsService = async () => {
     attributes: [
       "BlogID",
       "title",
-      "AuthAdd", // alias for username
+      "AuthAdd",
       "AddOnDt",
       "Status",
       ["Category", "category"],
       "publishedDate",
       "content",
       "image",
+      "UserID",
+      "RepostID",
+      "RepostUserID"
+    ],
+    include: [
+      {
+        model: User,
+        as: "RepostUser",   // ✅ must match the alias in index.js
+        attributes: ["UserID", "Name"],
+      },
     ],
   });
 
@@ -233,6 +243,8 @@ export const getPublicBlogsService = async () => {
     message: "Public blogs fetched successfully",
   };
 };
+
+
 
 export const updateBlogService = async (blogId, user, data) => {
   const { CommunityBlog } = db;

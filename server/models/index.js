@@ -126,6 +126,10 @@ db.QuizMapp.belongsTo(db.QuizDetails, {
   as: "QuizDetails",
 });
 
+CommunityBlog.belongsTo(User, {
+  foreignKey: "RepostUserID",
+  as: "RepostUser",
+});
 export default db;
 export { sequelize };
 

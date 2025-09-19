@@ -8,8 +8,8 @@ import ApiContext from "../context/ApiContext";
 import { FiRepeat } from "react-icons/fi";
 
 
-const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
-  const { title, image, author, AuthAdd, published_date, content, Status, BlogID } =
+const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) => {
+  const { title, image, author, AuthAdd, published_date, content, Status, BlogID, RepostUser } =
     blog || {};
   const { fetchData, userToken, user } = useContext(ApiContext);
 
@@ -136,6 +136,9 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
           icon: "success",
           confirmButtonText: "OK",
         });
+        if (refreshBlogs) {
+          refreshBlogs();
+        }
         closeModal();
       } else {
         Swal.fire("Error!", result.message, "error");
@@ -180,6 +183,16 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
                 src={image}
                 alt={title}
               />
+              {RepostUser && RepostUser.Name && (
+                <motion.span
+                  className="absolute top-4 left-4 bg-DGXgreen text-black px-3 py-1 rounded-full text-sm font-semibold shadow-md"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  Repost
+                </motion.span>
+              )}
             </div>
 
             <div className="w-full px-4">
@@ -202,6 +215,12 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState }) => {
                   <TbUserSquareRounded className="text-indigo-600 text-3xl" />
                   <span className="text-gray-600 font-medium">{AuthAdd || author || "Unknown author"}</span>
                 </div>
+                {RepostUser && RepostUser.Name && (
+                  <div className="flex items-center gap-2 text-sm text-DGXgreen font-medium">
+                    <FiRepeat className="text-DGXgreen" />
+                    <span>Reposted from {RepostUser.Name}</span>
+                  </div>
+                )}
                 <p className="text-gray-500 text-sm">{published_date}</p>
               </motion.div>
 

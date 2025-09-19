@@ -109,6 +109,26 @@ const BlogPage = () => {
     setShowAll(false);
   };
 
+  const refreshBlogs = async () => {
+    try {
+      setLoading(true);
+      let endpoint = "blog/getPublicBlogs";
+      let method = "GET";
+      let headers = { 'Content-Type': 'application/json' };
+
+      const result = await fetchData(endpoint, method, {}, headers);
+      if (result && result.data) {
+        setBlogs(result.data);
+      } else {
+        throw new Error("Invalid data format");
+      }
+    } catch (error) {
+      console.error("Error fetching blogs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openModal = (blog) => {
     if (!userToken) {
       Swal.fire({
@@ -136,9 +156,15 @@ const BlogPage = () => {
   const BlogCard = ({ blog, index }) => {
     if (!blog) return null;
 
-    const { title, image, AuthAdd, AddOnDt, publishedDate, category, readTime } = blog;
+    const { title, image, AuthAdd, AddOnDt, publishedDate, category, readTime, RepostUser } = blog;
     const fallbackImage = "https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
 
+    const getAuthorDisplay = () => {
+      if (RepostUser && RepostUser.Name) {
+        return `Reposted from ${RepostUser.Name}`;
+      }
+      return AuthAdd || 'Unknown author';
+    };
     return (
       <motion.div
         className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer h-full flex flex-col"
@@ -160,13 +186,23 @@ const BlogPage = () => {
             transition={{ duration: 0.3 }}
           />
           {category && (
-            <motion.span 
+            <motion.span
               className="absolute top-3 left-3 bg-white text-DGXblue px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3 }}
             >
               {category}
+            </motion.span>
+          )}
+          {RepostUser && RepostUser.Name && (
+            <motion.span
+              className="absolute top-3 right-3 bg-DGXgreen text-black px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              Repost
             </motion.span>
           )}
         </div>
@@ -190,14 +226,22 @@ const BlogPage = () => {
           </h3>
 
           <div className="mt-auto flex items-center gap-3">
-            <motion.div 
+            <motion.div
               className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.5 }}
             >
               <TbUserSquareRounded className="text-gray-700" size={18} />
             </motion.div>
-            <span className="text-sm text-gray-600">{AuthAdd || 'Unknown author'}</span>
+            <div className="flex flex-col">
+              <span className="text-sm text-gray-600">{AuthAdd || 'Unknown author'}</span>
+              {/* Display repost credit if available */}
+              {RepostUser && RepostUser.Name && (
+                <span className="text-xs text-DGXgreen font-medium">
+                  Reposted from {RepostUser.Name}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
@@ -214,12 +258,12 @@ const BlogPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header Section */}
-      <motion.section 
+      <motion.section
         style={{ y: headerY }}
         className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-20 px-4 sm:px-6 lg:px-8 text-center text-white"
       >
         <ParticleBackground />
-        
+
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -235,7 +279,7 @@ const BlogPage = () => {
             </p>
           </motion.div>
         </div>
-        
+
         {/* Animated background shapes */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
@@ -254,7 +298,7 @@ const BlogPage = () => {
       {/* Search and Filter Section */}
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
-          <motion.div 
+          <motion.div
             className="mb-12"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -283,8 +327,8 @@ const BlogPage = () => {
                 viewport={{ once: true }}
               />
             </div>
-            
-            <motion.div 
+
+            <motion.div
               className="flex flex-wrap justify-center gap-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -326,12 +370,12 @@ const BlogPage = () => {
           </motion.div>
 
           {loading ? (
-            <motion.div 
+            <motion.div
               className="text-center py-20"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              <motion.div 
+              <motion.div
                 className="inline-block rounded-full h-12 w-12 border-t-2 border-b-2 border-DGXblue"
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -339,7 +383,7 @@ const BlogPage = () => {
               <p className="mt-4 text-gray-600">Loading articles...</p>
             </motion.div>
           ) : filteredBlogs.length === 0 ? (
-            <motion.div 
+            <motion.div
               className="text-center py-20"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -363,7 +407,7 @@ const BlogPage = () => {
             </motion.div>
           ) : (
             <>
-              <motion.div 
+              <motion.div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -375,7 +419,7 @@ const BlogPage = () => {
               </motion.div>
 
               {!showAll && filteredBlogs.length > pageSize && (
-                <motion.div 
+                <motion.div
                   className="mt-12 text-center"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -433,7 +477,8 @@ const BlogPage = () => {
       {/* Blog Modal - Only show if user is logged in */}
       <AnimatePresence>
         {isModalOpen && selectedBlog && userToken && (
-          <PublicBlogModal blog={selectedBlog} closeModal={closeModal} />
+          <PublicBlogModal blog={selectedBlog} closeModal={closeModal} refreshBlogs={refreshBlogs}
+          />
         )}
       </AnimatePresence>
     </div>
