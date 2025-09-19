@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext  } from "react";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { TbUserSquareRounded } from "react-icons/tb";
@@ -6,6 +6,8 @@ import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../context/ApiContext";
 import { FiRepeat } from "react-icons/fi";
+import { useNavigate } from "react-router-dom"; // Add this import
+
 
 
 const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) => {
