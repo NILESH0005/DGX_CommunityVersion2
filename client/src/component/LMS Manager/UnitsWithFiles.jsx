@@ -492,80 +492,36 @@ const UnitsWithFiles = () => {
                       {unit.files.map((file) => {
                         const isViewed = viewedFiles.has(file.FileID);
                         const isSelected = selectedFile?.FileID === file.FileID;
+
                         const timeSpent = file.UserLmsProgresses?.[0]?.TimeSpentSeconds || 0;
+                        const estimatedTime = file.EstimatedTime * 60; // convert min to sec
                         const percentageSpent = Math.min((timeSpent / estimatedTime) * 100, 100);
+
                         return (
                           <div
                             key={file.FileID}
-                            className={`${isSidebarCollapsed
-                              ? "p-2 flex justify-center rounded-lg"
-                              : "py-3 px-3 rounded-lg"
-                              } flex items-center transition-all duration-200 ${isSelected
-                                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md transform scale-105"
-                                : isViewed
-                                  ? "bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-500 hover:to-green-600 shadow-sm"
-                                  : "text-gray-300 hover:text-white hover:bg-gray-600/70 hover:shadow-sm"
-                              } cursor-pointer group`}
-                            title={
-                              isSidebarCollapsed
-                                ? removeFileExtension(file.FilesName)
-                                : ""
-                            }
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFileSelect(file, unit);
-                            }}
+                            className={`py-2 px-3 rounded-lg flex items-center justify-between ${isSelected ? "bg-blue-600 text-white" : ""} cursor-pointer`}
+                            onClick={() => handleFileSelect(file, unit)}
                           >
-                            {isSidebarCollapsed ? (
-                              <div className="flex justify-center">
-                                {getFileIcon(file.fileType)}
+                            <div className="flex items-center space-x-2">
+                              {getFileIcon(file.FileType)}
+                              <span className="truncate">{removeFileExtension(file.FilesName)}</span>
+                            </div>
+
+                            <div className="flex flex-col items-end">
+                              {/* Time spent vs estimated */}
+                              <span className="text-xs text-gray-400">
+                                {Math.floor(timeSpent / 60)}m / {file.EstimatedTime}m
+                              </span>
+
+                              {/* Progress Bar */}
+                              <div className="w-20 h-2 bg-gray-300 rounded overflow-hidden mt-1">
+                                <div
+                                  className="h-full bg-green-500"
+                                  style={{ width: `${percentageSpent}%` }}
+                                ></div>
                               </div>
-                            ) : (
-                              <>
-                                <div className="mr-3 flex-shrink-0 transition-transform group-hover:scale-110">
-                                  {getFileIcon(file.fileType)}
-                                </div>
-                                {/* <div className="flex-1 min-w-0">
-                                  <span className="block truncate font-medium text-sm">
-                                    {removeFileExtension(file.FilesName)}
-                                  </span>
-                                  {isViewed && !isSelected && (
-                                    <span className="text-xs text-green-300 mt-1 block">
-                                      ✓ Completed
-                                    </span>
-                                  )}
-                                </div> */}
-                                <div className="flex-1 min-w-0">
-                                  <span className="block font-medium text-sm whitespace-normal break-words">
-                                    {removeFileExtension(file.FilesName)}
-                                  </span>
-                                  {isViewed && !isSelected && (
-                                    <span className="text-xs text-green-300 mt-1 block">
-                                      ✓ Completed
-                                    </span>
-                                  )}
-                                </div>
-                                {isViewed && (
-                                  <div className="ml-2 flex-shrink-0">
-                                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                      <svg
-                                        className="w-3 h-3 text-white"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={3}
-                                          d="M5 13l4 4L19 7"
-                                        />
-                                      </svg>
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            )}
+                            </div>
                           </div>
                         );
                       })}
