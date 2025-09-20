@@ -3,6 +3,7 @@ import JoditEditor from "jodit-react";
 import ApiContext from "../../../context/ApiContext";
 import Swal from "sweetalert2";
 import { compressImage } from "../../../utils/compressImage.js";
+import { checkToxicityWithReasonAndFlag } from "../../../utils/toxicityDetection.js"; // Import toxicity detection
 
 const BlogForm = (props) => {
   const [title, setTitle] = useState("");
@@ -10,6 +11,7 @@ const BlogForm = (props) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add toxicity checking state
   const [categories, setCategories] = useState([]);
   const [content, setContent] = useState("");
   
@@ -42,6 +44,49 @@ const BlogForm = (props) => {
 
     fetchCategories();
   }, [fetchData, userToken]);
+
+  // Toxicity validation function for blog content
+  const validateBlogToxicity = async () => {
+    setIsCheckingToxicity(true);
+    
+    try {
+      // Clean content (strip HTML tags)
+      const strippedContent = content.replace(/<[^>]*>?/gm, "").trim();
+
+      // Check title + content together
+      const combinedText = `${title} ${strippedContent}`.trim();
+
+      const result = await checkToxicityWithReasonAndFlag(combinedText);
+      console.log("Blog toxicity result:", result);
+
+      if (result.flag === 0 && result.reasons.length > 0) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Content Moderation Alert",
+          html: `Your blog content contains potentially inappropriate material:<br/><br/>
+              <strong>Reasons:</strong><br/>
+              ${result.reasons.join("<br/>")}<br/><br/>
+              Please review and modify your content before posting.`,
+          confirmButtonText: "I understand",
+        });
+        return false; // Content is toxic
+      }
+      return true; // Content is safe
+    } catch (error) {
+      console.error("Toxicity validation error:", error);
+      const result = await Swal.fire({
+        icon: "warning",
+        title: "Moderation Service Unavailable",
+        text: "The content moderation service is temporarily unavailable. Please ensure your blog follows community guidelines.",
+        showCancelButton: true,
+        confirmButtonText: "Post Anyway",
+        cancelButtonText: "Cancel",
+      });
+      return result.isConfirmed; // Let user decide
+    } finally {
+      setIsCheckingToxicity(false);
+    }
+  };
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
@@ -86,22 +131,32 @@ const BlogForm = (props) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      Swal.fire({
-        title: "Confirm Submission",
-        text: "Are you sure you want to submit this blog post?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Confirm",
-        cancelButtonText: "Cancel",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          handleConfirmSubmit();
-        }
-      });
+    
+    if (!validateForm()) {
+      return;
     }
+
+    // Check for toxicity before submitting
+    const isContentAppropriate = await validateBlogToxicity();
+    if (!isContentAppropriate) {
+      return; // Stop submission if content is inappropriate
+    }
+
+    // If content is appropriate, proceed with confirmation
+    Swal.fire({
+      title: "Confirm Submission",
+      text: "Are you sure you want to submit this blog post?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleConfirmSubmit();
+      }
+    });
   };
 
   const handleConfirmSubmit = async () => {
@@ -234,9 +289,9 @@ const BlogForm = (props) => {
         <button
           type="submit"
           className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-          disabled={loading}
+          disabled={loading || isCheckingToxicity}
         >
-          {loading ? "Submitting..." : "Submit"}
+          {isCheckingToxicity ? "Checking content..." : loading ? "Submitting..." : "Submit"}
         </button>
       </div>
     </form>
