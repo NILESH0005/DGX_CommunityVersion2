@@ -16,8 +16,7 @@ import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import FileUploader from "../container/FileUploader.jsx";
 import {
-  checkToxicity,
-  checkToxicityFlag,
+  checkToxicityWithReasonAndFlag
 } from "../utils/toxicityDetection.js";
 
 const Discussion = () => {
@@ -60,72 +59,62 @@ const Discussion = () => {
     setIsCheckingToxicity(true);
 
     try {
-      console.log("Starting toxicity validation...");
+      // Clean content (strip HTML tags)
+      const strippedContent = content.replace(/<[^>]*>?/gm, "").trim();
 
-      const titleFlag = await checkToxicityFlag(title);
-      const linksFlag = await checkToxicityFlag(links);
-      const contentFlag = await checkToxicityFlag(
-        content.replace(/<[^>]*>?/gm, "").trim()
-      );
+      // Check title + content together
+      const combinedText = `${title} ${strippedContent}`.trim();
 
-      if (titleFlag.flag === 0 || contentFlag.flag === 0) {
-        let detailedAnalysis = [];
+      const result = await checkToxicityWithReasonAndFlag(combinedText);
+      console.log("Toxicity result:", result); // Debug log
 
-        if (titleFlag.flag === 0) {
-          const titleAnalysis = await checkToxicity(title);
-          detailedAnalysis.push(...titleAnalysis.results);
-        }
-        if (contentFlag.flag === 0) {
-          const contentAnalysis = await checkToxicity(
-            content.replace(/<[^>]*>?/gm, "").trim()
-          );
-          detailedAnalysis.push(...contentAnalysis.results);
-        }
+      // FIX: Check if flag is 0 (toxic content) instead of 1
+      // if (result.flag === 0 && result.reasons.length > 0) {
+      //   await Swal.fire({
+      //     icon: "warning",
+      //     title: "Content Moderation Alert",
+      //     html: `Your content contains potentially inappropriate material:<br/><br/>
+      //       <strong>Reasons:</strong><br/>
+      //       ${result.reasons.join("<br/>")}<br/><br/>
+      //       Please review and modify your content before posting.`,
+      //     confirmButtonText: "I understand",
+      //   });
+      //   return false; // Content is toxic, don't allow submission
+      // }
 
-        if (linksFlag.flag === 0) {
-          const linkAnalysis = await checkToxicity(links);
-          detailedAnalysis.push(...linkAnalysis.results);
-        }
+      if (result.flag === 0 && result.reasons.length > 0) {
+        // Add an extra reason string
+        const reasonsWithExtra = [...result.reasons, "Other violations may apply"];
 
-        const reasons = detailedAnalysis
-          .filter((item) => item.toxicity_score > 0)
-          .map((item) => item.reason)
-          .filter((reason, index, array) => array.indexOf(reason) === index);
-
-        // Show reasons to the user
         await Swal.fire({
           icon: "warning",
-          title: "Content Blocked",
+          title: "Content Moderation Alert",
           html: `Your content contains potentially inappropriate material:<br/><br/>
-              <strong>Reasons:</strong><br/>
-              ${reasons.join("<br/>")}<br/><br/>
-              Please review and modify your content before posting.`,
+      <strong>Reasons:</strong><br/>
+      ${reasonsWithExtra.join("<br/>")}<br/><br/>
+      Please review and modify your content before posting.`,
           confirmButtonText: "I understand",
-          confirmButtonColor: "#3085d6",
         });
 
-        return false;
+        return false; // Content is toxic, don't allow submission
       }
-
-      return true; // ✅ safe to post
+      return true; // Content is safe, allow submission
     } catch (error) {
       console.error("Toxicity validation error:", error);
-
       const result = await Swal.fire({
         icon: "warning",
         title: "Moderation Service Unavailable",
-        text: "The moderation service is temporarily unavailable. Please ensure your content follows community guidelines.",
+        text: "The content moderation service is temporarily unavailable. Please ensure your content follows community guidelines.",
         showCancelButton: true,
         confirmButtonText: "Post Anyway",
         cancelButtonText: "Cancel",
-        confirmButtonColor: "#3085d6",
       });
-
-      return result.isConfirmed;
+      return result.isConfirmed; // Let user decide if service is down
     } finally {
       setIsCheckingToxicity(false);
     }
   };
+
 
   const handleDiscussionImageUpload = (uploadResult) => {
     const { filePath } = uploadResult;
@@ -233,10 +222,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              commentCount: newCommentCount,
-              ...(updatedComments ? { comment: updatedComments } : {}),
-            }
+            ...discussion,
+            commentCount: newCommentCount,
+            ...(updatedComments ? { comment: updatedComments } : {}),
+          }
           : discussion
       )
     );
@@ -244,10 +233,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              commentCount: newCommentCount,
-              ...(updatedComments ? { comment: updatedComments } : {}),
-            }
+            ...discussion,
+            commentCount: newCommentCount,
+            ...(updatedComments ? { comment: updatedComments } : {}),
+          }
           : discussion
       )
     );
@@ -262,10 +251,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              likeCount: newLikeCount,
-              ...(isLiked !== null ? { userLike: isLiked } : {}),
-            }
+            ...discussion,
+            likeCount: newLikeCount,
+            ...(isLiked !== null ? { userLike: isLiked } : {}),
+          }
           : discussion
       )
     );
@@ -274,10 +263,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              likeCount: newLikeCount,
-              ...(isLiked !== null ? { userLike: isLiked } : {}),
-            }
+            ...discussion,
+            likeCount: newLikeCount,
+            ...(isLiked !== null ? { userLike: isLiked } : {}),
+          }
           : discussion
       )
     );
@@ -298,8 +287,8 @@ const Discussion = () => {
           return typeof discussion.Tag === "string"
             ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
             : discussion.Tag?.some((tag) =>
-                tag.toLowerCase().includes(lowerCaseQuery)
-              );
+              tag.toLowerCase().includes(lowerCaseQuery)
+            );
         default: // 'all'
           return (
             discussion.Title.toLowerCase().includes(lowerCaseQuery) ||
@@ -307,8 +296,8 @@ const Discussion = () => {
             (typeof discussion.Tag === "string"
               ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
               : discussion.Tag?.some((tag) =>
-                  tag.toLowerCase().includes(lowerCaseQuery)
-                ))
+                tag.toLowerCase().includes(lowerCaseQuery)
+              ))
           );
       }
     });
@@ -412,51 +401,51 @@ const Discussion = () => {
     setErrors((prev) => ({ ...prev, privacy: "" }));
     return true;
   };
+  const fetchDiscussionData = async (userEmail) => {
+    try {
+      const body = userEmail ? { email: userEmail } : { email: null };
+      const endpoint = "discussion/getdiscussion";
+      const method = "POST";
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      setLoading(true);
+      const result = await fetchData(endpoint, method, body, headers);
+      console.log("ressssss", result);
+
+      if (result?.data?.updatedDiscussions) {
+        const discussionsWithComments = result.data.updatedDiscussions.map(
+          (discussion) => ({
+            ...discussion,
+            userLike: discussion.userLike || 0,
+            likeCount: discussion.likeCount || 0,
+            commentCount: discussion.commentCount || 0, // Use commentCount from backend
+            ImageUrl: discussion.DiscussionImagePath
+              ? `${BASE_URL}/${discussion.DiscussionImagePath}`
+              : discussion.Image || null,
+          })
+        );
+
+        setDemoDiscussions(discussionsWithComments);
+        setFilteredDiscussions(discussionsWithComments);
+
+        // Calculate highlights based on comment count
+        const highlights = getCommunityHighlights(discussionsWithComments);
+        setCommunityHighlights(highlights);
+
+        // Calculate top users
+        const topUsers = getTopUsersByDiscussions(discussionsWithComments);
+        setTopUsers(topUsers);
+      }
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.error("Error fetching discussions:", error);
+    }
+  };
 
   useEffect(() => {
-    const fetchDiscussionData = async (userEmail) => {
-      try {
-        const body = userEmail ? { email: userEmail } : { email: null };
-        const endpoint = "discussion/getdiscussion";
-        const method = "POST";
-        const headers = {
-          "Content-Type": "application/json",
-        };
-
-        setLoading(true);
-        const result = await fetchData(endpoint, method, body, headers);
-        console.log("ressssss", result);
-
-        if (result?.data?.updatedDiscussions) {
-          const discussionsWithComments = result.data.updatedDiscussions.map(
-            (discussion) => ({
-              ...discussion,
-              userLike: discussion.userLike || 0,
-              likeCount: discussion.likeCount || 0,
-              commentCount: discussion.commentCount || 0, // Use commentCount from backend
-              ImageUrl: discussion.DiscussionImagePath
-                ? `${BASE_URL}/${discussion.DiscussionImagePath}`
-                : discussion.Image || null,
-            })
-          );
-
-          setDemoDiscussions(discussionsWithComments);
-          setFilteredDiscussions(discussionsWithComments);
-
-          // Calculate highlights based on comment count
-          const highlights = getCommunityHighlights(discussionsWithComments);
-          setCommunityHighlights(highlights);
-
-          // Calculate top users
-          const topUsers = getTopUsersByDiscussions(discussionsWithComments);
-          setTopUsers(topUsers);
-        }
-        setLoading(false);
-      } catch (error) {
-        setLoading(false);
-        console.error("Error fetching discussions:", error);
-      }
-    };
 
     if (userToken && user) {
       fetchDiscussionData(user.EmailId);
@@ -480,27 +469,14 @@ const Discussion = () => {
       return;
     }
 
-    const newLikeState = currentUserLike === 1 ? 0 : 1;
-    const likeIncrement = newLikeState === 1 ? 1 : -1;
-
-    // Use the new update function for optimistic update
-    updateDiscussionLikeCount(
-      id,
-      Math.max(
-        0,
-        (demoDiscussions.find((d) => d.DiscussionID === id)?.likeCount || 0) +
-          likeIncrement
-      ),
-      newLikeState
-    );
-
-    // API call
-    const endpoint = "discussion/likeDiscussion";
+    const endpoint = "discussion/discussionpost";
     const method = "POST";
     const headers = {
       "Content-Type": "application/json",
       "auth-token": userToken,
     };
+
+    const newLikeState = currentUserLike === 1 ? 0 : 1;
 
     const body = {
       reference: id,
@@ -511,27 +487,29 @@ const Discussion = () => {
       const data = await fetchData(endpoint, method, body, headers);
 
       if (!data.success) {
-        // Revert if API call fails
-        updateDiscussionLikeCount(
-          id,
-          demoDiscussions.find((d) => d.DiscussionID === id)?.likeCount || 0,
-          currentUserLike
-        );
         console.error("Error occurred while liking the post");
         return;
       }
 
-      // Update with actual data from backend if needed
-      if (data.newLikeCount !== undefined) {
-        updateDiscussionLikeCount(id, data.newLikeCount, newLikeState);
-      }
-    } catch (error) {
-      // Revert on error
-      updateDiscussionLikeCount(
-        id,
-        demoDiscussions.find((d) => d.DiscussionID === id)?.likeCount || 0,
-        currentUserLike
+      setDemoDiscussions((prevDiscussions) =>
+        prevDiscussions.map((discussion) => {
+          if (discussion.DiscussionID === id) {
+            const currentLikes = Number(discussion.likeCount) || 0;
+            const newLikeCount =
+              newLikeState === 1
+                ? currentLikes + 1
+                : Math.max(0, currentLikes - 1);
+
+            return {
+              ...discussion,
+              userLike: newLikeState,
+              likeCount: newLikeCount,
+            };
+          }
+          return discussion;
+        })
       );
+    } catch (error) {
       console.error("Error:", error);
       Swal.fire({
         icon: "error",
@@ -540,6 +518,7 @@ const Discussion = () => {
       });
     }
   };
+
 
   const toggleNav = () => setIsNavOpen(!isNavOpen);
   const handleLike = () => setLikeCount(likeCount + 1);
@@ -610,6 +589,7 @@ const Discussion = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate all form fields first
     const isTitleValid = validateTitle();
     const isContentValid = validateContent();
     const isTagsValid = validateTags();
@@ -632,11 +612,13 @@ const Discussion = () => {
       return;
     }
 
+    // Check for toxicity before submitting
     const isContentAppropriate = await validateToxicity();
     if (!isContentAppropriate) {
       return; // Stop submission if content is inappropriate
     }
 
+    // If we get here, content is safe to submit
     const endpoint = "discussion/discussionpost";
     const method = "POST";
     const body = {
@@ -645,7 +627,7 @@ const Discussion = () => {
       tags: tags.join(","),
       url: links.join(","),
       visibility: privacy,
-      bannerImagePath: bannerFilePath, // <-- Add this
+      bannerImagePath: bannerFilePath,
     };
     const headers = {
       "Content-Type": "application/json",
@@ -659,7 +641,6 @@ const Discussion = () => {
 
       if (!data.success) {
         setLoading(false);
-        await fetchDiscussionData(user?.EmailId || null);
         Swal.fire({
           icon: "error",
           title: "Error",
@@ -682,25 +663,16 @@ const Discussion = () => {
             popup: "animated bounceIn",
           },
         });
-        window.location.reload();
+
+        // Refresh the discussions
+        if (userToken && user) {
+          await fetchDiscussionData(user.EmailId);
+        } else {
+          await fetchDiscussionData(null);
+        }
 
         resetForm();
         setIsFormOpen(false);
-
-        if (privacy === "public") {
-          const newDiscussion = {
-            DiscussionID: data.postID,
-            Title: title,
-            Content: content,
-            Tag: tags,
-            ResourceUrl: links,
-            Image: selectedImage,
-            Visibility: privacy,
-            comment: [],
-          };
-          setDemoDiscussions([newDiscussion, ...demoDiscussions]);
-          setFilteredDiscussions([newDiscussion, ...filteredDiscussions]);
-        }
       }
     } catch (error) {
       setLoading(false);
@@ -766,9 +738,8 @@ const Discussion = () => {
 
           <div
             id="navbar-alignment"
-            className={`${
-              isNavOpen ? "block" : "hidden"
-            } hs-collapse overflow-hidden transition-all duration-300 basis-full grow sm:grow-0 sm:basis-auto sm:block sm:order-2`}
+            className={`${isNavOpen ? "block" : "hidden"
+              } hs-collapse overflow-hidden transition-all duration-300 basis-full grow sm:grow-0 sm:basis-auto sm:block sm:order-2`}
           ></div>
           {isLoading ? (
             <Skeleton
@@ -828,52 +799,52 @@ const Discussion = () => {
             <div className="space-y-4">
               {isLoading
                 ? Array.from({ length: 5 }).map((_, index) => (
-                    <Skeleton
-                      key={index}
-                      height="8.5rem"
-                      className="w-full bg-gray-300 rounded-lg mb-4"
-                    />
-                  ))
+                  <Skeleton
+                    key={index}
+                    height="8.5rem"
+                    className="w-full bg-gray-300 rounded-lg mb-4"
+                  />
+                ))
                 : communityHighlights.map((topic) => (
-                    <div
-                      key={topic.DiscussionID}
-                      className="rounded-lg shadow-lg p-4 border hover:bg-DGXgreen/50 border-DGXblack transition-transform transform hover:scale-105 hover:shadow-xl"
-                      onClick={() => openModal(topic)}
-                    >
-                      <h3 className="text-xl font-semibold">
-                        <a
-                          href={topic.link}
-                          className="text-DGXblack hover:underline"
-                        >
-                          {topic.Title}
-                        </a>
-                      </h3>
-                      <div className="text-DGXblack mt-2">
-                        {topic.Content.length > 150 ? (
-                          <>
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: topic.Content.substring(0, 147),
-                              }}
-                            />
-                            <span
-                              className="text-blue-700 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openModal(topic);
-                              }}
-                            >
-                              ...see more
-                            </span>
-                          </>
-                        ) : (
+                  <div
+                    key={topic.DiscussionID}
+                    className="rounded-lg shadow-lg p-4 border hover:bg-DGXgreen/50 border-DGXblack transition-transform transform hover:scale-105 hover:shadow-xl"
+                    onClick={() => openModal(topic)}
+                  >
+                    <h3 className="text-xl font-semibold">
+                      <a
+                        href={topic.link}
+                        className="text-DGXblack hover:underline"
+                      >
+                        {topic.Title}
+                      </a>
+                    </h3>
+                    <div className="text-DGXblack mt-2">
+                      {topic.Content.length > 150 ? (
+                        <>
                           <div
-                            dangerouslySetInnerHTML={{ __html: topic.Content }}
+                            dangerouslySetInnerHTML={{
+                              __html: topic.Content.substring(0, 147),
+                            }}
                           />
-                        )}
-                      </div>
+                          <span
+                            className="text-blue-700 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openModal(topic);
+                            }}
+                          >
+                            ...see more
+                          </span>
+                        </>
+                      ) : (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: topic.Content }}
+                        />
+                      )}
                     </div>
-                  ))}
+                  </div>
+                ))}
             </div>
           </div>
 
@@ -885,23 +856,23 @@ const Discussion = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 5 }).map((_, index) => (
-                    <Skeleton
-                      key={index}
-                      height="2.5rem"
-                      className="w-full bg-gray-300 rounded-lg mb-4"
-                    />
-                  ))
+                  <Skeleton
+                    key={index}
+                    height="2.5rem"
+                    className="w-full bg-gray-300 rounded-lg mb-4"
+                  />
+                ))
                 : topUsers.map((user, index) => (
-                    <div
-                      key={user.userID}
-                      className="flex justify-between items-center bg-DGXblue border border-gray-200 rounded-lg shadow-sm p-3 hover:shadow-xl hover:scale-105 transition-colors"
-                    >
-                      <span className="font-medium text-white">
-                        {user.userName}
-                      </span>
-                      <span className="text-white">{user.count} Post(s)</span>
-                    </div>
-                  ))}
+                  <div
+                    key={user.userID}
+                    className="flex justify-between items-center bg-DGXblue border border-gray-200 rounded-lg shadow-sm p-3 hover:shadow-xl hover:scale-105 transition-colors"
+                  >
+                    <span className="font-medium text-white">
+                      {user.userName}
+                    </span>
+                    <span className="text-white">{user.count} Post(s)</span>
+                  </div>
+                ))}
             </div>
           </div>
         </aside>
@@ -931,9 +902,8 @@ const Discussion = () => {
                   <input
                     id="title"
                     type="text"
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                      errors.title ? "border-red-500" : ""
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg ${errors.title ? "border-red-500" : ""
+                      }`}
                     value={title}
                     onChange={(e) => {
                       setTitle(e.target.value);
@@ -971,9 +941,8 @@ const Discussion = () => {
                       if (errors.content) validateContent();
                     }}
                     onBlur={validateContent}
-                    className={`border rounded-lg ${
-                      errors.content ? "border-red-500" : ""
-                    }`}
+                    className={`border rounded-lg ${errors.content ? "border-red-500" : ""
+                      }`}
                     modules={{
                       toolbar: [
                         [{ header: [1, 2, 3, false] }],
@@ -1003,9 +972,8 @@ const Discussion = () => {
                   </label>
                   <input
                     type="text"
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                      errors.tags ? "border-red-500" : ""
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg ${errors.tags ? "border-red-500" : ""
+                      }`}
                     value={tagInput}
                     onChange={handleTagInputChange}
                     onKeyPress={(e) => {
@@ -1023,7 +991,7 @@ const Discussion = () => {
                       }
                     }}
                     onBlur={validateTags}
-                    // placeholder="Press Enter to add a tag (max 5)"
+                  // placeholder="Press Enter to add a tag (max 5)"
                   />
                   <button
                     type="button"
@@ -1083,9 +1051,8 @@ const Discussion = () => {
                   <input
                     // type="text"
                     type="url"
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                      errors.links ? "border-red-500" : ""
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg ${errors.links ? "border-red-500" : ""
+                      }`}
                     value={linkInput}
                     onChange={handleLinkInputChange}
                     onKeyPress={(e) => {
@@ -1214,9 +1181,8 @@ const Discussion = () => {
                       setErrors({ ...errors, privacy: "" });
                     }}
                     onBlur={validatePrivacy}
-                    className={`w-full px-3 py-2 border rounded-lg ${
-                      errors.privacy ? "border-red-500" : ""
-                    }`}
+                    className={`w-full px-3 py-2 border rounded-lg ${errors.privacy ? "border-red-500" : ""
+                      }`}
                   >
                     <option value="">Select privacy</option>
                     <option value="private">Private</option>
@@ -1304,205 +1270,205 @@ const Discussion = () => {
             <div className="two-h-screen scrollbar scrollbar-thin  overflow-y-auto px-6">
               {isLoading
                 ? demoDiscussions.map((_, index) => (
-                    <div
-                      key={index}
-                      className="relative shadow my-4 border border-gray-300 rounded-lg p-4 w-full max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl bg-gray-200 animate-pulse"
-                    >
-                      <div className="h-10 bg-gray-300 rounded w-3/4 mb-2"></div>
-                      <div className="h-24 bg-gray-300 rounded w-full mb-2"></div>
-                      <div className="h-40 w-60 bg-gray-300 rounded mb-2"></div>
-                      <div className="flex gap-2">
-                        {Array.from({ length: 3 }).map((_, tagIndex) => (
-                          <span
-                            key={tagIndex}
-                            className="h-8 w-20 bg-gray-300 rounded"
-                          ></span>
-                        ))}
-                      </div>
-                      <div className="mt-4 h-5 bg-gray-300 rounded w-1/2"></div>
-                      <div className="mt-4 h-8 bg-gray-300 rounded w-52"></div>
+                  <div
+                    key={index}
+                    className="relative shadow my-4 border border-gray-300 rounded-lg p-4 w-full max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl bg-gray-200 animate-pulse"
+                  >
+                    <div className="h-10 bg-gray-300 rounded w-3/4 mb-2"></div>
+                    <div className="h-24 bg-gray-300 rounded w-full mb-2"></div>
+                    <div className="h-40 w-60 bg-gray-300 rounded mb-2"></div>
+                    <div className="flex gap-2">
+                      {Array.from({ length: 3 }).map((_, tagIndex) => (
+                        <span
+                          key={tagIndex}
+                          className="h-8 w-20 bg-gray-300 rounded"
+                        ></span>
+                      ))}
                     </div>
-                  ))
+                    <div className="mt-4 h-5 bg-gray-300 rounded w-1/2"></div>
+                    <div className="mt-4 h-8 bg-gray-300 rounded w-52"></div>
+                  </div>
+                ))
                 : filteredDiscussions.map((discussion, i) => (
-                    <div
-                      key={i}
-                      className="relative shadow my-4 border border-gray-300 rounded-lg p-4 w-full max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl transition-transform transform  hover:shadow-lg hover:bg-gray-100 cursor-pointer focus-within:z-10 hover:z-10"
-                      onClick={(e) => {
-                        if (
-                          !e.target.closest("a") &&
-                          !e.target.closest("button") &&
-                          !e.target.classList.contains("text-blue-700")
-                        ) {
-                          openModal(discussion);
-                        }
-                      }}
-                    >
-                      <div>
-                        <h3 className="text-lg font-bold md:text-lg lg:text-xl xl:text-2xl">
-                          {discussion.Title}
-                        </h3>
-                        <div className="text-gray-600 text-sm md:text-base lg:text-lg xl:text-xl">
-                          {discussion.Content.length > 500 ? (
-                            <>
-                              <div
-                                className="ql-snow"
-                                dangerouslySetInnerHTML={{
-                                  __html: DOMPurify.sanitize(
-                                    discussion.Content.slice(0, 500) + "..."
-                                  ),
-                                }}
-                              />
-                              <span
-                                className="text-blue-700 cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openModal(discussion);
-                                }}
-                              >
-                                see more
-                              </span>
-                            </>
-                          ) : (
+                  <div
+                    key={i}
+                    className="relative shadow my-4 border border-gray-300 rounded-lg p-4 w-full max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl transition-transform transform  hover:shadow-lg hover:bg-gray-100 cursor-pointer focus-within:z-10 hover:z-10"
+                    onClick={(e) => {
+                      if (
+                        !e.target.closest("a") &&
+                        !e.target.closest("button") &&
+                        !e.target.classList.contains("text-blue-700")
+                      ) {
+                        openModal(discussion);
+                      }
+                    }}
+                  >
+                    <div>
+                      <h3 className="text-lg font-bold md:text-lg lg:text-xl xl:text-2xl">
+                        {discussion.Title}
+                      </h3>
+                      <div className="text-gray-600 text-sm md:text-base lg:text-lg xl:text-xl">
+                        {discussion.Content.length > 500 ? (
+                          <>
                             <div
-                              className="ql-snow discussion-content"
+                              className="ql-snow"
                               dangerouslySetInnerHTML={{
-                                __html: DOMPurify.sanitize(discussion.Content),
+                                __html: DOMPurify.sanitize(
+                                  discussion.Content.slice(0, 500) + "..."
+                                ),
                               }}
                             />
-                          )}
-                        </div>
-                      </div>
-                      {discussion.DiscussionImagePath ? (
-                        <div
-                          className="mt-2"
-                          onClick={() => openModal(discussion)}
-                        >
-                          <img
-                            src={
-                              discussion.ImageUrl ||
-                              `${window.location.origin}/${discussion.DiscussionImagePath}`
-                            }
-                            alt="Discussion"
-                            className="max-h-40 w-auto object-cover"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                            <span
+                              className="text-blue-700 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openModal(discussion);
+                              }}
+                            >
+                              see more
+                            </span>
+                          </>
+                        ) : (
+                          <div
+                            className="ql-snow discussion-content"
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(discussion.Content),
                             }}
                           />
-                        </div>
-                      ) : discussion.Image ? (
-                        <div
-                          className="mt-2"
-                          onClick={() => openModal(discussion)}
-                        >
-                          <img
-                            src={discussion.Image}
-                            alt="Discussion"
-                            className="max-h-40 w-auto object-cover"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-                            }}
-                          />
-                        </div>
-                      ) : null}
-
-                      <div
-                        className="mt-2 flex flex-wrap gap-2"
-                        onClick={() => openModal(discussion)}
-                      >
-                        {discussion.Tag && typeof discussion.Tag === "string"
-                          ? discussion.Tag.split(",")
-                              .filter((tag) => tag)
-                              .map((tag, tagIndex) => (
-                                <span
-                                  key={tagIndex}
-                                  className="bg-DGXgreen text-white rounded-full px-3 py-1 text-xs md:text-sm lg:text-base"
-                                >
-                                  {tag}
-                                </span>
-                              ))
-                          : Array.isArray(discussion.Tag)
-                          ? discussion.Tag.map((tag, tagIndex) => (
-                              <span
-                                key={tagIndex}
-                                className="bg-DGXgreen text-white rounded-full px-3 py-1 text-xs md:text-sm lg:text-base"
-                              >
-                                {tag}
-                              </span>
-                            ))
-                          : null}
-                      </div>
-                      <div
-                        className="mt-2 flex flex-wrap gap-2"
-                        onClick={() => openModal(discussion)}
-                      >
-                        {discussion.ResourceUrl &&
-                        typeof discussion.ResourceUrl === "string"
-                          ? discussion.ResourceUrl.split(",").map(
-                              (link, linkIndex) => (
-                                <a
-                                  key={linkIndex}
-                                  href={link}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="text-DGXgreen hover:underline text-xs md:text-sm lg:text-base"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  {link}
-                                </a>
-                              )
-                            )
-                          : Array.isArray(discussion.ResourceUrl)
-                          ? discussion.ResourceUrl.map((link, linkIndex) => (
-                              <a
-                                key={linkIndex}
-                                href={link}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-DGXgreen hover:underline text-xs md:text-sm lg:text-base"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                {link}
-                              </a>
-                            ))
-                          : null}
-                      </div>
-                      <div className="mt-4 flex items-center space-x-4">
-                        <button
-                          className="flex items-center text-sm md:text-base lg:text-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddLike(
-                              discussion.DiscussionID,
-                              discussion.userLike
-                            );
-                          }}
-                        >
-                          {discussion.userLike == 1 ? (
-                            <AiFillLike />
-                          ) : (
-                            <AiOutlineLike />
-                          )}
-                          {discussion.likeCount} Likes
-                        </button>
-
-                        <button
-                          className="flex items-center text-DGXgreen text-sm md:text-base lg:text-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleComment(discussion);
-                          }}
-                        >
-                          <FaComment className="mr-2" />
-                          {discussion.commentCount} Comment
-                          {discussion.commentCount !== 1 ? "s" : ""}
-                        </button>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    {discussion.DiscussionImagePath ? (
+                      <div
+                        className="mt-2"
+                        onClick={() => openModal(discussion)}
+                      >
+                        <img
+                          src={
+                            discussion.ImageUrl ||
+                            `${window.location.origin}/${discussion.DiscussionImagePath}`
+                          }
+                          alt="Discussion"
+                          className="max-h-40 w-auto object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                          }}
+                        />
+                      </div>
+                    ) : discussion.Image ? (
+                      <div
+                        className="mt-2"
+                        onClick={() => openModal(discussion)}
+                      >
+                        <img
+                          src={discussion.Image}
+                          alt="Discussion"
+                          className="max-h-40 w-auto object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                          }}
+                        />
+                      </div>
+                    ) : null}
+
+                    <div
+                      className="mt-2 flex flex-wrap gap-2"
+                      onClick={() => openModal(discussion)}
+                    >
+                      {discussion.Tag && typeof discussion.Tag === "string"
+                        ? discussion.Tag.split(",")
+                          .filter((tag) => tag)
+                          .map((tag, tagIndex) => (
+                            <span
+                              key={tagIndex}
+                              className="bg-DGXgreen text-white rounded-full px-3 py-1 text-xs md:text-sm lg:text-base"
+                            >
+                              {tag}
+                            </span>
+                          ))
+                        : Array.isArray(discussion.Tag)
+                          ? discussion.Tag.map((tag, tagIndex) => (
+                            <span
+                              key={tagIndex}
+                              className="bg-DGXgreen text-white rounded-full px-3 py-1 text-xs md:text-sm lg:text-base"
+                            >
+                              {tag}
+                            </span>
+                          ))
+                          : null}
+                    </div>
+                    <div
+                      className="mt-2 flex flex-wrap gap-2"
+                      onClick={() => openModal(discussion)}
+                    >
+                      {discussion.ResourceUrl &&
+                        typeof discussion.ResourceUrl === "string"
+                        ? discussion.ResourceUrl.split(",").map(
+                          (link, linkIndex) => (
+                            <a
+                              key={linkIndex}
+                              href={link}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-DGXgreen hover:underline text-xs md:text-sm lg:text-base"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {link}
+                            </a>
+                          )
+                        )
+                        : Array.isArray(discussion.ResourceUrl)
+                          ? discussion.ResourceUrl.map((link, linkIndex) => (
+                            <a
+                              key={linkIndex}
+                              href={link}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-DGXgreen hover:underline text-xs md:text-sm lg:text-base"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {link}
+                            </a>
+                          ))
+                          : null}
+                    </div>
+                    <div className="mt-4 flex items-center space-x-4">
+                      <button
+                        className="flex items-center text-sm md:text-base lg:text-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddLike(
+                            discussion.DiscussionID,
+                            discussion.userLike
+                          );
+                        }}
+                      >
+                        {discussion.userLike == 1 ? (
+                          <AiFillLike />
+                        ) : (
+                          <AiOutlineLike />
+                        )}
+                        {discussion.likeCount} Likes
+                      </button>
+
+                      <button
+                        className="flex items-center text-DGXgreen text-sm md:text-base lg:text-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleComment(discussion);
+                        }}
+                      >
+                        <FaComment className="mr-2" />
+                        {discussion.commentCount} Comment
+                        {discussion.commentCount !== 1 ? "s" : ""}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               {!isLoading &&
                 filteredDiscussions.length === 0 &&
                 searchQuery && (

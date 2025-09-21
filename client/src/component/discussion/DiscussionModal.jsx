@@ -12,6 +12,8 @@ import {
   ProfileLink,
   handleProfileRedirect,
 } from "../../utils/handleProfileRedirect.jsx";
+import { checkToxicityWithReasonAndFlag } from "../../utils/toxicityDetection.js"; // Import toxicity detection
+
 const BASE_URL = "http://localhost:5000";
 
 const DiscussionModal = ({
@@ -27,6 +29,7 @@ const DiscussionModal = ({
   const [comments, setComments] = useState(discussion.comment || []);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add toxicity checking state
   const [activeReplyIndex, setActiveReplyIndex] = useState(null);
   const [activeTab, setActiveTab] = useState("content");
   const [discussionImageUrl, setDiscussionImageUrl] = useState("");
@@ -39,15 +42,12 @@ const DiscussionModal = ({
 
   useEffect(() => {
     if (discussion?.Image) {
-      // Check if the image already has a full URL
       if (discussion.Image.startsWith("http")) {
         setDiscussionImageUrl(discussion.Image);
       } else {
-        // Add base URL to the image path
         setDiscussionImageUrl(`${BASE_URL}/${discussion.Image}`);
       }
     } else if (discussion?.DiscussionImagePath) {
-      // Handle DiscussionImagePath if it exists
       if (discussion.DiscussionImagePath.startsWith("http")) {
         setDiscussionImageUrl(discussion.DiscussionImagePath);
       } else {
@@ -58,8 +58,45 @@ const DiscussionModal = ({
     }
   }, [discussion]);
 
+  // Toxicity validation function for comments and replies
+  const validateCommentToxicity = async (text) => {
+    setIsCheckingToxicity(true);
+    
+    try {
+      const result = await checkToxicityWithReasonAndFlag(text);
+      console.log("Comment toxicity result:", result);
+
+      if (result.flag === 0 && result.reasons.length > 0) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Content Moderation Alert",
+          html: `Your comment contains potentially inappropriate material:<br/><br/>
+              <strong>Reasons:</strong><br/>
+              ${result.reasons.join("<br/>")}<br/><br/>
+              Please review and modify your comment before posting.`,
+          confirmButtonText: "I understand",
+        });
+        return false; // Content is toxic
+      }
+      return true; // Content is safe
+    } catch (error) {
+      console.error("Toxicity validation error:", error);
+      const result = await Swal.fire({
+        icon: "warning",
+        title: "Moderation Service Unavailable",
+        text: "The content moderation service is temporarily unavailable. Please ensure your comment follows community guidelines.",
+        showCancelButton: true,
+        confirmButtonText: "Post Anyway",
+        cancelButtonText: "Cancel",
+      });
+      return result.isConfirmed; // Let user decide
+    } finally {
+      setIsCheckingToxicity(false);
+    }
+  };
+
   const handleProfileClick = (userId, e) => {
-    e.stopPropagation(); // Prevent triggering the modal click event
+    e.stopPropagation();
     if (userId && userId !== "undefined") {
       handleProfileRedirect(userId, navigate);
     } else {
@@ -84,7 +121,6 @@ const DiscussionModal = ({
     return true;
   };
 
-  // Recursive function to add a reply to the correct nested level
   const addReplyToComments = (comments, parentId, newReply) => {
     return comments.map((comment) => {
       if (comment.DiscussionID === parentId) {
@@ -116,6 +152,12 @@ const DiscussionModal = ({
         text: "Comment cannot be empty!",
       });
       return;
+    }
+
+    // Check for toxicity before posting comment
+    const isContentAppropriate = await validateCommentToxicity(newComment);
+    if (!isContentAppropriate) {
+      return; // Stop if content is inappropriate
     }
 
     const endpoint = "discussion/discussionpost";
@@ -192,6 +234,13 @@ const DiscussionModal = ({
       });
       return;
     }
+
+    // Check for toxicity before posting reply
+    const isContentAppropriate = await validateCommentToxicity(replyText);
+    if (!isContentAppropriate) {
+      return; // Stop if content is inappropriate
+    }
+
     const endpoint = "discussion/discussionpost";
     const method = "POST";
     const headers = {
@@ -202,6 +251,7 @@ const DiscussionModal = ({
       reference: parentId,
       comment: replyText,
     };
+    
     setLoading(true);
     try {
       const data = await fetchData(endpoint, method, body, headers);
@@ -235,7 +285,6 @@ const DiscussionModal = ({
       };
 
       const newCommentCount = countTotalComments(updatedComments);
-      // Update parent state with both count and comments
       if (updateCommentCount) {
         updateCommentCount(
           discussion.DiscussionID,
@@ -283,6 +332,13 @@ const DiscussionModal = ({
 
     const handleReply = async () => {
       if (!replyText.trim()) return;
+      
+      // Check for toxicity before posting reply
+      const isContentAppropriate = await validateCommentToxicity(replyText);
+      if (!isContentAppropriate) {
+        return; // Stop if content is inappropriate
+      }
+      
       await handleAddReply(comment.DiscussionID, replyText);
       setIsReplying(false);
       setReplyText("");
@@ -291,10 +347,9 @@ const DiscussionModal = ({
     return (
       <div className={`mt-3 ${depth > 0 ? "ml-4 sm:ml-8" : ""}`}>
         <div className="flex space-x-3">
-          {/* Use ProfileImage component instead of custom onClick handler */}
           {comment && (
             <ProfileImage
-              userId={comment.UserID} // 👈 commenter’s UserID, not logged-in user
+              userId={comment.UserID}
               src={comment.UserImage || images.defaultProfile}
               className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 object-cover"
               alt="User"
@@ -305,7 +360,6 @@ const DiscussionModal = ({
             <div className="bg-gray-50 rounded-lg p-2 sm:p-3">
               <div className="flex justify-between items-start">
                 <div>
-                  {/* Use ProfileLink component instead of custom onClick handler */}
                   <ProfileLink
                     userId={comment.UserID}
                     className="font-semibold text-sm sm:text-base text-gray-800 hover:text-DGXblue transition-colors"
@@ -360,9 +414,9 @@ const DiscussionModal = ({
                       <button
                         onClick={handleReply}
                         className="bg-DGXgreen hover:bg-DGXblue text-white text-xs sm:text-sm font-medium py-1 px-2 sm:px-3 rounded-lg transition-colors"
-                        disabled={loading}
+                        disabled={loading || isCheckingToxicity}
                       >
-                        {loading ? "Posting..." : "Reply"}
+                        {isCheckingToxicity ? "Checking..." : loading ? "Posting..." : "Reply"}
                       </button>
                     </div>
                   </div>
@@ -406,9 +460,8 @@ const DiscussionModal = ({
           {/* Header */}
           <div className="flex justify-between items-start p-4 sm:p-6 border-b border-gray-200">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              {/* Use ProfileImage component for the main discussion author's profile image */}
               <ProfileImage
-                userId={discussion.User?.UserID} // Use discussion owner’s ID here
+                userId={discussion.User?.UserID}
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-300 bg-cover bg-center"
                 src={discussion.User?.ProfilePicture || images.defaultProfile}
                 alt="User"
@@ -419,7 +472,6 @@ const DiscussionModal = ({
                   {discussion.Title}
                 </h1>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 md:space-x-4 text-xs sm:text-sm text-gray-500">
-                  {/* Use ProfileLink component for the main discussion author's username */}
                   <ProfileLink
                     userId={discussion.UserID}
                     className="hover:text-DGXblue transition-colors"
@@ -539,7 +591,6 @@ const DiscussionModal = ({
               {/* Comment Input */}
               <div className="p-3 sm:p-4 border-b border-gray-200">
                 <div className="flex space-x-2">
-                  {/* FIX THIS PART */}
                   <ProfileImage
                     userId={user?.UserID}
                     src={user?.ProfilePicture || images.defaultProfile}
@@ -558,10 +609,10 @@ const DiscussionModal = ({
                     <div className="flex justify-end mt-1 sm:mt-2">
                       <button
                         onClick={handleAddComment}
-                        disabled={loading}
+                        disabled={loading || isCheckingToxicity}
                         className="bg-DGXgreen hover:bg-DGXblue text-white text-xs sm:text-sm font-medium py-1 px-2 sm:py-2 sm:px-4 rounded-lg transition-colors"
                       >
-                        {loading ? "Posting..." : "Post Comment"}
+                        {isCheckingToxicity ? "Checking..." : loading ? "Posting..." : "Post Comment"}
                       </button>
                     </div>
                   </div>
