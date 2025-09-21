@@ -493,7 +493,7 @@ const UnitsWithFiles = () => {
                         const isViewed = viewedFiles.has(file.FileID);
                         const isSelected = selectedFile?.FileID === file.FileID;
                         const timeSpent = file.UserLmsProgresses?.[0]?.TimeSpentSeconds || 0;
-                        const percentageSpent = Math.min((timeSpent / estimatedTime) * 100, 100);
+                        // const percentageSpent = Math.min((timeSpent / estimatedTime) * 100, 100);
                         return (
                           <div
                             key={file.FileID}

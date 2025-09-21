@@ -110,7 +110,7 @@ export const verifyUserAndSendPassword = async (email) => {
 <body>
     <div class="container">
         <div style="text-align:center;">
-            <img src="http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png" width="200px" alt="DGX Logo">
+            <img src="http://117.55.242.133:3000/assets/nvidiapp-Lvu2GrY9.png" width="200px" alt="DGX Logo">
         </div>
         <p>Hi ${user.Name},</p>
         <p>We’re thrilled to have you join the <strong>NVIDIA DGX Community!</strong> You’re just one step away from
@@ -134,13 +134,7 @@ export const verifyUserAndSendPassword = async (email) => {
             <li>Do not share them with anyone. Global Infoventures Pvt. Ltd. will never ask for this via phone, chat, or email.</li>
         </ul>
 
-        <div style="text-align:center;">
-            <a href="https://your-domain.com/VerifyEmail?email=${encodeURIComponent(
-              email
-            )}" class="button">
-                Verify My Account
-            </a>
-        </div>
+        
 
         <p style="margin-top:20px;">We can’t wait to see what you’ll bring to the <strong>NVIDIA DGX Community</strong>. Let’s get started!</p>
 
@@ -910,7 +904,7 @@ The DGX Community Team`;
   <body>
       <div style='width:750px;margin:0 auto; padding:15px; background:#013d54;border-radius:5px;color:#ffffff;'>
           <div style='margin:0 auto;text-align:center;'>
-              <img src='http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png' width='200px'>
+              <img src='http://117.55.242.133:3000/assets/nvidiapp-Lvu2GrY9.png' width='200px'>
           </div>
 
           <div class="confetti">🎉🎉 Congratulations 🎉🎉</div>
@@ -922,7 +916,6 @@ The DGX Community Team`;
           <ol>
               <li>Click the button below to verify your email and activate your account.</li>
               <li>Login with your email: <strong>${EmailId}</strong>.</li>
-              <li>Use your temporary password: <strong>${plainPassword}</strong>.</li>
               <li>On your first login, you will be prompted to change your password for security.</li>
           </ol>
 
@@ -1109,11 +1102,11 @@ The DGX Community Team`;
             <p><strong>Important Information:</strong></p>
             <ul>
                 <li>The reset link is valid for a single use only and will expire in 10 minutes.</li>
-                <li>If you did not request a password reset, please ignore this email. Your account remains secure.</li>
+                
                 <li>For your safety, never share your reset link or password with anyone. 
                 Global Infoventures Pvt. Ltd. will never ask for your password via email or any other means.</li>
             </ul>
-
+            <p>If you did not request a password reset, please ignore this email. Your account remains secure.</p>
             <p>If you have any further questions or need assistance, feel free to reach out to our support team.</p>
             <p>We’re excited to have you back in the community!</p>
 
