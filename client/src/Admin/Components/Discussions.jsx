@@ -7,7 +7,9 @@ import { debounce } from "lodash";
 
 
 const Discussions = () => {
-  const { fetchData, userToken } = useContext(ApiContext);
+  const { fetchData, userToken, user } = useContext(ApiContext);
+  console.log("Full user object:", user);
+  console.log("Available user properties:", user ? Object.keys(user) : "User is null/undefined");
   const [discussions, setDiscussions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,11 +32,13 @@ const Discussions = () => {
     try {
       setLoading(true);
       setError(null);
+      const payload = { email: user.EmailId }; // or user.email
+      console.log("Sending payload:", payload); // ← Add this
 
       const result = await fetchData(
         "discussion/getdiscussion",
         "POST",
-        {},
+        payload,
         { "Content-Type": "application/json" }
       );
 
@@ -50,6 +54,8 @@ const Discussions = () => {
   }, [fetchData]);
 
   useEffect(() => {
+    console.log("User ID:", user?.id);
+
     fetchDiscussions();
   }, [fetchDiscussions]);
 
@@ -284,7 +290,7 @@ const Discussions = () => {
         <p className="text-center text-gray-500">
           {searchTerm
             ? "No discussions match your search"
-            : "No discussions found"}
+            : "No discussions foundddd"}
         </p>
       )}
     </div>

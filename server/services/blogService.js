@@ -29,7 +29,7 @@ export const createBlogPost = async (userEmail, blogData) => {
     const approvedBy = isAdmin ? user.Name : null;
     const approvedOn = isAdmin ? new Date() : null;
 
-    let repostUserId = 0;
+    let repostUserId = null;
     if (blogData.repostId && blogData.repostId !== 0) {
       const originalBlog = await Blog.findOne({
         where: { BlogID: blogData.repostId, delStatus: 0 },
@@ -57,7 +57,7 @@ export const createBlogPost = async (userEmail, blogData) => {
       ApprovedOn: approvedOn,
       UserID: user.UserID,   // new blog is owned by reposting user
       RepostID: blogData.repostId ?? 0,   // which blog was reposted
-      RepostUserID: repostUserId ?? 0,    // whose blog it was
+      RepostUserID: repostUserId ?? null,    // whose blog it was
     });
 
     logInfo("Blog posted successfully!");
