@@ -57,7 +57,7 @@ export const createBlogPost = async (userEmail, blogData) => {
       ApprovedOn: approvedOn,
       UserID: user.UserID,   // new blog is owned by reposting user
       RepostID: blogData.repostId ?? 0,   // which blog was reposted
-      RepostUserID: repostUserId ?? 0,    // whose blog it was
+      RepostUserID: repostUserId ?? null,    // whose blog it was
     });
 
     logInfo("Blog posted successfully!");
