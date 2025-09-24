@@ -171,7 +171,7 @@ const QuizInterface = () => {
     };
 
     return (
-      <div className="relative max-w-4xl mx-auto">
+      <div className="relative max-w-4xl mx-auto px-4">
         <div className="relative overflow-hidden rounded-2xl">
           <AnimatePresence mode="wait" custom={currentIndex}>
             <motion.div
@@ -198,25 +198,25 @@ const QuizInterface = () => {
                   goToPrevious();
                 }
               }}
-              className="py-12 px-8 cursor-grab active:cursor-grabbing"
+              className="py-8 md:py-12 px-4 md:px-8 cursor-grab active:cursor-grabbing"
             >
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5 }}
-                className="bg-white rounded-2xl shadow-xl p-8 mx-4"
+                className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mx-2 md:mx-4"
               >
-                <div className="flex flex-col items-center text-center space-y-6">
-                  <div className="bg-gradient-to-r from-DGXgreen to-DGXblue p-4 rounded-full">
+                <div className="flex flex-col items-center text-center space-y-4 md:space-y-6">
+                  <div className="bg-gradient-to-r from-DGXgreen to-DGXblue p-3 md:p-4 rounded-full">
                     {(() => {
                       const IconComponent = quotes[currentIndex].icon;
-                      return <IconComponent className="h-8 w-8 text-white" />;
+                      return <IconComponent className="h-6 w-6 md:h-8 md:w-8 text-white" />;
                     })()}
                   </div>
-                  <blockquote className="text-xl md:text-2xl font-medium text-gray-800 leading-relaxed">
+                  <blockquote className="text-lg md:text-2xl font-medium text-gray-800 leading-relaxed">
                     "{quotes[currentIndex].text}"
                   </blockquote>
-                  <cite className="text-sm text-gray-500 font-medium">
+                  <cite className="text-xs md:text-sm text-gray-500 font-medium">
                     — {quotes[currentIndex].author}
                   </cite>
                 </div>
@@ -227,7 +227,7 @@ const QuizInterface = () => {
 
         <button
           onClick={goToPrevious}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 backdrop-blur-sm hover:bg-white shadow-lg border-0 z-10 rounded-full p-2"
+          className="absolute left-0 md:left-4 top-1/2 transform -translate-y-1/2 bg-white/80 backdrop-blur-sm hover:bg-white shadow-lg border-0 z-10 rounded-full p-2"
           aria-label="Previous quote"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -235,18 +235,18 @@ const QuizInterface = () => {
 
         <button
           onClick={goToNext}
-          className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 backdrop-blur-sm hover:bg-white shadow-lg border-0 z-10 rounded-full p-2"
+          className="absolute right-0 md:right-4 top-1/2 transform -translate-y-1/2 bg-white/80 backdrop-blur-sm hover:bg-white shadow-lg border-0 z-10 rounded-full p-2"
           aria-label="Next quote"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
 
-        <div className="flex justify-center mt-8 space-x-2">
+        <div className="flex justify-center mt-6 md:mt-8 space-x-2">
           {quotes.map((_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
                 index === currentIndex
                   ? "bg-gradient-to-r from-DGXgreen to-DGXblue scale-125"
                   : "bg-gray-300 hover:bg-gray-400"
@@ -266,18 +266,18 @@ const QuizInterface = () => {
       ) : (
         <>
           {/* Hero Section */}
-          <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
+          <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-12 md:py-0">
             <div className="container mx-auto px-4 z-10">
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="grid lg:grid-cols-2 gap-12 items-center min-h-screen py-20"
+                className="grid lg:grid-cols-2 gap-8 md:gap-12 items-center py-12 md:py-20"
               >
                 {/* Left Side - Text Content */}
                 <motion.div
                   variants={itemVariants}
-                  className="text-center lg:text-left space-y-8"
+                  className="text-center lg:text-left space-y-6 md:space-y-8 order-2 lg:order-1"
                 >
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -286,7 +286,7 @@ const QuizInterface = () => {
                     className="space-y-4"
                   >
                     <motion.h1
-                      className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-DGXgreen to-DGXblue bg-clip-text text-transparent leading-tight"
+                      className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-DGXgreen to-DGXblue bg-clip-text text-transparent leading-tight"
                       animate={{
                         backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                       }}
@@ -298,14 +298,14 @@ const QuizInterface = () => {
                     >
                       WELCOME TO
                       <br />
-                      <span className="text-6xl md:text-8xl text-DGXgreen">
+                      <span className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-DGXgreen">
                         QUIZ
                       </span>
                     </motion.h1>
 
                     <motion.p
                       variants={itemVariants}
-                      className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
+                      className="text-lg md:text-xl lg:text-2xl text-gray-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed"
                     >
                       Unlock your potential through interactive learning.
                       Challenge yourself, compete with peers, and master new
@@ -313,35 +313,35 @@ const QuizInterface = () => {
                     </motion.p>
                   </motion.div>
 
-                  <motion.div variants={itemVariants} className="space-y-6">
+                  <motion.div variants={itemVariants} className="space-y-4 md:space-y-6">
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
                       <button
                         onClick={handleStartQuiz}
-                        className="bg-gradient-to-r from-DGXgreen to-DGXblue hover:from-DGXgreen/90 hover:to-DGXblue/90 text-white px-8 py-4 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group flex items-center"
+                        className="bg-gradient-to-r from-DGXgreen to-DGXblue hover:from-DGXgreen/90 hover:to-DGXblue/90 text-white px-6 py-3 md:px-8 md:py-4 text-base md:text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group flex items-center justify-center mx-auto lg:mx-0"
                       >
-                        <Play className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                        <Play className="mr-2 h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-1 transition-transform" />
                         Start a Quiz
-                        <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5 group-hover:translate-x-1 transition-transform" />
                       </button>
                     </motion.div>
 
                     <motion.div
                       variants={itemVariants}
-                      className="flex flex-wrap justify-center lg:justify-start gap-6 text-sm text-gray-500"
+                      className="flex flex-wrap justify-center lg:justify-start gap-4 md:gap-6 text-xs md:text-sm text-gray-500"
                     >
                       <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-blue-500" />
+                        <BookOpen className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
                         <span>Interactive Learning</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-yellow-500" />
+                        <Trophy className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
                         <span>Achievement System</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-green-500" />
+                        <Users className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
                         <span>Community Driven</span>
                       </div>
                     </motion.div>
@@ -351,14 +351,14 @@ const QuizInterface = () => {
                 {/* Right Side - Illustration */}
                 <motion.div
                   variants={itemVariants}
-                  className="flex justify-center lg:justify-end"
+                  className="flex justify-center lg:justify-end order-1 lg:order-2 mb-8 lg:mb-0"
                 >
                   <motion.div
                     variants={floatingVariants}
                     animate="animate"
-                    className="relative"
+                    className="relative max-w-xs md:max-w-md lg:max-w-lg"
                   >
-                    <div className="relative ">
+                    <div className="relative">
                       <img
                         src={images.quiz}
                         alt="Quiz learning illustration"
@@ -367,7 +367,7 @@ const QuizInterface = () => {
 
                       {/* Floating Elements */}
                       <motion.div
-                        className="absolute -top-4 -right-4 bg-DGXblue text-white p-3 rounded-full shadow-lg"
+                        className="absolute -top-2 -right-2 md:-top-4 md:-right-4 bg-DGXblue text-white p-2 md:p-3 rounded-full shadow-lg"
                         animate={{
                           rotate: [0, 360],
                           scale: [1, 1.1, 1],
@@ -378,11 +378,11 @@ const QuizInterface = () => {
                           ease: "easeInOut",
                         }}
                       >
-                        <Brain className="h-6 w-6" />
+                        <Brain className="h-4 w-4 md:h-6 md:w-6" />
                       </motion.div>
 
                       <motion.div
-                        className="absolute -bottom-4 -left-4 bg-yellow-500 text-white p-3 rounded-full shadow-lg"
+                        className="absolute -bottom-2 -left-2 md:-bottom-4 md:-left-4 bg-yellow-500 text-white p-2 md:p-3 rounded-full shadow-lg"
                         animate={{
                           rotate: [360, 0],
                           scale: [1, 1.1, 1],
@@ -394,7 +394,7 @@ const QuizInterface = () => {
                           delay: 2,
                         }}
                       >
-                        <Trophy className="h-6 w-6" />
+                        <Trophy className="h-4 w-4 md:h-6 md:w-6" />
                       </motion.div>
                     </div>
                   </motion.div>
@@ -411,8 +411,8 @@ const QuizInterface = () => {
           </section>
 
           {/* Motivational Carousel Section */}
-          <section className="py-20 bg-white/50 backdrop-blur-sm">
-            <div className="container mx-auto px-4">
+          <section className="py-12 md:py-20 bg-white/50 backdrop-blur-sm">
+            <div className="container mx-auto px-4 relative">
               {/* Background Image with Overlay */}
               <div className="absolute inset-0 z-0">
                 <img
@@ -420,19 +420,19 @@ const QuizInterface = () => {
                   alt="Learning background"
                   className="object-cover w-full h-full opacity-50"
                 />
-                <div className="absolute inset-0 bg-gradient-to-r from-DGXgreen/20 to-DGXblue/20 " />
+                <div className="absolute inset-0 bg-gradient-to-r from-DGXgreen/20 to-DGXblue/20" />
               </div>
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
                 viewport={{ once: true }}
-                className="text-center mb-12"
+                className="text-center mb-8 md:mb-12 relative z-10"
               >
-                <h2 className="text-4xl md:text-5xl font-bold text-DGXblue-800 mt-20 mb-4">
+                <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-DGXblue-800 mt-8 md:mt-20 mb-4">
                   Join the Learning Revolution
                 </h2>
-                <p className="text-2xl text-DGXgreen-700  mx-auto">
+                <p className="text-lg md:text-xl lg:text-2xl text-DGXgreen-700 mx-auto max-w-2xl">
                   Be inspired by our community's journey towards knowledge and
                   excellence
                 </p>
@@ -443,7 +443,7 @@ const QuizInterface = () => {
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
                 viewport={{ once: true }}
-                className="max-w-4xl mx-auto"
+                className="max-w-4xl mx-auto relative z-10"
               >
                 <MotivationalCarousel quotes={motivationalQuotes} />
               </motion.div>

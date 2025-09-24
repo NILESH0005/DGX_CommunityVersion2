@@ -222,29 +222,7 @@ const PersonalInfoSection = ({ user, userToken, fetchData }) => {
         <h4 className="text-xl font-bold text-DGXblack">
           Personal Information
         </h4>
-        {!isEditing ? (
-          <button
-            onClick={handleEditClick}
-            className="px-4 py-2 bg-DGXgreen text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
-          >
-            Edit Profile
-          </button>
-        ) : (
-          <div className="flex space-x-2">
-            <button
-              onClick={handleCancelEdit}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveChanges}
-              className="px-4 py-2 bg-DGXgreen text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
-            >
-              Save Changes
-            </button>
-          </div>
-        )}
+        
       </div>
 
       <div className="mt-4 space-y-1 text-sm">
@@ -307,6 +285,32 @@ const PersonalInfoSection = ({ user, userToken, fetchData }) => {
             </span>
           </div>
         )}
+       <div className="flex justify-end pt-3">
+  {!isEditing ? (
+    <button
+      onClick={handleEditClick}
+      className="px-4 py-2 bg-DGXgreen  text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
+    >
+      Edit Profile
+    </button>
+  ) : (
+    <div className="flex space-x-2">
+      <button
+        onClick={handleCancelEdit}
+        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
+      >
+        Cancel
+      </button>
+      <button
+        onClick={handleSaveChanges}
+        className="px-4 py-2 bg-DGXgreen text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
+      >
+        Save
+      </button>
+    </div>
+  )}
+</div>
+
       </div>
 
       {/* Referral Section */}

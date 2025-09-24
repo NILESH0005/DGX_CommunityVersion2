@@ -57,6 +57,18 @@ import us6 from '../../public/us6.jpg'
 import us7 from '../../public/us7.jpg'
 import us8 from '../../public/us8.jpg'
 import us9 from '../../public/us9.jpg'
+import us10 from '../../public/us10.jpeg'
+import us11 from '../../public/us11.jpg'
+import us12 from '../../public/us12.jpg'
+import us13 from '../../public/us13.jpg'
+import us14 from '../../public/us14.jpg'
+import us15 from '../../public/us15.jpeg'
+import us16 from '../../public/us16.jpeg'
+import us17 from '../../public/us17.jpeg'
+
+
+
+
 import blog from '../../public/blog.jpg'
 import Discussion from '../../public/Discussion.png'
 import LMS from '../../public/LMS.jpg'
@@ -101,6 +113,14 @@ export default {
     us7,
     us8,
     us9,
+    us10,
+    us11,
+    us12,
+    us13,
+    us14,
+    us15,
+    us16,
+    us17,
     blog,
     Discussion,
     LMS
