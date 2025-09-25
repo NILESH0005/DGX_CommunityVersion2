@@ -2,22 +2,26 @@ import React, { useContext, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { 
-  faArrowRight, 
-  faLightbulb, 
-  faUsers, 
-  faRocket, 
-  faChartLine,
+import {
+  faArrowRight,
+  faUsers,
   faComment,
-  faCalendarAlt
+  faCalendarAlt,
+  faComments, // for Discussions
+  faPenNib, // for Blogs
+  faGraduationCap, // for LMS
+  faTrophy,
 } from "@fortawesome/free-solid-svg-icons";
 import ApiContext from "../context/ApiContext";
 import images from "../constant/images.js";
 import Swal from "sweetalert2";
-import { TextParallax } from "../component/TextParallax.jsx";
+import TextParallaxContent from "../component/TextParallaxContent.jsx";
 import ParallaxSection from "../component/ParallaxSection";
 import ContentSection from "../component/ContentSection";
 import CommunityHighlights from "../component/CommunityHighlights";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 const Home = () => {
   const { user, userToken, fetchData } = useContext(ApiContext);
@@ -33,9 +37,9 @@ const Home = () => {
       opacity: 1,
       transition: {
         staggerChildren: 0.2,
-        when: "beforeChildren"
-      }
-    }
+        when: "beforeChildren",
+      },
+    },
   };
 
   const itemVariants = {
@@ -46,9 +50,9 @@ const Home = () => {
       transition: {
         type: "spring",
         stiffness: 100,
-        damping: 10
-      }
-    }
+        damping: 10,
+      },
+    },
   };
 
   // Add these missing variants
@@ -61,9 +65,9 @@ const Home = () => {
         type: "spring",
         stiffness: 100,
         damping: 10,
-        delay: 0.2
-      }
-    }
+        delay: 0.2,
+      },
+    },
   };
 
   const slideInFromRight = {
@@ -75,53 +79,107 @@ const Home = () => {
         type: "spring",
         stiffness: 100,
         damping: 10,
-        delay: 0.2
-      }
-    }
+        delay: 0.2,
+      },
+    },
   };
 
   const features = [
     {
-      icon: faLightbulb,
-      title: "Innovative Solutions",
-      description: "Cutting-edge AI tools and resources to power your projects"
+      icon: faComments,
+      title: "Discussions",
+      description:
+        "Engage in meaningful conversations, share insights, and collaborate with peers and experts",
     },
     {
-      icon: faUsers,
-      title: "Collaborative Community",
-      description: "Connect with like-minded professionals and researchers"
+      icon: faPenNib,
+      title: "Blogs",
+      description:
+        "Write, publish, and read blogs on AI/ML trends, breakthroughs, and personal experiences",
     },
     {
-      icon: faRocket,
-      title: "Rapid Development",
-      description: "Accelerate your AI projects with our powerful infrastructure"
+      icon: faGraduationCap,
+      title: "LMS",
+      description:
+        "Access curated courses, research papers, and hands-on workbooks to sharpen your skills",
     },
     {
-      icon: faChartLine,
-      title: "Performance Metrics",
-      description: "Track and optimize your models with advanced analytics"
-    }
+      icon: faTrophy,
+      title: "Quizzes & Rankings",
+      description:
+        "Challenge yourself with quizzes and climb the leaderboard to showcase your expertise",
+    },
   ];
 
-  const testimonials = [
-    {
-      name: "Anubhav Patrick",
-      role: "AI Researcher",
-      quote: "The DGX community has transformed how I approach machine learning problems.",
-      image: images.us1
-    },
-    {
-      name: "Sugandh Gupta",
-      role: "AI Researcher",
-      quote: "The resources and support available through this platform have been instrumental.",
-      image: images.us2
-    },
-    {
-      name: "xyz",
-      role: "PhD Candidate",
-      quote: "Being part of this community has opened doors to research opportunities.",
-      image: images.us3
-    }
+  // Custom arrow components for react-slick
+  const NextArrow = (props) => {
+    const { className, style, onClick } = props;
+    return (
+      <div
+        className={`${className} custom-arrow next-arrow`}
+        style={{ ...style, display: "block", right: "10px", zIndex: 1 }}
+        onClick={onClick}
+      ></div>
+    );
+  };
+
+  const PrevArrow = (props) => {
+    const { className, style, onClick } = props;
+    return (
+      <div
+        className={`${className} custom-arrow prev-arrow`}
+        style={{ ...style, display: "block", left: "10px", zIndex: 1 }}
+        onClick={onClick}
+      ></div>
+    );
+  };
+
+  // Slider settings
+  const sliderSettings = {
+    dots: true,
+    infinite: true,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    autoplay: true,
+    autoplaySpeed: 3000,
+    nextArrow: <NextArrow />,
+    prevArrow: <PrevArrow />,
+    appendDots: (dots) => (
+      <div
+        style={{
+          borderRadius: "10px",
+          padding: "10px",
+          bottom: "-40px",
+        }}
+      >
+        <ul style={{ margin: "0px" }}> {dots} </ul>
+      </div>
+    ),
+    customPaging: (i) => (
+      <div
+        style={{
+          width: "10px",
+          height: "10px",
+          borderRadius: "50%",
+          backgroundColor: "#3b82f6",
+          opacity: "0.5",
+        }}
+      ></div>
+    ),
+  };
+
+  // Community images array
+  const communityImages = [
+    images.us4,
+    images.us10,
+    images.us11,
+    images.us12,
+    images.us13,
+    images.us14,
+    images.us15,
+    images.us16,
+    images.us17,
   ];
 
   useEffect(() => {
@@ -181,7 +239,6 @@ const Home = () => {
   if (userToken) {
     return (
       <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-black to-blue-500">
-        
         <ParallaxSection data={homeData?.parallax} />
         <ContentSection data={homeData?.content} />
         <CommunityHighlights />
@@ -196,75 +253,82 @@ const Home = () => {
         <div className="absolute inset-0 opacity-20">
           <div className="absolute inset-0 bg-gradient-to-br from-DGXblue to-DGXgreen opacity-50"></div>
         </div>
-        
+
         <div className="w-full px-6 md:py-32 lg:px-8 relative z-10 bg-DGXblue text-white">
-          <motion.div 
+          <motion.div
             className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center"
             initial="hidden"
             animate="visible"
             variants={containerVariants}
           >
             <motion.div variants={itemVariants}>
-              <motion.p 
+              <motion.p
                 className="inline-block px-4 py-2 mb-4 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Welcome to the future of AI
+                Welcome to DGX Community
               </motion.p>
-              
-              <motion.h1 
+
+              <motion.h1
                 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6"
                 variants={itemVariants}
               >
-                Accelerate Your <span className="text-blue-300">AI Journey</span> With Us
+                Accelerate Your{" "}
+                <span className="text-blue-300">AI Journey</span> With Us
               </motion.h1>
-              
-              <motion.p 
+
+              <motion.p
                 className="text-lg md:text-xl text-blue-100 mb-8 max-w-lg"
                 variants={itemVariants}
               >
-                Join a vibrant community of researchers, developers, and innovators pushing the boundaries of artificial intelligence.
+                Your one-stop hub to connect, learn, and grow in AI & ML.
+                Explore discussions, dive into resources, test your skills, and
+                be part of a thriving innovation network.
               </motion.p>
-              
-              <motion.div className="flex flex-col sm:flex-row gap-4" variants={itemVariants}>
-                <Link 
-                  to="/SignInn" 
+
+              <motion.div
+                className="flex flex-col sm:flex-row gap-4"
+                variants={itemVariants}
+              >
+                <Link
+                  to="/SignInn"
                   className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-colors duration-300 text-center"
                 >
-                  Get Started <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
+                  Get Started{" "}
+                  <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
                 </Link>
-                <Link 
+                {/* <Link 
                   to="/learn-more" 
                   className="px-6 py-3 bg-transparent border-2 border-white hover:bg-white/10 rounded-lg font-medium transition-colors duration-300 text-center"
                 >
                   Learn More
-                </Link>
+                </Link> */}
               </motion.div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="relative"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4, type: "spring" }}
             >
-              <img 
-                src={images.HeroImg} 
-                alt="AI Illustration" 
+              <img
+                src={images.HeroImg}
+                alt="AI Illustration"
                 className="w-full max-w-3xl h-[350px] mx-auto rounded-xl shadow-2xl"
               />
-              <motion.div 
+              <motion.div
                 className="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-70"
                 animate={{
                   scale: [1, 1.2, 1],
-                  opacity: [0.7, 0.4, 0.7]
+                  opacity: [0.7, 0.4, 0.7],
                 }}
                 transition={{
                   repeat: Infinity,
                   duration: 6,
-                  ease: "easeInOut"
+                  ease: "easeInOut",
                 }}
               />
             </motion.div>
@@ -282,23 +346,18 @@ const Home = () => {
             variants={containerVariants}
             className="text-center mb-16"
           >
-            <motion.p 
-              className="text-blue-600 font-semibold mb-4"
-              variants={itemVariants}
-            >
-              WHY CHOOSE US
-            </motion.p>
-            <motion.h2 
+            <motion.h2
               className="text-3xl md:text-4xl font-bold text-gray-900 mb-6"
               variants={itemVariants}
             >
-              Powerful Features for <span className="text-blue-600">AI Innovation</span>
+              Explore What We Offer
             </motion.h2>
-            <motion.p 
-              className="max-w-2xl mx-auto text-gray-600 text-lg"
+            <motion.p
+              className="max-w-3xl mx-auto text-gray-600 text-lg"
               variants={itemVariants}
             >
-              Our platform provides everything you need to develop, test, and deploy cutting-edge AI solutions.
+              From learning to competing, find everything you need to accelerate
+              your AI/ML journey
             </motion.p>
           </motion.div>
 
@@ -312,18 +371,23 @@ const Home = () => {
                 viewport={{ once: true, margin: "-50px" }}
                 variants={{
                   hidden: { opacity: 0, y: 30 },
-                  visible: { 
-                    opacity: 1, 
+                  visible: {
+                    opacity: 1,
                     y: 0,
-                    transition: { delay: index * 0.1, type: "spring" }
-                  }
+                    transition: { delay: index * 0.1, type: "spring" },
+                  },
                 }}
                 whileHover={{ y: -5 }}
               >
                 <div className="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center mb-6">
-                  <FontAwesomeIcon icon={feature.icon} className="text-blue-600 text-xl" />
+                  <FontAwesomeIcon
+                    icon={feature.icon}
+                    className="text-blue-600 text-xl"
+                  />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  {feature.title}
+                </h3>
                 <p className="text-gray-600">{feature.description}</p>
               </motion.div>
             ))}
@@ -333,77 +397,94 @@ const Home = () => {
 
       {/* Community Highlights */}
       <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-6 lg:px-8">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={containerVariants}
-            className="flex flex-col lg:flex-row items-center gap-12"
-          >
-            <motion.div 
-              className="lg:w-1/2"
-              variants={slideInFromLeft}
-            >
-              <img 
-                src={images.us4} 
-                alt="Community collaboration" 
-                className="rounded-xl shadow-xl w-full"
-              />
-            </motion.div>
-            
-            <motion.div 
-              className="lg:w-1/2"
-              variants={slideInFromRight}
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Join Our <span className="text-blue-600">Growing Community</span>
-              </h2>
-              <p className="text-gray-600 text-lg mb-8">
-                Connect with thousands of AI enthusiasts, researchers, and professionals from around the world.
-              </p>
-              
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <FontAwesomeIcon icon={faUsers} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Expert Network</h3>
-                    <p className="text-gray-600">Access to leading AI researchers and professionals</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <FontAwesomeIcon icon={faComment} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Discussion Forums</h3>
-                    <p className="text-gray-600">Engage in meaningful conversations about AI</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <FontAwesomeIcon icon={faCalendarAlt} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Regular Events</h3>
-                    <p className="text-gray-600">Workshops and networking events throughout the year</p>
-                  </div>
-                </div>
+  <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true }}
+      variants={containerVariants}
+      className="flex flex-col lg:flex-row items-center lg:items-start gap-12"
+    >
+      {/* Image Section */}
+      <motion.div className="w-full lg:w-1/2" variants={slideInFromLeft}>
+        <div className="relative rounded-xl overflow-hidden shadow-xl">
+          <Slider {...sliderSettings}>
+            {communityImages.map((image, index) => (
+              <div key={index} className="outline-none">
+                <img
+                  src={image}
+                  alt={`Community highlight ${index + 1}`}
+                  className="w-full h-56 sm:h-64 md:h-80 object-cover rounded-xl"
+                />
               </div>
-            </motion.div>
-          </motion.div>
+            ))}
+          </Slider>
         </div>
-      </section>
+      </motion.div>
+
+      {/* Text Section */}
+      <motion.div className="w-full lg:w-1/2 text-center lg:text-left" variants={slideInFromRight}>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+          Join Our{" "}
+          <span className="text-blue-600">Growing Community</span>
+        </h2>
+        <p className="text-gray-600 text-base sm:text-lg mb-8">
+          Connect with thousands of AI enthusiasts, researchers, and
+          professionals from around the world.
+        </p>
+
+        <div className="space-y-6">
+          {/* Feature 1 */}
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+              <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xl" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Expert Network</h3>
+              <p className="text-gray-600">
+                Connect with AI/ML professionals, mentors, and learners
+                worldwide
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+              <FontAwesomeIcon icon={faComment} className="text-blue-600 text-xl" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Discussion Forums</h3>
+              <p className="text-gray-600">
+                Dive into topic-focused conversations that matter
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+              <FontAwesomeIcon icon={faCalendarAlt} className="text-blue-600 text-xl" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Regular Events</h3>
+              <p className="text-gray-600">
+                Stay updated with workshops, webinars, and AI conferences
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  </div>
+</section>
+
 
       {/* Text Parallax Section */}
-      <TextParallax />
+      <TextParallaxContent />
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
+      {/* <section className="py-20 bg-white">
         <div className="container mx-auto px-6 lg:px-8">
           <motion.div
             initial="hidden"
@@ -460,7 +541,7 @@ const Home = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 };

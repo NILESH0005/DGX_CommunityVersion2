@@ -663,7 +663,7 @@ The DGX Community Team`;
       <body>
           <div style='width:750px;margin:0 auto; padding:10px; background:#013d54;border-radius:5px;color:#ffffff;'>
               <div style='margin:0 auto;text-align:center;'>
-                  <img src="http://192.168.12.9:3000/assets/nvidiapp-Lvu2GrY9.png" width="200px" alt="DGX Community Logo" />
+                  <img src="http://117.55.242.133:3000/assets/nvidiapp-Lvu2GrY9.png" width="200px" alt="DGX Community Logo" />
               </div>
 
               <p>Hi ${inviteeEmail.split("@")[0]},</p>

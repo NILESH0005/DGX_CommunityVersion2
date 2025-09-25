@@ -42,7 +42,7 @@ const Navbar = () => {
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, log out'
+            confirmButtonText: 'Yes'
         }).then((result) => {
             if (result.isConfirmed) {
                 setDropdownOpen(false);
