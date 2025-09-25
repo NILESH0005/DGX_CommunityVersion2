@@ -63,7 +63,7 @@ const ViewContent = ({ submodule, onBack }) => {
     if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
     return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} min`;
   };
-  
+
   const fetchFilesForUnit = useCallback(
     async (unitId) => {
       try {
@@ -89,13 +89,17 @@ const ViewContent = ({ submodule, onBack }) => {
   );
 
   useEffect(() => {
+    console.log("User Token:", userToken);
+
     const fetchUnits = async () => {
       try {
         setLoading(true);
         const response = await fetchData(
           `dropdown/getUnitsWithFiles/${submodule.SubModuleID}`,
           "GET",
-          { "auth-token": userToken }
+          {
+            'auth-token': userToken
+          }
         );
 
         if (response?.success) {
@@ -684,7 +688,7 @@ const ViewContent = ({ submodule, onBack }) => {
               fileName: linkName || "Link",
               description: linkDescription || "",
               fileType: "link",
-              estimatedTime: estimatedTime || 0, 
+              estimatedTime: estimatedTime || 0,
             },
             { "Content-Type": "application/json", "auth-token": userToken }
           );
@@ -938,7 +942,7 @@ const ViewContent = ({ submodule, onBack }) => {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-col sm:flex-row items-start gap-4">
                         <div className="flex-1 w-full">
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -964,7 +968,7 @@ const ViewContent = ({ submodule, onBack }) => {
                           </p>
                         </div>
                       </div>
-                      
+
                       {file.FileType === "link" && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1746,7 +1750,7 @@ const ViewContent = ({ submodule, onBack }) => {
                                             />
                                           </div>
                                         </div>
-                                        
+
                                         <div className="flex flex-col sm:flex-row items-start gap-4">
                                           <div className="flex-1 w-full">
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

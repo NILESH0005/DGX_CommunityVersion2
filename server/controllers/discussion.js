@@ -72,6 +72,7 @@ export const discussionPost = async (req, res) => {
   }
 };
 
+
 export const getDiscussion = async (req, res) => {
   let success = false;
   console.log("Request body:", req.body);
@@ -116,6 +117,7 @@ export const getDiscussion = async (req, res) => {
     });
   }
 };
+
 
 export const updateDiscussion = async (req, res) => {
   let success = false;

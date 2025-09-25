@@ -21,7 +21,8 @@ export default (sequelize, DataTypes) => {
     ApprovedOn: { type: DataTypes.DATE, allowNull: true },
     UserID: { type: DataTypes.INTEGER, allowNull: true },
     RepostID: { type: DataTypes.INTEGER, allowNull: true },
-    RepostUserID : { type: DataTypes.INTEGER, allowNull: true }
+    RepostUserID : { type: DataTypes.INTEGER, allowNull: true },
+    allowRepost: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 
   }, {
     tableName: 'Community_Blog',

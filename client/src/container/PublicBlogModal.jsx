@@ -1,4 +1,4 @@
-import React, { useContext  } from "react";
+import React, { useContext } from "react";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { TbUserSquareRounded } from "react-icons/tb";
@@ -161,6 +161,11 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
     }
   };
 
+  const isMyBlog = blog.UserID === user.UserID;
+  const alreadyReposted = blog.RepostUserID === user.UserID;
+  const canRepost = blog.allowRepost && !isMyBlog && !alreadyReposted;
+
+
 
   return (
     <AnimatePresence>
@@ -205,6 +210,16 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                 >
                   Repost
                 </motion.span>
+              )}
+              {!canRepost && blog.allowRepost && alreadyReposted && (
+                <span className="absolute top-4 left-4 bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-semibold shadow-md">
+                  Already reposted
+                </span>
+              )}
+              {!canRepost && !blog.allowRepost && (
+                <span className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-md">
+                  Reposting not allowed
+                </span>
               )}
             </div>
 
@@ -289,18 +304,24 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                 >
                   Close
                 </motion.button>
-                <motion.button
-                  whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleRepost}
-                  className="bg-DGXgreen hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
-                >
-                  <FiRepeat className="inline mr-2" />
-                  Repost
-                </motion.button>
+                {canRepost && Status === "Approved" && (
+                  <motion.button
+                    whileHover={{ scale: 1.05, boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleRepost}
+                    className="bg-DGXgreen hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
+                  >
+                    <FiRepeat className="inline mr-2" />
+                    Repost
+                  </motion.button>
+                )}
+
+                {/* Show badge if already reposted */}
+                {blog.RepostUserID === user.id && (
+                  <span className="bg-gray-300 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+                    Already reposted
+                  </span>
+                )}
               </motion.div>
             </div>
           </div>

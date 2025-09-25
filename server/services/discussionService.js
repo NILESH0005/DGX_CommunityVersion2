@@ -30,6 +30,15 @@ export const createDiscussionPost = async (userId, postData) => {
       }
     }
 
+    // Handle allowRepost - convert to boolean (1 for true, 0 for false)
+    const allowRepost = postData.allowRepost === true || postData.allowRepost === 1 || postData.allowRepost === '1';
+
+    // Handle repost fields
+    // If it's a repost (repostId is provided), set RepostID and RepostUserID
+    // If it's an original post (no repostId), set them to null
+    const repostId = postData.repostId || null;
+    const repostUserId = postData.repostId ? user.UserID : null;
+
     if (postData.likes !== null && postData.reference) {
       const existingLike = await CommunityDiscussion.findOne({
         where: {
@@ -70,6 +79,12 @@ export const createDiscussionPost = async (userId, postData) => {
       Reference: postData.reference || 0,
       ResourceUrl: postData.url || null,
       DiscussionImagePath: postData.bannerImagePath || null,
+
+      // New fields with default values
+      allowRepost: allowRepost,
+      RepostID: repostId,
+      RepostUserID: repostUserId,
+
       AuthAdd: user.Name,
       AddOnDt: new Date(),
       delStatus: 0,
@@ -89,12 +104,17 @@ export const createDiscussionPost = async (userId, postData) => {
           value: visibilityValue,
           id: visibilityId,
         },
+        allowRepost: allowRepost,
+        repostId: repostId,
+        repostUserId: repostUserId,
         action:
           postData.likes !== null
             ? "like"
             : postData.comment !== null
-            ? "comment"
-            : "post",
+              ? "comment"
+              : postData.repostId
+                ? "repost"
+                : "post",
       },
       message: "Discussion Posted Successfully",
     };
@@ -103,6 +123,7 @@ export const createDiscussionPost = async (userId, postData) => {
     throw error;
   }
 };
+
 
 const getCommentsRecursive = async (parentId, currentUserId) => {
   const comments = await CommunityDiscussion.findAll({
@@ -247,6 +268,7 @@ export const getPublicDiscussionsService = async (email) => {
     return { success: false, error };
   }
 };
+
 
 export const updateDiscussionService = async (userId, payload) => {
   const { reference, title, content, image, tags, url, visibility } = payload;
