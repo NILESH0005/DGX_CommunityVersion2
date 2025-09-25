@@ -105,6 +105,50 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     setPdfError('Failed to load PDF. The file may be corrupted or invalid.');
   };
 
+  // 👉 Handle YouTube Links
+  if (fileUrl && (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be"))) {
+    let videoId = "";
+
+    // Handle youtube.com/live/VIDEO_ID
+    const liveMatch = fileUrl.match(/youtube\.com\/live\/([^?&]+)/);
+    if (liveMatch) {
+      videoId = liveMatch[1];
+    }
+
+    // Handle youtube.com/watch?v=VIDEO_ID
+    const watchMatch = fileUrl.match(/[?&]v=([^?&]+)/);
+    if (watchMatch) {
+      videoId = watchMatch[1];
+    }
+
+    // Handle youtu.be/VIDEO_ID
+    const shortMatch = fileUrl.match(/youtu\.be\/([^?&]+)/);
+    if (shortMatch) {
+      videoId = shortMatch[1];
+    }
+
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+
+    return (
+      <div className="relative w-full flex flex-col items-center">
+        {renderSubmoduleHeader()}
+        <div className="w-full max-w-4xl aspect-video">
+          <iframe
+            key={iframeKey}
+            src={embedUrl}
+            title="YouTube video"
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="rounded-lg shadow"
+          />
+        </div>
+      </div>
+    );
+  }
+
   const renderNotebook = (notebook) => {
     return (
       <div className="notebook-container p-4 bg-white rounded-lg shadow">
@@ -340,124 +384,81 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   }
 
   // Handle Jupyter Notebook files (.ipynb)
-  // if (fileExtension === 'ipynb') {
-  //   if (!fileUrl.startsWith('http://localhost') && !fileUrl.startsWith('file://')) {
-  //     return (
-  //       <div className="relative w-full h-full flex flex-col">
-  //         {renderDownloadButton()}
-  //         {renderSubmoduleHeader()}
-  //         <div className="flex-1">
-  //           <iframe
-  //             key={iframeKey}
-  //             src={`https://nbviewer.org/url/${encodeURIComponent(fileUrl)}`}
-  //             width="100%"
-  //             height="100%"
-  //             title="Jupyter Notebook Viewer"
-  //             className="border rounded-lg"
-  //             onError={() => setIframeKey(prev => prev + 1)}
-  //           />
-  //         </div>
-  //       </div>
-  //     );
-  //   }
-
-  //   // Enhanced local notebook rendering
-  //   return (
-  //     <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
-  //       {renderDownloadButton()}
-  //       {renderSubmoduleHeader()}
-  //       {loading ? (
-  //         <div className="flex justify-center items-center h-64">
-  //           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-  //         </div>
-  //       ) : error ? (
-  //         <div className="text-center p-8">
-  //           <div className="text-red-500 mb-4">{error}</div>
-  //         </div>
-  //       ) : (
-  //         <>
-  //           {notebookContent}
-  //         </>
-  //       )}
-  //     </div>
-  //   );
-  // }
-
-  // Handle Jupyter Notebook files (.ipynb)
-if (fileExtension === 'ipynb') {
-  // For deployed environments, use a different approach
-  if (!fileUrl.startsWith('http://localhost') && !fileUrl.startsWith('file://')) {
-    return (
-      <div className="relative w-full h-full flex flex-col">
-        {renderDownloadButton()}
-        {renderSubmoduleHeader()}
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="max-w-2xl w-full">
-            {loading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            ) : error ? (
-              <div className="text-center p-8">
-                <div className="text-red-500 mb-4">{error}</div>
-                <button 
-                  onClick={handleDownload}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Download Notebook
-                </button>
-              </div>
-            ) : notebookContent ? (
-              notebookContent
-            ) : (
-              <div className="text-center p-8">
-                <button 
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      const response = await fetch(fileUrl);
-                      if (!response.ok) throw new Error('Failed to fetch notebook');
-                      const notebook = await response.json();
-                      setNotebookContent(renderNotebook(notebook));
-                    } catch (err) {
-                      setError('Could not load notebook. ' + err.message);
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Load Notebook Content
-                </button>
-              </div>
-            )}
+  if (fileExtension === 'ipynb') {
+    // For deployed environments, use a different approach
+    if (!fileUrl.startsWith('http://localhost') && !fileUrl.startsWith('file://')) {
+      return (
+        <div className="relative w-full h-full flex flex-col">
+          {renderDownloadButton()}
+          {renderSubmoduleHeader()}
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="max-w-2xl w-full">
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : error ? (
+                <div className="text-center p-8">
+                  <div className="text-red-500 mb-4">{error}</div>
+                  <button 
+                    onClick={handleDownload}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Download Notebook
+                  </button>
+                </div>
+              ) : notebookContent ? (
+                notebookContent
+              ) : (
+                <div className="text-center p-8">
+                  <button 
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const response = await fetch(fileUrl);
+                        if (!response.ok) throw new Error('Failed to fetch notebook');
+                        const notebook = await response.json();
+                        setNotebookContent(renderNotebook(notebook));
+                      } catch (err) {
+                        setError('Could not load notebook. ' + err.message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  >
+                    Load Notebook Content
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+      );
+    }
+
+    // Local notebook rendering remains the same
+    return (
+      <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
+        {renderDownloadButton()}
+        {renderSubmoduleHeader()}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center p-8">
+            <div className="text-red-500 mb-4">{error}</div>
+          </div>
+        ) : (
+          <>
+            {notebookContent}
+          </>
+        )}
       </div>
     );
   }
 
-  // Local notebook rendering remains the same
-  return (
-    <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
-      {renderDownloadButton()}
-      {renderSubmoduleHeader()}
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : error ? (
-        <div className="text-center p-8">
-          <div className="text-red-500 mb-4">{error}</div>
-        </div>
-      ) : (
-        <>
-          {notebookContent}
-        </>
-      )}
-    </div>
-  );
-}
   // Handle CSV files
   if (fileExtension === 'csv') {
     return (
@@ -466,7 +467,7 @@ if (fileExtension === 'ipynb') {
         {renderSubmoduleHeader()}
         <iframe
           key={iframeKey}
-          src={`https://docs.google.com/spreadsheets/d/e/2PACX-1vR9xX9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ/pubhtml?gid=0&single=true&output=csv&url=${encodeURIComponent(fileUrl)}`}
+          src={`https://docs.google.com/spreadsheets/d/e/2PACX-1vR9xX9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ/pubhtml?gid=0&single=true&output=csv&url=${encodeURIComponent(fileUrl)}`}
           width="100%"
           height="100%"
           title="CSV Viewer"

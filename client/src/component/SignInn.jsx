@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import images from "../../public/images.js";
 import { FaEye } from "react-icons/fa";
 import { FaEyeLowVision } from "react-icons/fa6";
-import Swal from "sweetalert2";
 import Cookies from "js-cookie";
 import ApiContext from "../context/ApiContext.jsx";
 import LoadPage from "./LoadPage.jsx";
@@ -17,6 +16,7 @@ const SignIn = () => {
   const [userID, setUserID] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({ email: "", password: "" });
+  const [message, setMessage] = useState({ type: "", text: "" });
   const navigate = useNavigate();
 
   const handleInputChange = (event) => {
@@ -34,6 +34,10 @@ const SignIn = () => {
       if (errors.password) {
         setErrors({ ...errors, password: "" });
       }
+    }
+    // Clear message when user starts typing
+    if (message.text) {
+      setMessage({ type: "", text: "" });
     }
   };
 
@@ -63,15 +67,12 @@ const SignIn = () => {
     return isValid;
   };
 
-  const showAutoCloseAlert = (icon, title, text) => {
-    Swal.fire({
-      icon: icon,
-      title: title,
-      text: text,
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-    });
+  const showMessage = (type, text) => {
+    setMessage({ type, text });
+    // Auto-clear message after 3 seconds
+    setTimeout(() => {
+      setMessage({ type: "", text: "" });
+    }, 3000);
   };
 
   const handleSubmit = async (event) => {
@@ -91,7 +92,7 @@ const SignIn = () => {
       console.log("login response", data);
       if (!data.success) {
         setLoading(false);
-        showAutoCloseAlert("error", "Login", data.message);
+        showMessage("error", data.message);
       } else {
         logIn(data.data.authtoken);
         setLoading(false);
@@ -105,7 +106,7 @@ const SignIn = () => {
       }
     } catch (error) {
       setLoading(false);
-      showAutoCloseAlert("error", "Oops...", "Something went wrong. Please try again later.");
+      showMessage("error", "Something went wrong. Please try again later.");
     }
   };
 
@@ -195,6 +196,21 @@ const SignIn = () => {
                     </span>
                   </p>
                 </motion.div>
+
+                {/* Message Display */}
+                {message.text && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`mb-4 p-3 rounded-lg text-center ${
+                      message.type === "error"
+                        ? "bg-red-100 text-red-700 border border-red-300"
+                        : "bg-green-100 text-green-700 border border-green-300"
+                    }`}
+                  >
+                    {message.text}
+                  </motion.div>
+                )}
 
                 <form className="space-y-4" onSubmit={handleSubmit}>
                   <motion.div
