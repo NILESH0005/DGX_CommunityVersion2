@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import db from "../models/index.js"; // adjust path based on your setup
-const { CMSContent, User } = db;
+const { CMSContent, User, LMSModulesDetails, CommunityEvents, CommunityBlog,  CommunityDiscussion } = db;
 
 export const addParallaxTextService = async (
   userEmail,
@@ -369,6 +369,174 @@ export const getHomePageContentService = async () => {
       success: false,
       message: "Failed to fetch homepage content",
       data: error,
+    };
+  }
+};
+
+
+
+export const getLogoutHomePageContentService = async () => {
+  try {
+    // Fetch all data in parallel for better performance
+    const [
+      featuredBlogs,
+      recentDiscussions,
+      upcomingEvents,
+      featuredModules
+    ] = await Promise.allSettled([
+      // Featured Blogs (approved and not deleted)
+      CommunityBlog.findAll({
+        where: {
+          delStatus: 0,
+          Status: 'Approved'
+        },
+        attributes: [
+          'BlogID',
+          'title',
+          'AuthAdd',
+          'content',
+          'publishedDate',
+          'image',
+          'Category',
+          'AddOnDt'
+        ],
+        order: [['publishedDate', 'DESC']],
+        limit: 3
+      }).catch(error => {
+        console.error("Error fetching featured blogs:", error);
+        return []; // Return empty array on error
+      }),
+
+      // Recent Discussions (not deleted)
+      CommunityDiscussion.findAll({
+        where: {
+          delStatus: 0
+        },
+        attributes: [
+          'DiscussionID',
+          'Title',
+          'Content',
+          'Image',
+          'Likes',
+          'Tag',
+          'Visibility',
+          'AddOnDt'
+        ],
+        order: [['AddOnDt', 'DESC']],
+        limit: 3
+      }).catch(error => {
+        console.error("Error fetching recent discussions:", error);
+        return [];
+      }),
+
+      // Upcoming Events (approved, not deleted, and future dates)
+      CommunityEvents.findAll({
+        where: {
+          delStatus: 0,
+          Status: 'Approved',
+          StartDate: {
+            [Op.gte]: new Date()
+          }
+        },
+        attributes: [
+          'EventID',
+          'EventTitle',
+          'StartDate',
+          'EndDate',
+          'EventType',
+          'Venue',
+          'Host',
+          'RegistrationLink',
+          'EventImage',
+          'EventDescription'
+        ],
+        order: [['StartDate', 'ASC']],
+        limit: 3
+      }).catch(error => {
+        console.error("Error fetching upcoming events:", error);
+        return [];
+      }),
+
+      // Featured Modules (not deleted)
+      LMSModulesDetails.findAll({
+        where: {
+          delStatus: 0
+        },
+        attributes: [
+          'ModuleID',
+          'ModuleName',
+          'ModuleImage',
+          'ModuleDescription',
+          'ModuleImagePath',
+          'SortingOrder',
+          'AuthAdd'
+        ],
+        order: [['SortingOrder', 'ASC']],
+        limit: 3
+      }).catch(error => {
+        console.error("Error fetching featured modules:", error);
+        return [];
+      })
+    ]);
+
+    // Extract values from Promise.allSettled results
+    const featuredBlogsResult = featuredBlogs.status === 'fulfilled' ? featuredBlogs.value : [];
+    const recentDiscussionsResult = recentDiscussions.status === 'fulfilled' ? recentDiscussions.value : [];
+    const upcomingEventsResult = upcomingEvents.status === 'fulfilled' ? upcomingEvents.value : [];
+    const featuredModulesResult = featuredModules.status === 'fulfilled' ? featuredModules.value : [];
+
+    // Format dates and handle null values
+    const formatData = (data) => {
+      return data.map(item => {
+        const itemData = item.get ? item.get({ plain: true }) : item;
+        return {
+          ...itemData,
+          // Format dates to ISO string for consistency
+          ...(itemData.publishedDate && { publishedDate: new Date(itemData.publishedDate).toISOString() }),
+          ...(itemData.AddOnDt && { AddOnDt: new Date(itemData.AddOnDt).toISOString() }),
+          ...(itemData.StartDate && { StartDate: new Date(itemData.StartDate).toISOString() }),
+          ...(itemData.EndDate && { EndDate: new Date(itemData.EndDate).toISOString() })
+        };
+      });
+    };
+
+    return {
+      success: true,
+      data: {
+        featuredBlogs: formatData(featuredBlogsResult),
+        recentDiscussions: formatData(recentDiscussionsResult),
+        upcomingEvents: formatData(upcomingEventsResult),
+        featuredModules: formatData(featuredModulesResult),
+        metadata: {
+          blogsCount: featuredBlogsResult.length,
+          discussionsCount: recentDiscussionsResult.length,
+          eventsCount: upcomingEventsResult.length,
+          modulesCount: featuredModulesResult.length,
+          fetchedAt: new Date().toISOString()
+        }
+      },
+      message: "Logout homepage content fetched successfully",
+    };
+  } catch (error) {
+    console.error("Error in getLogoutHomePageContentService:", error);
+    return {
+      success: false,
+      message: "Failed to fetch logout homepage content",
+      data: {
+        featuredBlogs: [],
+        recentDiscussions: [],
+        upcomingEvents: [],
+        featuredModules: [],
+        metadata: {
+          blogsCount: 0,
+          discussionsCount: 0,
+          eventsCount: 0,
+          modulesCount: 0,
+          fetchedAt: new Date().toISOString(),
+          error: true
+        }
+      },
+      error: error.message
     };
   }
 };

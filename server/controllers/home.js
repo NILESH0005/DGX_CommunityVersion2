@@ -11,6 +11,7 @@ import {
   getParallaxContentService,
   setActiveParallaxTextService,
   updateContentSectionService,
+  getLogoutHomePageContentService ,
 } from "../services/cmsService.js";
 
 dotenv.config();
@@ -759,3 +760,31 @@ export const getHomePageContent = async (req, res) => {
     });
   }
 };
+
+export const getLogoutHomePageContent = async (req, res) => {
+  try {
+    const result = await getLogoutHomePageContentService();
+    
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: result.message,
+        data: null
+      });
+    }
+  } catch (error) {
+    console.error("Error in getLogoutHomePageContent controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      data: null
+    });
+  }
+};
+
