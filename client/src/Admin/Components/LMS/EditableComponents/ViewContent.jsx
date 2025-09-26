@@ -63,7 +63,7 @@ const ViewContent = ({ submodule, onBack }) => {
     if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
     return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} min`;
   };
-  
+
   const fetchFilesForUnit = useCallback(
     async (unitId) => {
       try {
@@ -714,7 +714,7 @@ useEffect(() => {
               fileName: linkName || "Link",
               description: linkDescription || "",
               fileType: "link",
-              estimatedTime: estimatedTime || 0, 
+              estimatedTime: estimatedTime || 0,
             },
             { "Content-Type": "application/json", "auth-token": userToken }
           );
@@ -968,7 +968,7 @@ useEffect(() => {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-col sm:flex-row items-start gap-4">
                         <div className="flex-1 w-full">
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -994,7 +994,7 @@ useEffect(() => {
                           </p>
                         </div>
                       </div>
-                      
+
                       {file.FileType === "link" && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1776,7 +1776,7 @@ useEffect(() => {
                                             />
                                           </div>
                                         </div>
-                                        
+
                                         <div className="flex flex-col sm:flex-row items-start gap-4">
                                           <div className="flex-1 w-full">
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

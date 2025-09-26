@@ -6,6 +6,7 @@ import ApiContext from "../context/ApiContext.jsx";
 import DiscussionModal from "../component/discussion/DiscussionModal.jsx";
 import { compressImage } from "../utils/compressImage.js";
 import { AiFillLike, AiOutlineLike, AiOutlineComment } from "react-icons/ai";
+import { FiRepeat } from "react-icons/fi";
 import { useCallback } from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -36,6 +37,7 @@ const Discussion = () => {
     privacy: "",
   });
   const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add this state
+  const currentUserId = user?.uniqueId || user?.UserID; // Try both possible properties
 
   const resetForm = () => {
     setTitle("");
@@ -149,6 +151,8 @@ const Discussion = () => {
   };
 
   useEffect(() => {
+    console.log("me", currentUserId)
+
     const loadEvents = async () => {
       setIsLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -169,6 +173,7 @@ const Discussion = () => {
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState([]);
   const [links, setLinks] = useState([]);
+  const [allowRepost, setAllowRepost] = useState(false);
   const [linkInput, setLinkInput] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [discussions, setDiscussions] = useState([]);
@@ -178,6 +183,10 @@ const Discussion = () => {
   const [communityHighlights, setCommunityHighlights] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
   const [bannerFilePath, setBannerFilePath] = useState(""); // To save in DB
+  const [userReposts, setUserReposts] = useState(new Set());
+
+
+
 
   const getCommunityHighlights = (discussions) => {
     const sortedDiscussions = discussions.sort(
@@ -424,6 +433,8 @@ const Discussion = () => {
             ImageUrl: discussion.DiscussionImagePath
               ? `${BASE_URL}/${discussion.DiscussionImagePath}`
               : discussion.Image || null,
+            isRepostOfMyPost: discussion.RepostUserID === currentUserId,
+            isMyPost: discussion.UserID === currentUserId,
           })
         );
 
@@ -628,6 +639,7 @@ const Discussion = () => {
       url: links.join(","),
       visibility: privacy,
       bannerImagePath: bannerFilePath,
+      allowRepost,
     };
     const headers = {
       "Content-Type": "application/json",
@@ -684,6 +696,158 @@ const Discussion = () => {
         confirmButtonColor: "#3085d6",
       });
     }
+  };
+
+  const handleRepost = async (discussion) => {
+    if (!userToken) {
+      Swal.fire({
+        icon: "error",
+        title: "Login Required",
+        text: "Please login to repost this discussion",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+    setUserReposts(prev => new Set([...prev, discussion.DiscussionID]));
+
+    const endpoint = "discussion/discussionpost";
+    const method = "POST";
+    const body = {
+      title: discussion.Title,
+      content: discussion.Content,
+      tags: discussion.Tag
+        ? Array.isArray(discussion.Tag)
+          ? discussion.Tag.join(",") // Convert array to string
+          : discussion.Tag
+        : "",
+      url: discussion.ResourceUrl
+        ? Array.isArray(discussion.ResourceUrl)
+          ? discussion.ResourceUrl.join(",") // Convert array to string
+          : discussion.ResourceUrl
+        : "",
+      visibility: discussion.VisibilityValue || "public",
+      bannerImagePath: discussion.DiscussionImagePath || null,
+      allowRepost: discussion.allowRepost,
+      repostId: discussion.DiscussionID,
+    };
+
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
+    };
+
+    setLoading(true);
+
+    try {
+      const data = await fetchData(endpoint, method, body, headers);
+
+      if (!data.success) {
+        setLoading(false);
+        setUserReposts(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(discussion.DiscussionID);
+          return newSet;
+        });
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: data.message || "Error in reposting discussion, please try again",
+          confirmButtonColor: "#3085d6",
+        });
+        return;
+      }
+
+      setLoading(false);
+      await Swal.fire({
+        title: "Success!",
+        text: "Discussion reposted successfully!",
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3085d6",
+        customClass: { popup: "animated bounceIn" },
+      });
+
+      // Refresh discussions
+      await fetchDiscussionData(user?.EmailId || null);
+
+    } catch (error) {
+      setLoading(false);
+      setUserReposts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(discussion.DiscussionID);
+        return newSet;
+      });
+      console.error("Repost error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Something went wrong, please try again",
+        confirmButtonColor: "#3085d6",
+      });
+    }
+  };
+
+  const canUserRepost = (discussion) => {
+    console.log("Checking repost permissions:", {
+      DiscussionID: discussion.DiscussionID,
+      UserID: discussion.UserID,
+      currentUserId: currentUserId,
+      RepostID: discussion.RepostID,
+      RepostUserID: discussion.RepostUserID,
+      allowRepost: discussion.allowRepost
+    });
+
+    // Case 1: If this is directly my own post (I'm the author)
+    if (discussion.UserID === currentUserId) {
+      console.log("Cannot repost: This is my own post");
+      return false;
+    }
+
+    // Case 2: If this is a repost of my original post
+    // Check if the original discussion (that was reposted) belongs to me
+    if (discussion.RepostUserID === currentUserId) {
+      console.log("Cannot repost: This is a repost of my original content");
+      return false;
+    }
+
+    // Case 3: If repost is not allowed by the original author
+    if (!discussion.allowRepost) {
+      console.log("Cannot repost: Repost not allowed by author");
+      return false;
+    }
+
+    // Case 4: If I've already reposted this discussion
+    if (userReposts.has(discussion.DiscussionID)) {
+      console.log("Cannot repost: Already reposted this discussion");
+      return false;
+    }
+
+    console.log("Can repost: All conditions met");
+    return true;
+  };
+
+  const getRepostMessage = (discussion) => {
+    // If it's directly my post
+    if (discussion.UserID === currentUserId) {
+      return "Your Post";
+    }
+
+    // If it's a repost of my original content
+    if (discussion.RepostUserID === currentUserId) {
+      return "Originally Your Post";
+    }
+
+    // If repost is not allowed
+    if (!discussion.allowRepost) {
+      return "Repost Not Allowed";
+    }
+
+    // If already reposted
+    if (userReposts.has(discussion.DiscussionID)) {
+      return "Already Reposted";
+    }
+
+    return null; // No message means repost is allowed
   };
 
   const handleModalClose = () => {
@@ -1117,6 +1281,38 @@ const Discussion = () => {
                   </div>
                 </div>
 
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-bold mb-2">
+                    Repost Permission <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="allowRepost"
+                        value="true"
+                        checked={allowRepost === true}
+                        onChange={() => setAllowRepost(true)}
+                      />
+                      Yes
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="allowRepost"
+                        value="false"
+                        checked={allowRepost === false}
+                        onChange={() => setAllowRepost(false)}
+                      />
+                      No
+                    </label>
+                  </div>
+                  {errors.allowRepost && (
+                    <p className="text-red-500 text-xs italic">{errors.allowRepost}</p>
+                  )}
+                </div>
+
+
                 {/* <div className="mb-4">
                   <label className="block text-gray-700 font-bold mb-2">
                     Image
@@ -1441,17 +1637,10 @@ const Discussion = () => {
                         className="flex items-center text-sm md:text-base lg:text-lg"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleAddLike(
-                            discussion.DiscussionID,
-                            discussion.userLike
-                          );
+                          handleAddLike(discussion.DiscussionID, discussion.userLike);
                         }}
                       >
-                        {discussion.userLike == 1 ? (
-                          <AiFillLike />
-                        ) : (
-                          <AiOutlineLike />
-                        )}
+                        {discussion.userLike == 1 ? <AiFillLike /> : <AiOutlineLike />}
                         {discussion.likeCount} Likes
                       </button>
 
@@ -1466,6 +1655,45 @@ const Discussion = () => {
                         {discussion.commentCount} Comment
                         {discussion.commentCount !== 1 ? "s" : ""}
                       </button>
+
+                      {/* Enhanced repost logic */}
+                      {discussion.UserID === currentUserId ? (
+                        // This is directly my post
+                        <span className="flex items-center text-gray-400 text-sm md:text-base lg:text-lg">
+                          <FiRepeat className="mr-2" />
+                          Your Post
+                        </span>
+                      ) : discussion.RepostUserID === currentUserId ? (
+                        // This is a repost of my original content
+                        <span className="flex items-center text-gray-400 text-sm md:text-base lg:text-lg">
+                          <FiRepeat className="mr-2" />
+                          Originally Your Post
+                        </span>
+                      ) : !discussion.allowRepost ? (
+                        // Repost not allowed by original author
+                        <span className="flex items-center text-gray-400 text-sm md:text-base lg:text-lg">
+                          <FiRepeat className="mr-2" />
+                          Repost Not Allowed
+                        </span>
+                      ) : userReposts.has(discussion.DiscussionID) ? (
+                        // I've already reposted this
+                        <span className="flex items-center text-gray-400 text-sm md:text-base lg:text-lg">
+                          <FiRepeat className="mr-2" />
+                          Already Reposted
+                        </span>
+                      ) : (
+                        // Can repost
+                        <button
+                          className="flex items-center text-DGXblue text-sm md:text-base lg:text-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRepost(discussion);
+                          }}
+                        >
+                          <FiRepeat className="mr-2" />
+                          Repost
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

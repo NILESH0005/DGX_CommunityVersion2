@@ -30,6 +30,8 @@ export const createBlogPost = async (userEmail, blogData) => {
     const approvedOn = isAdmin ? new Date() : null;
 
     let repostUserId = null;
+    let repostId = null;
+
     if (blogData.repostId && blogData.repostId !== 0) {
       const originalBlog = await Blog.findOne({
         where: { BlogID: blogData.repostId, delStatus: 0 },
@@ -38,6 +40,8 @@ export const createBlogPost = async (userEmail, blogData) => {
 
       if (originalBlog) {
         repostUserId = originalBlog.UserID;
+        repostId = blogData.repostId;
+
       }
     }
 
@@ -56,10 +60,11 @@ export const createBlogPost = async (userEmail, blogData) => {
       ApprovedBy: approvedBy,
       ApprovedOn: approvedOn,
       UserID: user.UserID,   // new blog is owned by reposting user
-      RepostID: blogData.repostId ?? 0,   // which blog was reposted
-      RepostUserID: repostUserId ?? null,    // whose blog it was
+      RepostID: blogData.repostId ?? null,   // which blog was reposted
+      RepostUserID: repostUserId ?? null,
+      allowRepost: allowRepost ?? false,  // default false if missing
     });
-
+    console.log("blog body", blogPost);
     logInfo("Blog posted successfully!");
 
     return {
@@ -193,6 +198,7 @@ export const getUserBlogsService = async (userEmail) => {
       "UserID",
       "Status",
       "AdminRemark",
+      "allowRepost",
     ],
   });
 
@@ -223,7 +229,8 @@ export const getPublicBlogsService = async () => {
       "image",
       "UserID",
       "RepostID",
-      "RepostUserID"
+      "RepostUserID",
+      "allowRepost",
     ],
     include: [
       {

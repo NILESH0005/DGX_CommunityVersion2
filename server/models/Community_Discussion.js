@@ -9,7 +9,7 @@ export default (sequelize, DataTypes) => {
       },
       UserID: {
         type: DataTypes.INTEGER,
-        allowNull: true, // "Checked" in SQL Server means nullable
+        allowNull: true,
       },
       Title: {
         type: DataTypes.STRING(500),
@@ -81,19 +81,39 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING(800),
         allowNull: true,
       },
+
+      // ===== Add repost fields =====
+      RepostID: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      RepostUserID: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      allowRepost: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
     },
     {
-      tableName: "Community_Discussions", // match exact DB table name
-      timestamps: false, // since you already have date fields
+      tableName: "Community_Discussions",
+      timestamps: false,
     }
   );
+
   CommunityDiscussion.associate = (models) => {
     CommunityDiscussion.belongsTo(models.TableDDReference, {
       foreignKey: "Visibility",
       targetKey: "idCode",
       as: "visibilityRef",
     });
-  };
 
+    // ✅ link repost user
+    CommunityDiscussion.belongsTo(models.User, {
+      foreignKey: "RepostUserID",
+      as: "RepostUser",
+    });
+  };
   return CommunityDiscussion;
 };

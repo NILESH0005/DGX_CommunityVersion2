@@ -7,7 +7,7 @@ import ApiContext from '../context/ApiContext';
 import JoditEditor from "jodit-react";
 
 const BlogModal = ({ blog, closeModal, updateBlogState }) => {
-    const { title, image, author, published_date, content, Status, BlogID, UserName } = blog || {};
+    const { title, image, author, published_date, content, Status, BlogID, UserName, allowRepost } = blog || {};
     const { fetchData, userToken, user } = useContext(ApiContext);
     const modalRef = useRef(null);
     const editorRef = useRef(null);
@@ -138,7 +138,7 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 overflow-hidden">
-            <div 
+            <div
                 ref={modalRef}
                 className="bg-white w-full h-full max-w-full flex flex-col overflow-hidden"
             >
@@ -166,10 +166,10 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
                 <div className="flex-grow overflow-y-auto p-6">
                     {image && (
                         <div className="w-full mb-6 flex justify-center">
-                            <img 
-                                className="max-w-full max-h-96 object-contain rounded" 
-                                src={image} 
-                                alt={title} 
+                            <img
+                                className="max-w-full max-h-96 object-contain rounded"
+                                src={image}
+                                alt={title}
                             />
                         </div>
                     )}
@@ -182,6 +182,9 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
                         {published_date && (
                             <p className="text-gray-500">{published_date}</p>
                         )}
+                        <p className={`mt-1 text-sm font-medium ${allowRepost ? 'text-green-600' : 'text-red-600'}`}>
+                            {allowRepost ? 'Repost Allowed' : 'Repost Not Allowed'}
+                        </p>
                     </div>
 
                     <div className="prose max-w-none">
@@ -203,8 +206,8 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
                                 disablePlugins: 'paste,sticky,drag-and-drop,drag-and-drop-element',
                             }}
                             tabIndex={1}
-                            onBlur={() => {}}
-                            onChange={() => {}}
+                            onBlur={() => { }}
+                            onChange={() => { }}
                         />
                     </div>
                 </div>
@@ -237,8 +240,8 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
                             </button>
                         )}
                     </div>
-                    <button 
-                        onClick={closeModal} 
+                    <button
+                        onClick={closeModal}
                         className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
                     >
                         Close

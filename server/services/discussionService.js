@@ -6,16 +6,11 @@ const { User, CommunityDiscussion, TableDDReference } = db;
 export const createDiscussionPost = async (userId, postData) => {
   try {
     const user = await User.findOne({
-      where: {
-        EmailId: userId,
-        delStatus: 0,
-      },
+      where: { EmailId: userId, delStatus: 0 },
     });
+    if (!user) throw new Error("User not found, please login first");
 
-    if (!user) {
-      throw new Error("User not found login first");
-    }
-
+    // Map visibility to internal ID
     let visibilityId = null;
     if (postData.visibility) {
       const visibilityRecord = await TableDDReference.findOne({
@@ -25,39 +20,17 @@ export const createDiscussionPost = async (userId, postData) => {
           delStatus: 0,
         },
       });
-      if (visibilityRecord) {
-        visibilityId = visibilityRecord.idCode;
-      }
+      visibilityId = visibilityRecord ? visibilityRecord.idCode : null;
     }
 
-    if (postData.likes !== null && postData.reference) {
-      const existingLike = await CommunityDiscussion.findOne({
-        where: {
-          Reference: postData.reference,
-          UserID: user.UserID,
-          delStatus: 0,
-          Likes: { [Op.ne]: null },
-        },
-      });
+    // Convert allowRepost to boolean
+    const allowRepost = postData.allowRepost === true || postData.allowRepost === 1 || postData.allowRepost === '1';
 
-      if (existingLike) {
-        await existingLike.update({
-          Likes: postData.likes,
-          AuthLstEdt: user.Name,
-          editOnDt: new Date(),
-        });
+    // Handle repost
+    const repostId = postData.repostId || null;          // Original discussion ID
+    const repostUserId = repostId ? user.UserID : null; // Current user doing the repost
 
-        return {
-          success: true,
-          data: {
-            postId: existingLike.DiscussionID,
-            action: "like",
-          },
-          message: "Like Posted Successfully",
-        };
-      }
-    }
-
+    // Create new discussion (original or repost)
     const newPost = await CommunityDiscussion.create({
       UserID: user.UserID,
       Title: postData.title || null,
@@ -70,11 +43,15 @@ export const createDiscussionPost = async (userId, postData) => {
       Reference: postData.reference || 0,
       ResourceUrl: postData.url || null,
       DiscussionImagePath: postData.bannerImagePath || null,
+      allowRepost: allowRepost,
+      RepostID: repostId,
+      RepostUserID: repostUserId,
       AuthAdd: user.Name,
       AddOnDt: new Date(),
       delStatus: 0,
     });
 
+    // Get human-readable visibility value
     let visibilityValue = null;
     if (visibilityId) {
       const visibilityRecord = await TableDDReference.findByPk(visibilityId);
@@ -85,24 +62,20 @@ export const createDiscussionPost = async (userId, postData) => {
       success: true,
       data: {
         postId: newPost.DiscussionID,
-        visibility: {
-          value: visibilityValue,
-          id: visibilityId,
-        },
-        action:
-          postData.likes !== null
-            ? "like"
-            : postData.comment !== null
-            ? "comment"
-            : "post",
+        visibility: { value: visibilityValue, id: visibilityId },
+        allowRepost,
+        repostId,
+        repostUserId,
+        action: repostId ? "repost" : "post",
       },
-      message: "Discussion Posted Successfully",
+      message: repostId ? "Discussion Reposted Successfully" : "Discussion Posted Successfully",
     };
   } catch (error) {
     console.error("Discussion Service Error:", error);
     throw error;
   }
 };
+
 
 const getCommentsRecursive = async (parentId, currentUserId) => {
   const comments = await CommunityDiscussion.findAll({
@@ -247,6 +220,7 @@ export const getPublicDiscussionsService = async (email) => {
     return { success: false, error };
   }
 };
+
 
 export const updateDiscussionService = async (userId, payload) => {
   const { reference, title, content, image, tags, url, visibility } = payload;

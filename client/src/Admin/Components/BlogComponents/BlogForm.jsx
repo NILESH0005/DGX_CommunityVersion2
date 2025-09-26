@@ -14,7 +14,9 @@ const BlogForm = (props) => {
   const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add toxicity checking state
   const [categories, setCategories] = useState([]);
   const [content, setContent] = useState("");
-  
+  const [allowRepost, setAllowRepost] = useState(false);
+
+
   const editor = useRef(null);
   const { fetchData, userToken, user } = useContext(ApiContext);
 
@@ -48,7 +50,7 @@ const BlogForm = (props) => {
   // Toxicity validation function for blog content
   const validateBlogToxicity = async () => {
     setIsCheckingToxicity(true);
-    
+
     try {
       // Clean content (strip HTML tags)
       const strippedContent = content.replace(/<[^>]*>?/gm, "").trim();
@@ -133,7 +135,7 @@ const BlogForm = (props) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -177,6 +179,7 @@ const BlogForm = (props) => {
       category,
       Status: blogStatus,
       UserName: user.Name,
+      allowRepost,
     };
 
     try {
@@ -195,6 +198,7 @@ const BlogForm = (props) => {
               Status: blogStatus,
               UserID: user.UserID,
               UserName: user.Name,
+              allowRepost,
             },
             ...prevBlogs,
           ]);
@@ -216,6 +220,7 @@ const BlogForm = (props) => {
     setSelectedImage(null);
     setContent("");
     setErrors({});
+    setAllowRepost(false);
   };
 
   return (
@@ -261,7 +266,18 @@ const BlogForm = (props) => {
         />
         {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
       </div>
-
+      <div className="mb-4 flex items-center">
+        <input
+          type="checkbox"
+          id="allowRepost"
+          checked={allowRepost}
+          onChange={(e) => setAllowRepost(e.target.checked)}
+          className="mr-2"
+        />
+        <label htmlFor="allowRepost" className="text-sm font-medium">
+          Allow others to repost my blog
+        </label>
+      </div>
       <div className="mb-4 relative pt-10">
         <label className="block text-sm font-medium mb-2">Upload Image</label>
         <div className="text-xs text-gray-500 mb-2">

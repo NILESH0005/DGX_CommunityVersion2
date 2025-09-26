@@ -13,18 +13,14 @@ import {
 dotenv.config();
 
 export const discussionPost = async (req, res) => {
-  console.log("incoming req body", req.body);
-  let success = false;
   const userId = req.user.id;
-
   const errors = validationResult(req);
+
   if (!errors.isEmpty()) {
-    const warningMessage = "Data is not in the right format";
-    logWarning(warningMessage);
     return res.status(400).json({
-      success,
+      success: false,
       data: errors.array(),
-      message: warningMessage,
+      message: "Data is not in the right format",
     });
   }
 
@@ -40,6 +36,8 @@ export const discussionPost = async (req, res) => {
       visibility,
       reference,
       bannerImagePath,
+      allowRepost,
+      repostId, // ID of original discussion if this is a repost
     } = req.body;
 
     const postData = {
@@ -53,24 +51,24 @@ export const discussionPost = async (req, res) => {
       visibility: visibility || null,
       reference: reference || 0,
       bannerImagePath: bannerImagePath || null,
+      allowRepost: allowRepost || false,
+      repostId: repostId || null,
     };
 
-    const result = await DiscussionService.createDiscussionPost(
-      userId,
-      postData
-    );
+    const result = await DiscussionService.createDiscussionPost(userId, postData);
 
-    logInfo(result.message);
     return res.status(200).json(result);
   } catch (error) {
-    logError(error);
+    console.error("Discussion Controller Error:", error);
     return res.status(500).json({
       success: false,
       data: {},
-      message: error.message || "Something went wrong please try again",
+      message: error.message || "Something went wrong, please try again",
     });
   }
 };
+
+
 
 export const getDiscussion = async (req, res) => {
   let success = false;
@@ -116,6 +114,7 @@ export const getDiscussion = async (req, res) => {
     });
   }
 };
+
 
 export const updateDiscussion = async (req, res) => {
   let success = false;
