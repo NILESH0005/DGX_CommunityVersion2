@@ -19,6 +19,7 @@ import UserLmsProgress from "./UserLmsProgress.js";
 import QuizDetailsModel from "./QuizDetails.js";
 import UserActivityModel from "./UserActivity.js";
 import ContentEngagementModel from "./ContentEngagement.js";
+import ContactUsModel from "../models/Contact_Us.js";
 
 const User = UserModel(sequelize, DataTypes);
 const LMSUserProgress = UserLmsProgress(sequelize, DataTypes);
@@ -39,6 +40,7 @@ const LMSUnitsDetails = UnitsDetails(sequelize, DataTypes);
 const QuizDetails = QuizDetailsModel(sequelize, DataTypes);
 const UserActivity = UserActivityModel(sequelize, DataTypes);
 const ContentEngagement = ContentEngagementModel(sequelize, DataTypes);
+const ContactUs = ContactUsModel(sequelize, DataTypes);
 
 const db = {
   sequelize,
@@ -46,6 +48,7 @@ const db = {
   CommunityBlog,
   CommunityDiscussion,
   CommunityEvents,
+  
   LMSFilesDetails,
   Group_Master,
   LMSModulesDetails,
@@ -61,6 +64,7 @@ const db = {
   LMSUserProgress,
   UserActivity,
   ContentEngagement,
+  ContactUs
 };
 
 Object.values(db).forEach((model) => {

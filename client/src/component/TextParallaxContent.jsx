@@ -8,7 +8,7 @@ const TextParallaxContent = () => {
     events: [],
     blogs: [],
     discussions: [],
-    lms: [],
+    modules: [], // Changed from 'lms' to 'modules' to match backend
   });
   const [loading, setLoading] = useState(true);
   const { fetchData, userToken, user } = useContext(ApiContext);
@@ -27,12 +27,15 @@ const TextParallaxContent = () => {
         const result = await fetchData(endpoint, method, body, headers);
 
         if (result?.success) {
+          // Map backend response to frontend expected structure
           setHomeData({
-            events: result.data?.events || [],
-            blogs: result.data?.blogs || [],
-            discussions: result.data?.discussions || [],
-            lms: result.data?.lms || [],
+            events: result.data?.upcomingEvents || [], // Changed from events to upcomingEvents
+            blogs: result.data?.featuredBlogs || [], // Changed from blogs to featuredBlogs
+            discussions: result.data?.recentDiscussions || [], // Changed from discussions to recentDiscussions
+            modules: result.data?.featuredModules || [], // Changed from lms to featuredModules
           });
+        } else {
+          console.error("Failed to fetch home data:", result?.message);
         }
         setLoading(false);
       } catch (error) {
@@ -59,7 +62,7 @@ const TextParallaxContent = () => {
     <div className="bg-DGXwhite min-h-screen">
       {/* Featured Event Banner */}
       <div className="relative overflow-hidden">
-        {featuredEvent && (
+        {featuredEvent ? (
           <div className="relative h-[50vh] w-full">
             <div className="absolute inset-0 bg-gradient-to-t from-DGXblack/80 via-DGXblack/50 to-transparent z-10" />
             <img
@@ -111,19 +114,11 @@ const TextParallaxContent = () => {
               >
                 <span className="flex items-center gap-2">
                   <CalendarDays className="w-4 h-4" />
-                  {featuredEvent.formattedStartDate ||
-                    formatEventDate(
-                      featuredEvent.StartDate,
-                      featuredEvent.EndDate
-                    )}
+                  {formatEventDate(featuredEvent.StartDate, featuredEvent.EndDate)}
                 </span>
                 <span className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
-                  {featuredEvent.formattedTime ||
-                    formatEventTime(
-                      featuredEvent.StartDate,
-                      featuredEvent.EndDate
-                    )}
+                  {formatEventTime(featuredEvent.StartDate, featuredEvent.EndDate)}
                 </span>
                 {featuredEvent.Venue && (
                   <span className="flex items-center gap-2">
@@ -163,19 +158,27 @@ const TextParallaxContent = () => {
               )}
             </motion.div>
           </div>
+        ) : (
+          // Fallback when no featured event
+          <div className="relative h-[50vh] w-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center">
+            <div className="text-center text-DGXwhite z-20">
+              <h1 className="text-4xl md:text-6xl font-bold mb-4">Welcome to Our Community</h1>
+              <p className="text-xl opacity-90">Discover amazing events, blogs, and discussions</p>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Content Sections */}
       <div className="relative overflow-hidden">
-        {/* LMS Section - Only show if there are items */}
-        {homeData.lms.length > 0 && (
+        {/* Modules Section - Only show if there are items */}
+        {homeData.modules.length > 0 && (
           <Section
-            title="Learning Management System"
+            title="Learning Modules"
             subtitle="Access courses, track progress, and achieve your learning goals"
             theme="DGXblue"
-            items={homeData.lms}
-            type="course"
+            items={homeData.modules}
+            type="module"
           />
         )}
 
@@ -193,13 +196,34 @@ const TextParallaxContent = () => {
         {/* Blog Section - Only show if there are items */}
         {homeData.blogs.length > 0 && (
           <Section
-            title="Latest Blog Posts"
+            title="Featured Blog Posts"
             subtitle="Insights, tutorials, and industry news"
             theme="DGXblue"
             items={homeData.blogs}
             type="blog"
             icon={<BookOpen className="w-6 h-6" />}
           />
+        )}
+
+        {/* Additional Events Section - Only show if there are more events */}
+        {upcomingEvents.length > 0 && (
+          <Section
+            title="More Upcoming Events"
+            subtitle="Don't miss these exciting events"
+            theme="DGXgreen"
+            items={upcomingEvents}
+            type="event"
+          />
+        )}
+
+        {/* Fallback when no content */}
+        {homeData.modules.length === 0 && 
+         homeData.discussions.length === 0 && 
+         homeData.blogs.length === 0 && (
+          <div className="text-center py-16">
+            <h2 className="text-2xl font-bold text-DGXgray mb-4">No content available at the moment</h2>
+            <p className="text-DGXgray">Check back later for updates!</p>
+          </div>
         )}
       </div>
     </div>
@@ -247,7 +271,7 @@ const Section = ({ title, subtitle, theme, items, type, icon }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item, index) => (
             <Card
-              key={item.DiscussionID || item.BlogID || item.ModuleID || index}
+              key={item.EventID || item.DiscussionID || item.BlogID || item.ModuleID || index}
               item={item}
               type={type}
               theme={theme}
@@ -278,58 +302,92 @@ const Card = ({ item, type, theme }) => {
     },
   }[theme];
 
+  // Get appropriate image based on item type
+  const getImageSrc = () => {
+    if (type === 'event') return item.EventImage;
+    if (type === 'discussion') return item.Image || item.DiscussionImagePath;
+    if (type === 'blog') return item.image;
+    if (type === 'module') return item.ModuleImagePath || item.ModuleImage;
+    return "/default-image.jpg";
+  };
+
+  // Get appropriate title based on item type
+  const getTitle = () => {
+    if (type === 'event') return item.EventTitle;
+    if (type === 'discussion') return item.Title;
+    if (type === 'blog') return item.title;
+    if (type === 'module') return item.ModuleName;
+    return "Default Title";
+  };
+
+  // Get appropriate description based on item type
+  const getDescription = () => {
+    if (type === 'event') return item.EventDescription;
+    if (type === 'discussion') return item.Content;
+    if (type === 'blog') return item.content;
+    if (type === 'module') return item.ModuleDescription;
+    return "Default description text";
+  };
+
   return (
     <motion.div
       whileHover={{
         y: -5,
-        boxShadow:
-          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
       }}
       transition={{ type: "spring", stiffness: 300 }}
       className={`rounded-xl overflow-hidden bg-DGXwhite border border-DGXgray hover:border-${theme} transition-all duration-300`}
     >
       <div className="h-48 overflow-hidden relative">
         <motion.img
-          src={
-            item.Image ||
-            item.ModuleImagePath ||
-            item.image ||
-            "/default-image.jpg"
-          }
-          alt={item.Title || item.ModuleName || item.title || "Default image"}
+          src={getImageSrc() || "/default-image.jpg"}
+          alt={getTitle()}
           className="w-full h-full object-cover"
           whileHover={{ scale: 1.05 }}
           transition={{ duration: 0.3 }}
           loading="lazy"
         />
-        {type === "blog" && (
+        {(type === "blog" || type === "event") && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-DGXblack/60 to-transparent p-4">
             <span className="text-DGXwhite text-sm">
-              {formatBlogDate(item.publishedDate)}
+              {type === "blog" 
+                ? formatBlogDate(item.publishedDate || item.AddOnDt)
+                : formatEventDate(item.StartDate, item.EndDate)
+              }
             </span>
           </div>
         )}
       </div>
       <div className="p-6">
         <h3 className={`text-xl font-bold mb-2 ${classes.text}`}>
-          {item.Title || item.ModuleName || item.title || "Default Title"}
+          {getTitle()}
         </h3>
         <p className="text-DGXgray mb-4 line-clamp-3">
-          {stripHtmlTags(
-            item.Content ||
-              item.ModuleDescription ||
-              item.content ||
-              "Default description text"
-          )}
+          {stripHtmlTags(getDescription())}
         </p>
+        
         {type === "blog" && (
           <div className="text-sm text-DGXgray">
-            By {item.author || "Admin"}
+            By {item.AuthAdd || "Admin"}
           </div>
         )}
+        
         {type === "discussion" && (
+          <div className="flex justify-between items-center text-sm text-DGXgray">
+            <span>❤️ {item.Likes || 0} likes</span>
+            <span>{formatBlogDate(item.AddOnDt)}</span>
+          </div>
+        )}
+        
+        {type === "event" && (
           <div className="text-sm text-DGXgray">
-            ❤️ {item.TotalLikes || 0} likes
+            {formatEventDate(item.StartDate, item.EndDate)}
+          </div>
+        )}
+        
+        {type === "module" && (
+          <div className="text-sm text-DGXgray">
+            By : {item.AuthAdd || "N/A"}
           </div>
         )}
       </div>
@@ -339,9 +397,15 @@ const Card = ({ item, type, theme }) => {
 
 // Helper functions
 function calculateCountdown(eventDate) {
+  if (!eventDate) return [{ value: "00", unit: "DAYS" }, { value: "00", unit: "HOURS" }, { value: "00", unit: "MIN" }];
+  
   const startDate = new Date(eventDate);
   const now = new Date();
   const diff = startDate - now;
+
+  if (diff < 0) {
+    return [{ value: "00", unit: "DAYS" }, { value: "00", unit: "HOURS" }, { value: "00", unit: "MIN" }];
+  }
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -355,8 +419,19 @@ function calculateCountdown(eventDate) {
 }
 
 function formatEventDate(startDate, endDate) {
+  if (!startDate) return "Date not available";
+  
   const start = new Date(startDate);
-  const end = new Date(endDate);
+  const end = endDate ? new Date(endDate) : start;
+  
+  if (start.toDateString() === end.toDateString()) {
+    return start.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+  
   return (
     start.toLocaleDateString("en-US", {
       month: "short",
@@ -373,8 +448,11 @@ function formatEventDate(startDate, endDate) {
 }
 
 function formatEventTime(startDate, endDate) {
+  if (!startDate) return "Time not available";
+  
   const start = new Date(startDate);
-  const end = new Date(endDate);
+  const end = endDate ? new Date(endDate) : start;
+  
   return (
     start.toLocaleTimeString("en-US", {
       hour: "2-digit",
@@ -389,6 +467,7 @@ function formatEventTime(startDate, endDate) {
 }
 
 function formatBlogDate(dateString) {
+  if (!dateString) return "Date not available";
   return new Date(dateString).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -397,8 +476,8 @@ function formatBlogDate(dateString) {
 }
 
 function stripHtmlTags(html) {
-  if (!html) return "";
-  return html.replace(/<[^>]*>?/gm, '');
+  if (!html) return "No description available";
+  return html.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...';
 }
 
 export default TextParallaxContent;

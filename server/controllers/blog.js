@@ -166,7 +166,7 @@ export const blogpost = async (req, res) => {
   }
 
   try {
-    const userEmail = req.user.id; // Assuming req.user.id is the logged-in user's EmailId
+    const userEmail = req.user.id;
     const blogData = req.body;
 
     const result = await createBlogPost(userEmail, blogData);

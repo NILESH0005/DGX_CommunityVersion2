@@ -41,7 +41,6 @@ export const createBlogPost = async (userEmail, blogData) => {
       if (originalBlog) {
         repostUserId = originalBlog.UserID;
         repostId = blogData.repostId;
-
       }
     }
 
@@ -59,11 +58,12 @@ export const createBlogPost = async (userEmail, blogData) => {
       AdminRemark: null,
       ApprovedBy: approvedBy,
       ApprovedOn: approvedOn,
-      UserID: user.UserID,   // new blog is owned by reposting user
-      RepostID: blogData.repostId ?? null,   // which blog was reposted
+      UserID: user.UserID,
+      RepostID: blogData.repostId ?? null,
       RepostUserID: repostUserId ?? null,
-      allowRepost: allowRepost ?? false,  // default false if missing
+      allowRepost: blogData.allowRepost ?? false, // Fixed: use blogData.allowRepost
     });
+
     console.log("blog body", blogPost);
     logInfo("Blog posted successfully!");
 
@@ -87,7 +87,6 @@ export const createBlogPost = async (userEmail, blogData) => {
     };
   }
 };
-
 
 export const getBlogService = async (userEmail) => {
   // Check user exists
@@ -124,8 +123,8 @@ export const getBlogService = async (userEmail) => {
       ...(isAdmin
         ? {}
         : {
-          [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
-        }),
+            [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
+          }),
     },
     order: [["AddOnDt", "DESC"]],
     attributes: [
@@ -235,7 +234,7 @@ export const getPublicBlogsService = async () => {
     include: [
       {
         model: User,
-        as: "RepostUser",   // ✅ must match the alias in index.js
+        as: "RepostUser", // ✅ must match the alias in index.js
         attributes: ["UserID", "Name"],
       },
     ],
@@ -251,8 +250,6 @@ export const getPublicBlogsService = async () => {
     message: "Public blogs fetched successfully",
   };
 };
-
-
 
 export const updateBlogService = async (blogId, user, data) => {
   const { CommunityBlog } = db;
@@ -334,8 +331,9 @@ export const updateBlogService = async (blogId, user, data) => {
   return {
     success: true,
     status: 200,
-    message: `Blog ${data.Status ? data.Status + "d" : "updated"
-      } successfully!`,
+    message: `Blog ${
+      data.Status ? data.Status + "d" : "updated"
+    } successfully!`,
     data: { blogId },
   };
 };

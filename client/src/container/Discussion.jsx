@@ -430,6 +430,7 @@ const Discussion = () => {
             userLike: discussion.userLike || 0,
             likeCount: discussion.likeCount || 0,
             commentCount: discussion.commentCount || 0, // Use commentCount from backend
+            Content: discussion.Content || "", // Ensure Content is never null
             ImageUrl: discussion.DiscussionImagePath
               ? `${BASE_URL}/${discussion.DiscussionImagePath}`
               : discussion.Image || null,
@@ -1504,13 +1505,13 @@ const Discussion = () => {
                         {discussion.Title}
                       </h3>
                       <div className="text-gray-600 text-sm md:text-base lg:text-lg xl:text-xl">
-                        {discussion.Content.length > 500 ? (
+                        {discussion.Content?.length > 500 ? (
                           <>
                             <div
                               className="ql-snow"
                               dangerouslySetInnerHTML={{
                                 __html: DOMPurify.sanitize(
-                                  discussion.Content.slice(0, 500) + "..."
+                                  (discussion.Content || "").slice(0, 500) + "..."
                                 ),
                               }}
                             />
@@ -1528,7 +1529,7 @@ const Discussion = () => {
                           <div
                             className="ql-snow discussion-content"
                             dangerouslySetInnerHTML={{
-                              __html: DOMPurify.sanitize(discussion.Content),
+                              __html: DOMPurify.sanitize(discussion.Content || ""),
                             }}
                           />
                         )}

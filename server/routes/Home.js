@@ -13,6 +13,7 @@ import {
   deleteParallaxText,
   getAllCMSContent,
   getHomePageContent,
+  getLogoutHomePageContent,
 } from "../controllers/home.js";
 
 const router = express.Router();
@@ -30,5 +31,7 @@ router.post("/addNewsSection", fetchUser, addNewsSection);
 router.post("/addProjectShowcase", fetchUser, addProjectShowcase);
 router.get("/getAllCMSContent", getAllCMSContent);
 router.get("/getHomePageContent", getHomePageContent);
+router.get("/getLogoutHomePageContent", getLogoutHomePageContent);
+
 
 export default router;
