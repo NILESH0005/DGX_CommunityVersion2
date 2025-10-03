@@ -19,10 +19,14 @@ export default (sequelize, DataTypes) => {
     AdminRemark: { type: DataTypes.TEXT, allowNull: true },
     ApprovedBy: { type: DataTypes.STRING(255), allowNull: true },
     ApprovedOn: { type: DataTypes.DATE, allowNull: true },
-    UserID: { type: DataTypes.INTEGER, allowNull: true },
+    UserID: { type: DataTypes.INTEGER, allowNull: true }, // blog author or user who liked
     RepostID: { type: DataTypes.INTEGER, allowNull: true },
-    RepostUserID : { type: DataTypes.INTEGER, allowNull: true },
+    RepostUserID: { type: DataTypes.INTEGER, allowNull: true },
     allowRepost: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+
+    // ===== Like functionality =====
+    Likes: { type: DataTypes.INTEGER, allowNull: true }, 
+    Reference: { type: DataTypes.INTEGER, allowNull: true }, // points to original BlogID
 
   }, {
     tableName: 'Community_Blog',
