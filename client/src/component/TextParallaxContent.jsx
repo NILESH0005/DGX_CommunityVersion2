@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { motion } from "framer-motion";
 import { CalendarDays, Clock, BookOpen } from "lucide-react";
+import moment from "moment";
 import ApiContext from "../context/ApiContext";
 
 const TextParallaxContent = () => {
@@ -66,7 +67,7 @@ const TextParallaxContent = () => {
           <div className="relative h-[50vh] w-full">
             <div className="absolute inset-0 bg-gradient-to-t from-DGXblack/80 via-DGXblack/50 to-transparent z-10" />
             <img
-              src={featuredEvent.EventImage || "/default-event.jpg"}
+              src={featuredEvent.EventImage || "/No_Image_Available.jpg"}
               alt={featuredEvent.EventTitle || "Upcoming Event"}
               className="w-full h-full object-cover"
               loading="lazy"
@@ -283,7 +284,7 @@ const Section = ({ title, subtitle, theme, items, type, icon }) => {
   );
 };
 
-// Card Component
+// Updated Card Component with consistent styling
 const Card = ({ item, type, theme }) => {
   const classes = {
     DGXgreen: {
@@ -302,13 +303,29 @@ const Card = ({ item, type, theme }) => {
     },
   }[theme];
 
-  // Get appropriate image based on item type
+  // Get appropriate image based on item type with proper fallback
   const getImageSrc = () => {
-    if (type === 'event') return item.EventImage;
-    if (type === 'discussion') return item.Image || item.DiscussionImagePath;
-    if (type === 'blog') return item.image;
-    if (type === 'module') return item.ModuleImagePath || item.ModuleImage;
-    return "/default-image.jpg";
+    let imageSrc;
+    
+    if (type === 'event') {
+      imageSrc = item.EventImage;
+    } else if (type === 'discussion') {
+      imageSrc = item.Image || item.DiscussionImagePath;
+    } else if (type === 'blog') {
+      imageSrc = item.image || item.BlogImage;
+    } else if (type === 'module') {
+      imageSrc = item.ModuleImagePath || item.ModuleImage;
+    } else {
+      imageSrc = null;
+    }
+    
+    // Check if imageSrc exists and is not empty/null/undefined
+    if (imageSrc && imageSrc.trim() !== '') {
+      return imageSrc;
+    }
+    
+    // Fallback to default image if no image found
+    return "/No_Image_Available.jpg";
   };
 
   // Get appropriate title based on item type
@@ -329,6 +346,47 @@ const Card = ({ item, type, theme }) => {
     return "Default description text";
   };
 
+  // Get status or additional info based on type
+  const getStatusInfo = () => {
+    if (type === 'discussion') {
+      return {
+        label: 'Likes',
+        value: item.Likes || 0,
+        icon: '❤️'
+      };
+    }
+    if (type === 'blog') {
+      return {
+        label: '',
+        value: item.AuthAdd || 'Admin'
+      };
+    }
+    if (type === 'module') {
+      return {
+        label: '',
+        value: item.AuthAdd || 'N/A'
+      };
+    }
+    return null;
+  };
+
+  // Get date information based on type
+  const getDateInfo = () => {
+    if (type === 'event') {
+      return formatEventDate(item.StartDate, item.EndDate);
+    }
+    if (type === 'blog') {
+      return formatBlogDate(item.publishedDate || item.AddOnDt);
+    }
+    if (type === 'discussion') {
+      return formatBlogDate(item.AddOnDt);
+    }
+    return null;
+  };
+
+  const statusInfo = getStatusInfo();
+  const dateInfo = getDateInfo();
+
   return (
     <motion.div
       whileHover={{
@@ -336,60 +394,69 @@ const Card = ({ item, type, theme }) => {
         boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
       }}
       transition={{ type: "spring", stiffness: 300 }}
-      className={`rounded-xl overflow-hidden bg-DGXwhite border border-DGXgray hover:border-${theme} transition-all duration-300`}
+      className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full"
     >
-      <div className="h-48 overflow-hidden relative">
+      {/* Image Container - Fixed Height */}
+      <div className="relative h-48 w-full overflow-hidden">
         <motion.img
-          src={getImageSrc() || "/default-image.jpg"}
+          src={getImageSrc()}
           alt={getTitle()}
           className="w-full h-full object-cover"
           whileHover={{ scale: 1.05 }}
           transition={{ duration: 0.3 }}
           loading="lazy"
+          onError={(e) => {
+            e.target.src = "/No_Image_Available.jpg";
+          }}
         />
-        {(type === "blog" || type === "event") && (
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-DGXblack/60 to-transparent p-4">
-            <span className="text-DGXwhite text-sm">
-              {type === "blog" 
-                ? formatBlogDate(item.publishedDate || item.AddOnDt)
-                : formatEventDate(item.StartDate, item.EndDate)
-              }
+        
+        {/* Date Overlay for Blog and Event */}
+        {(type === "blog" || type === "event") && dateInfo && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+            <span className="text-white text-sm font-medium">
+              {dateInfo}
             </span>
           </div>
         )}
+        
+        {/* Theme-colored accent bar */}
+        <div className={`absolute top-0 left-0 w-full h-1 ${classes.bg}`} />
       </div>
-      <div className="p-6">
-        <h3 className={`text-xl font-bold mb-2 ${classes.text}`}>
+
+      {/* Content Container - Flexible but constrained */}
+      <div className="p-5 flex flex-col flex-grow">
+        {/* Title - Fixed height with truncation */}
+        <h3 className={`text-lg font-bold mb-3 line-clamp-2 min-h-[3.5rem] ${classes.text}`}>
           {getTitle()}
         </h3>
-        <p className="text-DGXgray mb-4 line-clamp-3">
+
+        {/* Description - Flexible but constrained */}
+        <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
           {stripHtmlTags(getDescription())}
         </p>
-        
-        {type === "blog" && (
-          <div className="text-sm text-DGXgray">
-            By {item.AuthAdd || "Admin"}
+
+        {/* Metadata Section - Fixed at bottom */}
+        <div className="mt-auto pt-3 border-t border-gray-100">
+          <div className="flex justify-between items-center text-xs text-gray-500">
+            {/* Status Information */}
+            {statusInfo && (
+              <div className="flex items-center gap-1">
+                {statusInfo.icon && <span>{statusInfo.icon}</span>}
+                <span className="font-medium">
+                  {statusInfo.value} {statusInfo.label && !statusInfo.icon && statusInfo.label.toLowerCase()}
+                </span>
+              </div>
+            )}
+            
+            {/* Date for non-blog/event items */}
+            {dateInfo && (type === "discussion" || type === "module") && (
+              <span className="font-medium">{dateInfo}</span>
+            )}
+            
+            {/* Spacer when only one element */}
+            {(!statusInfo || !dateInfo) && <div className="flex-grow"></div>}
           </div>
-        )}
-        
-        {type === "discussion" && (
-          <div className="flex justify-between items-center text-sm text-DGXgray">
-            <span>❤️ {item.Likes || 0} likes</span>
-            <span>{formatBlogDate(item.AddOnDt)}</span>
-          </div>
-        )}
-        
-        {type === "event" && (
-          <div className="text-sm text-DGXgray">
-            {formatEventDate(item.StartDate, item.EndDate)}
-          </div>
-        )}
-        
-        {type === "module" && (
-          <div className="text-sm text-DGXgray">
-            By : {item.AuthAdd || "N/A"}
-          </div>
-        )}
+        </div>
       </div>
     </motion.div>
   );
@@ -421,30 +488,14 @@ function calculateCountdown(eventDate) {
 function formatEventDate(startDate, endDate) {
   if (!startDate) return "Date not available";
   
-  const start = new Date(startDate);
-  const end = endDate ? new Date(endDate) : start;
+  const start = moment(startDate);
+  const end = endDate ? moment(endDate) : start;
   
-  if (start.toDateString() === end.toDateString()) {
-    return start.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  if (start.format('YYYY-MM-DD') === end.format('YYYY-MM-DD')) {
+    return start.format('MMMM D, YYYY');
   }
   
-  return (
-    start.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }) +
-    " - " +
-    end.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
-  );
+  return `${start.format('MMMM D, YYYY')} - ${end.format('MMMM D, YYYY')}`;
 }
 
 function formatEventTime(startDate, endDate) {
@@ -468,16 +519,13 @@ function formatEventTime(startDate, endDate) {
 
 function formatBlogDate(dateString) {
   if (!dateString) return "Date not available";
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return moment(dateString).format('MMMM D, YYYY');
 }
 
 function stripHtmlTags(html) {
   if (!html) return "No description available";
-  return html.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...';
+  const plainText = html.replace(/<[^>]*>?/gm, '');
+  return plainText.length > 150 ? plainText.substring(0, 150) + '...' : plainText;
 }
 
 export default TextParallaxContent;

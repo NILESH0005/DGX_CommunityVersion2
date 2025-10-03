@@ -77,8 +77,10 @@ export const blogpost_bulk = async (req, res) => {
                 author,
                 content,
                 category,
+                AddOnDt,
                 image,
                 publishedDate,
+                AddOnDt,
                 rows[0].Name,
                 0,
               ]);
