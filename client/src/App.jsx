@@ -133,7 +133,7 @@ function App() {
       const method = "GET";
       const headers = {
         "Content-Type": "application/json",
-        "auth-token": userToken || "", // Handle case where userToken is null
+        "auth-token": userToken 
       };
 
       console.log("Fetching events with token:", userToken);

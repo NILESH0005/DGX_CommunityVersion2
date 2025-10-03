@@ -280,7 +280,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
   const navigate = useNavigate();
   const { scrollYProgress } = useScroll();
   const headerY = useTransform(scrollYProgress, [0, 1], [0, -100]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { fetchData, userToken } = useContext(ApiContext);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -331,14 +331,14 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (error) {}
+      } catch (error) { }
     } else if (navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(
           `${shareData.text} - ${shareData.url}`
         );
         alert("Link copied to clipboard!");
-      } catch (error) {}
+      } catch (error) { }
     } else {
       alert("Sharing is not supported on this browser.");
     }
@@ -374,41 +374,56 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     setIsModalOpen(false);
   };
 
-  useEffect(() => {
-    if (events && events.length > 0) {
-      setIsLoading(false);
-    } else {
-      // If no events are passed via props, fetch them directly
-      const fetchEventsDirectly = async () => {
-        try {
-          const endpoint = "eventandworkshop/getEvent";
-          const eventData = await fetchData(endpoint);
-          console.log("Directly fetched events:", eventData);
-          if (eventData && eventData.data) {
-            setEvents(eventData.data); // Update parent state
-            setIsLoading(false);
-          }
-        } catch (error) {
-          console.error("Error fetching events:", error);
-          setIsLoading(false);
-        }
-      };
+  // useEffect(() => {
+  //   if (events && events.length > 0) {
+  //     setIsLoading(false);
+  //   } else {
+  //     // If no events are passed via props, fetch them directly
+  //     const fetchEventsDirectly = async () => {
+  //       try {
+  //         const endpoint = "eventandworkshop/getEvent";
+  //         const eventData = await fetchData(endpoint);
+  //         console.log("Directly fetched events:", eventData);
+  //         if (eventData && eventData.data) {
+  //           setEvents(eventData.data); // Update parent state
+  //           setIsLoading(false);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error fetching events:", error);
+  //         setIsLoading(false);
+  //       }
+  //     };
 
-      fetchEventsDirectly();
-    }
-  }, [events, fetchData, setEvents]);
+  //     fetchEventsDirectly();
+  //   }
+  // }, [events, fetchData, setEvents]);
 
   const approvedEvents = events
     ? events.filter((event) => event.Status === "Approved")
     : [];
 
   const currentDate = new Date().toISOString();
-  const upcomingEvents = approvedEvents.filter(
-    (event) => event.StartDate > currentDate
-  );
-  const pastEvents = approvedEvents.filter(
-    (event) => event.EndDate < currentDate
-  );
+  const upcomingEvents = approvedEvents.filter((event) => {
+    try {
+      const eventStartDate = new Date(event.StartDate);
+      const now = new Date();
+      return eventStartDate.getTime() > now.getTime();
+    } catch (error) {
+      console.error("Error parsing date for event:", event.EventTitle, error);
+      return false;
+    }
+  });
+
+  const pastEvents = approvedEvents.filter((event) => {
+    try {
+      const eventEndDate = new Date(event.EndDate);
+      const now = new Date();
+      return eventEndDate.getTime() < now.getTime();
+    } catch (error) {
+      console.error("Error parsing date for event:", event.EventTitle, error);
+      return false;
+    }
+  });
 
   if (!mounted) return null;
 
