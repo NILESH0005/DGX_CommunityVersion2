@@ -24,10 +24,13 @@ export const createDiscussionPost = async (userId, postData) => {
     }
 
     // Convert allowRepost to boolean
-    const allowRepost = postData.allowRepost === true || postData.allowRepost === 1 || postData.allowRepost === '1';
+    const allowRepost =
+      postData.allowRepost === true ||
+      postData.allowRepost === 1 ||
+      postData.allowRepost === "1";
 
     // Handle repost
-    const repostId = postData.repostId || null;          // Original discussion ID
+    const repostId = postData.repostId || null; // Original discussion ID
     const repostUserId = repostId ? user.UserID : null; // Current user doing the repost
 
     // Create new discussion (original or repost)
@@ -68,14 +71,15 @@ export const createDiscussionPost = async (userId, postData) => {
         repostUserId,
         action: repostId ? "repost" : "post",
       },
-      message: repostId ? "Discussion Reposted Successfully" : "Discussion Posted Successfully",
+      message: repostId
+        ? "Discussion Reposted Successfully"
+        : "Discussion Posted Successfully",
     };
   } catch (error) {
     console.error("Discussion Service Error:", error);
     throw error;
   }
 };
-
 
 const getCommentsRecursive = async (parentId, currentUserId) => {
   const comments = await CommunityDiscussion.findAll({
@@ -184,6 +188,29 @@ export const getPublicDiscussionsService = async (email) => {
           userId
         );
 
+        let originalPost = null;
+        if (discussion.RepostID) {
+          const originalDiscussion = await CommunityDiscussion.findOne({
+            where: { DiscussionID: discussion.RepostID },
+            include: [
+              {
+                model: User,
+                attributes: ["UserID", "Name", "ProfilePicture"],
+              },
+            ],
+          });
+
+          if (originalDiscussion) {
+            originalPost = {
+              OriginalDiscussionID: originalDiscussion.DiscussionID,
+              OriginalUserID: originalDiscussion.User?.UserID || null,
+              OriginalUserName: originalDiscussion.User?.Name || null,
+              OriginalUserImage:
+                originalDiscussion.User?.ProfilePicture || null,
+            };
+          }
+        }
+
         return {
           ...discussion.toJSON(),
           UserName: discussion.AuthAdd,
@@ -209,6 +236,7 @@ export const getPublicDiscussionsService = async (email) => {
           commentCount: countAllComments(comments),
           comment: comments,
           ImageUrl: discussion.User?.ProfilePicture || null, // main post author
+          originalPost,
         };
       })
     );
@@ -220,7 +248,6 @@ export const getPublicDiscussionsService = async (email) => {
     return { success: false, error };
   }
 };
-
 
 export const updateDiscussionService = async (userId, payload) => {
   const { reference, title, content, image, tags, url, visibility } = payload;

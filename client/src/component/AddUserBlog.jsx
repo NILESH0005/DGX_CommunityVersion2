@@ -5,6 +5,8 @@ import BlogForm from "../Admin/Components/BlogComponents/BlogForm.jsx";
 import LoadPage from "./LoadPage.jsx";
 import ApiContext from "../context/ApiContext";
 import BlogModal from "./BlogModal.jsx";
+import moment from "moment";
+import images from "../../public/images.js";
 
 const AddUserBlog = (props) => {
   const [showForm, setShowForm] = useState(false);
@@ -34,8 +36,8 @@ const AddUserBlog = (props) => {
       const endpoint = "blog/getUserBlogs";
       const method = "GET";
       const headers = {
-        'Content-Type': 'application/json',
-        'auth-token': userToken // Add auth token
+        "Content-Type": "application/json",
+        "auth-token": userToken, // Add auth token
       };
       try {
         const result = await fetchData(endpoint, method, {}, headers);
@@ -43,8 +45,8 @@ const AddUserBlog = (props) => {
 
         if (result?.success && result?.data?.blogs) {
           // Filter blogs by current user's ID
-          const userBlogs = result.data.blogs.filter(blog =>
-            blog.UserID === user?.UserID
+          const userBlogs = result.data.blogs.filter(
+            (blog) => blog.UserID === user?.UserID
           );
           setBlogs(userBlogs);
           if (props.setBlogs) {
@@ -71,84 +73,118 @@ const AddUserBlog = (props) => {
   }
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="flex justify-center mb-6">
+    <div className="p-6 min-h-screen bg-gray-50">
+      <div className="flex justify-center mb-8">
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-3 bg-DGXblue from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-lg shadow-md hover:scale-105 transition-all duration-300 text-lg font-semibold"
+          className="flex items-center gap-3 bg-DGXblue from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-lg font-semibold hover:scale-105"
         >
           {showForm ? "My Blogs" : "Add Blog"}
-          {showForm ? <IoMdList className="size-6" /> : <MdAdd className="size-6" />}
+          {showForm ? (
+            <IoMdList className="size-6" />
+          ) : (
+            <MdAdd className="size-6" />
+          )}
         </button>
       </div>
 
-        {showForm ? (
-          <BlogForm setBlogs={setBlogs} />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {blogs.length > 0 ? (
-              blogs.map((blog) => (
-                <div
-                  key={blog.BlogID}
-                  className="p-5 rounded-xl shadow-lg border-2 border-gray-200 bg-white hover:shadow-xl transition-all transform hover:-translate-y-1 flex flex-col gap-3"
-                  style={{ height: "400px" }}
-                >
-                  <div className="w-full h-44 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
-                    {blog.image ? (
-                      <img
-                        src={blog.image}
-                        alt={blog.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-500 text-sm">No Image Available</span>
-                    )}
+      {showForm ? (
+        <BlogForm setBlogs={setBlogs} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          {blogs.length > 0 ? (
+            blogs.map((blog) => (
+              <div
+                key={blog.BlogID}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full"
+              >
+                {/* Image Section */}
+
+                <div className="w-full h-48 bg-gray-100 overflow-hidden">
+                  {blog.image ? (
+                    <img
+                      src={blog.image}
+                      alt={blog.title || "Blog Image"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={images.Noimage}
+                      alt="No Image Available"
+                      className="w-full h-full object-contain p-4 opacity-80"
+                    />
+                  )}
+                </div>
+
+                {/* Content Section */}
+                <div className="p-4 flex flex-col flex-grow">
+                  {/* Title */}
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+                    {blog.title || "Untitled"}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-3 flex-grow">
+                    {stripHtmlTags(blog.content) || "No description available"}
+                  </p>
+
+                  <div className="text-xs text-gray-500 mb-3">
+                    Published:{" "}
+                    {blog.AddOnDt
+                      ? moment(blog.AddOnDt, "YYYY-MM-DD HH:mm:ss").format(
+                          "MMMM D, YYYY"
+                        )
+                      : "No date available"}
                   </div>
 
-                  <div className="flex flex-col gap-2 flex-grow">
-                    <h3 className="text-lg font-bold text-gray-900">{blog.title}</h3>
-                    <p className="text-gray-600 overflow-hidden line-clamp-3 h-[60px]">
-                      {stripHtmlTags(blog.content)}
-                    </p>
-                    <span className="text-gray-500 text-sm">
-                      Published: {new Date(blog.publishedDate).toDateString()}
+                  {/* Status Badge */}
+                  <div className="mb-3">
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        user?.isAdmin === 1
+                          ? "bg-green-100 text-green-800"
+                          : blog.Status === "Approved"
+                          ? "bg-green-100 text-green-800"
+                          : blog.Status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {user?.isAdmin === 1 ? "Approved" : blog.Status}
                     </span>
                   </div>
 
-                  <span
-                    className={`px-3 py-1 text-sm font-semibold rounded-full self-start ${user?.isAdmin === 1
-                        ? "bg-green-100 text-green-700"
-                        : blog.Status === "Approved"
-                          ? "bg-green-100 text-green-700"
-                          : blog.Status === "Pending"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
-                      }`}
-                  >
-                    {user?.isAdmin === 1 ? "Approved" : blog.Status}
-                  </span>
+                  {/* Admin Remarks (if rejected) */}
                   {blog.Status === "Rejected" && blog.AdminRemark && (
-                    <div className="text-sm text-gray-600 bg-gray-100 p-2 rounded-md">
-                      <span className="font-semibold">Admin Remark:</span> {blog.AdminRemark}
+                    <div className="mb-3 p-2 bg-gray-50 rounded-md border border-gray-200">
+                      <div className="text-xs font-semibold text-gray-700 mb-1">
+                        Admin Remark:
+                      </div>
+                      <div className="text-xs text-gray-600 line-clamp-2">
+                        {blog.AdminRemark}
+                      </div>
                     </div>
                   )}
 
+                  {/* View Details Button */}
                   <button
                     onClick={() => openModal(blog)}
-                    className="w-full bg-DGXblue text-white py-2 text-lg rounded-md hover:bg-indigo-700 transition-all"
+                    className="w-full bg-DGXblue hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200 mt-auto"
                   >
                     View Details
                   </button>
                 </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center w-full">
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full flex justify-center items-center py-12">
+              <p className="text-gray-500 text-lg font-medium">
                 {loading ? "Loading..." : "No blogs found."}
               </p>
-            )}
-          </div>
-        )}
-  
+            </div>
+          )}
+        </div>
+      )}
 
       {isModalOpen && (
         <BlogModal
@@ -156,10 +192,12 @@ const AddUserBlog = (props) => {
           closeModal={closeModal}
           updateBlogState={(blogId, status) => {
             if (status === "delete") {
-              setBlogs(prevBlogs => prevBlogs.filter(blog => blog.BlogID !== blogId));
+              setBlogs((prevBlogs) =>
+                prevBlogs.filter((blog) => blog.BlogID !== blogId)
+              );
             } else {
-              setBlogs(prevBlogs =>
-                prevBlogs.map(blog =>
+              setBlogs((prevBlogs) =>
+                prevBlogs.map((blog) =>
                   blog.BlogID === blogId ? { ...blog, Status: status } : blog
                 )
               );

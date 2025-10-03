@@ -53,14 +53,10 @@ import blog from '../public/blog.jpg'
 import LMS from '../public/LMS.jpg'
 import Discussion from '../public/Discussion.png'
 import quiz from '../public/quiz.jpg'
-
-
-
-
-
-
+import Noimage from '../public/No_Image_Available.jpg'
 
 export default {
+    Noimage,
     quiz,
     nvidiaPP,
     giventure,

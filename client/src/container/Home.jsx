@@ -23,6 +23,7 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
+
 const Home = () => {
   const { user, userToken, fetchData } = useContext(ApiContext);
   const navigate = useNavigate();
@@ -236,7 +237,8 @@ const Home = () => {
     );
   }
 
-  if (userToken) {
+  // SWAPPED: Show authenticated dashboard when NOT logged in (no token)
+  if (!userToken) {
     return (
       <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-black to-blue-500">
         <ParallaxSection data={homeData?.parallax} />
@@ -246,6 +248,7 @@ const Home = () => {
     );
   }
 
+  // SWAPPED: Show public landing page when user IS logged in (has token)
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -397,151 +400,90 @@ const Home = () => {
 
       {/* Community Highlights */}
       <section className="py-20 bg-gray-50">
-  <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-    <motion.div
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-      variants={containerVariants}
-      className="flex flex-col lg:flex-row items-center lg:items-start gap-12"
-    >
-      {/* Image Section */}
-      <motion.div className="w-full lg:w-1/2" variants={slideInFromLeft}>
-        <div className="relative rounded-xl overflow-hidden shadow-xl">
-          <Slider {...sliderSettings}>
-            {communityImages.map((image, index) => (
-              <div key={index} className="outline-none">
-                <img
-                  src={image}
-                  alt={`Community highlight ${index + 1}`}
-                  className="w-full h-56 sm:h-64 md:h-80 object-cover rounded-xl"
-                />
-              </div>
-            ))}
-          </Slider>
-        </div>
-      </motion.div>
-
-      {/* Text Section */}
-      <motion.div className="w-full lg:w-1/2 text-center lg:text-left" variants={slideInFromRight}>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-          Join Our{" "}
-          <span className="text-blue-600">Growing Community</span>
-        </h2>
-        <p className="text-gray-600 text-base sm:text-lg mb-8">
-          Connect with thousands of AI enthusiasts, researchers, and
-          professionals from around the world.
-        </p>
-
-        <div className="space-y-6">
-          {/* Feature 1 */}
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-            <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
-              <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xl" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Expert Network</h3>
-              <p className="text-gray-600">
-                Connect with AI/ML professionals, mentors, and learners
-                worldwide
-              </p>
-            </div>
-          </div>
-
-          {/* Feature 2 */}
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-            <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
-              <FontAwesomeIcon icon={faComment} className="text-blue-600 text-xl" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Discussion Forums</h3>
-              <p className="text-gray-600">
-                Dive into topic-focused conversations that matter
-              </p>
-            </div>
-          </div>
-
-          {/* Feature 3 */}
-          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-            <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
-              <FontAwesomeIcon icon={faCalendarAlt} className="text-blue-600 text-xl" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Regular Events</h3>
-              <p className="text-gray-600">
-                Stay updated with workshops, webinars, and AI conferences
-              </p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  </div>
-</section>
-
-
-      {/* Text Parallax Section */}
-      <TextParallaxContent />
-
-      {/* Testimonials */}
-      {/* <section className="py-20 bg-white">
-        <div className="container mx-auto px-6 lg:px-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={containerVariants}
-            className="text-center mb-16"
+            className="flex flex-col lg:flex-row items-center lg:items-start gap-12"
           >
-            <motion.p 
-              className="text-blue-600 font-semibold mb-4"
-              variants={itemVariants}
-            >
-              TESTIMONIALS
-            </motion.p>
-            <motion.h2 
-              className="text-3xl md:text-4xl font-bold text-gray-900 mb-6"
-              variants={itemVariants}
-            >
-              What Our <span className="text-blue-600">Community Says</span>
-            </motion.h2>
-          </motion.div>
+            {/* Image Section */}
+            <motion.div className="w-full lg:w-1/2" variants={slideInFromLeft}>
+              <div className="relative rounded-xl overflow-hidden shadow-xl">
+                <Slider {...sliderSettings}>
+                  {communityImages.map((image, index) => (
+                    <div key={index} className="outline-none">
+                      <img
+                        src={image}
+                        alt={`Community highlight ${index + 1}`}
+                        className="w-full h-56 sm:h-64 md:h-80 object-cover rounded-xl"
+                      />
+                    </div>
+                  ))}
+                </Slider>
+              </div>
+            </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                className="bg-gray-50 rounded-xl p-8"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-50px" }}
-                variants={{
-                  hidden: { opacity: 0, y: 50 },
-                  visible: { 
-                    opacity: 1, 
-                    y: 0,
-                    transition: { delay: index * 0.2, type: "spring" }
-                  }
-                }}
-                whileHover={{ scale: 1.03 }}
-              >
-                <div className="flex items-center mb-6">
-                  <img 
-                    src={testimonial.image} 
-                    alt={testimonial.name} 
-                    className="w-12 h-12 rounded-full object-cover mr-4"
-                  />
+            {/* Text Section */}
+            <motion.div className="w-full lg:w-1/2 text-center lg:text-left" variants={slideInFromRight}>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                Join Our{" "}
+                <span className="text-blue-600">Growing Community</span>
+              </h2>
+              <p className="text-gray-600 text-base sm:text-lg mb-8">
+                Connect with thousands of AI enthusiasts, researchers, and
+                professionals from around the world.
+              </p>
+
+              <div className="space-y-6">
+                {/* Feature 1 */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+                    <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xl" />
+                  </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
-                    <p className="text-blue-600 text-sm">{testimonial.role}</p>
+                    <h3 className="font-semibold text-gray-900">Expert Network</h3>
+                    <p className="text-gray-600">
+                      Connect with AI/ML professionals, mentors, and learners
+                      worldwide
+                    </p>
                   </div>
                 </div>
-                <p className="text-gray-600 italic">"{testimonial.quote}"</p>
-              </motion.div>
-            ))}
-          </div>
+
+                {/* Feature 2 */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+                    <FontAwesomeIcon icon={faComment} className="text-blue-600 text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Discussion Forums</h3>
+                    <p className="text-gray-600">
+                      Dive into topic-focused conversations that matter
+                    </p>
+                  </div>
+                </div>
+
+                {/* Feature 3 */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+                    <FontAwesomeIcon icon={faCalendarAlt} className="text-blue-600 text-xl" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Regular Events</h3>
+                    <p className="text-gray-600">
+                      Stay updated with workshops, webinars, and AI conferences
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
-      </section> */}
+      </section>
+
+      {/* Text Parallax Section */}
+      <TextParallaxContent />
     </div>
   );
 };
