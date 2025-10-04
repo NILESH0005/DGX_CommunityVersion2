@@ -281,9 +281,6 @@ const countAllComments = (comments) => {
   return count;
 };
 
-/**
- * Service to fetch public discussions
- */
 export const getPublicDiscussionsService = async (email) => {
   try {
     console.log("📌 Starting getPublicDiscussionsService for email:", email);
@@ -309,7 +306,7 @@ export const getPublicDiscussionsService = async (email) => {
       include: [
         {
           model: User,
-          attributes: ["UserID", "Name", "ProfilePicture"], // pick fields you need
+          attributes: ["UserID", "Name", "ProfilePicture"],
         },
       ],
       order: [["AddOnDt", "DESC"]],
@@ -348,31 +345,49 @@ export const getPublicDiscussionsService = async (email) => {
           }
         }
 
+        // Get all like entries for this discussion
+        const likeEntries = await CommunityDiscussion.findAll({
+          where: {
+            Reference: discussion.DiscussionID,
+            delStatus: { [Op.or]: [0, null] },
+          },
+          order: [["AddOnDt", "DESC"]], // Get latest entries first
+        });
+
+        // Filter out entries where latest like is null
+        const validLikes = [];
+        const userLikes = new Map(); // Track latest like per user
+
+        likeEntries.forEach(entry => {
+          // Only process if we haven't seen a more recent entry from this user
+          if (!userLikes.has(entry.UserID) ||
+            userLikes.get(entry.UserID).AddOnDt < entry.AddOnDt) {
+            userLikes.set(entry.UserID, entry);
+          }
+        });
+
+        // Count only valid likes (latest entry with Likes = 1)
+        let likeCount = 0;
+        let userLike = 0;
+
+        userLikes.forEach((entry, userId) => {
+          if (entry.Likes === 1) {
+            likeCount++;
+            if (userId === userId) { // Current user's like
+              userLike = 1;
+            }
+          }
+        });
+
         return {
           ...discussion.toJSON(),
           UserName: discussion.AuthAdd,
           VisibilityName: discussion.visibilityRef?.ddValue || null,
-          likeCount: await CommunityDiscussion.count({
-            where: {
-              Reference: discussion.DiscussionID, // likes are stored as child rows
-              Likes: { [Op.gt]: 0 }, // only where Likes > 0
-              delStatus: { [Op.or]: [0, null] },
-            },
-          }),
-
-          userLike: (await CommunityDiscussion.findOne({
-            where: {
-              Reference: discussion.DiscussionID,
-              UserID: userId, // current user
-              Likes: { [Op.gt]: 0 }, // only likes
-              delStatus: { [Op.or]: [0, null] },
-            },
-          }))
-            ? 1
-            : 0,
+          likeCount: likeCount,
+          userLike: userLike,
           commentCount: countAllComments(comments),
           comment: comments,
-          ImageUrl: discussion.User?.ProfilePicture || null, // main post author
+          ImageUrl: discussion.User?.ProfilePicture || null,
           originalPost,
         };
       })
