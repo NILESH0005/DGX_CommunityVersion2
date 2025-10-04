@@ -492,7 +492,11 @@ const Discussion = () => {
     const newLikeState = currentUserLike === 1 ? 0 : 1;
     const discussion = demoDiscussions.find(d => d.DiscussionID === id);
     const currentLikes = Number(discussion?.likeCount) || 0;
-    const newLikeCount = newLikeState === 1 ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+
+    // Calculate new like count correctly
+    const newLikeCount = newLikeState === 1 ?
+      currentLikes + 1 :
+      Math.max(0, currentLikes - 1);
 
     // OPTIMISTIC UPDATE: Update UI immediately
     setDemoDiscussions((prevDiscussions) =>
@@ -574,8 +578,8 @@ const Discussion = () => {
         return;
       }
 
-      // If API call was successful, the optimistic update remains
-      console.log("Like updated successfully");
+      // If API call was successful, refresh to get accurate counts
+      await fetchDiscussionData(user?.EmailId || null);
 
     } catch (error) {
       console.error("Error:", error);
