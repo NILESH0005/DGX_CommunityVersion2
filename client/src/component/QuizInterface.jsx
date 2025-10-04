@@ -1,6 +1,11 @@
 import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import {
   BookOpen,
   Brain,
@@ -16,11 +21,47 @@ import ApiContext from "../context/ApiContext";
 import Quiz from "./quiz/Quiz";
 import images from "../../public/images.js";
 
+const ParticleBackground = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(30)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-DGXblue/20 rounded-full"
+          initial={{
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
+          }}
+          animate={{
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
+          }}
+          transition={{
+            duration: Math.random() * 20 + 10,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 const QuizInterface = () => {
   const [showCreateQuiz, setShowCreateQuiz] = useState(false);
   const navigate = useNavigate();
   const { userToken, user } = useContext(ApiContext);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const headerY = useTransform(scrollYProgress, [0, 1], [0, -100]);
 
   // Motivational quotes for carousel
   const motivationalQuotes = [
@@ -210,7 +251,9 @@ const QuizInterface = () => {
                   <div className="bg-gradient-to-r from-DGXgreen to-DGXblue p-3 md:p-4 rounded-full">
                     {(() => {
                       const IconComponent = quotes[currentIndex].icon;
-                      return <IconComponent className="h-6 w-6 md:h-8 md:w-8 text-white" />;
+                      return (
+                        <IconComponent className="h-6 w-6 md:h-8 md:w-8 text-white" />
+                      );
                     })()}
                   </div>
                   <blockquote className="text-lg md:text-2xl font-medium text-gray-800 leading-relaxed">
@@ -265,8 +308,46 @@ const QuizInterface = () => {
         <Quiz onBack={() => setShowCreateQuiz(false)} />
       ) : (
         <>
+          {/* Header Section with Same Animation as BlogPage */}
+          <motion.section
+            style={{ y: headerY }}
+            className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-20 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
+          >
+            <ParticleBackground />
+
+            <div className="relative z-10 text-center px-4 max-w-6xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+              >
+                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+                  DGX Quiz
+                  <span className="block text-green-300">Challenge Hub</span>
+                </h1>
+                <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
+                  Test your knowledge, compete with peers, and master new skills
+                </p>
+              </motion.div>
+            </div>
+
+            {/* Animated background shapes */}
+            <div className="absolute inset-0 overflow-hidden">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+                className="absolute -top-1/2 -right-1/2 w-full h-full border border-white/10 rounded-full"
+              />
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                className="absolute -bottom-1/2 -left-1/2 w-full h-full border border-white/10 rounded-full"
+              />
+            </div>
+          </motion.section>
+
           {/* Hero Section */}
-          <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-12 md:py-0">
+          <section className="relative flex items-center justify-center overflow-hidden py-12 md:py-20 bg-gradient-to-br from-blue-50 via-white to-purple-50">
             <div className="container mx-auto px-4 z-10">
               <motion.div
                 variants={containerVariants}
@@ -313,7 +394,10 @@ const QuizInterface = () => {
                     </motion.p>
                   </motion.div>
 
-                  <motion.div variants={itemVariants} className="space-y-4 md:space-y-6">
+                  <motion.div
+                    variants={itemVariants}
+                    className="space-y-4 md:space-y-6"
+                  >
                     <motion.div
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}

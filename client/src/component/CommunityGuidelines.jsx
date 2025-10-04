@@ -144,7 +144,7 @@ export default function CommunityGuidelines() {
       {/* Header Section */}
       <motion.section 
         style={{ y: headerY }}
-        className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-20 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
+        className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-10 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
 
       >
         <ParticleBackground />

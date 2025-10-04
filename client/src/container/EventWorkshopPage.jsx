@@ -432,7 +432,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       {/* Header Section */}
       <motion.section
         style={{ y: headerY }}
-        className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-20 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
+        className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-10 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
       >
         <ParticleBackground />
         <FloatingOrbs />
@@ -447,7 +447,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
               DGX Events &
               <span className="block text-green-300">Workshops</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed">
               Discover upcoming learning opportunities and networking events
             </p>
           </motion.div>
@@ -469,7 +469,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       </motion.section>
 
       {/* Upcoming Events Section */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-10 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

@@ -352,7 +352,8 @@ const Card = ({ item, type, theme }) => {
       return {
         label: 'Likes',
         value: item.Likes || 0,
-        icon: '❤️'
+        icon: '❤️',
+        author: item.AuthAdd || 'Admin', 
       };
     }
     if (type === 'blog') {
@@ -361,12 +362,7 @@ const Card = ({ item, type, theme }) => {
         value: item.AuthAdd || 'Admin'
       };
     }
-    if (type === 'module') {
-      return {
-        label: '',
-        value: item.AuthAdd || 'N/A'
-      };
-    }
+    
     return null;
   };
 

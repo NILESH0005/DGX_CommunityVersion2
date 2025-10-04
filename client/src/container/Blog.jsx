@@ -5,8 +5,13 @@ import ApiContext from "../context/ApiContext";
 import PublicBlogModal from "./PublicBlogModal";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import { ChevronDown, ArrowRight } from 'lucide-react';
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { ChevronDown, ArrowRight } from "lucide-react";
 
 const ParticleBackground = () => {
   return (
@@ -16,12 +21,20 @@ const ParticleBackground = () => {
           key={i}
           className="absolute w-1 h-1 bg-DGXblue/20 rounded-full"
           initial={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0),
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
           }}
           animate={{
-            x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 0),
-            y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 0),
+            x:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerWidth : 0),
+            y:
+              Math.random() *
+              (typeof window !== "undefined" ? window.innerHeight : 0),
           }}
           transition={{
             duration: Math.random() * 20 + 10,
@@ -31,8 +44,8 @@ const ParticleBackground = () => {
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
 const BlogPage = () => {
   const { fetchData, userToken } = useContext(ApiContext);
@@ -84,10 +97,10 @@ const BlogPage = () => {
 
         let endpoint = "blog/getPublicBlogs";
         let method = "GET";
-        let headers = { 'Content-Type': 'application/json' };
+        let headers = { "Content-Type": "application/json" };
 
         const result = await fetchData(endpoint, method, {}, headers);
-        console.log("blogggg",result)
+        console.log("blogggg", result);
         if (result && result.data) {
           setBlogs(result.data);
         } else {
@@ -115,7 +128,7 @@ const BlogPage = () => {
       setLoading(true);
       let endpoint = "blog/getPublicBlogs";
       let method = "GET";
-      let headers = { 'Content-Type': 'application/json' };
+      let headers = { "Content-Type": "application/json" };
 
       const result = await fetchData(endpoint, method, {}, headers);
       if (result && result.data) {
@@ -133,13 +146,13 @@ const BlogPage = () => {
   const openModal = (blog) => {
     if (!userToken) {
       Swal.fire({
-        title: 'Login Required',
-        text: 'You need to login to view this blog',
-        icon: 'info',
-        confirmButtonText: 'Go to Login',
+        title: "Login Required",
+        text: "You need to login to view this blog",
+        icon: "info",
+        confirmButtonText: "Go to Login",
       }).then((result) => {
         if (result.isConfirmed) {
-          navigate('/SignInn');
+          navigate("/SignInn");
         }
       });
       return;
@@ -157,14 +170,24 @@ const BlogPage = () => {
   const BlogCard = ({ blog, index }) => {
     if (!blog) return null;
 
-    const { title, image, AuthAdd, AddOnDt, publishedDate, category, readTime, RepostUser } = blog;
-    const fallbackImage = "https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
+    const {
+      title,
+      image,
+      AuthAdd,
+      AddOnDt,
+      publishedDate,
+      category,
+      readTime,
+      RepostUser,
+    } = blog;
+    const fallbackImage =
+      "https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
 
     const getAuthorDisplay = () => {
       if (RepostUser && RepostUser.Name) {
         return `Reposted from ${RepostUser.Name}`;
       }
-      return AuthAdd || 'Unknown author';
+      return AuthAdd || "Unknown author";
     };
     return (
       <motion.div
@@ -181,7 +204,7 @@ const BlogPage = () => {
             className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
             src={image || fallbackImage}
             alt={title}
-            onError={(e) => e.target.src = fallbackImage}
+            onError={(e) => (e.target.src = fallbackImage)}
             initial={{ scale: 1 }}
             whileHover={{ scale: 1.1 }}
             transition={{ duration: 0.3 }}
@@ -210,7 +233,13 @@ const BlogPage = () => {
 
         <div className="p-5 flex-grow flex flex-col">
           <div className="flex items-center text-xs text-gray-500 mb-2">
-            <span>{new Date(AddOnDt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+            <span>
+              {new Date(AddOnDt).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+              })}
+            </span>
             {readTime && (
               <>
                 <span className="mx-2">•</span>
@@ -235,7 +264,9 @@ const BlogPage = () => {
               <TbUserSquareRounded className="text-gray-700" size={18} />
             </motion.div>
             <div className="flex flex-col">
-              <span className="text-sm text-gray-600">{AuthAdd || 'Unknown author'}</span>
+              <span className="text-sm text-gray-600">
+                {AuthAdd || "Unknown author"}
+              </span>
               {/* Display repost credit if available */}
               {RepostUser && RepostUser.Name && (
                 <span className="text-xs text-DGXgreen font-medium">
@@ -249,9 +280,11 @@ const BlogPage = () => {
     );
   };
 
-  const filteredBlogs = blogs.filter(blog =>
-    (!selectedCategory || blog.category === selectedCategory) &&
-    (!searchQuery || blog.title.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredBlogs = blogs.filter(
+    (blog) =>
+      (!selectedCategory || blog.category === selectedCategory) &&
+      (!searchQuery ||
+        blog.title.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (!mounted) return null;
@@ -261,7 +294,7 @@ const BlogPage = () => {
       {/* Header Section */}
       <motion.section
         style={{ y: headerY }}
-        className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-20 px-4 sm:px-6 lg:px-8 text-center text-white"
+        className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-10 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
       >
         <ParticleBackground />
 
@@ -275,7 +308,7 @@ const BlogPage = () => {
               DGX Blog
               <span className="block text-green-300">Knowledge Hub</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-200 max-w-2xl mx-auto leading-relaxed">
               Insights, stories and innovations from our community
             </p>
           </motion.div>
@@ -297,7 +330,7 @@ const BlogPage = () => {
       </motion.section>
 
       {/* Search and Filter Section */}
-      <section className="py-16 px-4">
+      <section className="py-8 px-4">
         <div className="max-w-6xl mx-auto">
           <motion.div
             className="mb-12"
@@ -336,10 +369,11 @@ const BlogPage = () => {
               transition={{ staggerChildren: 0.1 }}
             >
               <motion.button
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!selectedCategory
-                  ? 'bg-DGXgreen text-black shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  !selectedCategory
+                    ? "bg-DGXgreen text-black shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
                 onClick={() => handleCategorySelect(null)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -353,16 +387,21 @@ const BlogPage = () => {
               {categories.map((category) => (
                 <motion.button
                   key={category.ddId || category.ddValue}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === category.ddValue
-                    ? 'bg-DGXgreen text-black shadow-md'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategory === category.ddValue
+                      ? "bg-DGXgreen text-black shadow-md"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
                   onClick={() => handleCategorySelect(category.ddValue)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 300, delay: 0.1 * categories.indexOf(category) }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    delay: 0.1 * categories.indexOf(category),
+                  }}
                 >
                   {category.ddValue}
                 </motion.button>
@@ -391,19 +430,30 @@ const BlogPage = () => {
               transition={{ duration: 0.5 }}
             >
               <div className="text-gray-400 mb-4">
-                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-16 h-16 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1}
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 {blogs.length === 0
-                  ? 'No articles available yet'
-                  : 'No articles match your search'}
+                  ? "No articles available yet"
+                  : "No articles match your search"}
               </h3>
               <p className="text-gray-600 max-w-md mx-auto">
                 {blogs.length === 0
-                  ? 'Check back later for new content.'
-                  : 'Try adjusting your search or filter criteria.'}
+                  ? "Check back later for new content."
+                  : "Try adjusting your search or filter criteria."}
               </p>
             </motion.div>
           ) : (
@@ -431,7 +481,7 @@ const BlogPage = () => {
                       if (pageSize + 6 >= filteredBlogs.length) {
                         setShowAll(true);
                       }
-                      setPageSize(prev => prev + 6);
+                      setPageSize((prev) => prev + 6);
                     }}
                     className="px-8 py-3 bg-DGXblue text-white rounded-lg hover:bg-DGXgreen transition-colors shadow-md hover:shadow-lg font-medium"
                     whileHover={{ scale: 1.05 }}
@@ -459,14 +509,16 @@ const BlogPage = () => {
             <h2 className="text-4xl font-bold mb-6">
               Want to contribute your own article?
             </h2>
-            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-              Share your knowledge and insights with our growing community of AI enthusiasts.
+            <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto whitespace-nowrap">
+              Share your knowledge and insights with our growing community of AI
+              enthusiasts.
             </p>
+
             <motion.button
               className="bg-white text-DGXblue hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-colors shadow-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/create-blog')}
+              onClick={() => navigate("/add")}
             >
               Write a Blog Post
               <ArrowRight className="w-4 h-4 ml-2 inline" />
@@ -478,7 +530,10 @@ const BlogPage = () => {
       {/* Blog Modal - Only show if user is logged in */}
       <AnimatePresence>
         {isModalOpen && selectedBlog && userToken && (
-          <PublicBlogModal blog={selectedBlog} closeModal={closeModal} refreshBlogs={refreshBlogs}
+          <PublicBlogModal
+            blog={selectedBlog}
+            closeModal={closeModal}
+            refreshBlogs={refreshBlogs}
           />
         )}
       </AnimatePresence>
