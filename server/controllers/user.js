@@ -108,7 +108,7 @@ export const getUser = async (req, res) => {
   }
 
   try {
-    const userEmail = req.user.id; 
+    const userEmail = req.user.id;
     const result = await UserService.getUserByEmail(userEmail);
     return res.status(result.status).json(result.response);
   } catch (error) {
@@ -220,8 +220,22 @@ export const passwordRecovery = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
   try {
+    console.log("Request body:", req.body);
+    console.log("Request headers:", req.headers);
+
     const { email, signature, password } = req.body;
     const SIGNATURE = process.env.SIGNATURE;
+    console.log("Extracted values:", { email, signature, password });
+    console.log("Env SIGNATURE:", SIGNATURE);
+
+    // Validate required fields
+    if (!email || !signature || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+        received: { email, signature, password },
+      });
+    }
 
     const result = await resetPasswordService(
       email,
@@ -229,13 +243,14 @@ export const resetPassword = async (req, res) => {
       password,
       SIGNATURE
     );
+    console.log("Service result:", result);
 
     if (!result.success) {
       return res.status(400).json(result);
     }
     res.status(200).json(result);
   } catch (err) {
-    console.error(err);
+    console.error("Reset password error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

@@ -736,32 +736,40 @@ export const resetPasswordService = async (
   password,
   SIGNATURE
 ) => {
-  const user = await User.findOne({
-    where: {
-      EmailId: email,
-      delStatus: { [Op.or]: [0, null] },
-    },
-  });
+  try {
+    const user = await User.findOne({
+      where: {
+        EmailId: email,
+        delStatus: { [Op.or]: [0, null] },
+      },
+    });
 
-  if (!user || user.FlagPasswordChange !== 2) {
-    return { success: false, message: "Invalid link" };
+    if (!user || user.FlagPasswordChange !== 2) {
+      return { success: false, message: "Invalid or expired link" };
+    }
+
+    // Validate signature (coming only from env, not frontend)
+    if (!SIGNATURE || SIGNATURE !== process.env.SIGNATURE) {
+      return { success: false, message: "This link is not valid" };
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update user record
+    await user.update({
+      Password: hashedPassword,
+      AuthLstEdt: user.Name,
+      editOnDt: new Date(),
+      FlagPasswordChange: 1,
+    });
+
+    return { success: true, message: "Password reset successfully" };
+  } catch (error) {
+    console.error("Error in resetPasswordService:", error);
+    return { success: false, message: "Something went wrong" };
   }
-
-  if (signature !== SIGNATURE) {
-    return { success: false, message: "This link is not valid" };
-  }
-
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
-
-  await user.update({
-    Password: hashedPassword,
-    AuthLstEdt: user.Name,
-    editOnDt: new Date(),
-    FlagPasswordChange: 1,
-  });
-
-  return { success: true, message: "Password Reset successfully" };
 };
 
 export const deleteUser = async (userId, adminName) => {
