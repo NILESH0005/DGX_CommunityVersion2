@@ -13,7 +13,7 @@ const AddUserEvent = (props) => {
   const { fetchData, user, userToken } = useContext(ApiContext);
   // const [events, setEvents] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
@@ -29,36 +29,36 @@ const AddUserEvent = (props) => {
   };
 
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      const endpoint = "eventandworkshop/getEvent";
-      const method = "GET";
-      const headers = {
-        'Content-Type': 'application/json',
-      };
+  // useEffect(() => {
+  //   const fetchEvents = async () => {
+  //     const endpoint = "eventandworkshop/getEvent";
+  //     const method = "GET";
+  //     const headers = {
+  //       'Content-Type': 'application/json',
+  //     };
 
-      try {
-        const result = await fetchData(endpoint, method, {}, headers);
-        console.log("user events", result)
-        if (result.success && Array.isArray(result.data)) {
+  //     try {
+  //       const result = await fetchData(endpoint, method, {}, headers);
+  //       console.log("user events", result)
+  //       if (result.success && Array.isArray(result.data)) {
      
-          props.setEvents(result.data);
-          console.log(result.data)
-        } else {
-          console.error("Invalid data format:", result);
-          props.setEvents([]);
-          console.error("Failed to fetch events. Please try again later.");
-        }
-      } catch (error) {
-        console.error("Error fetching events:", error);
-        props.setEvents([]);
-        console.error("An error occurred while fetching events.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchEvents();
-  }, []);
+  //         props.setEvents(result.data);
+  //         console.log(result.data)
+  //       } else {
+  //         console.error("Invalid data format:", result);
+  //         props.setEvents([]);
+  //         console.error("Failed to fetch events. Please try again later.");
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching events:", error);
+  //       props.setEvents([]);
+  //       console.error("An error occurred while fetching events.");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchEvents();
+  // }, []);
 
   // console.log(typeof props.event);
 

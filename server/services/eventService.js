@@ -79,7 +79,7 @@ export const addEventService = async (decodedUser, payload) => {
 
 export const getEventService = async (userId) => {
   const events = await CommunityEvents.findAll({
-    where: { delStatus: 0, UserID: userId },
+    where: { delStatus: 0 },
 
     include: [
       {

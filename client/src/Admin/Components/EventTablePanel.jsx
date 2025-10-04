@@ -62,7 +62,7 @@ const EventTable = () => {
       try {
         setLoading(true);
         const response = await fetchData(
-          "/api/getEvents",
+          "/eventandworkshop/getEvents",
           "GET",
           {},
           {

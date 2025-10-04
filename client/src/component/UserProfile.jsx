@@ -277,6 +277,10 @@ const UserProfile = (props) => {
     }
   };
 
+  useEffect(() => {
+    console.log("Updated events received in UserProfile:", props.events);
+  }, [props.events]);
+
   return !isLoggedIn ? (
     <h1>login?</h1>
   ) : loading ? (
@@ -312,103 +316,91 @@ const UserProfile = (props) => {
             <div className="bg-DGXwhite rounded-lg shadow-xl p-4 border border-DGXgreen">
               <ul className="space-y-2">
                 <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "posts"
+                  className={`flex items-center p-3 rounded-lg cursor-pointer ${activeTab === "posts"
                       ? "bg-DGXgreen/40"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => setActiveTab("posts")}
                 >
                   <GoCommentDiscussion className="mr-3 text-lg md:text-xl" />
                   <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "posts" ? "text-DGXblue font-bold" : ""
-                    }`}
+                    className={`text-sm md:text-base ${activeTab === "posts" ? "text-DGXblue font-bold" : ""
+                      }`}
                   >
                     My Discussions
                   </li>
                 </div>
                 <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "events"
+                  className={`flex items-center p-3 rounded-lg cursor-pointer ${activeTab === "events"
                       ? "bg-DGXgreen/40"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => setActiveTab("events")}
                 >
                   <MdEventAvailable className="mr-3 text-lg md:text-xl" />
                   <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "events" ? "text-DGXblue font-bold" : ""
-                    }`}
+                    className={`text-sm md:text-base ${activeTab === "events" ? "text-DGXblue font-bold" : ""
+                      }`}
                   >
                     My Events
                   </li>
                 </div>
                 <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "blogs"
+                  className={`flex items-center p-3 rounded-lg cursor-pointer ${activeTab === "blogs"
                       ? "bg-DGXgreen/40"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => setActiveTab("blogs")}
                 >
                   <LiaBlogSolid className="mr-3 text-lg md:text-xl" />
                   <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "blogs" ? "text-DGXblue font-bold" : ""
-                    }`}
+                    className={`text-sm md:text-base ${activeTab === "blogs" ? "text-DGXblue font-bold" : ""
+                      }`}
                   >
                     My Blogs
                   </li>
                 </div>
                 <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "quiz"
+                  className={`flex items-center p-3 rounded-lg cursor-pointer ${activeTab === "quiz"
                       ? "bg-DGXgreen/40"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => setActiveTab("quiz")}
                 >
                   <FaPoll className="mr-3 text-lg md:text-xl" />
                   <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "quiz" ? "text-DGXblue font-bold" : ""
-                    }`}
+                    className={`text-sm md:text-base ${activeTab === "quiz" ? "text-DGXblue font-bold" : ""
+                      }`}
                   >
                     Quiz Dashboard
                   </li>
                 </div>
                 <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "password"
+                  className={`flex items-center p-3 rounded-lg cursor-pointer ${activeTab === "password"
                       ? "bg-DGXgreen/40"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={() => setActiveTab("password")}
                 >
                   <CgPassword className="mr-3 text-lg md:text-xl" />
                   <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "password" ? "text-DGXblue font-bold" : ""
-                    }`}
+                    className={`text-sm md:text-base ${activeTab === "password" ? "text-DGXblue font-bold" : ""
+                      }`}
                   >
                     Change Password
                   </li>
                 </div>
                 <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "logout"
+                  className={`flex items-center p-3 rounded-lg cursor-pointer ${activeTab === "logout"
                       ? "bg-DGXgreen/40"
                       : "hover:bg-gray-100"
-                  }`}
+                    }`}
                   onClick={handleLogout}
                 >
                   <SlLogout className="mr-3 text-lg md:text-xl" />
                   <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "logout" ? "text-DGXblue font-bold" : ""
-                    }`}
+                    className={`text-sm md:text-base ${activeTab === "logout" ? "text-DGXblue font-bold" : ""
+                      }`}
                   >
                     Logout
                   </li>

@@ -67,12 +67,12 @@ const ViewContent = ({ submodule, onBack }) => {
   const fetchFilesForUnit = useCallback(
     async (unitId) => {
       try {
-       const response = await fetchData(
-  `dropdown/getUnitsWithFiles/${submodule.SubModuleID}`,
-  "GET",
-  null, // No body for GET request
-  { "auth-token": userToken } // Headers go in the 4th parameter
-);
+        const response = await fetchData(
+          `dropdown/getUnitsWithFiles/${submodule.SubModuleID}`,
+          "GET",
+          null, // No body for GET request
+          { "auth-token": userToken } // Headers go in the 4th parameter
+        );
         if (response?.success) {
           setFiles(response.data);
           setEditingFile(null);
@@ -88,63 +88,63 @@ const ViewContent = ({ submodule, onBack }) => {
     [fetchData, userToken]
   );
 
-useEffect(() => {
-  const fetchUnits = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching units for SubModuleID:', submodule.SubModuleID);
-      console.log('Using token:', userToken ? 'Token exists' : 'No token');
-      
-      const response = await fetchData(
-        `dropdown/getUnitsWithFiles/${submodule.SubModuleID}`,
-        "GET",
-        null,
-        { "auth-token": userToken }
-      );
+  useEffect(() => {
+    const fetchUnits = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching units for SubModuleID:', submodule.SubModuleID);
+        console.log('Using token:', userToken ? 'Token exists' : 'No token');
 
-      console.log('API Response:', response);
+        const response = await fetchData(
+          `dropdown/getUnitsWithFiles/${submodule.SubModuleID}`,
+          "GET",
+          {},
+          { "auth-token": userToken }
+        );
 
-      if (response?.success) {
-        console.log('Response data:', response.data);
-        
-        // Check if data is an array
-        if (Array.isArray(response.data)) {
-          const validUnits = response.data.filter((unit) => unit && unit.UnitID);
-          console.log('Valid units:', validUnits);
-          
-          setUnits(validUnits);
-          
-          const filtered = validUnits.filter(
-            (unit) => unit.SubModuleID === submodule.SubModuleID
-          );
-          console.log('Filtered units:', filtered);
-          
-          setFilteredUnits(filtered);
+        console.log('API Response:', response);
+
+        if (response?.success) {
+          console.log('Response data:', response.data);
+
+          // Check if data is an array
+          if (Array.isArray(response.data)) {
+            const validUnits = response.data.filter((unit) => unit && unit.UnitID);
+            console.log('Valid units:', validUnits);
+
+            setUnits(validUnits);
+
+            const filtered = validUnits.filter(
+              (unit) => unit.SubModuleID === submodule.SubModuleID
+            );
+            console.log('Filtered units:', filtered);
+
+            setFilteredUnits(filtered);
+          } else {
+            console.warn('Response data is not an array:', response.data);
+            setUnits([]);
+            setFilteredUnits([]);
+          }
         } else {
-          console.warn('Response data is not an array:', response.data);
+          console.warn('API response not successful:', response);
           setUnits([]);
           setFilteredUnits([]);
         }
-      } else {
-        console.warn('API response not successful:', response);
+      } catch (err) {
+        console.error('Error fetching units:', err);
+        setError(err.message);
         setUnits([]);
         setFilteredUnits([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error fetching units:', err);
-      setError(err.message);
-      setUnits([]);
-      setFilteredUnits([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  if (submodule.SubModuleID) {
-    fetchUnits();
-  }
-  setShowAddUnitModal(false);
-}, [submodule.SubModuleID, fetchData, userToken]);
+    if (submodule.SubModuleID) {
+      fetchUnits();
+    }
+    setShowAddUnitModal(false);
+  }, [submodule.SubModuleID, fetchData, userToken]);
 
   useEffect(() => {
     if (selectedUnit) {

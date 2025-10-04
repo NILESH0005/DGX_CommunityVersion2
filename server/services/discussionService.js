@@ -3,6 +3,84 @@ import { Op } from "sequelize"; // ✅ direct import
 
 const { User, CommunityDiscussion, TableDDReference } = db;
 
+// export const createDiscussionPost = async (userId, postData) => {
+//   try {
+//     const user = await User.findOne({
+//       where: { EmailId: userId, delStatus: 0 },
+//     });
+//     if (!user) throw new Error("User not found, please login first");
+
+//     // Map visibility to internal ID
+//     let visibilityId = null;
+//     if (postData.visibility) {
+//       const visibilityRecord = await TableDDReference.findOne({
+//         where: {
+//           ddCategory: "Privacy",
+//           ddValue: postData.visibility,
+//           delStatus: 0,
+//         },
+//       });
+//       visibilityId = visibilityRecord ? visibilityRecord.idCode : null;
+//     }
+
+//     // Convert allowRepost to boolean
+//     const allowRepost =
+//       postData.allowRepost === true ||
+//       postData.allowRepost === 1 ||
+//       postData.allowRepost === "1";
+
+//     // Handle repost
+//     const repostId = postData.repostId || null; // Original discussion ID
+//     const repostUserId = repostId ? user.UserID : null; // Current user doing the repost
+
+//     // Create new discussion (original or repost)
+//     const newPost = await CommunityDiscussion.create({
+//       UserID: user.UserID,
+//       Title: postData.title || null,
+//       Content: postData.content || null,
+//       Image: postData.image || null,
+//       Likes: postData.likes || null,
+//       Comment: postData.comment || null,
+//       Tag: postData.tags || null,
+//       Visibility: visibilityId,
+//       Reference: postData.reference || 0,
+//       ResourceUrl: postData.url || null,
+//       DiscussionImagePath: postData.bannerImagePath || null,
+//       allowRepost: allowRepost,
+//       RepostID: repostId,
+//       RepostUserID: repostUserId,
+//       AuthAdd: user.Name,
+//       AddOnDt: new Date(),
+//       delStatus: 0,
+//     });
+
+//     // Get human-readable visibility value
+//     let visibilityValue = null;
+//     if (visibilityId) {
+//       const visibilityRecord = await TableDDReference.findByPk(visibilityId);
+//       visibilityValue = visibilityRecord?.ddValue || null;
+//     }
+
+//     return {
+//       success: true,
+//       data: {
+//         postId: newPost.DiscussionID,
+//         visibility: { value: visibilityValue, id: visibilityId },
+//         allowRepost,
+//         repostId,
+//         repostUserId,
+//         action: repostId ? "repost" : "post",
+//       },
+//       message: repostId
+//         ? "Discussion Reposted Successfully"
+//         : "Discussion Posted Successfully",
+//     };
+//   } catch (error) {
+//     console.error("Discussion Service Error:", error);
+//     throw error;
+//   }
+// };
+
 export const createDiscussionPost = async (userId, postData) => {
   try {
     const user = await User.findOne({
@@ -10,6 +88,12 @@ export const createDiscussionPost = async (userId, postData) => {
     });
     if (!user) throw new Error("User not found, please login first");
 
+    // ===== HANDLE LIKES =====
+    if (postData.reference && (postData.likes === 1 || postData.likes === 0)) {
+      return await handleLikeAction(user, postData);
+    }
+
+    // ===== REST OF YOUR EXISTING CODE FOR CREATING POSTS =====
     // Map visibility to internal ID
     let visibilityId = null;
     if (postData.visibility) {
@@ -30,8 +114,8 @@ export const createDiscussionPost = async (userId, postData) => {
       postData.allowRepost === "1";
 
     // Handle repost
-    const repostId = postData.repostId || null; // Original discussion ID
-    const repostUserId = repostId ? user.UserID : null; // Current user doing the repost
+    const repostId = postData.repostId || null;
+    const repostUserId = repostId ? user.UserID : null;
 
     // Create new discussion (original or repost)
     const newPost = await CommunityDiscussion.create({
@@ -79,6 +163,59 @@ export const createDiscussionPost = async (userId, postData) => {
     console.error("Discussion Service Error:", error);
     throw error;
   }
+};
+
+// ===== NEW FUNCTION TO HANDLE LIKES =====
+const handleLikeAction = async (user, postData) => {
+  const { reference: discussionId, likes: likeStatus } = postData;
+
+  // Check if user already has a like record for this discussion
+  const existingLike = await CommunityDiscussion.findOne({
+    where: {
+      Reference: discussionId,
+      UserID: user.UserID,
+      delStatus: { [Op.or]: [0, null] },
+    },
+  });
+
+  if (existingLike) {
+    // Update existing like
+    await existingLike.update({
+      Likes: likeStatus,
+      editOnDt: new Date(),
+      AuthLstEdt: user.Name,
+    });
+  } else {
+    // Create new like record
+    await CommunityDiscussion.create({
+      UserID: user.UserID,
+      Reference: discussionId, // This links to the main discussion
+      Likes: likeStatus,
+      AuthAdd: user.Name,
+      AddOnDt: new Date(),
+      delStatus: 0,
+    });
+  }
+
+  // Calculate total likes for this discussion
+  const totalLikes = await CommunityDiscussion.count({
+    where: {
+      Reference: discussionId,
+      Likes: 1, // Only count actual likes (1)
+      delStatus: { [Op.or]: [0, null] },
+    },
+  });
+
+  return {
+    success: true,
+    data: {
+      discussionId,
+      userLike: likeStatus,
+      totalLikes,
+      action: "like",
+    },
+    message: likeStatus === 1 ? "Post liked successfully" : "Post unliked successfully",
+  };
 };
 
 const getCommentsRecursive = async (parentId, currentUserId) => {
