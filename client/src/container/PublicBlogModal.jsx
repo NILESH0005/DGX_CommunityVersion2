@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { TbUserSquareRounded } from "react-icons/tb";
@@ -6,13 +6,17 @@ import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../context/ApiContext";
 import { FiRepeat } from "react-icons/fi";
-import { useNavigate } from "react-router-dom"; // Add this import
+import { useNavigate } from "react-router-dom";
+import { PiHandsClappingLight, PiHandsClappingFill } from "react-icons/pi";
+
 
 
 
 const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) => {
   const { title, image, author, AuthAdd, published_date, content, Status, BlogID, RepostUser } =
     blog || {};
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(blog?.likesCount || 0);
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
   console.log("user is", user);
@@ -25,6 +29,56 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
       console.error("Invalid User ID:", userData);
     }
   };
+
+  const handleLike = async () => {
+    if (!userToken) {
+      Swal.fire({
+        title: "Login Required",
+        text: "You need to login to like this blog",
+        icon: "info",
+        confirmButtonText: "Go to Login",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/SignInn");
+        }
+      });
+      return;
+    }
+
+    try {
+      const endpoint = "blog/blogpost";
+      const method = "POST";
+      const headers = {
+        "Content-Type": "application/json",
+        "auth-token": userToken,
+      };
+
+      const result = await fetchData(endpoint, method, {}, headers);
+
+      if (result.success) {
+        setIsLiked(!isLiked);
+        setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+
+        if (refreshBlogs) {
+          refreshBlogs();
+        }
+      } else {
+        Swal.fire("Error", result.message, "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "Error updating like", "error");
+    }
+  };
+
+  useEffect(() => {
+    // Initialize like status from blog data
+    if (blog?.userLiked) {
+      setIsLiked(true);
+    }
+    if (blog?.likesCount) {
+      setLikeCount(blog.likesCount);
+    }
+  }, [blog]);
 
   const updateBlogStatus = async (blogId, Status, remark = "") => {
     const endpoint = `blog/updateBlog/${blogId}`;
@@ -266,6 +320,38 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                 transition={{ delay: 0.5 }}
                 className="flex flex-wrap justify-center gap-4 mt-8 pb-4"
               >
+                <motion.button
+                  variants={{
+                    initial: { scale: 1 },
+                    animate: {
+                      scale: [1, 1.3, 1],
+                      transition: { duration: 0.3 }
+                    }
+                  }}
+                  initial="initial"
+                  animate={isLiked ? "animate" : "initial"}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLike}
+                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${isLiked
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
+                    }`}
+                >
+                  <motion.div
+                    animate={isLiked ? { rotate: [0, -10, 10, 0] } : {}}
+                    transition={{ duration: 0.5 }}
+                  >
+                    {isLiked ? (
+                      <PiHandsClappingFill className="text-xl" />
+                    ) : (
+                      <PiHandsClappingLight className="text-xl" />
+                    )}
+                  </motion.div>
+                  <span className="font-semibold">
+                    {isLiked ? "Clapped!" : "Clap"} {likeCount > 0 && `• ${likeCount}`}
+                  </span>
+                </motion.button>
                 {user.isAdmin == "1" && Status === "Pending" && (
                   <>
                     <motion.button
