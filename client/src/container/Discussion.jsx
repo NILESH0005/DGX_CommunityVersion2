@@ -578,8 +578,18 @@ const Discussion = () => {
         return;
       }
 
-      // If API call was successful, refresh to get accurate counts
-      await fetchDiscussionData(user?.EmailId || null);
+      console.log("✅ Like action recorded successfully:", {
+        discussionId: id,
+        newLikeState,
+        response: data
+      });
+
+      // Refresh to get accurate counts from backend
+      if (userToken && user) {
+        await fetchDiscussionData(user.EmailId);
+      } else {
+        await fetchDiscussionData(null);
+      }
 
     } catch (error) {
       console.error("Error:", error);
@@ -618,7 +628,7 @@ const Discussion = () => {
       });
     }
   };
-
+  
   const toggleNav = () => setIsNavOpen(!isNavOpen);
   const handleLike = () => setLikeCount(likeCount + 1);
 

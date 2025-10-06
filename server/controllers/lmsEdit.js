@@ -12,7 +12,7 @@ import { log } from "util";
 import { Console } from "console";
 import fs from "fs";
 import path from "path";
-import { deleteModuleService, deleteSubModuleService, recordFileViewService, updateFileService, updateFileViewEndTimeService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
+import { addSubmoduleService, deleteModuleService, deleteSubModuleService, recordFileViewService, updateFileService, updateFileViewEndTimeService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
 
 dotenv.config();
 
@@ -398,176 +398,47 @@ export const updateFilesOrder = async (req, res) => {
 };
 
 export const addSubmodule = async (req, res) => {
-  console.log("Incoming request body", req.body);
-  let success = false;
-  const userId = req.user.id;
-  console.log("User ID:", userId);
+  console.log("Incoming request body:", req.body);
 
   try {
-    const {
+    const { SubModuleName, SubModuleDescription, ModuleID, SubModuleImagePath } = req.body;
+    const SubModuleImage = req.file;
+
+    // ✅ Ensure compatibility: user might have either UserID or id
+    const userId = req.user?.UserID || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+        data: {},
+      });
+    }
+
+    if (!ModuleID) {
+      return res.status(400).json({
+        success: false,
+        message: "ModuleID is required",
+        data: {},
+      });
+    }
+
+    const result = await addSubmoduleService({
       SubModuleName,
       SubModuleDescription,
       ModuleID,
       SubModuleImagePath,
-    } = req.body;
-    const SubModuleImage = req.file;
-
-    if (!ModuleID) {
-      const warningMessage = "ModuleID is required";
-      logWarning(warningMessage);
-      return res.status(400).json({
-        success: false,
-        data: {},
-        message: warningMessage,
-      });
-    }
-
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Failed to connect to database";
-        logError(errorMessage);
-        return res.status(500).json({
-          success: false,
-          data: err,
-          message: errorMessage,
-        });
-      }
-
-      try {
-        const userQuery = `SELECT UserID, Name FROM Community_User WHERE ISNULL(delStatus,0) = 0 AND EmailId = ?`;
-        const userRows = await queryAsync(conn, userQuery, [userId]);
-
-        if (userRows.length === 0) {
-          closeConnection();
-          const warningMessage = "User not found";
-          logWarning(warningMessage);
-          return res.status(404).json({
-            success: false,
-            data: {},
-            message: warningMessage,
-          });
-        }
-
-        let imagePath = null;
-        // Handle direct file upload
-        if (SubModuleImage) {
-          imagePath = SubModuleImage.path.replace("public/", "");
-        }
-        // Handle pre-uploaded file path from form data
-        else if (SubModuleImagePath) {
-          imagePath = SubModuleImagePath;
-        }
-
-        // Start a transaction
-        await queryAsync(conn, "BEGIN TRANSACTION");
-
-        try {
-          // Insert new submodule with ModuleID and get the ID back
-          const insertQuery = `
-            INSERT INTO SubModulesDetails 
-            (
-                SubModuleName, 
-                SubModuleImagePath, 
-                SubModuleDescription,
-                ModuleID,
-                AuthAdd,
-                AddOnDt,
-                delStatus
-            ) 
-            OUTPUT INSERTED.SubModuleID
-            VALUES (?, ?, ?, ?, ?, GETDATE(), 0);
-          `;
-
-          const insertResult = await queryAsync(conn, insertQuery, [
-            SubModuleName,
-            imagePath,
-            SubModuleDescription,
-            ModuleID,
-            userRows[0].Name,
-          ]);
-
-          // Get the newly created SubModuleID
-          const newSubmoduleId = insertResult[0].SubModuleID;
-
-          // Get module name for the group name
-          const moduleQuery = `SELECT ModuleName FROM ModulesDetails WHERE ModuleID = ?`;
-          const moduleRows = await queryAsync(conn, moduleQuery, [ModuleID]);
-          const moduleName =
-            moduleRows.length > 0 ? moduleRows[0].ModuleName : "";
-
-          // Insert into group table
-          const groupName = `${SubModuleName} (${moduleName})`;
-          const groupInsertQuery = `
-            INSERT INTO GroupMaster 
-            (
-                group_name,
-                group_category,
-                SubModuleID,  
-                AuthAdd,
-                AddOnDt,
-                delStatus
-            )
-            VALUES (?, 'submodule', ?, ?, GETDATE(), 0);`;
-
-          await queryAsync(conn, groupInsertQuery, [
-            groupName,
-            newSubmoduleId,
-            userRows[0].Name,
-          ]);
-
-          // Commit the transaction
-          await queryAsync(conn, "COMMIT TRANSACTION");
-
-          // Get the newly created submodule with all details
-          const newSubmoduleQuery = `
-            SELECT * FROM SubModulesDetails 
-            WHERE SubModuleID = ?
-            AND ISNULL(delStatus,0) = 0;
-          `;
-          const newSubmodule = await queryAsync(conn, newSubmoduleQuery, [
-            newSubmoduleId,
-          ]);
-
-          success = true;
-          closeConnection();
-
-          const infoMessage =
-            "Submodule and corresponding group added successfully";
-          logInfo(infoMessage);
-
-          return res.status(200).json({
-            success,
-            data: newSubmodule[0],
-            message: infoMessage,
-          });
-        } catch (queryErr) {
-          // Rollback transaction if any error occurs
-          await queryAsync(conn, "ROLLBACK TRANSACTION");
-          closeConnection();
-          console.error("Database Query Error:", queryErr);
-          logError(queryErr);
-          return res.status(500).json({
-            success: false,
-            data: queryErr,
-            message: "Failed to add submodule. Please check your input data.",
-          });
-        }
-      } catch (error) {
-        closeConnection();
-        logError(error);
-        return res.status(500).json({
-          success: false,
-          data: {},
-          message: "Internal server error",
-        });
-      }
+      SubModuleImage,
+      userId,
     });
+
+    return res.status(200).json(result);
   } catch (error) {
-    logError(error);
+    console.error("Error adding submodule:", error);
     return res.status(500).json({
       success: false,
+      message: error.message || "Internal server error",
       data: {},
-      message: "Internal server error",
     });
   }
 };
@@ -1231,9 +1102,9 @@ export const updateFile = async (req, res) => {
 export const updateFileViewEndTime = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { FileID  } = req.body;
+    const { FileID } = req.body;
 
-    const result = await updateFileViewEndTimeService(userId, FileID );
+    const result = await updateFileViewEndTimeService(userId, FileID);
 
     return res.status(result.status || 200).json({ success: result.success, message: result.message });
   } catch (error) {
