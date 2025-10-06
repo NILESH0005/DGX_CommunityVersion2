@@ -37,14 +37,14 @@ export const discussionPost = async (req, res) => {
       reference,
       bannerImagePath,
       allowRepost,
-      repostId, // ID of original discussion if this is a repost
+      repostId,
     } = req.body;
 
     const postData = {
       title: title || null,
       content: content || null,
       image: image || null,
-      likes: likes || null,
+      likes: likes !== undefined ? likes : null,
       comment: comment || null,
       tags: tags || null,
       url: url || null,
@@ -54,6 +54,23 @@ export const discussionPost = async (req, res) => {
       allowRepost: allowRepost || false,
       repostId: repostId || null,
     };
+
+    // Enhanced debugging
+    console.log('=== CONTROLLER DEBUG ===');
+    console.log('Full request body:', JSON.stringify(req.body, null, 2));
+    console.log('Processed postData:', JSON.stringify(postData, null, 2));
+
+    const isPureLikeAction = postData.reference &&
+      (postData.likes === 1 || postData.likes === 0) &&
+      !postData.title &&
+      !postData.content &&
+      !postData.tags &&
+      !postData.repostId &&
+      !postData.image &&
+      !postData.url;
+
+    console.log('Is Pure Like Action:', isPureLikeAction);
+    console.log('========================');
 
     const result = await DiscussionService.createDiscussionPost(userId, postData);
 
@@ -67,8 +84,6 @@ export const discussionPost = async (req, res) => {
     });
   }
 };
-
-
 
 export const getDiscussion = async (req, res) => {
   let success = false;
