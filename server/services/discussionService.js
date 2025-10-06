@@ -88,8 +88,18 @@ export const createDiscussionPost = async (userId, postData) => {
     });
     if (!user) throw new Error("User not found, please login first");
 
-    // ===== HANDLE LIKES =====
-    if (postData.reference && (postData.likes === 1 || postData.likes === 0)) {
+    // ===== IMPROVED LIKE DETECTION =====
+    // Check if this is PURELY a like action (no post content, just reference and likes)
+    const isPureLikeAction = postData.reference &&
+      (postData.likes === 1 || postData.likes === 0) &&
+      !postData.title &&
+      !postData.content &&
+      !postData.tags &&
+      !postData.repostId &&
+      !postData.image &&
+      !postData.url;
+
+    if (isPureLikeAction) {
       return await handleLikeAction(user, postData);
     }
 
@@ -115,7 +125,18 @@ export const createDiscussionPost = async (userId, postData) => {
 
     // Handle repost
     const repostId = postData.repostId || null;
-    const repostUserId = repostId ? user.UserID : null;
+    let repostUserId = null;
+    if (repostId) {
+      // Find the original post to get its UserID
+      const originalPost = await CommunityDiscussion.findOne({
+        where: { DiscussionID: repostId, delStatus: 0 },
+        attributes: ['UserID']
+      });
+
+      if (originalPost) {
+        repostUserId = originalPost.UserID;
+      }
+    }
 
     // Create new discussion (original or repost)
     const newPost = await CommunityDiscussion.create({
@@ -123,7 +144,7 @@ export const createDiscussionPost = async (userId, postData) => {
       Title: postData.title || null,
       Content: postData.content || null,
       Image: postData.image || null,
-      Likes: postData.likes || null,
+      Likes: postData.likes || 0, // Default to 0 for new posts
       Comment: postData.comment || null,
       Tag: postData.tags || null,
       Visibility: visibilityId,
@@ -165,57 +186,109 @@ export const createDiscussionPost = async (userId, postData) => {
   }
 };
 
-// ===== NEW FUNCTION TO HANDLE LIKES =====
 const handleLikeAction = async (user, postData) => {
-  const { reference: discussionId, likes: likeStatus } = postData;
+  try {
+    const { reference: postId, likes: likeStatus } = postData;
 
-  // Check if user already has a like record for this discussion
-  const existingLike = await CommunityDiscussion.findOne({
-    where: {
-      Reference: discussionId,
-      UserID: user.UserID,
-      delStatus: { [Op.or]: [0, null] },
-    },
-  });
+    // Check if the post exists
+    const post = await CommunityDiscussion.findOne({
+      where: { DiscussionID: postId, delStatus: 0 }
+    });
 
-  if (existingLike) {
-    // Update existing like
-    await existingLike.update({
-      Likes: likeStatus,
-      editOnDt: new Date(),
-      AuthLstEdt: user.Name,
+    if (!post) {
+      throw new Error("Post not found");
+    }
+
+    // Find existing like entry for this user and post
+    // Using Op from the import at the top
+    const existingLike = await CommunityDiscussion.findOne({
+      where: {
+        Reference: postId,
+        UserID: user.UserID,
+        delStatus: 0,
+        Title: { [Op.is]: null },
+        Content: { [Op.is]: null },
+        Image: { [Op.is]: null },
+        Tag: { [Op.is]: null },
+        ResourceUrl: { [Op.is]: null },
+        RepostID: { [Op.is]: null }
+      }
     });
-  } else {
-    // Create new like record
-    await CommunityDiscussion.create({
+
+    console.log('=== LIKE ACTION DEBUG ===');
+    console.log('Searching for like entry with:', {
+      Reference: postId,
       UserID: user.UserID,
-      Reference: discussionId, // This links to the main discussion
-      Likes: likeStatus,
-      AuthAdd: user.Name,
-      AddOnDt: new Date(),
-      delStatus: 0,
+      existingLikeFound: !!existingLike,
+      existingLikeId: existingLike ? existingLike.DiscussionID : 'NOT FOUND'
     });
+    console.log('========================');
+
+    if (existingLike) {
+      // UPDATE existing like entry
+      const updateResult = await CommunityDiscussion.update(
+        {
+          Likes: likeStatus,
+          AuthLstEdt: user.Name,
+          editOnDt: new Date()
+        },
+        {
+          where: {
+            DiscussionID: existingLike.DiscussionID
+          }
+        }
+      );
+
+      console.log('Update result:', updateResult);
+      console.log('✅ Updated existing like:', existingLike.DiscussionID, 'from', existingLike.Likes, 'to', likeStatus);
+
+      return {
+        success: true,
+        data: {
+          action: likeStatus === 1 ? 'liked' : 'unliked',
+          likeId: existingLike.DiscussionID,
+          updated: true
+        },
+        message: likeStatus === 1 ? 'Post liked successfully' : 'Post unliked successfully'
+      };
+    } else {
+      // CREATE new like entry (only for first time like)
+      const newLike = await CommunityDiscussion.create({
+        UserID: user.UserID,
+        Title: null,
+        Content: null,
+        Image: null,
+        Likes: likeStatus,
+        Comment: null,
+        Tag: null,
+        Visibility: null,
+        Reference: postId,
+        ResourceUrl: null,
+        DiscussionImagePath: null,
+        allowRepost: false,
+        RepostID: null,
+        RepostUserID: null,
+        AuthAdd: user.Name,
+        AddOnDt: new Date(),
+        delStatus: 0,
+      });
+
+      console.log('🆕 Created new like entry:', newLike.DiscussionID, 'for post:', postId);
+
+      return {
+        success: true,
+        data: {
+          action: likeStatus === 1 ? 'liked' : 'unliked',
+          likeId: newLike.DiscussionID,
+          updated: false
+        },
+        message: likeStatus === 1 ? 'Post liked successfully' : 'Post unliked successfully'
+      };
+    }
+  } catch (error) {
+    console.error("Like Action Error:", error);
+    throw error;
   }
-
-  // Calculate total likes for this discussion
-  const totalLikes = await CommunityDiscussion.count({
-    where: {
-      Reference: discussionId,
-      Likes: 1, // Only count actual likes (1)
-      delStatus: { [Op.or]: [0, null] },
-    },
-  });
-
-  return {
-    success: true,
-    data: {
-      discussionId,
-      userLike: likeStatus,
-      totalLikes,
-      action: "like",
-    },
-    message: likeStatus === 1 ? "Post liked successfully" : "Post unliked successfully",
-  };
 };
 
 const getCommentsRecursive = async (parentId, currentUserId) => {
@@ -356,7 +429,7 @@ export const getPublicDiscussionsService = async (email) => {
 
         // Group by UserID and get only their latest action
         const userLatestActions = new Map();
-        
+
         allLikeEntries.forEach(entry => {
           const existingEntry = userLatestActions.get(entry.UserID);
           if (!existingEntry || new Date(entry.AddOnDt) > new Date(existingEntry.AddOnDt)) {
@@ -367,7 +440,7 @@ export const getPublicDiscussionsService = async (email) => {
         // Count likes: only count if latest action has Likes = 1
         let likeCount = 0;
         let userLike = 0;
-        
+
         userLatestActions.forEach((entry) => {
           if (entry.Likes === 1) {
             likeCount++;
