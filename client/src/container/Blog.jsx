@@ -12,7 +12,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { ChevronDown, ArrowRight } from "lucide-react";
-
+  import BlogForm from "../Admin/Components/BlogComponents/BlogForm";
 const ParticleBackground = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -518,7 +518,7 @@ const BlogPage = () => {
               className="bg-white text-DGXblue hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-colors shadow-lg"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/add")}
+              onClick={() => navigate("/BlogForm")}
             >
               Write a Blog Post
               <ArrowRight className="w-4 h-4 ml-2 inline" />

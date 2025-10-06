@@ -115,7 +115,7 @@ import { pdfjs } from "react-pdf";
 import { useEffect } from "react";
 import ApiContext from "./context/ApiContext.jsx";
 import UserDetails from "../src/container/UserDetails.jsx";
-
+import BlogForm from "./Admin/Components/BlogComponents/BlogForm.jsx";
 // Use CDN to load the worker (best option with Vite)
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
@@ -200,6 +200,8 @@ function App() {
             <Route path="/Discussion" element={<Discussion />} />
             <Route path="/ContactUs" element={<ContactUs />} />
             <Route path="/Blog" element={<Blog />} />
+            <Route path="/BlogForm" element={<BlogForm />} />
+
             {/* <Route path='/DiscussionModal' element={<DiscussionModal />} /> */}
             <Route path="/ResetPassword" element={<ResetPassword />} />
             <Route

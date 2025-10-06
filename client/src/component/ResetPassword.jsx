@@ -46,21 +46,41 @@ const ResetPassword = () => {
   }, [userToken, setUserToken]);
 
   const urlExtract = async () => {
-    const params = new URLSearchParams(location.search);
-    const encryptedEmail = params.get("email");
-    const encryptedReferCode = params.get("signature");
+    try {
+      console.log("Current URL:", window.location.href);
+      console.log("Location search:", location.search);
 
-    if (encryptedEmail && encryptedReferCode) {
+      const params = new URLSearchParams(location.search);
+      const encryptedEmail = params.get("email");
+      const signature = params.get("signature"); // This is NOT encrypted
+
+      console.log("Encrypted email from URL:", encryptedEmail);
+      console.log("Signature from URL:", signature);
+
+      if (!encryptedEmail || !signature) {
+        console.error("Missing URL parameters");
+        navigate("/404");
+        return;
+      }
+
+      // Only decrypt the email, signature is already plain text
       const decryptedEmail = await decrypt(encryptedEmail);
-      const decryptedSignature = await decrypt(encryptedReferCode);
 
-      if (decryptedEmail && decryptedSignature) {
+      console.log("Decrypted email:", decryptedEmail);
+      console.log("Signature (plain text):", signature);
+
+      if (decryptedEmail && signature) {
         setEmail(decryptedEmail);
-        setSignature(decryptedSignature);
+        setSignature(signature); // Set the plain text signature directly
+
+        console.log("State set - email:", decryptedEmail);
+        console.log("State set - signature:", signature);
       } else {
+        console.error("Decryption failed or missing signature");
         navigate("/404");
       }
-    } else {
+    } catch (error) {
+      console.error("Error in urlExtract:", error);
       navigate("/404");
     }
   };
@@ -137,6 +157,11 @@ const ResetPassword = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    console.log("Form data:", {
+      email: email,
+      signature: signature,
+      password: newPassword,
+    });
     const isValid = validateForm(Array.from(event.target.elements));
     if (!isValid) {
       return;
