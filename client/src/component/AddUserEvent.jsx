@@ -5,19 +5,21 @@ import EventForm from "../component/eventAndWorkshop/EventForm";
 import LoadPage from "./LoadPage";
 import ApiContext from "../context/ApiContext";
 import DetailsEventModal from "./eventAndWorkshop/DetailsEventModal";
-
-
+import moment from "moment";
+import images from "../../public/images.js";
 
 const AddUserEvent = (props) => {
   const [showForm, setShowForm] = useState(false);
   const { fetchData, user, userToken } = useContext(ApiContext);
-  // const [events, setEvents] = useState([]);
-
-const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  const openModal = () => setIsModalOpen(true);
+  const openModal = (event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
@@ -28,154 +30,149 @@ const [loading, setLoading] = useState(false);
     return doc.body.textContent || "";
   };
 
-
-  // useEffect(() => {
-  //   const fetchEvents = async () => {
-  //     const endpoint = "eventandworkshop/getEvent";
-  //     const method = "GET";
-  //     const headers = {
-  //       'Content-Type': 'application/json',
-  //     };
-
-  //     try {
-  //       const result = await fetchData(endpoint, method, {}, headers);
-  //       console.log("user events", result)
-  //       if (result.success && Array.isArray(result.data)) {
-     
-  //         props.setEvents(result.data);
-  //         console.log(result.data)
-  //       } else {
-  //         console.error("Invalid data format:", result);
-  //         props.setEvents([]);
-  //         console.error("Failed to fetch events. Please try again later.");
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching events:", error);
-  //       props.setEvents([]);
-  //       console.error("An error occurred while fetching events.");
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   fetchEvents();
-  // }, []);
-
-  // console.log(typeof props.event);
-
   const filteredEvents = props.events.filter((event) => event.UserID === user.UserID);
 
   if (loading) {
     return <LoadPage />;
   }
 
-  const updateEvents = (newBlog) => {
+  const updateEvents = (newEvent) => {
     props.setEvents((prevEvents) => [newEvent, ...prevEvents]);
   }
 
   return (
-    <div className="w-full ">
-
-      <div className="flex justify-center mb-6">
+    <div className="p-6 min-h-screen bg-gray-50">
+      <div className="flex justify-center mb-8">
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-3 bg-DGXblue from-blue-500 to-indigo-600 text-white px-5 py-3 rounded-lg shadow-md hover:scale-105 transition-all duration-300 text-lg font-semibold"
+          className="flex items-center gap-3 bg-DGXblue from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-lg font-semibold hover:scale-105"
         >
-          {showForm ? "My Event" : "Add Event"}
-          {showForm ? <IoMdList className="size-6" /> : <MdAdd className="size-6" />}
+          {showForm ? "My Events" : "Add Event"}
+          {showForm ? (
+            <IoMdList className="size-6" />
+          ) : (
+            <MdAdd className="size-6" />
+          )}
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto">
-        {showForm ? (
-          // <EventForm />
-<EventForm events={props.events} setEvents={props.setEvents}/>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.length > 0 ? (
-              filteredEvents.map((event) => (
-                <div
-                  key={event.EventID}
-                  className="p-5 rounded-xl shadow-lg border-2 border-gray-200 bg-white hover:shadow-xl transition-all transform hover:-translate-y-1 flex flex-col gap-3"
-                >
-                  {/* Date Section */}
-                  <div className="text-center text-gray-600">
-                    <span className="block text-4xl font-bold text-gray-800">
-                      {new Date(event.StartDate).getDate()}
-                      <span className="text-lg font-semibold p-2 fs-6">
-                        {new Date(event.StartDate).toLocaleString("default", { month: "short" })}
-                      </span>
-                    </span>
+      {showForm ? (
+        <EventForm events={props.events} setEvents={props.setEvents} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          {filteredEvents.length > 0 ? (
+            filteredEvents.map((event) => (
+              <div
+                key={event.EventID}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full"
+              >
+                {/* Image Section */}
+                <div className="w-full h-48 bg-gray-100 overflow-hidden">
+                  {event.EventImage ? (
+                    <img
+                      src={event.EventImage}
+                      alt={event.EventTitle || "Event Image"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={images.Noimage}
+                      alt="No Image Available"
+                      className="w-full h-full object-contain p-4 opacity-80"
+                    />
+                  )}
+                </div>
 
+                {/* Content Section */}
+                <div className="p-4 flex flex-col flex-grow">
+                  {/* Title */}
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+                    {event.EventTitle || "Untitled"}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-3 flex-grow">
+                    {stripHtmlTags(event.EventDescription) || "No description available"}
+                  </p>
+
+                  {/* Venue */}
+                  <div className="text-xs text-gray-500 mb-2">
+                    📍 {event.Venue || "Venue not specified"}
                   </div>
 
-                  {/* Poster */}
-                  <div className="w-full h-44 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
-                    {event.EventImage ? (
-                      <img
-                        src={event.EventImage}
-                        alt={event.EventTitle}
-                        className="w-full h-full object-cover"
-                      />
+                  {/* Date & Time */}
+                  <div className="text-xs text-gray-500 mb-3">
+                    {event.StartDate ? (
+                      <>
+                        {moment(event.StartDate).format("MMMM D, YYYY")}
+                        {event.StartDate && (
+                          <span className="ml-2">
+                            ⏰ {moment(event.StartDate).format("h:mm A")}
+                          </span>
+                        )}
+                      </>
                     ) : (
-                      <span className="text-gray-500 text-sm">No Image Available</span>
+                      "Date not available"
                     )}
                   </div>
 
-                  {/* Event Details */}
-                  <div className="flex flex-col gap-2">
-                    <h3 className="text-xl font-bold text-gray-900">{event.EventTitle}</h3>
-                    <p className="text-gray-600 line-clamp-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                      {stripHtmlTags(event.EventDescription).split(" ").slice(0, 2).join(" ")}...
-                       </p>
-                    <div className="flex flex-col text-gray-600 text-sm">
-                      <span>📍 {event.Venue}</span>
-                      <span>
-                        ⏰ {new Date(event.StartDate).toUTCString().split(" ")[4]}
-                      </span>
-                    </div>
-                  </div>
                   {/* Status Badge */}
-                  <span
-                    className={`px-3 py-1 text-sm font-semibold rounded-full self-start ${event.Status === "Approved" ? "bg-green-100 text-green-700" :
-                      event.Status === "Pending" ? "bg-yellow-100 text-yellow-700" :
-                        "bg-red-100 text-red-700"
+                  <div className="mb-3">
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        user?.isAdmin === 1
+                          ? "bg-green-100 text-green-800"
+                          : event.Status === "Approved"
+                          ? "bg-green-100 text-green-800"
+                          : event.Status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
                       }`}
-                  >
-                    {event.Status}
-                  </span>
+                    >
+                      {user?.isAdmin === 1 ? "Approved" : event.Status}
+                    </span>
+                  </div>
 
-                  {/* Admin Remark (Conditional Rendering) */}
+                  {/* Admin Remarks (if rejected) */}
                   {event.Status === "Rejected" && event.AdminRemark && (
-                    <div className="text-sm text-gray-600 bg-gray-100 p-2 rounded-md">
-                      <span className="font-semibold">Admin Remark:</span> {event.AdminRemark}
+                    <div className="mb-3 p-2 bg-gray-50 rounded-md border border-gray-200">
+                      <div className="text-xs font-semibold text-gray-700 mb-1">
+                        Admin Remark:
+                      </div>
+                      <div className="text-xs text-gray-600 line-clamp-2">
+                        {event.AdminRemark}
+                      </div>
                     </div>
                   )}
 
-                  {/* View Button */}
+                  {/* View Details Button */}
                   <button
-                    onClick={() => setSelectedEvent(event)}
-                    className="w-full bg-DGXblue text-white py-2 text-lg rounded-md hover:bg-indigo-700 transition-all"
+                    onClick={() => openModal(event)}
+                    className="w-full bg-DGXblue hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200 mt-auto"
                   >
                     View Details
                   </button>
                 </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center w-full">No events found.</p>
-            )}
-          </div>
-        )}
-      </div>
-      {selectedEvent && (
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full flex justify-center items-center py-12">
+              <p className="text-gray-500 text-lg font-medium">
+                {loading ? "Loading..." : "No events found."}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isModalOpen && selectedEvent && (
         <DetailsEventModal
           selectedEvent={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
+          onClose={closeModal}
         />
       )}
     </div>
   );
-
-
 };
 
 export default AddUserEvent;
