@@ -4,7 +4,7 @@ import ApiContext from "../../context/ApiContext";
 import ByteArrayImage from "../../utils/ByteArrayImage";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
 import Swal from "sweetalert2";
-
+import images from "../../../public/images";
 const ModuleCard = () => {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,8 +103,8 @@ const ModuleCard = () => {
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             e.target.onerror = null; // Prevent infinite loop
-            e.target.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            e.target.className = "w-full h-full bg-gray-200";
+            e.target.src = images.Noimage; // Use Noimage on error
+            e.target.className = "w-full h-full object-contain bg-gray-200 p-4";
           }}
         />
       );
@@ -120,10 +120,14 @@ const ModuleCard = () => {
       );
     }
 
-    // Fallback to no image
+    // Fallback to no image - using the imported Noimage
     return (
-      <div className="flex items-center justify-center text-gray-400 text-sm h-full bg-gray-200">
-        No Image Available
+      <div className="flex items-center justify-center h-full bg-gray-200">
+        <img
+          src={images.Noimage}
+          alt="No Image Available"
+          className="w-3/4 h-3/4 object-contain opacity-70"
+        />
       </div>
     );
   };

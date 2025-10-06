@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
 import ByteArrayImage from "../../../../utils/ByteArrayImage";
 import FileUploader from "../../../../container/FileUploader";
+import Noimage from "../../../../../public/images"; 
 import {
   FaEdit,
   FaTrash,
@@ -29,34 +30,6 @@ const EditModule = ({
   const descriptionRef = useRef(null);
   const [isDescriptionClamped, setIsDescriptionClamped] = useState(false);
   const { userToken, fetchData } = useContext(ApiContext);
-
-  // useEffect(() => {
-  //   console.log("edddddittt", editedModule);
-
-  //   if (editedModule.ModuleImageUrl) {
-  //     setImagePreview(editedModule.ModuleImageUrl);
-  //     return;
-  //   }
-  //   if (editedModule.ModuleImage?.data) {
-  //     setImagePreview(
-  //       `data:${editedModule.ModuleImage.contentType || "image/jpeg"};base64,${
-  //         editedModule.ModuleImage.data
-  //       }`
-  //     );
-  //     return;
-  //   }
-  //   if (editedModule.ModuleImagePath) {
-  //     setImagePreview(
-  //       `${window.location.origin}/${editedModule.ModuleImagePath}`
-  //     );
-  //     return;
-  //   }
-
-  //   // ✅ Fallback → No image
-  //   setImagePreview(null);
-  // }, [editedModule]);
-
-  // ✅ Decide which image to show based on priority
 
   useEffect(() => {
     setEditedModule(module);
@@ -211,7 +184,11 @@ const EditModule = ({
               className="max-h-32 object-contain mb-4 transition-opacity duration-300"
             />
           ) : (
-            <p className="text-gray-200">No Image Available</p>
+            <img
+              src={Noimage}
+              alt="No Image Available"
+              className="max-h-32 object-contain mb-4 opacity-70"
+            />
           )}
 
           <FileUploader
@@ -242,8 +219,7 @@ const EditModule = ({
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src =
-                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+              e.target.src = Noimage;
             }}
           />
           {isEditing && (
@@ -261,7 +237,11 @@ const EditModule = ({
         <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800">
           {isEditing ? (
             <div className="text-center p-4">
-              <p className="text-gray-200 mb-3 text-sm">No Image Available</p>
+              <img
+                src={Noimage}
+                alt="No Image Available"
+                className="max-h-20 object-contain mb-3 opacity-70 mx-auto"
+              />
               <button
                 onClick={() => setIsImageEditing(true)}
                 className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs transition-colors duration-200 shadow-md hover:shadow-lg flex items-center mx-auto"
@@ -271,7 +251,11 @@ const EditModule = ({
               </button>
             </div>
           ) : (
-            <p className="text-gray-200">No Image Available</p>
+            <img
+              src={Noimage}
+              alt="No Image Available"
+              className="max-h-20 object-contain opacity-70"
+            />
           )}
         </div>
       )}

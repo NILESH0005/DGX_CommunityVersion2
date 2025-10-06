@@ -1,6 +1,7 @@
 import React from "react";
 import Skeleton from "react-loading-skeleton";
 import Swal from "sweetalert2";
+import images from "../../public/images";
 
 const ContentSection = ({ data }) => {
   if (!data || data.length === 0) {
@@ -54,8 +55,12 @@ const ContentSection = ({ data }) => {
                 onError={(e) => (e.target.style.display = "none")}
               />
             ) : (
-              <div className="h-80 w-full flex items-center justify-center border border-dashed border-blue-600 bg-white/10 text-blue-200 rounded-lg">
-                No image available
+              <div className="h-80 w-full flex items-center justify-center border border-dashed border-blue-600 bg-white/10 rounded-lg">
+                <img
+                  src={images.Noimage}
+                  alt="No image available"
+                  className="max-h-48 object-contain opacity-70"
+                />
               </div>
             )}
           </div>

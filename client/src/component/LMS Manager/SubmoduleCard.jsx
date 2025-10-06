@@ -9,6 +9,7 @@ import ApiContext from "../../context/ApiContext";
 import ByteArrayImage from "../../utils/ByteArrayImage";
 import ProgressBar from "./ProgressBar";
 import { FaAngleDown, FaAngleUp, FaArrowLeft } from "react-icons/fa";
+import images from "../../../public/images";
 
 const SubModuleCard = () => {
   const { moduleId } = useParams();
@@ -23,15 +24,6 @@ const SubModuleCard = () => {
   const location = useLocation();
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
-  // useEffect(() => {
-  //   // console.log("useEffect")
-  //   const nameFromParams = searchParams.get("moduleName");
-  //   if (nameFromParams) {
-  //     setModuleName(decodeURIComponent(nameFromParams));
-  //   } else if (location.state?.moduleName) {
-  //     setModuleName(location.state.moduleName);
-  //   }
-  // }, [location.state, searchParams]);
   const renderSubModuleImage = (subModule) => {
     // ✅ If we already have a full URL
     if (subModule.SubModuleImageUrl) {
@@ -42,9 +34,8 @@ const SubModuleCard = () => {
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             e.target.onerror = null; // prevent infinite loop
-            e.target.src =
-              "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            e.target.className = "w-full h-full bg-gray-200";
+            e.target.src = images.Noimage; // Use Noimage on error
+            e.target.className = "w-full h-full object-contain bg-gray-200 p-4";
           }}
         />
       );
@@ -60,10 +51,14 @@ const SubModuleCard = () => {
       );
     }
 
-    // ✅ Fallback placeholder
+    // ✅ Fallback placeholder - using Noimage
     return (
-      <div className="flex items-center justify-center text-gray-400 text-sm h-full bg-gray-200">
-        No Image
+      <div className="flex items-center justify-center h-full bg-gray-200">
+        <img
+          src={images.Noimage}
+          alt="No Image Available"
+          className="w-3/4 h-3/4 object-contain opacity-70"
+        />
       </div>
     );
   };
