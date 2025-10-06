@@ -345,38 +345,44 @@ export const getPublicDiscussionsService = async (email) => {
           }
         }
 
-        // Get all like entries for this discussion
-        const likeEntries = await CommunityDiscussion.findAll({
+        // Get ALL like entries for this discussion to count properly
+        const allLikeEntries = await CommunityDiscussion.findAll({
           where: {
             Reference: discussion.DiscussionID,
             delStatus: { [Op.or]: [0, null] },
           },
-          order: [["AddOnDt", "DESC"]], // Get latest entries first
+          order: [["AddOnDt", "DESC"]],
         });
 
-        // Filter out entries where latest like is null
-        const validLikes = [];
-        const userLikes = new Map(); // Track latest like per user
-
-        likeEntries.forEach(entry => {
-          // Only process if we haven't seen a more recent entry from this user
-          if (!userLikes.has(entry.UserID) ||
-            userLikes.get(entry.UserID).AddOnDt < entry.AddOnDt) {
-            userLikes.set(entry.UserID, entry);
+        // Group by UserID and get only their latest action
+        const userLatestActions = new Map();
+        
+        allLikeEntries.forEach(entry => {
+          const existingEntry = userLatestActions.get(entry.UserID);
+          if (!existingEntry || new Date(entry.AddOnDt) > new Date(existingEntry.AddOnDt)) {
+            userLatestActions.set(entry.UserID, entry);
           }
         });
 
-        // Count only valid likes (latest entry with Likes = 1)
+        // Count likes: only count if latest action has Likes = 1
         let likeCount = 0;
         let userLike = 0;
-
-        userLikes.forEach((entry, userId) => {
+        
+        userLatestActions.forEach((entry) => {
           if (entry.Likes === 1) {
             likeCount++;
-            if (userId === userId) { // Current user's like
+            if (entry.UserID === userId) {
               userLike = 1;
             }
           }
+        });
+
+        console.log(`📊 Discussion ${discussion.DiscussionID}:`, {
+          totalEntries: allLikeEntries.length,
+          uniqueUsers: userLatestActions.size,
+          likeCount,
+          userLike,
+          userId
         });
 
         return {

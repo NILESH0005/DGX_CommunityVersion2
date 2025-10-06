@@ -547,6 +547,90 @@ export const updateFileViewEndTimeService = async (userEmail, FileID) => {
   }
 };
 
+export const addSubmoduleService = async ({
+  SubModuleName,
+  SubModuleDescription,
+  ModuleID,
+  SubModuleImagePath,
+  SubModuleImage,
+  userId,
+}) => {
+  const transaction = await db.sequelize.transaction();
+
+  try {
+    // ✅ Step 1: Validate Module
+    const module = await db.LMSModulesDetails.findOne({
+      where: { ModuleID, delStatus: 0 },
+    });
+
+    if (!module) throw new Error("Module not found");
+
+    // ✅ Step 2: Validate User — FIXED Op import here
+    const user = await db.User.findOne({
+      where: {
+        [Op.or]: [{ UserID: userId }, { id: userId }],
+        [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+      },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    // ✅ Step 3: Determine Image Path
+    let imagePath = null;
+    if (SubModuleImage) {
+      imagePath = SubModuleImage.path?.replace("public/", "");
+    } else if (SubModuleImagePath) {
+      imagePath = SubModuleImagePath;
+    }
+
+    // ✅ Step 4: Create Submodule
+    const newSubmodule = await db.LMSSubModulesDetails.create(
+      {
+        SubModuleName,
+        SubModuleImagePath: imagePath,
+        SubModuleDescription,
+        ModuleID,
+        AuthAdd: user.Name,
+        AddOnDt: new Date(),
+        delStatus: 0,
+      },
+      { transaction }
+    );
+
+    // ✅ Step 5: Create Corresponding Group
+    const groupName = `${SubModuleName} (${module.ModuleName})`;
+    await db.Group_Master.create(
+      {
+        group_name: groupName,
+        group_category: "submodule",
+        SubModuleID: newSubmodule.SubModuleID,
+        AuthAdd: user.Name,
+        AddOnDt: new Date(),
+        delStatus: 0,
+      },
+      { transaction }
+    );
+
+    // ✅ Step 6: Commit Transaction
+    await transaction.commit();
+
+    // ✅ Step 7: Return new submodule
+    const result = await db.LMSSubModulesDetails.findOne({
+      where: { SubModuleID: newSubmodule.SubModuleID },
+    });
+
+    return {
+      success: true,
+      message: "Submodule and corresponding group added successfully",
+      data: result,
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+
 
 
 
