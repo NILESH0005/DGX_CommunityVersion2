@@ -1,5 +1,6 @@
 import { body, validationResult } from "express-validator";
 import { connectToDatabase, closeConnection } from "../database/mySql.js";
+import db from "../models/index.js";
 import dotenv from "dotenv";
 import {
   queryAsync,
@@ -13,8 +14,11 @@ import {
   getBlogService,
   getPublicBlogsService,
   getUserBlogsService,
+  handleBlogLikeAction,
   updateBlogService,
 } from "../services/blogService.js";
+
+const User = db.User;
 
 dotenv.config();
 
@@ -473,6 +477,36 @@ export const getPublicBlogs = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Unexpected error occurred",
+    });
+  }
+};
+
+export const likeBlogController = async (req, res) => {
+  try {
+    const userEmail = req.user?.id; // from fetchUser middleware
+    const postData = req.body;
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "User not logged in",
+      });
+    }
+
+    const user = await User.findOne({
+      where: { EmailId: userEmail, delStatus: 0 },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const result = await handleBlogLikeAction(user, postData);
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("Like Blog Controller Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Something went wrong",
     });
   }
 };

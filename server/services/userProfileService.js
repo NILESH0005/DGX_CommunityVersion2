@@ -157,7 +157,7 @@ export const getUserDiscussionsService = async (userEmail) => {
         ["AuthAdd", "UserName"],
         "Title",
         "Content",
-        "Image",
+        "DiscussionImagePath",
         "Tag",
         "ResourceUrl",
         ["AddOnDt", "timestamp"],

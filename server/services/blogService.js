@@ -1,6 +1,7 @@
 import db from "../models/index.js"; // assuming your models/index.js exports all models
 import { logInfo, logWarning, logError } from "../helper/index.js";
 import { Op } from "sequelize"; // ✅ direct import
+import Community_Blog from "../models/Community_Blog.js";
 
 const Blog = db.CommunityBlog;
 const User = db.User;
@@ -338,4 +339,71 @@ export const updateBlogService = async (blogId, user, data) => {
     } successfully!`,
     data: { blogId },
   };
+};
+
+export const handleBlogLikeAction = async (user, postData) => {
+  try {
+    const originalBlogId = postData.reference;
+    if (!originalBlogId) throw new Error("Invalid blog reference");
+
+    // Check if a like row already exists for this user & blog
+    let likeRow = await Blog.findOne({
+      where: {
+        Reference: originalBlogId, // points to original blog
+        UserID: user.UserID, // this user
+      },
+    });
+
+    if (likeRow) {
+      // Toggle Likes column (0 or 1)
+      const newLikeStatus = postData.likes === 1 ? 1 : 0;
+
+      await Blog.update(
+        {
+          Likes: newLikeStatus,
+          AuthLstEdt: user.Name,
+          editOnDt: new Date(),
+        },
+        {
+          where: { BlogID: likeRow.BlogID },
+        }
+      );
+
+      return {
+        success: true,
+        data: {
+          liked: newLikeStatus === 1,
+          blogLikeRowId: likeRow.BlogID,
+        },
+        message:
+          newLikeStatus === 1
+            ? "Blog liked successfully"
+            : "Blog unliked successfully",
+      };
+    }
+
+    // If no like row exists yet, insert a new one
+    const newLike = await Blog.create({
+      Reference: originalBlogId,
+      UserID: user.UserID,
+      AuthAdd: user.Name,
+      AddOnDt: new Date(),
+      Likes: postData.likes === 1 ? 1 : 0,
+    });
+
+    return {
+      success: true,
+      data: {
+        liked: postData.likes === 1,
+        blogLikeRowId: newLike.BlogID,
+      },
+      message:
+        postData.likes === 1
+          ? "Blog liked successfully"
+          : "Blog unliked successfully",
+    };
+  } catch (error) {
+    console.error("Blog Like Error:", error);
+    throw error;
+  }
 };

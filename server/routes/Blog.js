@@ -2,7 +2,7 @@ import express from "express";
 import { fetchUser } from '../middleware/fetchUser.js';
 
 
-import { blogpost, getBlog, blogpost_bulk, updateBlog, getUserBlogs, getPublicBlogs } from "../controllers/blog.js";
+import { blogpost, getBlog, blogpost_bulk, updateBlog, getUserBlogs, getPublicBlogs, likeBlogController } from "../controllers/blog.js";
 
 const router = express.Router();
 
@@ -12,6 +12,8 @@ router.get('/getBlog', fetchUser, getBlog)
 router.get('/getPublicBlogs', getPublicBlogs)
 router.get('/getUserBlogs', fetchUser, getUserBlogs)
 router.post('/updateBlog/:blogId', fetchUser, updateBlog);
+router.post('/likeBlogController', fetchUser, likeBlogController);
+
 
 
 export default router;

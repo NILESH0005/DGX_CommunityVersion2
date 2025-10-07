@@ -8,28 +8,33 @@ import ApiContext from "../context/ApiContext";
 import { FiRepeat } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { PiHandsClappingLight, PiHandsClappingFill } from "react-icons/pi";
+import RatingStars from "./RatingStars"; // Adjust the import path as needed
 
-
-
-
-const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) => {
-  const { title, image, author, AuthAdd, published_date, content, Status, BlogID, RepostUser } =
-    blog || {};
+const PublicBlogModal = ({
+  blog,
+  closeModal,
+  updateBlogState,
+  refreshBlogs,
+}) => {
+  const {
+    title,
+    image,
+    author,
+    AuthAdd,
+    published_date,
+    content,
+    Status,
+    BlogID,
+    RepostUser,
+  } = blog || {};
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(blog?.likesCount || 0);
+  const [userRating, setUserRating] = useState(blog?.userRating || 0);
+  const [averageRating, setAverageRating] = useState(blog?.averageRating || 0);
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
-  console.log("user is", user);
 
-  const handleProfileClick = (userData, e) => {
-    e.stopPropagation();
-    if (userData?.id) {
-      handleProfileRedirect(userData.id, navigate);
-    } else {
-      console.error("Invalid User ID:", userData);
-    }
-  };
-
+  // Handle Like function
   const handleLike = async () => {
     if (!userToken) {
       Swal.fire({
@@ -46,21 +51,28 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
     }
 
     try {
-      const endpoint = "blog/blogpost";
+      const endpoint = "blog/likeBlogController"; // your like API
       const method = "POST";
       const headers = {
         "Content-Type": "application/json",
         "auth-token": userToken,
       };
 
-      const result = await fetchData(endpoint, method, {}, headers);
+      // send the intended likes value
+      const body = {
+        reference: BlogID,
+        likes: isLiked ? 0 : 1, // if already liked, we want to unlike
+      };
+
+      const result = await fetchData(endpoint, method, body, headers);
 
       if (result.success) {
-        setIsLiked(!isLiked);
-        setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+        // update UI based on server response
+        setIsLiked(result.data.liked);
+        setLikeCount((prev) => (result.data.liked ? prev + 1 : prev - 1));
 
         if (refreshBlogs) {
-          refreshBlogs();
+          refreshBlogs(); // optional: refresh list if needed
         }
       } else {
         Swal.fire("Error", result.message, "error");
@@ -70,16 +82,77 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
     }
   };
 
+  // Handle Rating function
+  const handleRate = async (rating) => {
+    if (!userToken) {
+      Swal.fire({
+        title: "Login Required",
+        text: "You need to login to rate this blog",
+        icon: "info",
+        confirmButtonText: "Go to Login",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/SignInn");
+        }
+      });
+      return;
+    }
+
+    try {
+      const endpoint = `blog/rate/${BlogID}`; // Adjust endpoint as per your API
+      const method = "POST";
+      const headers = {
+        "Content-Type": "application/json",
+        "auth-token": userToken,
+      };
+
+      const body = { rating };
+
+      const result = await fetchData(endpoint, method, body, headers);
+
+      if (result.success) {
+        setUserRating(rating);
+        // If your API returns the updated average rating, update it here
+        if (result.data?.averageRating) {
+          setAverageRating(result.data.averageRating);
+        }
+
+        Swal.fire({
+          title: "Success!",
+          text: `You rated this blog ${rating} stars!`,
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        if (refreshBlogs) {
+          refreshBlogs();
+        }
+      } else {
+        Swal.fire("Error", result.message, "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "Error submitting rating", "error");
+    }
+  };
+
+  // Initialize states from blog data
   useEffect(() => {
-    // Initialize like status from blog data
     if (blog?.userLiked) {
       setIsLiked(true);
     }
     if (blog?.likesCount) {
       setLikeCount(blog.likesCount);
     }
+    if (blog?.userRating) {
+      setUserRating(blog.userRating);
+    }
+    if (blog?.averageRating) {
+      setAverageRating(blog.averageRating);
+    }
   }, [blog]);
 
+  // Your existing functions
   const updateBlogStatus = async (blogId, Status, remark = "") => {
     const endpoint = `blog/updateBlog/${blogId}`;
     const method = "POST";
@@ -103,7 +176,6 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
 
         if (typeof updateBlogState === "function") {
           updateBlogState(blogId, Status);
-        } else {
         }
         closeModal();
       } else {
@@ -177,7 +249,7 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
   };
 
   const handleRepost = async () => {
-    const endpoint = "blog/blogpost"; // adjust to your API route
+    const endpoint = "blog/blogpost";
     const method = "POST";
     const headers = {
       "Content-Type": "application/json",
@@ -185,7 +257,7 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
     };
 
     const body = {
-      title,           // keep same title or allow editing before repost
+      title,
       author: user.Name,
       content,
       image,
@@ -215,11 +287,9 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
     }
   };
 
-  const isMyBlog = blog.UserID === user.UserID;
-  const alreadyReposted = blog.RepostUserID === user.UserID;
-  const canRepost = blog.allowRepost && !isMyBlog && !alreadyReposted;
-
-
+  const isMyBlog = blog?.UserID === user?.UserID;
+  const alreadyReposted = blog?.RepostUserID === user?.UserID;
+  const canRepost = blog?.allowRepost && !isMyBlog && !alreadyReposted;
 
   return (
     <AnimatePresence>
@@ -246,7 +316,7 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
           </motion.button>
 
           <div className="flex flex-col items-center h-full">
-            <div className="w-full mb-8">
+            <div className="w-full mb-8 relative">
               <motion.img
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -255,25 +325,29 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                 src={image}
                 alt={title}
               />
+
+              {/* Rating display badge */}
+              <motion.div
+                className="absolute top-4 left-4 bg-white bg-opacity-90 px-3 py-1 rounded-full text-sm font-semibold shadow-md flex items-center gap-1"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <RatingStars value={averageRating} readOnly size={16} />
+                <span className="text-gray-700 ml-1">
+                  {averageRating.toFixed(1)}
+                </span>
+              </motion.div>
+
               {RepostUser && RepostUser.Name && (
                 <motion.span
-                  className="absolute top-4 left-4 bg-DGXgreen text-black px-3 py-1 rounded-full text-sm font-semibold shadow-md"
+                  className="absolute top-4 right-4 bg-DGXgreen text-black px-3 py-1 rounded-full text-sm font-semibold shadow-md"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.2 }}
                 >
                   Repost
                 </motion.span>
-              )}
-              {!canRepost && blog.allowRepost && alreadyReposted && (
-                <span className="absolute top-4 left-4 bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-semibold shadow-md">
-                  Already reposted
-                </span>
-              )}
-              {!canRepost && !blog.allowRepost && (
-                <span className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-md">
-                  Reposting not allowed
-                </span>
               )}
             </div>
 
@@ -295,7 +369,9 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
               >
                 <div className="flex items-center gap-3 mb-2">
                   <TbUserSquareRounded className="text-indigo-600 text-3xl" />
-                  <span className="text-gray-600 font-medium">{AuthAdd || author || "Unknown author"}</span>
+                  <span className="text-gray-600 font-medium">
+                    {AuthAdd || author || "Unknown author"}
+                  </span>
                 </div>
                 {RepostUser && RepostUser.Name && (
                   <div className="flex items-center gap-2 text-sm text-DGXgreen font-medium">
@@ -314,6 +390,37 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                 dangerouslySetInnerHTML={{ __html: content }}
               />
 
+              {/* Rating Section */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-200"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-700">
+                    Your rating
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    Use arrows to adjust
+                  </span>
+                </div>
+                <RatingStars
+                  value={userRating}
+                  onChange={handleRate}
+                  aria-label="Your rating"
+                />
+                {userRating > 0 && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-sm text-gray-600 mt-2"
+                  >
+                    You rated this {userRating} star{userRating > 1 ? "s" : ""}
+                  </motion.p>
+                )}
+              </motion.div>
+
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -325,18 +432,19 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                     initial: { scale: 1 },
                     animate: {
                       scale: [1, 1.3, 1],
-                      transition: { duration: 0.3 }
-                    }
+                      transition: { duration: 0.3 },
+                    },
                   }}
                   initial="initial"
                   animate={isLiked ? "animate" : "initial"}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleLike}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${isLiked
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
-                    }`}
+                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${
+                    isLiked
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
+                  }`}
                 >
                   <motion.div
                     animate={isLiked ? { rotate: [0, -10, 10, 0] } : {}}
@@ -349,10 +457,12 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                     )}
                   </motion.div>
                   <span className="font-semibold">
-                    {isLiked ? "Clapped!" : "Clap"} {likeCount > 0 && `• ${likeCount}`}
+                    {isLiked ? "Clapped!" : "Clap"}{" "}
+                    {likeCount > 0 && `• ${likeCount}`}
                   </span>
                 </motion.button>
-                {user.isAdmin == "1" && Status === "Pending" && (
+
+                {user?.isAdmin == "1" && Status === "Pending" && (
                   <>
                     <motion.button
                       whileHover={{
@@ -376,9 +486,9 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                     >
                       Reject
                     </motion.button>
-
                   </>
                 )}
+
                 <motion.button
                   whileHover={{
                     scale: 1.05,
@@ -390,9 +500,13 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                 >
                   Close
                 </motion.button>
+
                 {canRepost && Status === "Approved" && (
                   <motion.button
-                    whileHover={{ scale: 1.05, boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)" }}
+                    whileHover={{
+                      scale: 1.05,
+                      boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
+                    }}
                     whileTap={{ scale: 0.95 }}
                     onClick={handleRepost}
                     className="bg-DGXgreen hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
@@ -400,13 +514,6 @@ const PublicBlogModal = ({ blog, closeModal, updateBlogState, refreshBlogs }) =>
                     <FiRepeat className="inline mr-2" />
                     Repost
                   </motion.button>
-                )}
-
-                {/* Show badge if already reposted */}
-                {blog.RepostUserID === user.id && (
-                  <span className="bg-gray-300 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
-                    Already reposted
-                  </span>
                 )}
               </motion.div>
             </div>
