@@ -11,6 +11,7 @@ const ModuleDetails = db.LMSModulesDetails;
 const SubModulesDetails = db.LMSSubModulesDetails;
 const LMSFilesDetails = db.LMSFilesDetails
 const LMSUserProgress = db.LMSUserProgress
+const LMSUnitsDetails = db.LMSUnitsDetails
 
 
 
@@ -629,6 +630,47 @@ export const addSubmoduleService = async ({
     throw error;
   }
 };
+
+export const addUnitService = async ({ UnitName, UnitDescription, SubModuleID, userId }) => {
+  const t = await db.sequelize.transaction();
+  try {
+    // Find user by ID or email
+    const user = await db.User.findOne({
+      where: {
+        [Op.or]: [
+          { UserID: userId },
+          { EmailId: userId },
+        ],
+        delStatus: 0,
+      },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Create Unit
+    const newUnit = await db.LMSUnitsDetails.create(
+      {
+        UnitName,
+        UnitDescription: UnitDescription || null,
+        SubModuleID,
+        AuthAdd: user.Name,
+        AddOnDt: new Date(),
+        delStatus: 0,
+      },
+      { transaction: t }
+    );
+
+    await t.commit();
+    return { success: true, data: newUnit };
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+
 
 
 

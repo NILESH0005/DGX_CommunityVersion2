@@ -5,6 +5,7 @@ import Community_Blog from "../models/Community_Blog.js";
 
 const Blog = db.CommunityBlog;
 const User = db.User;
+const ContentInteraction = db.ContentInteraction
 
 // export const createBlogPost = async (userEmail, blogData) => {
 //   try {
@@ -227,8 +228,8 @@ export const getBlogService = async (userEmail) => {
       ...(isAdmin
         ? {}
         : {
-            [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
-          }),
+          [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
+        }),
     },
     order: [["AddOnDt", "DESC"]],
     attributes: [
@@ -437,76 +438,339 @@ export const updateBlogService = async (blogId, user, data) => {
   return {
     success: true,
     status: 200,
-    message: `Blog ${
-      data.Status ? data.Status + "d" : "updated"
-    } successfully!`,
+    message: `Blog ${data.Status ? data.Status + "d" : "updated"
+      } successfully!`,
     data: { blogId },
   };
 };
 
+// export const handleBlogLikeAction = async (user, postData) => {
+//   try {
+//     const blogId = postData.reference;
+//     if (!blogId) throw new Error("Invalid blog reference");
+
+//     // Check if an interaction already exists for this user & blog
+//     let interaction = await ContentInteraction.findOne({
+//       where: {
+//         ProcessName: 'Blog',
+//         UserID: user.UserID,
+//         reference: blogId,
+//         delStatus: 0
+//       },
+//     });
+
+//     const currentDate = new Date();
+//     const intendedLikeStatus = postData.likes === 1 ? 1 : 0;
+
+//     if (interaction) {
+//       // Update existing interaction - only update if like status is changing
+//       if (interaction.Likes !== intendedLikeStatus) {
+//         const updateData = {
+//           Likes: intendedLikeStatus,
+//           LikeStatus: 0, // Always set to 0 as per requirement
+//           AuthLstEdt: user.Name,
+//           editOnDt: currentDate, // Only update when there's a change
+//         };
+
+//         await ContentInteraction.update(updateData, {
+//           where: { id: interaction.id },
+//         });
+//       }
+
+//       return {
+//         success: true,
+//         data: {
+//           liked: intendedLikeStatus === 1,
+//           interactionId: interaction.id,
+//         },
+//         message:
+//           intendedLikeStatus === 1
+//             ? "Blog liked successfully"
+//             : "Blog unliked successfully",
+//       };
+//     }
+
+//     // Create new interaction if it doesn't exist
+//     const newInteraction = await ContentInteraction.create({
+//       ProcessName: 'Blog',
+//       UserID: user.UserID,
+//       reference: blogId,
+//       Likes: intendedLikeStatus,
+//       LikeStatus: 0, // Always 0 for like operations
+//       Rating: null, // null for like operations
+//       RatingStatus: null, // null for like operations
+//       AuthAdd: user.Name,
+//       AuthDel: null,
+//       AuthLstEdt: null, // No edit on creation
+//       delOnDt: null,
+//       AddOnDt: currentDate,
+//       editOnDt: null, // null on initial creation
+//       delStatus: 0
+//     });
+
+//     return {
+//       success: true,
+//       data: {
+//         liked: intendedLikeStatus === 1,
+//         interactionId: newInteraction.id,
+//       },
+//       message:
+//         intendedLikeStatus === 1
+//           ? "Blog liked successfully"
+//           : "Blog unliked successfully",
+//     };
+//   } catch (error) {
+//     console.error("Blog Like Error:", error);
+//     throw error;
+//   }
+// };
 export const handleBlogLikeAction = async (user, postData) => {
   try {
-    const originalBlogId = postData.reference;
-    if (!originalBlogId) throw new Error("Invalid blog reference");
+    const blogId = postData.reference;
+    if (!blogId) throw new Error("Invalid blog reference");
 
-    // Check if a like row already exists for this user & blog
-    let likeRow = await Blog.findOne({
+    // Check if an interaction already exists for this user & blog
+    let interaction = await ContentInteraction.findOne({
       where: {
-        Reference: originalBlogId, // points to original blog
-        UserID: user.UserID, // this user
+        ProcessName: 'Blog',
+        UserID: user.UserID,
+        reference: blogId,
+        delStatus: 0
       },
     });
 
-    if (likeRow) {
-      // Toggle Likes column (0 or 1)
-      const newLikeStatus = postData.likes === 1 ? 1 : 0;
+    const currentDate = new Date();
+    const intendedLikeStatus = postData.likes === 1 ? 1 : 0;
 
-      await Blog.update(
-        {
-          Likes: newLikeStatus,
-          AuthLstEdt: user.Name,
-          editOnDt: new Date(),
-        },
-        {
-          where: { BlogID: likeRow.BlogID },
-        }
-      );
+    if (interaction) {
+      // Update existing interaction - only update if like status is changing
+      const updateData = {
+        AuthLstEdt: user.Name,
+        editOnDt: currentDate,
+      };
+
+      // Only update Likes if it's changing
+      if (interaction.Likes !== intendedLikeStatus) {
+        updateData.Likes = intendedLikeStatus;
+        updateData.LikeStatus = 0; // Always 0
+      }
+
+      await ContentInteraction.update(updateData, {
+        where: { id: interaction.id },
+      });
 
       return {
         success: true,
         data: {
-          liked: newLikeStatus === 1,
-          blogLikeRowId: likeRow.BlogID,
+          liked: intendedLikeStatus === 1,
+          interactionId: interaction.id,
         },
         message:
-          newLikeStatus === 1
+          intendedLikeStatus === 1
             ? "Blog liked successfully"
             : "Blog unliked successfully",
       };
     }
 
-    // If no like row exists yet, insert a new one
-    const newLike = await Blog.create({
-      Reference: originalBlogId,
+    // Create new interaction if it doesn't exist
+    const newInteraction = await ContentInteraction.create({
+      ProcessName: 'Blog',
       UserID: user.UserID,
+      reference: blogId,
+      Likes: intendedLikeStatus,
+      LikeStatus: 0, // Always 0 for like operations
+      Rating: null, // null for like operations
+      RatingStatus: null, // null for like operations
       AuthAdd: user.Name,
-      AddOnDt: new Date(),
-      Likes: postData.likes === 1 ? 1 : 0,
+      AuthDel: null,
+      AuthLstEdt: null, // No edit on creation
+      delOnDt: null,
+      AddOnDt: currentDate,
+      editOnDt: null, // null on initial creation
+      delStatus: 0
     });
 
     return {
       success: true,
       data: {
-        liked: postData.likes === 1,
-        blogLikeRowId: newLike.BlogID,
+        liked: intendedLikeStatus === 1,
+        interactionId: newInteraction.id,
       },
       message:
-        postData.likes === 1
+        intendedLikeStatus === 1
           ? "Blog liked successfully"
           : "Blog unliked successfully",
     };
   } catch (error) {
     console.error("Blog Like Error:", error);
+    throw error;
+  }
+};
+
+// New function to handle ratings
+export const handleBlogRateAction = async (user, postData) => {
+  try {
+    const blogId = postData.reference || postData.blogId;
+    const ratingValue = postData.rating;
+    
+    if (!blogId) throw new Error("Invalid blog reference");
+    if (!ratingValue || ratingValue < 1 || ratingValue > 5) {
+      throw new Error("Invalid rating value");
+    }
+
+    // Check if an interaction already exists for this user & blog
+    let interaction = await ContentInteraction.findOne({
+      where: {
+        ProcessName: 'Blog',
+        UserID: user.UserID,
+        reference: blogId,
+        delStatus: 0
+      },
+    });
+
+    const currentDate = new Date();
+
+    if (interaction) {
+      // Update existing interaction with rating
+      const updateData = {
+        Rating: ratingValue,
+        RatingStatus: 0, // Always 0 for rating
+        AuthLstEdt: user.Name,
+        editOnDt: currentDate,
+      };
+
+      await ContentInteraction.update(updateData, {
+        where: { id: interaction.id },
+      });
+
+      return {
+        success: true,
+        data: {
+          rated: true,
+          rating: ratingValue,
+          interactionId: interaction.id,
+        },
+        message: "Blog rated successfully",
+      };
+    }
+
+    // Create new interaction if it doesn't exist (user rates without liking first)
+    const newInteraction = await ContentInteraction.create({
+      ProcessName: 'Blog',
+      UserID: user.UserID,
+      reference: blogId,
+      Likes: 0, // User hasn't liked, only rated
+      LikeStatus: 0,
+      Rating: ratingValue,
+      RatingStatus: 0, // Always 0 for rating
+      AuthAdd: user.Name,
+      AuthDel: null,
+      AuthLstEdt: null,
+      delOnDt: null,
+      AddOnDt: currentDate,
+      editOnDt: null,
+      delStatus: 0
+    });
+
+    return {
+      success: true,
+      data: {
+        rated: true,
+        rating: ratingValue,
+        interactionId: newInteraction.id,
+      },
+      message: "Blog rated successfully",
+    };
+  } catch (error) {
+    console.error("Blog Rate Error:", error);
+    throw error;
+  }
+};
+
+// Combined function for both like and rating in one call
+export const handleBlogLikeAndRateAction = async (user, postData) => {
+  try {
+    const blogId = postData.reference;
+    const likeValue = postData.likes || 0;
+    const ratingValue = postData.rating || null;
+
+    if (!blogId) throw new Error("Invalid blog reference");
+
+    // Check if an interaction already exists for this user & blog
+    let interaction = await ContentInteraction.findOne({
+      where: {
+        ProcessName: 'Blog',
+        UserID: user.UserID,
+        reference: blogId,
+        delStatus: 0
+      },
+    });
+
+    const currentDate = new Date();
+
+    if (interaction) {
+      // Update existing interaction with both like and rating
+      const updateData = {
+        AuthLstEdt: user.Name,
+        editOnDt: currentDate,
+      };
+
+      // Update like if provided
+      if (likeValue !== undefined) {
+        updateData.Likes = likeValue;
+        updateData.LikeStatus = 0;
+      }
+
+      // Update rating if provided
+      if (ratingValue !== undefined && ratingValue !== null) {
+        updateData.Rating = ratingValue;
+        updateData.RatingStatus = 0;
+      }
+
+      await ContentInteraction.update(updateData, {
+        where: { id: interaction.id },
+      });
+
+      return {
+        success: true,
+        data: {
+          liked: likeValue === 1,
+          rating: ratingValue,
+          interactionId: interaction.id,
+        },
+        message: "Blog interaction updated successfully",
+      };
+    }
+
+    // Create new interaction with both like and rating
+    const newInteraction = await ContentInteraction.create({
+      ProcessName: 'Blog',
+      UserID: user.UserID,
+      reference: blogId,
+      Likes: likeValue || 0,
+      LikeStatus: 0,
+      Rating: ratingValue,
+      RatingStatus: ratingValue ? 0 : null,
+      AuthAdd: user.Name,
+      AuthDel: null,
+      AuthLstEdt: null,
+      delOnDt: null,
+      AddOnDt: currentDate,
+      editOnDt: null,
+      delStatus: 0
+    });
+
+    return {
+      success: true,
+      data: {
+        liked: likeValue === 1,
+        rating: ratingValue,
+        interactionId: newInteraction.id,
+      },
+      message: "Blog interaction created successfully",
+    };
+  } catch (error) {
+    console.error("Blog Like & Rate Error:", error);
     throw error;
   }
 };
