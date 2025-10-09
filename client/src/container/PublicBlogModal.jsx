@@ -58,7 +58,6 @@ const PublicBlogModal = ({
         "auth-token": userToken,
       };
 
-      // send the intended likes value
       const body = {
         reference: BlogID,
         likes: isLiked ? 0 : 1, // if already liked, we want to unlike
@@ -83,6 +82,7 @@ const PublicBlogModal = ({
   };
 
   // Handle Rating function
+  // Handle Rating function - UPDATED
   const handleRate = async (rating) => {
     if (!userToken) {
       Swal.fire({
@@ -99,7 +99,7 @@ const PublicBlogModal = ({
     }
 
     try {
-      const endpoint = `blog/rate/${BlogID}`; // Adjust endpoint as per your API
+      const endpoint = `blog/rate/${BlogID}`; // Changed endpoint
       const method = "POST";
       const headers = {
         "Content-Type": "application/json",
@@ -112,11 +112,8 @@ const PublicBlogModal = ({
 
       if (result.success) {
         setUserRating(rating);
-        // If your API returns the updated average rating, update it here
-        if (result.data?.averageRating) {
-          setAverageRating(result.data.averageRating);
-        }
 
+        // Optional: If you want to show success message
         Swal.fire({
           title: "Success!",
           text: `You rated this blog ${rating} stars!`,
@@ -440,11 +437,10 @@ const PublicBlogModal = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleLike}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${
-                    isLiked
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
-                  }`}
+                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${isLiked
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
+                    }`}
                 >
                   <motion.div
                     animate={isLiked ? { rotate: [0, -10, 10, 0] } : {}}

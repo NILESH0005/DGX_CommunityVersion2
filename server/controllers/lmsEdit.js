@@ -12,7 +12,7 @@ import { log } from "util";
 import { Console } from "console";
 import fs from "fs";
 import path from "path";
-import { addSubmoduleService, deleteModuleService, deleteSubModuleService, recordFileViewService, updateFileService, updateFileViewEndTimeService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
+import { addSubmoduleService, addUnitService, deleteModuleService, deleteSubModuleService, recordFileViewService, updateFileService, updateFileViewEndTimeService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
 
 dotenv.config();
 
@@ -940,91 +940,24 @@ export const addUnit = async (req, res) => {
       });
     }
 
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        return res.status(500).json({
-          success: false,
-          message: "Database connection failed",
-        });
-      }
+    const result = await addUnitService({
+      UnitName,
+      UnitDescription,
+      SubModuleID,
+      userId,
+    });
 
-      try {
-        // Get user details
-        let userRows;
-        if (!isNaN(Number(userId))) {
-          userRows = await queryAsync(
-            conn,
-            `SELECT UserID, Name FROM Community_User 
-                         WHERE ISNULL(delStatus,0) = 0 AND UserID = ?`,
-            [Number(userId)]
-          );
-        }
-
-        if (
-          (!userRows || userRows.length === 0) &&
-          typeof userId === "string" &&
-          userId.includes("@")
-        ) {
-          userRows = await queryAsync(
-            conn,
-            `SELECT UserID, Name FROM Community_User 
-                         WHERE ISNULL(delStatus,0) = 0 AND EmailId = ?`,
-            [userId]
-          );
-        }
-
-        if (!userRows || userRows.length === 0) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success: false,
-            message: "User not found",
-          });
-        }
-
-        // Start transaction
-        await queryAsync(conn, "BEGIN TRANSACTION");
-
-        // Insert new unit
-        const insertQuery = `
-                    INSERT INTO UnitsDetails 
-                    (UnitName, UnitDescription, SubModuleID, AuthAdd, AddOnDt, delStatus) 
-                    OUTPUT INSERTED.UnitID, INSERTED.UnitName, INSERTED.UnitDescription,
-                           INSERTED.SubModuleID, INSERTED.AuthAdd, INSERTED.AddOnDt
-                    VALUES (?, ?, ?, ?, GETDATE(), 0);
-                `;
-
-        const [newUnit] = await queryAsync(conn, insertQuery, [
-          UnitName,
-          UnitDescription || null,
-          SubModuleID,
-          userRows[0].Name,
-        ]);
-
-        // Commit transaction
-        await queryAsync(conn, "COMMIT TRANSACTION");
-        closeConnection(conn);
-
-        return res.status(200).json({
-          success: true,
-          UnitID: newUnit.UnitID,
-          data: newUnit,
-          message: "Unit added successfully",
-        });
-      } catch (queryErr) {
-        await queryAsync(conn, "ROLLBACK TRANSACTION");
-        closeConnection(conn);
-        console.error("Database Error:", queryErr);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to add unit",
-        });
-      }
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      UnitID: result.data.UnitID,
+      message: "Unit added successfully",
     });
   } catch (error) {
-    console.error("Server Error:", error);
+    console.error("Error in addUnit controller:", error);
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: error.message || "Internal server error",
     });
   }
 };

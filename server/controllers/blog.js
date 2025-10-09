@@ -15,6 +15,7 @@ import {
   getPublicBlogsService,
   getUserBlogsService,
   handleBlogLikeAction,
+  handleBlogRateAction,
   updateBlogService,
 } from "../services/blogService.js";
 
@@ -483,7 +484,7 @@ export const getPublicBlogs = async (req, res) => {
 
 export const likeBlogController = async (req, res) => {
   try {
-    const userEmail = req.user?.id; // from fetchUser middleware
+    const userEmail = req.user?.id;
     const postData = req.body;
 
     if (!userEmail) {
@@ -504,6 +505,41 @@ export const likeBlogController = async (req, res) => {
     return res.status(200).json(result);
   } catch (err) {
     console.error("Like Blog Controller Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Something went wrong",
+    });
+  }
+};
+
+
+export const rateBlogController = async (req, res) => {
+  try {
+    const userEmail = req.user?.id;
+    const blogId = req.params.blogId;
+    const { rating } = req.body;
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "User not logged in",
+      });
+    }
+
+    const user = await User.findOne({
+      where: { EmailId: userEmail, delStatus: 0 },
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const result = await handleBlogRateAction(user, {
+      reference: blogId,
+      rating: parseInt(rating)
+    });
+
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("Rate Blog Controller Error:", err);
     return res.status(500).json({
       success: false,
       message: err.message || "Something went wrong",
