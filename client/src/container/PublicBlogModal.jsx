@@ -29,10 +29,63 @@ const PublicBlogModal = ({
   } = blog || {};
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(blog?.likesCount || 0);
-  const [userRating, setUserRating] = useState(blog?.userRating || 0);
+  const [userRating, setUserRating] = useState(0);
   const [averageRating, setAverageRating] = useState(blog?.averageRating || 0);
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
+
+  const [blogStats, setBlogStats] = useState({
+    totalLikes: 0,
+    averageRating: 0,
+    totalRatings: 0
+  });
+
+
+  useEffect(() => {
+    if (userToken && blog?.BlogID) {
+      fetchUserInteraction();
+    }
+    if (blog?.BlogID) {
+      fetchBlogStats();
+    }
+  }, [userToken, blog?.BlogID]);
+
+  const fetchUserInteraction = async () => {
+    try {
+      const endpoint = `blog/user-interaction/${blog.BlogID}`;
+      const method = "GET";
+      const headers = {
+        "auth-token": userToken,
+      };
+
+      const result = await fetchData(endpoint, method, {}, headers);
+
+      console.log("tesssttt", result)
+
+      if (result.success) {
+        const { hasLiked, userRating } = result.data;
+        setIsLiked(hasLiked);
+        setUserRating(userRating);
+      }
+    } catch (error) {
+      console.error("Error fetching user interaction:", error);
+    }
+  };
+
+  const fetchBlogStats = async () => {
+    try {
+      const endpoint = `blog/stats/${BlogID}`;
+      const method = "GET";
+
+      const result = await fetchData(endpoint, method);
+
+      if (result.success) {
+        setBlogStats(result.data);
+      }
+    } catch (error) {
+      console.error("Error fetching blog stats:", error);
+    }
+  };
 
   // Handle Like function
   const handleLike = async () => {
@@ -66,6 +119,11 @@ const PublicBlogModal = ({
       const result = await fetchData(endpoint, method, body, headers);
 
       if (result.success) {
+        setIsLiked(!isLiked);
+        fetchUserInteraction();
+        fetchBlogStats();
+
+
         // update UI based on server response
         setIsLiked(result.data.liked);
         setLikeCount((prev) => (result.data.liked ? prev + 1 : prev - 1));
@@ -112,6 +170,10 @@ const PublicBlogModal = ({
 
       if (result.success) {
         setUserRating(rating);
+        fetchUserInteraction();
+        fetchBlogStats();
+
+
 
         // Optional: If you want to show success message
         Swal.fire({
@@ -330,10 +392,15 @@ const PublicBlogModal = ({
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                <RatingStars value={averageRating} readOnly size={16} />
+                <RatingStars value={blogStats.averageRating} readOnly size={16} />
                 <span className="text-gray-700 ml-1">
-                  {averageRating.toFixed(1)}
+                  {blogStats.averageRating}
                 </span>
+                {blogStats.totalRatings > 0 && (
+                  <span className="text-gray-500 text-xs">
+                    ({blogStats.totalRatings})
+                  </span>
+                )}
               </motion.div>
 
               {RepostUser && RepostUser.Name && (

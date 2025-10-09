@@ -12,7 +12,9 @@ import {
 import {
   createBlogPost,
   getBlogService,
+  getBlogStatsService,
   getPublicBlogsService,
+  getUserBlogInteractionService,
   getUserBlogsService,
   handleBlogLikeAction,
   handleBlogRateAction,
@@ -543,6 +545,77 @@ export const rateBlogController = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: err.message || "Something went wrong",
+    });
+  }
+};
+
+
+export const getUserBlogInteractionController = async (req, res) => {
+  try {
+    const userEmail = req.user?.id;
+    const { blogId } = req.params;
+
+    if (!blogId) {
+      return res.status(400).json({
+        success: false,
+        message: "Blog ID is required"
+      });
+    }
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "User not logged in"
+      });
+    }
+
+    // Get user from database
+    const user = await User.findOne({
+      where: { EmailId: userEmail, delStatus: 0 },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Get user's interaction with the blog
+    const result = await getUserBlogInteractionService(user.UserID, blogId);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Get User Blog Interaction Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong"
+    });
+  }
+};
+export const getBlogStatsController = async (req, res) => {
+  try {
+    const { blogId } = req.params;
+
+    if (!blogId) {
+      return res.status(400).json({
+        success: false,
+        message: "Blog ID is required"
+      });
+    }
+
+    const result = await getBlogStatsService(blogId);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Get Blog Stats Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong"
     });
   }
 };

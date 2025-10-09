@@ -504,18 +504,16 @@ export const handleBlogLikeAction = async (user, postData) => {
   }
 };
 
-// New function to handle ratings
 export const handleBlogRateAction = async (user, postData) => {
   try {
     const blogId = postData.reference || postData.blogId;
     const ratingValue = postData.rating;
-    
+
     if (!blogId) throw new Error("Invalid blog reference");
     if (!ratingValue || ratingValue < 1 || ratingValue > 5) {
       throw new Error("Invalid rating value");
     }
 
-    // Check if an interaction already exists for this user & blog
     let interaction = await ContentInteraction.findOne({
       where: {
         ProcessName: 'Blog',
@@ -528,10 +526,9 @@ export const handleBlogRateAction = async (user, postData) => {
     const currentDate = new Date();
 
     if (interaction) {
-      // Update existing interaction with rating
       const updateData = {
         Rating: ratingValue,
-        RatingStatus: 0, // Always 0 for rating
+        RatingStatus: 0,
         AuthLstEdt: user.Name,
         editOnDt: currentDate,
       };
@@ -551,15 +548,14 @@ export const handleBlogRateAction = async (user, postData) => {
       };
     }
 
-    // Create new interaction if it doesn't exist (user rates without liking first)
     const newInteraction = await ContentInteraction.create({
       ProcessName: 'Blog',
       UserID: user.UserID,
       reference: blogId,
-      Likes: 0, // User hasn't liked, only rated
+      Likes: 0,
       LikeStatus: 0,
       Rating: ratingValue,
-      RatingStatus: 0, // Always 0 for rating
+      RatingStatus: 0,
       AuthAdd: user.Name,
       AuthDel: null,
       AuthLstEdt: null,
@@ -584,7 +580,6 @@ export const handleBlogRateAction = async (user, postData) => {
   }
 };
 
-// Combined function for both like and rating in one call
 export const handleBlogLikeAndRateAction = async (user, postData) => {
   try {
     const blogId = postData.reference;
@@ -593,7 +588,6 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
 
     if (!blogId) throw new Error("Invalid blog reference");
 
-    // Check if an interaction already exists for this user & blog
     let interaction = await ContentInteraction.findOne({
       where: {
         ProcessName: 'Blog',
@@ -606,19 +600,16 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
     const currentDate = new Date();
 
     if (interaction) {
-      // Update existing interaction with both like and rating
       const updateData = {
         AuthLstEdt: user.Name,
         editOnDt: currentDate,
       };
 
-      // Update like if provided
       if (likeValue !== undefined) {
         updateData.Likes = likeValue;
         updateData.LikeStatus = 0;
       }
 
-      // Update rating if provided
       if (ratingValue !== undefined && ratingValue !== null) {
         updateData.Rating = ratingValue;
         updateData.RatingStatus = 0;
@@ -639,7 +630,6 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
       };
     }
 
-    // Create new interaction with both like and rating
     const newInteraction = await ContentInteraction.create({
       ProcessName: 'Blog',
       UserID: user.UserID,
@@ -671,3 +661,96 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
     throw error;
   }
 };
+
+export const getUserBlogInteractionService = async (userId, blogId) => {
+  try {
+    const interaction = await ContentInteraction.findOne({
+      where: {
+        ProcessName: 'Blog',
+        reference: blogId,
+        UserID: userId,
+        delStatus: 0
+      }
+    });
+
+    // Return user's interaction data
+    return {
+      success: true,
+      data: {
+        hasLiked: interaction?.Likes === 1,
+        userRating: interaction?.Rating || 0,
+        likeCount: interaction?.Likes || 0
+      }
+    };
+  } catch (error) {
+    console.error("Error in getUserBlogInteractionService:", error);
+    return {
+      success: false,
+      data: null,
+      message: error.message
+    };
+  }
+};
+
+export const getBlogStatsService = async (blogId) => {
+  try {
+    if (!blogId) {
+      return {
+        success: false,
+        message: "Blog ID is required"
+      };
+    }
+
+    // Get the sequelize instance from the model
+    const sequelize = ContentInteraction.sequelize;
+
+    // Get total likes count
+    const totalLikes = await ContentInteraction.count({
+      where: {
+        ProcessName: 'Blog',
+        reference: blogId,
+        Likes: 1,
+        delStatus: 0
+      }
+    });
+
+    // Get average rating - FIXED: Use model's sequelize instance
+    const ratingData = await ContentInteraction.findOne({
+      where: {
+        ProcessName: 'Blog',
+        reference: blogId,
+        Rating: { [Op.gt]: 0 },
+        delStatus: 0
+      },
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.col('Rating')), 'totalRatings'], // ✅ Fixed
+        [sequelize.fn('AVG', sequelize.col('Rating')), 'averageRating']   // ✅ Fixed
+      ],
+      raw: true
+    });
+
+    const totalRatings = parseInt(ratingData?.totalRatings) || 0;
+    const averageRating = parseFloat(ratingData?.averageRating) || 0;
+
+    return {
+      success: true,
+      data: {
+        totalLikes,
+        totalRatings,
+        averageRating: Math.round(averageRating * 10) / 10,
+        blogId: parseInt(blogId)
+      }
+    };
+  } catch (error) {
+    console.error("Error in getBlogStatsService:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to fetch blog stats"
+    };
+  }
+};
+
+
+
+
+
