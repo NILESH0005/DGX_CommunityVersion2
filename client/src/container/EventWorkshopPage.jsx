@@ -133,7 +133,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                Event Details
+                Event Details 
               </motion.h2>
               <motion.button
                 onClick={onClose}

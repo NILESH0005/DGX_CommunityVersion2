@@ -213,7 +213,7 @@ const EventTable = (props) => {
       <div className="flex justify-between items-start">
         <div>
           <h3 className="font-bold text-lg">{event.EventTitle}</h3>
-          <p className="text-sm text-gray-600">By: {event.UserName}</p>
+          <p className="text-sm text-gray-600">By: {event.AuthAdd}</p>
         </div>
         <span className="px-2 py-1 rounded-full text-xs font-semibold">
           {event.Status}
@@ -409,7 +409,7 @@ const EventTable = (props) => {
                         {event.EventTitle}
                       </td>
                       <td className="p-2 border text-center">
-                        {event.UserName}
+                        {event.AuthAdd}
                       </td>
                       <td className="p-2 border text-center">
                         {formatDateTime(event.StartDate)}

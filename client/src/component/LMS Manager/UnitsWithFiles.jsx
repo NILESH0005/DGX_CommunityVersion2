@@ -12,6 +12,14 @@ import {
   FiMenu,
   FiBook,
   FiArrowLeft,
+  FiChevronRight,
+  FiChevronDown,
+  FiExternalLink,
+  FiPlay,
+  FiAward,
+  FiClock,
+  FiCheckCircle,
+  FiBarChart2,
 } from "react-icons/fi";
 import FetchQuizQuestions from "../quiz/DemoQuiz";
 
@@ -33,6 +41,7 @@ const UnitsWithFiles = () => {
   const [moduleName, setModuleName] = useState("");
   const [subModuleName, setSubModuleName] = useState("");
   const [expandedDescriptions, setExpandedDescriptions] = useState(new Set());
+  const [expandedUnits, setExpandedUnits] = useState(new Set());
   const currentFileIdRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -145,6 +154,11 @@ const UnitsWithFiles = () => {
             return String(unit.SubModuleID) === String(subModuleId);
           });
           setFilteredUnits(filtered);
+          
+          // Auto-expand first unit on load
+          if (filtered.length > 0) {
+            setExpandedUnits(new Set([filtered[0].UnitID]));
+          }
         }
 
         if (quizzesResponse?.success) {
@@ -252,6 +266,18 @@ const UnitsWithFiles = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  const toggleUnitExpansion = (unitId) => {
+    setExpandedUnits((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(unitId)) {
+        newSet.delete(unitId);
+      } else {
+        newSet.add(unitId);
+      }
+      return newSet;
+    });
+  };
+
   const handleBackToSubmodules = () => {
     if (currentFileIdRef.current) {
       sendFileViewEndTime(currentFileIdRef.current);
@@ -281,6 +307,7 @@ const UnitsWithFiles = () => {
     if (words.length <= wordLimit) return text;
     return words.slice(0, wordLimit).join(" ") + "...";
   };
+
   const toggleDescription = (id) => {
     setExpandedDescriptions((prev) => {
       const newSet = new Set(prev);
@@ -296,13 +323,13 @@ const UnitsWithFiles = () => {
   const getFileIcon = (fileType) => {
     switch (fileType) {
       case "pdf":
-        return <FiFileText className="w-4 h-4" />;
+        return <FiFileText className="w-4 h-4 text-red-500" />;
       case "ipynb":
-        return <FiBook className="w-4 h-4" />;
+        return <FiBook className="w-4 h-4 text-orange-500" />;
       case "docx":
-        return <FiFileText className="w-4 h-4" />;
+        return <FiFileText className="w-4 h-4 text-blue-500" />;
       default:
-        return <FiFileText className="w-4 h-4" />;
+        return <FiFileText className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -330,10 +357,13 @@ const UnitsWithFiles = () => {
 
   if (!subModuleId) {
     return (
-      <div className="flex items-center justify-center h-full min-h-screen p-4">
-        <div className="text-center p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4">No Submodule Selected</h2>
-          <p className="text-gray-600">
+      <div className="flex items-center justify-center h-full min-h-screen p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center p-8 max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-200">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FiFolder className="w-8 h-8 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">No Submodule Selected</h2>
+          <p className="text-gray-600 mb-6">
             Please select a submodule from the menu to view its units and files.
           </p>
         </div>
@@ -360,23 +390,23 @@ const UnitsWithFiles = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background text-foreground">
+      <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-foreground">
         <div
           className={`${
-            isSidebarCollapsed ? "w-16" : "w-64 lg:w-80"
-          } bg-[#1f2937] text-white p-4 border-r border-gray-700 transition-all duration-300 hidden md:block`}
+            isSidebarCollapsed ? "w-20" : "w-80"
+          } bg-white border-r border-gray-200 p-4 transition-all duration-300 hidden md:block shadow-lg`}
         >
-          <div className="h-8 bg-gray-700 rounded w-3/4 mb-6 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 rounded-lg w-3/4 mb-6 animate-pulse"></div>
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-16 bg-gray-700 rounded mb-3 animate-pulse"
+              className="h-20 bg-gray-200 rounded-xl mb-4 animate-pulse"
             ></div>
           ))}
         </div>
-        <div className="flex-1 p-4 md:p-6 w-full">
-          <div className="h-8 bg-gray-200 rounded w-1/2 mb-6 animate-pulse"></div>
-          <div className="h-full bg-gray-200 rounded animate-pulse"></div>
+        <div className="flex-1 p-6 w-full">
+          <div className="h-8 bg-gray-200 rounded-lg w-1/2 mb-6 animate-pulse"></div>
+          <div className="h-full bg-gray-200 rounded-2xl animate-pulse"></div>
         </div>
       </div>
     );
@@ -384,13 +414,16 @@ const UnitsWithFiles = () => {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full min-h-screen p-4">
-        <div className="text-center p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4 text-red-600">Error</h2>
+      <div className="flex items-center justify-center h-full min-h-screen p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center p-8 max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-200">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FiX className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
           >
             Retry
           </button>
@@ -401,9 +434,12 @@ const UnitsWithFiles = () => {
 
   if (filteredUnits.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full min-h-screen p-4">
-        <div className="text-center p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4">No Units Found</h2>
+      <div className="flex items-center justify-center h-full min-h-screen p-4 bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center p-8 max-w-md w-full bg-white rounded-2xl shadow-lg border border-gray-200">
+          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FiFolder className="w-8 h-8 text-yellow-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">No Units Found</h2>
           <p className="text-gray-600">
             There are no units available for the selected submodule.
           </p>
@@ -413,105 +449,106 @@ const UnitsWithFiles = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-foreground overflow-hidden">
       {/* Mobile Header */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-[#1f2937] text-white border-b border-gray-700">
+      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
         <button
           onClick={handleBackToSubmodules}
-          className="flex items-center space-x-2 bg-white/10 px-3 py-2 rounded-lg hover:bg-white/20 transition-all"
+          className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl transition-all duration-200"
         >
-          <FiArrowLeft className="text-white" />
-          <span className="font-medium text-white">Back</span>
+          <FiArrowLeft className="text-gray-700" />
+          <span className="font-medium text-gray-700">Back</span>
         </button>
 
-        <h1 className="text-lg font-bold truncate max-w-[200px]">
+        <h1 className="text-lg font-bold text-gray-800 truncate max-w-[200px]">
           {subModuleName || "Submodule Content"}
         </h1>
 
         <button
           onClick={toggleSidebar}
-          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full p-2 border-2 border-blue-500 hover:from-blue-700 hover:to-blue-800 transition-all"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl p-2 hover:from-blue-700 hover:to-blue-800 transition-all shadow-md"
           title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           {isSidebarCollapsed ? (
-            <FiMenu className="w-4 h-4" />
+            <FiMenu className="w-5 h-5" />
           ) : (
-            <FiX className="w-4 h-4" />
+            <FiX className="w-5 h-5" />
           )}
         </button>
       </div>
 
-      {/* Back Button - Desktop */}
-      <button
-        onClick={handleBackToSubmodules}
-        className="hidden md:fixed md:flex left-6 top-18 z-50 items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:bg-gray-50 border border-gray-200 group"
-      >
-        <FiArrowLeft className="text-blue-600 group-hover:text-blue-800 transition-colors" />
-        <span className="font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
-          Back
-        </span>
-      </button>
-
       {/* Sidebar */}
       <div
         className={`${
-          isSidebarCollapsed ? "w-20 md:w-16" : "w-full md:w-80"
-        } bg-[#1f2937] text-white border-r border-gray-700 overflow-y-auto transition-all duration-300 ease-in-out relative ${
-          isMobile && isSidebarCollapsed ? "hidden" : "flex flex-col"
+          isSidebarCollapsed ? "w-20" : "w-full md:w-80"
+        } bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 ease-in-out relative flex flex-col shadow-lg ${
+          isMobile && isSidebarCollapsed ? "hidden" : "flex"
         } ${isMobile ? "h-1/2 md:h-full" : "h-full"}`}
       >
-        {/* Toggle Button - Desktop */}
-        <div className="hidden md:flex justify-center pt-14">
-          <button
-            onClick={toggleSidebar}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full p-3 border-2 border-blue-500 hover:from-blue-700 hover:to-blue-800 hover:border-blue-400 transition-all duration-200 z-20 shadow-lg hover:shadow-xl transform hover:scale-110 group"
-            title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-          >
-            {isSidebarCollapsed ? (
-              <FiMenu className="w-5 h-5 group-hover:rotate-12 transition-transform duration-200" />
-            ) : (
-              <FiX className="w-5 h-5 group-hover:rotate-90 transition-transform duration-200" />
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center justify-between">
+            {!isSidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-gray-800 truncate">
+                  {subModuleName || "Content"}
+                </h2>
+                <p className="text-sm text-gray-600 truncate">
+                  {filteredUnits.length} units • {quizzes.length} quizzes
+                </p>
+              </div>
             )}
-          </button>
+            <button
+              onClick={toggleSidebar}
+              className="bg-white border border-gray-300 text-gray-700 rounded-lg p-2 hover:bg-gray-50 transition-all duration-200 shadow-sm hidden md:flex"
+              title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {isSidebarCollapsed ? (
+                <FiMenu className="w-4 h-4" />
+              ) : (
+                <FiX className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="p-3 md:p-4 flex-1 overflow-y-auto">
-          <div className="space-y-2">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {/* Units Section */}
+          <div className="space-y-3">
             {filteredUnits.map((unit) => {
               const needsReadMoreUnit = needsReadMore(unit.UnitDescription);
-              const isExpanded = expandedDescriptions.has(
-                `unit-${unit.UnitID}`
-              );
+              const isExpanded = expandedDescriptions.has(`unit-${unit.UnitID}`);
+              const isUnitExpanded = expandedUnits.has(unit.UnitID);
+              const hasFiles = unit.files?.length > 0;
+
               return (
                 <div
                   key={unit.UnitID}
-                  className={`${isSidebarCollapsed ? "p-3" : "p-2"}`}
-                  onClick={() => {
-                    if (unit.files?.length > 0) {
-                      setSelectedFile({
-                        ...unit.files[0],
-                        unitName: unit.UnitName,
-                        unitDescription: unit.UnitDescription,
-                      });
-                      if (isMobile) setIsSidebarCollapsed(true);
-                    }
-                  }}
+                  className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
                 >
-                  {isSidebarCollapsed ? (
-                    <div className="flex justify-center" title={unit.UnitName}>
-                      <FiFolder className="w-6 h-6 text-yellow-400" />
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-start space-x-3 mb-3">
-                        <div className="p-2 bg-yellow-500/20 rounded-lg flex-shrink-0">
-                          <FiFolder className="w-5 h-5 text-yellow-400" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-lg mb-2 text-white leading-tight break-words">
+                  {/* Unit Header */}
+                  <div
+                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+                    onClick={() => toggleUnitExpansion(unit.UnitID)}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <div className="p-2 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex-shrink-0 shadow-sm">
+                        <FiFolder className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-gray-800 leading-tight break-words">
                             {unit.UnitName}
                           </h3>
-                          <p className="text-gray-300 text-sm leading-relaxed break-words">
+                          <FiChevronDown 
+                            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                              isUnitExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        </div>
+                        {unit.UnitDescription && (
+                          <p className="text-gray-600 text-sm leading-relaxed break-words mt-1">
                             {needsReadMoreUnit ? (
                               <>
                                 {isExpanded
@@ -522,80 +559,90 @@ const UnitsWithFiles = () => {
                                     e.stopPropagation();
                                     toggleDescription(`unit-${unit.UnitID}`);
                                   }}
-                                  className="ml-2 text-xs text-blue-400 hover:text-blue-300 underline transition-colors"
+                                  className="ml-1 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
                                 >
-                                  {isExpanded ? "Read less" : "Read more"}
+                                  {isExpanded ? "Show less" : "Show more"}
                                 </button>
                               </>
                             ) : (
                               unit.UnitDescription
                             )}
                           </p>
+                        )}
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            {unit.files?.length || 0} files
+                          </span>
+                          {hasFiles && (
+                            <span className="text-xs text-gray-500">
+                              {Math.round(unit.files.reduce((acc, file) => acc + (file.EstimatedTime || 0), 0))} min total
+                            </span>
+                          )}
                         </div>
                       </div>
-                    </>
-                  )}
+                    </div>
+                  </div>
 
-                  {unit.files?.length > 0 && (
-                    <div
-                      className={`${
-                        isSidebarCollapsed
-                          ? "mt-3 space-y-1"
-                          : "mt-4 ml-2 border-l-2 border-gray-600 pl-4 space-y-2"
-                      }`}
-                    >
+                  {/* Files List */}
+                  {hasFiles && isUnitExpanded && (
+                    <div className="border-t border-gray-100 bg-gray-50/50">
                       {unit.files.map((file) => {
                         const isViewed = viewedFiles.has(file.FileID);
                         const isSelected = selectedFile?.FileID === file.FileID;
-
-                        const timeSpent =
-                          file.UserLmsProgresses?.[0]?.TimeSpentSeconds || 0;
-                        const estimatedTime = file.EstimatedTime * 60; // convert min to sec
-                        const percentageSpent = Math.min(
-                          (timeSpent / estimatedTime) * 100,
-                          100
-                        );
+                        const timeSpent = file.UserLmsProgresses?.[0]?.TimeSpentSeconds || 0;
+                        const estimatedTime = file.EstimatedTime * 60;
+                        const percentageSpent = Math.min((timeSpent / estimatedTime) * 100, 100);
 
                         return (
                           <div
                             key={file.FileID}
-                            className={`py-2 px-3 rounded-lg flex items-center justify-between ${
-                              isSelected ? "bg-blue-600 text-white" : ""
-                            } cursor-pointer transition-colors duration-200`}
+                            className={`group p-3 border-b border-gray-100 last:border-b-0 transition-all duration-200 ${
+                              isSelected 
+                                ? "bg-blue-50 border-l-4 border-l-blue-500" 
+                                : "hover:bg-white border-l-4 border-l-transparent"
+                            }`}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleFileSelect(file, unit);
                             }}
                           >
-                            <div className="flex items-center space-x-2 min-w-0 flex-1">
-                              {getFileIcon(file.FileType)}
-                              <div className="flex flex-col min-w-0">
-                                {/* File Name */}
-                                <span className="truncate text-sm md:text-base font-medium">
-                                  {removeFileExtension(file.FilesName)}
-                                </span>
-
-                                {/* Description */}
-                                {file.Description && (
-                                  <span className="truncate text-xs text-gray-500">
-                                    {file.Description}
-                                  </span>
-                                )}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                <div className={`p-2 rounded-lg ${
+                                  isSelected ? "bg-blue-100" : "bg-gray-100 group-hover:bg-white"
+                                } transition-colors`}>
+                                  {getFileIcon(file.FileType)}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`font-medium text-sm truncate ${
+                                      isSelected ? "text-blue-900" : "text-gray-800"
+                                    }`}>
+                                      {removeFileExtension(file.FilesName)}
+                                    </span>
+                                    {isViewed && (
+                                      <FiCheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                                    )}
+                                  </div>
+                                  {file.Description && (
+                                    <p className="text-xs text-gray-600 truncate mt-1">
+                                      {file.Description}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex flex-col items-end flex-shrink-0 ml-2">
-                              {/* Time spent vs estimated */}
-                              <span className="text-xs text-gray-400 whitespace-nowrap">
-                                {Math.floor(timeSpent / 60)}m /{" "}
-                                {file.EstimatedTime}m
-                              </span>
-
-                              {/* Progress Bar */}
-                              <div className="w-16 md:w-20 h-2 bg-gray-300 rounded overflow-hidden mt-1">
-                                <div
-                                  className="h-full bg-green-500 transition-all duration-300"
-                                  style={{ width: `${percentageSpent}%` }}
-                                ></div>
+                              
+                              <div className="flex flex-col items-end flex-shrink-0 ml-2">
+                                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                                  <FiClock className="w-3 h-3" />
+                                  <span>{file.EstimatedTime}m</span>
+                                </div>
+                                <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden mt-1">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
+                                    style={{ width: `${percentageSpent}%` }}
+                                  ></div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -608,54 +655,46 @@ const UnitsWithFiles = () => {
             })}
           </div>
 
+          {/* Quizzes Section */}
           {quizzes.length > 0 && (
-            <div className="mb-6 mt-4">
-              <h3
-                className={`font-bold ${
-                  isSidebarCollapsed ? "text-center" : "text-lg mb-2"
-                }`}
-              >
-                {isSidebarCollapsed ? "Q" : "Assessment"}
-              </h3>
+            <div className="mt-6">
+              <div className="flex items-center space-x-2 mb-3">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+                  <FiAward className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="font-bold text-gray-800">Assessments</h3>
+              </div>
               <div className="space-y-2">
                 {quizzes.map((quiz) => (
                   <div
                     key={quiz.QuizID}
-                    className={`${
-                      isSidebarCollapsed ? "p-2 flex justify-center" : "p-2"
-                    } rounded hover:bg-gray-700 cursor-pointer transition-colors duration-200 ${
-                      selectedQuiz?.QuizID === quiz.QuizID ? "bg-blue-600" : ""
-                    }`}
+                    className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200 cursor-pointer group hover:border-purple-300"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleQuizSelect(quiz);
                     }}
-                    title={isSidebarCollapsed ? quiz.QuizName : ""}
                   >
-                    {isSidebarCollapsed ? (
-                      <svg
-                        className="w-5 h-5"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                        <path
-                          fillRule="evenodd"
-                          d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    ) : (
-                      <div className="min-w-0">
-                        <h4 className="font-medium truncate">
-                          {quiz.QuizName}
-                        </h4>
-                        <p className="text-xs text-gray-300">
-                          {quiz.QuizDuration} min • {quiz.PassingPercentage}% to
-                          pass
-                        </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                          <FiBarChart2 className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-medium text-gray-800 truncate">
+                            {quiz.QuizName}
+                          </h4>
+                          <div className="flex items-center space-x-3 mt-1">
+                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                              {quiz.QuizDuration} min
+                            </span>
+                            <span className="text-xs text-gray-600">
+                              {quiz.PassingPercentage}% to pass
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                      <FiPlay className="w-4 h-4 text-gray-400 group-hover:text-purple-600 transition-colors" />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -670,33 +709,56 @@ const UnitsWithFiles = () => {
           isMobile && !isSidebarCollapsed ? "hidden" : "flex"
         }`}
       >
-        <div className="mb-4 md:mb-6">
+        {/* Content Header */}
+        <div className="mb-6">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl md:text-3xl font-bold text-gray-800 truncate">
-                {subModuleName || "Submodule Content"}
-              </h1>
+              <div className="flex items-center space-x-3 mb-2">
+                <button
+                  onClick={handleBackToSubmodules}
+                  className="hidden md:flex items-center space-x-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 hover:bg-gray-50 group"
+                >
+                  <FiArrowLeft className="text-gray-600 group-hover:text-gray-800 transition-colors" />
+                  <span className="font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
+                    Back
+                  </span>
+                </button>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 truncate">
+                  {subModuleName || "Submodule Content"}
+                </h1>
+              </div>
               {selectedFile && (
-                <p className="text-gray-600 mt-1 text-sm md:text-base truncate">
-                  Unit: {selectedFile.unitName || "Current Unit"}
-                </p>
+                <div className="flex items-center space-x-2 text-gray-600">
+                  <FiFolder className="w-4 h-4 text-yellow-500" />
+                  <span className="text-sm md:text-base">
+                    Unit: {selectedFile.unitName || "Current Unit"}
+                  </span>
+                </div>
               )}
             </div>
           </div>
-          <hr className="my-3 md:my-4 border-gray-200" />
+          <hr className="my-4 border-gray-200" />
         </div>
 
+        {/* Content Area */}
         {selectedQuiz ? (
-          // Render Quiz component when a quiz is selected
           <div className="flex-1 overflow-auto">
-            <div className="mb-4 md:mb-6">
-              <h1 className="text-xl md:text-3xl font-bold text-gray-800 break-words">
-                {selectedQuiz.QuizName}
-              </h1>
-              <p className="text-gray-600 mt-2 text-sm md:text-base">
-                Duration: {selectedQuiz.QuizDuration} minutes | Passing Score:{" "}
-                {selectedQuiz.PassingPercentage}%
-              </p>
+            <div className="mb-6">
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 break-words mb-2">
+                  {selectedQuiz.QuizName}
+                </h1>
+                <div className="flex flex-wrap gap-4 text-sm md:text-base">
+                  <div className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg shadow-sm">
+                    <FiClock className="w-4 h-4 text-purple-600" />
+                    <span className="text-gray-700">Duration: {selectedQuiz.QuizDuration} minutes</span>
+                  </div>
+                  <div className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg shadow-sm">
+                    <FiAward className="w-4 h-4 text-purple-600" />
+                    <span className="text-gray-700">Passing Score: {selectedQuiz.PassingPercentage}%</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <Quiz
@@ -720,74 +782,69 @@ const UnitsWithFiles = () => {
           </div>
         ) : selectedFile ? (
           <>
-            <div className="mb-4 md:mb-6">
-              <h2 className="text-lg md:text-xl font-semibold text-gray-700 break-words">
-                {removeFileExtension(selectedFile.FilesName)}
-              </h2>
+            <div className="mb-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                <h2 className="text-xl md:text-2xl font-semibold text-gray-800 break-words mb-2">
+                  {removeFileExtension(selectedFile.FilesName)}
+                </h2>
+                {selectedFile.Description && (
+                  <p className="text-gray-600 text-sm md:text-base">
+                    {selectedFile.Description}
+                  </p>
+                )}
+              </div>
             </div>
 
             {isExternalLink(selectedFile) &&
             !selectedFile.FilePath.includes("youtube.com") &&
             !selectedFile.FilePath.includes("youtu.be") ? (
-              <div className="flex flex-col items-center justify-center h-full bg-gray-50 rounded-lg p-4 md:p-8 min-h-[300px]">
+              <div className="flex flex-col items-center justify-center h-full bg-white rounded-2xl shadow-sm border border-gray-200 p-8 min-h-[400px]">
                 <div className="max-w-md w-full text-center">
-                  <div className="mb-4 md:mb-6">
-                    <svg
-                      className="w-12 h-12 md:w-16 md:h-16 mx-auto text-blue-500"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42L17.59 5H14V3zM5 5h6V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6h-2v6H5V5z" />
-                    </svg>
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                      <FiExternalLink className="w-10 h-10 text-blue-600" />
+                    </div>
                   </div>
-                  <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4 break-words">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 break-words">
                     {selectedFile.FilesName || "External Content Link"}
                   </h3>
-                  <p className="mb-4 md:mb-6 text-gray-600 italic text-sm md:text-base">
+                  <p className="mb-6 text-gray-600 text-sm md:text-base leading-relaxed">
                     {selectedFile.Description ||
-                      "This content is hosted externally. Click the button below to view it."}
+                      "This content is hosted externally. Click the button below to view it in a new tab."}
                   </p>
                   <a
                     href={selectedFile.FilePath}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 md:px-6 md:py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-md transition-colors duration-200 inline-flex items-center text-sm md:text-base"
+                    className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
                   >
-                    <svg
-                      className="w-4 h-4 md:w-5 md:h-5 mr-2"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42L17.59 5H14V3zM5 5h6V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6h-2v6H5V5z" />
-                    </svg>
-                    Open Link
+                    <FiExternalLink className="w-5 h-5" />
+                    <span>Open External Link</span>
                   </a>
                 </div>
               </div>
             ) : (
               <div
-                className={`flex-1 w-full rounded-xl shadow-lg relative overflow-hidden min-h-[400px] ${
-                  selectedFile?.fileType === "ipynb"
-                    ? "bg-[#f5f5f5] border border-gray-300"
-                    : "bg-white border"
+                className={`flex-1 w-full rounded-2xl shadow-lg relative overflow-hidden min-h-[500px] bg-white border border-gray-200 ${
+                  selectedFile?.fileType === "ipynb" ? "bg-[#f8f9fa]" : ""
                 }`}
               >
                 {selectedFile?.fileType === "ipynb" && (
-                  <div className="absolute top-0 left-0 right-0 h-8 bg-gray-200 flex items-center px-4 border-b border-gray-300 z-10">
-                    <div className="flex space-x-2">
+                  <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center px-6 z-10">
+                    <div className="flex space-x-2 mr-4">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
                       <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                       <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
-                    <div className="ml-4 text-sm text-gray-600 font-medium truncate">
-                      {removeFileExtension(selectedFile.FilesName)}
+                    <div className="text-sm text-gray-300 font-medium truncate">
+                      {removeFileExtension(selectedFile.FilesName)}.ipynb
                     </div>
                   </div>
                 )}
                 <div
                   className={
                     selectedFile?.fileType === "ipynb"
-                      ? "h-full pt-8"
+                      ? "h-full pt-10"
                       : "h-full"
                   }
                 >
@@ -799,31 +856,32 @@ const UnitsWithFiles = () => {
                   />
                 </div>
                 {selectedFile?.fileType === "ipynb" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gray-100 flex items-center px-4 border-t border-gray-300 text-xs text-gray-500">
-                    <span>Kernel: Python 3</span>
-                    <span className="mx-2">|</span>
-                    <span>Notebook</span>
+                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gray-100 flex items-center justify-between px-6 border-t border-gray-300 text-xs text-gray-600">
+                    <span>Python 3 Kernel</span>
+                    <span>Jupyter Notebook</span>
                   </div>
                 )}
               </div>
             )}
           </>
         ) : (
-          <div className="flex items-center justify-center h-full min-h-[300px]">
-            <div className="text-center p-6 md:p-8 max-w-md w-full">
-              <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">
-                Select Content
+          <div className="flex items-center justify-center h-full min-h-[400px]">
+            <div className="text-center p-8 max-w-md w-full">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FiFileText className="w-10 h-10 text-gray-400" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800 mb-3">
+                Select Content to Begin
               </h2>
-              <p className="text-gray-600 text-sm md:text-base">
-                Please select a quiz or file from the sidebar to view its
-                content.
+              <p className="text-gray-600 mb-6">
+                Choose a file from the sidebar to start learning. Your progress will be automatically saved.
               </p>
               {isMobile && (
                 <button
                   onClick={() => setIsSidebarCollapsed(false)}
-                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors md:hidden"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 md:hidden"
                 >
-                  Show Sidebar
+                  Show Content List
                 </button>
               )}
             </div>

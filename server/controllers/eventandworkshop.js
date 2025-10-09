@@ -36,8 +36,6 @@ export const addEvent = async (req, res) => {
 export const getEvent = async (req, res) => {
   let success = false;
   const userId = req.user?.uniqueId;
-  console.log("req.user:", req.user);
-  console.log("Looking for events with UserID:", userId);
 
   if (!userId) {
     return res.status(400).json({

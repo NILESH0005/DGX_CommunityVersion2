@@ -6,6 +6,95 @@ import Community_Blog from "../models/Community_Blog.js";
 const Blog = db.CommunityBlog;
 const User = db.User;
 
+// export const createBlogPost = async (userEmail, blogData) => {
+//   try {
+//     const user = await User.findOne({
+//       where: { EmailId: userEmail, delStatus: 0 },
+//       attributes: ["UserID", "Name", "isAdmin"],
+//     });
+
+//     if (!user) {
+//       logWarning("User not found, please login first.");
+//       return {
+//         status: 400,
+//         response: {
+//           success: false,
+//           data: {},
+//           message: "User not found, please login first.",
+//         },
+//       };
+//     }
+
+//     const isAdmin = user.isAdmin === 1;
+//     const status = isAdmin ? "Approved" : "Pending";
+//     const approvedBy = isAdmin ? user.Name : null;
+//     const approvedOn = isAdmin ? new Date() : null;
+
+//     let repostUserId = null;
+//     let repostId = null;
+
+//     if (blogData.repostId && blogData.repostId !== 0) {
+//       const originalBlog = await Blog.findOne({
+//         where: { BlogID: blogData.repostId, delStatus: 0 },
+//         attributes: ["UserID"],
+//       });
+
+//       if (originalBlog) {
+//         repostUserId = originalBlog.UserID;
+//         repostId = blogData.repostId;
+
+//         if (originalBlog.Status === "Approved") {
+//           status = "Approved";
+//           approvedBy = originalBlog.ApprovedBy || "System Auto-Approval";
+//           approvedOn = new Date();
+//         }
+//       }
+//     }
+
+//     const blogPost = await Blog.create({
+//       title: blogData.title ?? null,
+//       author: blogData.author ?? null,
+//       content: blogData.content ?? null,
+//       image: blogData.image ?? null,
+//       Category: blogData.category ?? null,
+//       publishedDate: blogData.publishedDate ?? null,
+//       AuthAdd: user.Name,
+//       AddOnDt: new Date(),
+//       delStatus: 0,
+//       Status: status,
+//       AdminRemark: null,
+//       ApprovedBy: approvedBy,
+//       ApprovedOn: approvedOn,
+//       UserID: user.UserID,
+//       RepostID: blogData.repostId ?? null,
+//       RepostUserID: repostUserId ?? null,
+//       allowRepost: blogData.allowRepost ?? false, // Fixed: use blogData.allowRepost
+//     });
+
+//     console.log("blog body", blogPost);
+//     logInfo("Blog posted successfully!");
+
+//     return {
+//       status: 200,
+//       response: {
+//         success: true,
+//         data: { postId: blogPost.BlogID },
+//         message: "Blog posted successfully!",
+//       },
+//     };
+//   } catch (error) {
+//     logError("Blog creation failed:", error);
+//     return {
+//       status: 500,
+//       response: {
+//         success: false,
+//         data: error,
+//         message: "Something went wrong while posting the blog",
+//       },
+//     };
+//   }
+// };
+
 export const createBlogPost = async (userEmail, blogData) => {
   try {
     const user = await User.findOne({
@@ -25,26 +114,41 @@ export const createBlogPost = async (userEmail, blogData) => {
       };
     }
 
-    const isAdmin = user.isAdmin === 1;
-    const status = isAdmin ? "Approved" : "Pending";
-    const approvedBy = isAdmin ? user.Name : null;
-    const approvedOn = isAdmin ? new Date() : null;
+    let status = "Pending";
+    let approvedBy = null;
+    let approvedOn = null;
+
+    // If admin user, auto approve
+    if (user.isAdmin === 1) {
+      status = "Approved";
+      approvedBy = user.Name;
+      approvedOn = new Date();
+    }
 
     let repostUserId = null;
     let repostId = null;
 
+    // ✅ Repost check
     if (blogData.repostId && blogData.repostId !== 0) {
       const originalBlog = await Blog.findOne({
         where: { BlogID: blogData.repostId, delStatus: 0 },
-        attributes: ["UserID"],
+        attributes: ["UserID", "Status", "ApprovedBy", "ApprovedOn"],
       });
 
       if (originalBlog) {
         repostUserId = originalBlog.UserID;
         repostId = blogData.repostId;
+
+        // ✅ Auto-approve repost if original was approved
+        if (originalBlog.Status === "Approved") {
+          status = "Approved";
+          approvedBy = originalBlog.ApprovedBy || "System Auto-Approval";
+          approvedOn = new Date();
+        }
       }
     }
 
+    // ✅ Create the blog or repost
     const blogPost = await Blog.create({
       title: blogData.title ?? null,
       author: blogData.author ?? null,
@@ -60,19 +164,18 @@ export const createBlogPost = async (userEmail, blogData) => {
       ApprovedBy: approvedBy,
       ApprovedOn: approvedOn,
       UserID: user.UserID,
-      RepostID: blogData.repostId ?? null,
-      RepostUserID: repostUserId ?? null,
-      allowRepost: blogData.allowRepost ?? false, // Fixed: use blogData.allowRepost
+      RepostID: repostId,
+      RepostUserID: repostUserId,
+      allowRepost: blogData.allowRepost ?? false,
     });
 
-    console.log("blog body", blogPost);
     logInfo("Blog posted successfully!");
 
     return {
       status: 200,
       response: {
         success: true,
-        data: { postId: blogPost.BlogID },
+        data: { postId: blogPost.BlogID, status },
         message: "Blog posted successfully!",
       },
     };
@@ -90,7 +193,6 @@ export const createBlogPost = async (userEmail, blogData) => {
 };
 
 export const getBlogService = async (userEmail) => {
-  // Check user exists
   const user = await User.findOne({
     where: {
       EmailId: userEmail,
@@ -108,6 +210,7 @@ export const getBlogService = async (userEmail) => {
     where: {
       UserID: user.UserID,
       delStatus: { [Op.or]: [0, null] },
+      [Op.or]: [{ RepostID: null }, { RepostID: 0 }], 
     },
   });
 

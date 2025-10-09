@@ -12,6 +12,7 @@ const UserContentTabs = ({
   handleClickDiscussion,
   handleDeleteDiscussion,
   events,
+  totalEventsCount,
   setEvents,
   blogs,
   setBlogs,
@@ -23,6 +24,7 @@ const UserContentTabs = ({
   user,
   profileImage
 }) => {
+  console.log("Events :" ,events)
   const handleEditDiscussion = (discussion) => {
     setDiscussionToEdit(discussion);
     setEditModalIsOpen(true);
@@ -122,7 +124,7 @@ const UserContentTabs = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3 sm:gap-0">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">My Events</h2>
             <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-              {events.length} {events.length === 1 ? "Event" : "Events"}
+              {totalEventsCount} {totalEventsCount === 1 ? "Event" : "Events"}
             </span>
           </div>
           <AddUserEvent events={events} setEvents={setEvents} />

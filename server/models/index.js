@@ -100,6 +100,7 @@ CommunityEvents.belongsTo(TableDDReference, {
   targetKey: "idCode",
   as: "EventTypeRef",
 });
+
 CommunityEvents.belongsTo(TableDDReference, {
   foreignKey: "Category",
   targetKey: "idCode",

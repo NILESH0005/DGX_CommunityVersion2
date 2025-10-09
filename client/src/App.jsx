@@ -123,6 +123,7 @@ function App() {
   const [blogs, setBlogs] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [totalEventsCount, setTotalEventsCount] = useState(0); // Add this state
 
   const { user, userToken, fetchData, setUserToken } = useContext(ApiContext);
 
@@ -133,7 +134,7 @@ function App() {
       const method = "GET";
       const headers = {
         "Content-Type": "application/json",
-        "auth-token": userToken 
+        "auth-token": userToken,
       };
 
       console.log("Fetching events with token:", userToken);
@@ -148,6 +149,11 @@ function App() {
           eventData.data || eventData.events || eventData.result || [];
         console.log("Events data extracted:", eventsData);
         setEvents(eventsData);
+
+        if (eventData.totalCount !== undefined) {
+          setTotalEventsCount(eventData.totalCount);
+          console.log("Total events count:", eventData.totalCount);
+        }
       } else {
         console.error("Failed to fetch events - no success:", eventData);
       }
@@ -193,6 +199,7 @@ function App() {
                   setBlogs={setBlogs}
                   events={events} // ← PASSING EVENTS DATA
                   setEvents={setEvents} // ← PASSING SETTER FUNCTION
+                  totalEventsCount={totalEventsCount} // Add this prop
                 />
               }
             />
@@ -214,7 +221,12 @@ function App() {
             <Route path="/Survey" element={<Survey />} />
             <Route path="/ConfirmationModal" element={<ConfirmationModal />} />
             {/* <Route path='/MyStoryboard' element={<MyStoryboard />} /> */}
-            <Route path="/EventWorkshopPage" element={<EventWorkshopPage  events={events} setEvents={setEvents} />} />
+            <Route
+              path="/EventWorkshopPage"
+              element={
+                <EventWorkshopPage events={events} setEvents={setEvents} />
+              }
+            />
             <Route
               path="/EventRegistrationPage"
               element={<EventRegistrationPage />}
@@ -402,7 +414,6 @@ function App() {
               path="/submodule/:subModuleId"
               element={<UnitsWithFiles />}
             />
-          
           </Routes>
         </div>
         <Footer />

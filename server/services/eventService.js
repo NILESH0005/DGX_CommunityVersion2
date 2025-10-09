@@ -80,7 +80,6 @@ export const addEventService = async (decodedUser, payload) => {
 export const getEventService = async (userId) => {
   const events = await CommunityEvents.findAll({
     where: { delStatus: 0 },
-
     include: [
       {
         model: MasterTable,
@@ -99,13 +98,27 @@ export const getEventService = async (userId) => {
     ],
     order: [["AddOnDt", "DESC"]],
   });
+
+  const transformedEvents = events.map((event) => {
+    const eventObj = event.toJSON ? event.toJSON() : event;
+    return {
+      ...eventObj,
+      EventType: eventObj.EventTypeRef?.ddValue || eventObj.EventType,
+      Category: eventObj.CategoryRef?.ddValue || eventObj.Category,
+      // Remove the nested objects if you don't need them
+      EventTypeRef: undefined,
+      CategoryRef: undefined,
+    };
+  });
+
   console.log("Query conditions:", { delStatus: 0, UserID: userId });
 
   const totalCount = await CommunityEvents.count({
     where: { delStatus: 0, UserID: userId },
   });
 
-  return { events, totalCount };
+  // Return transformedEvents instead of events
+  return { events: transformedEvents, totalCount };
 };
 
 export const updateEventService = async (eventId, user, payload) => {

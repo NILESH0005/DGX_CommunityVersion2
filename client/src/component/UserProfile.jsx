@@ -31,7 +31,7 @@ import EditDiscussionModal from "./EditDiscussionModal.jsx";
 import PersonalInfoSection from "./PersonalInfoSection";
 
 const UserProfile = (props) => {
-  console.log("what is in props", props.events)
+  console.log("what is in props", props.totalEventsCount)
   const [activeTab, setActiveTab] = useState("posts");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -427,6 +427,7 @@ const UserProfile = (props) => {
             handleDeleteDiscussion={handleDeleteDiscussion}
             events={props.events}
             setEvents={props.setEvents}
+            totalEventsCount= {props.totalEventsCount}
             blogs={props.blogs}
             setBlogs={props.setBlogs}
             quiz={props.quiz}
