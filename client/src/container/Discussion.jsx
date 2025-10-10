@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import FileUploader from "../container/FileUploader.jsx";
 import { checkToxicityWithReasonAndFlag } from "../utils/toxicityDetection.js";
+import CommunitySidebar from "./CommunitySidebar.jsx";
 
 const Discussion = () => {
   const navigate = useNavigate();
@@ -228,10 +229,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            commentCount: newCommentCount,
-            ...(updatedComments ? { comment: updatedComments } : {}),
-          }
+              ...discussion,
+              commentCount: newCommentCount,
+              ...(updatedComments ? { comment: updatedComments } : {}),
+            }
           : discussion
       )
     );
@@ -239,10 +240,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            commentCount: newCommentCount,
-            ...(updatedComments ? { comment: updatedComments } : {}),
-          }
+              ...discussion,
+              commentCount: newCommentCount,
+              ...(updatedComments ? { comment: updatedComments } : {}),
+            }
           : discussion
       )
     );
@@ -257,10 +258,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            likeCount: newLikeCount,
-            ...(isLiked !== null ? { userLike: isLiked } : {}),
-          }
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
           : discussion
       )
     );
@@ -269,10 +270,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            likeCount: newLikeCount,
-            ...(isLiked !== null ? { userLike: isLiked } : {}),
-          }
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
           : discussion
       )
     );
@@ -293,8 +294,8 @@ const Discussion = () => {
           return typeof discussion.Tag === "string"
             ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
             : discussion.Tag?.some((tag) =>
-              tag.toLowerCase().includes(lowerCaseQuery)
-            );
+                tag.toLowerCase().includes(lowerCaseQuery)
+              );
         default: // 'all'
           return (
             discussion.Title.toLowerCase().includes(lowerCaseQuery) ||
@@ -302,8 +303,8 @@ const Discussion = () => {
             (typeof discussion.Tag === "string"
               ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
               : discussion.Tag?.some((tag) =>
-                tag.toLowerCase().includes(lowerCaseQuery)
-              ))
+                  tag.toLowerCase().includes(lowerCaseQuery)
+                ))
           );
       }
     });
@@ -490,13 +491,12 @@ const Discussion = () => {
 
     // Calculate new like state and count immediately for optimistic update
     const newLikeState = currentUserLike === 1 ? 0 : 1;
-    const discussion = demoDiscussions.find(d => d.DiscussionID === id);
+    const discussion = demoDiscussions.find((d) => d.DiscussionID === id);
     const currentLikes = Number(discussion?.likeCount) || 0;
 
     // Calculate new like count correctly
-    const newLikeCount = newLikeState === 1 ?
-      currentLikes + 1 :
-      Math.max(0, currentLikes - 1);
+    const newLikeCount =
+      newLikeState === 1 ? currentLikes + 1 : Math.max(0, currentLikes - 1);
 
     // OPTIMISTIC UPDATE: Update UI immediately
     setDemoDiscussions((prevDiscussions) =>
@@ -581,7 +581,7 @@ const Discussion = () => {
       console.log("✅ Like action recorded successfully:", {
         discussionId: id,
         newLikeState,
-        response: data
+        response: data,
       });
 
       // Refresh to get accurate counts from backend
@@ -590,7 +590,6 @@ const Discussion = () => {
       } else {
         await fetchDiscussionData(null);
       }
-
     } catch (error) {
       console.error("Error:", error);
 
@@ -628,7 +627,7 @@ const Discussion = () => {
       });
     }
   };
-  
+
   const toggleNav = () => setIsNavOpen(!isNavOpen);
   const handleLike = () => setLikeCount(likeCount + 1);
 
@@ -966,17 +965,41 @@ const Discussion = () => {
   };
 
   return (
-    <div>
+    <div className="h-screen flex flex-col bg-white">
       <ToastContainer
         style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
       />
 
-      <header className="flex flex-wrap sm:justify-start sm:flex-nowrap w-full bg-DGXblue text-sm py-4">
-        <nav
-          className="max-w-[85rem] w-full mx-auto px-4 flex flex-wrap basis-full items-center justify-between "
-          aria-label="Global"
-        >
-          <div className="sm:order-4 flex items-center w-full sm:w-auto mt-0 sm:mt-0 sm:ml-4 ">
+        {modalIsOpen && selectedDiscussion && (
+        <DiscussionModal
+          isOpen={modalIsOpen}
+          onRequestClose={handleModalClose}
+          discussion={selectedDiscussion}
+          setDiscussions={setDiscussions}
+          discussions={discussions}
+          setDemoDiscussion={setDemoDiscussions}
+          updateCommentCount={updateDiscussionCommentCount}
+          updateLikeCount={updateDiscussionLikeCount} // Add this new prop
+        />
+      )}
+       <div className="flex-1 flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4 overflow-hidden">
+        <CommunitySidebar
+          isLoading={isLoading}
+          communityHighlights={communityHighlights}
+          topUsers={topUsers}
+          
+        />
+
+        <section className="w-full px-4 flex flex-col overflow-y-scroll h-[80vh]">
+
+          <div className="sticky top-0 bg-white z-20 flex-shrink-0">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-DGXgreen to-DGXblue bg-clip-text text-transparent">
+                {selectedSection.charAt(0).toUpperCase() +
+                  selectedSection.slice(1)}{" "}
+                Discussions
+              </h2>
+                   <div className="sm:order-4 flex items-center w-full sm:w-auto mt-0 sm:mt-0 sm:ml-4 ">
             {isLoading ? (
               <Skeleton
                 height="2.16rem"
@@ -1010,835 +1033,993 @@ const Discussion = () => {
               </div>
             )}
           </div>
-
-          <div
-            id="navbar-alignment"
-            className={`${isNavOpen ? "block" : "hidden"
-              } hs-collapse overflow-hidden transition-all duration-300 basis-full grow sm:grow-0 sm:basis-auto sm:block sm:order-2`}
-          ></div>
-          {isLoading ? (
-            <Skeleton
-              height={35}
-              width={150}
-              className="w-full xs:w-full sm:w-64 bg-lime-500 rounded-lg mb-1 sm:mt-4"
-            />
-          ) : (
-            <button
-              type="button"
-              className="py-2 xs:w-full px-3 gap-x-2 text-sm font-bold rounded-lg bg-DGXgreen text-DGXwhite shadow-sm hover:bg-DGXblue hover:border-DGXgreen border border-DGXblue disabled:opacity-50 disabled:pointer-events-none"
-              onClick={() => {
-                if (!userToken) {
-                  Swal.fire({
-                    icon: "warning",
-                    title: "Authentication Required",
-                    text: "You need to login to start a discussion",
-                    confirmButtonText: "Login",
-                    showCancelButton: true,
-                    cancelButtonText: "Cancel",
-                  }).then((result) => {
-                    if (result.isConfirmed) {
-                      navigate("/SignInn");
-                    }
-                  });
-                } else {
-                  resetForm();
-                  setIsFormOpen(true);
-                }
-              }}
-            >
-              Start a New Topic +
-            </button>
-          )}
-        </nav>
-      </header>
-      {modalIsOpen && selectedDiscussion && (
-        <DiscussionModal
-          isOpen={modalIsOpen}
-          onRequestClose={handleModalClose}
-          discussion={selectedDiscussion}
-          setDiscussions={setDiscussions}
-          discussions={discussions}
-          setDemoDiscussion={setDemoDiscussions}
-          updateCommentCount={updateDiscussionCommentCount}
-          updateLikeCount={updateDiscussionLikeCount} // Add this new prop
-        />
-      )}
-      <div className="flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4">
-        <aside className="hidden lg:block lg:w-1/4 px-4">
-          <div className="mb-8">
-            <h2 className="sm:text-sm md:text-base lg:text-lg font-bold mb-4 py-2">
-              <AiOutlineComment className="inline-block mr-2" />
-              Community Highlights
-            </h2>
-
-            <div className="space-y-4">
-              {isLoading
-                ? Array.from({ length: 5 }).map((_, index) => (
-                  <Skeleton
-                    key={index}
-                    height="8.5rem"
-                    className="w-full bg-gray-300 rounded-lg mb-4"
-                  />
-                ))
-                : communityHighlights.map((topic) => (
-                  <div
-                    key={topic.DiscussionID}
-                    className="rounded-lg shadow-lg p-4 border hover:bg-DGXgreen/50 border-DGXblack transition-transform transform hover:scale-105 hover:shadow-xl"
-                    onClick={() => openModal(topic)}
-                  >
-                    <h3 className="text-xl font-semibold">
-                      <a
-                        href={topic.link}
-                        className="text-DGXblack hover:underline"
-                      >
-                        {topic.Title}
-                      </a>
-                    </h3>
-
-                    <div className="text-DGXblack mt-2">
-                      {topic.Content.length > 150 ? (
-                        <>
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: topic.Content.substring(0, 147),
-                            }}
-                          />
-                          <span
-                            className="text-blue-700 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openModal(topic);
-                            }}
-                          >
-                            ...see more
-                          </span>
-                        </>
-                      ) : (
-                        <div
-                          dangerouslySetInnerHTML={{ __html: topic.Content }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="sm:text-sm md:text-base lg:text-lg font-bold mb-4">
-              <FaTrophy className="inline-block mr-2" />
-              Top Contributors
-            </h2>
-            <div className="space-y-2">
-              {isLoading
-                ? Array.from({ length: 5 }).map((_, index) => (
-                  <Skeleton
-                    key={index}
-                    height="2.5rem"
-                    className="w-full bg-gray-300 rounded-lg mb-4"
-                  />
-                ))
-                : topUsers.map((user, index) => (
-                  <div
-                    key={user.userID}
-                    className="flex justify-between items-center bg-DGXblue border border-gray-200 rounded-lg shadow-sm p-3 hover:shadow-xl hover:scale-105 transition-colors"
-                  >
-                    <span className="font-medium text-white">
-                      {user.userName}
-                    </span>
-                    <span className="text-white">{user.count} Post(s)</span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        </aside>
-
-        <section className="w-full lg:w-2/3 px-4">
-          <h2 className="sm:text-sm md:text-base lg:text-lg font-bold mb-4">
-            {selectedSection.charAt(0).toUpperCase() + selectedSection.slice(1)}{" "}
-            Discussions
-          </h2>
-          <div className="flex flex-col space-y-4">
-            {isFormOpen && (
-              <form
-                onSubmit={handleSubmit}
-                className="border border-gray-300 rounded-lg p-4"
+              <button
+                onClick={() => setIsFormOpen(!isFormOpen)}
+                className="flex items-center gap-2 bg-gradient-to-r from-DGXgreen to-DGXblue text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
               >
-                <h3 className="text-lg font-bold mb-4">
-                  Start a New Discussion
-                </h3>
+                <span className="text-lg">+</span>
+                New Discussion
+              </button>
+            </div>
+          </div>
 
-                <div className="mb-4">
-                  <label
-                    className="block text-gray-700 font-bold mb-2"
-                    htmlFor="title"
-                  >
-                    Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    id="title"
-                    type="text"
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.title ? "border-red-500" : ""
-                      }`}
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      if (errors.title) validateTitle();
-                    }}
-                    onBlur={validateTitle}
-                    required
-                    maxLength={100}
-                  />
-                  <div className="flex justify-between">
-                    {errors.title && (
-                      <p className="text-red-500 text-xs italic">
-                        {errors.title}
-                      </p>
-                    )}
-                    <span className="text-xs text-gray-500 ml-auto">
-                      {title.length}/100 characters
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label
-                    className="block text-gray-700 font-bold mb-2"
-                    htmlFor="content"
-                  >
-                    Content <span className="text-red-500">*</span>
-                  </label>
-                  <ReactQuill
-                    id="content"
-                    theme="snow"
-                    value={content}
-                    onChange={(value) => {
-                      setContent(value);
-                      if (errors.content) validateContent();
-                    }}
-                    onBlur={validateContent}
-                    className={`border rounded-lg ${errors.content ? "border-red-500" : ""
-                      }`}
-                    modules={{
-                      toolbar: [
-                        [{ header: [1, 2, 3, false] }],
-                        ["bold", "italic", "underline", "strike"],
-                        ["blockquote", "code-block"],
-                        [{ list: "ordered" }, { list: "bullet" }],
-                        ["link", "formula"],
-                        ["clean"],
-                      ],
-                    }}
-                  />
-                  <div className="flex justify-between">
-                    {errors.content && (
-                      <p className="text-red-500 text-xs italic">
-                        {errors.content}
-                      </p>
-                    )}
-                    <span className="text-xs text-gray-500 ml-auto">
-                      {content.replace(/<[^>]*>/g, "").length}/5000 characters
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-bold mb-2">
-                    Tags <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.tags ? "border-red-500" : ""
-                      }`}
-                    value={tagInput}
-                    onChange={handleTagInputChange}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && tagInput.trim() !== "") {
-                        e.preventDefault();
-                        if (tags.length < 5) {
-                          setTags([...tags, tagInput.trim()]);
-                          setTagInput("");
-                          setErrors({ ...errors, tags: "" });
-                        } else {
-                          setErrors({
-                            ...errors,
-                          });
-                        }
-                      }
-                    }}
-                    onBlur={validateTags}
-                  // placeholder="Press Enter to add a tag (max 5)"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (tagInput.trim() !== "" && tags.length < 5) {
-                        setTags([...tags, tagInput.trim()]);
-                        setTagInput("");
-                        setErrors({ ...errors, tags: "" });
-                      } else if (tags.length >= 5) {
-                        setErrors({
-                          ...errors,
-                          tags: "Maximum 5 tags allowed",
-                        });
-                      }
-                    }}
-                    className="bg-DGXblue text-white px-4 py-2 mt-2 rounded-lg"
-                  >
-                    Add
-                  </button>
-
-                  <div className="flex justify-between">
-                    {errors.tags && (
-                      <p className="text-red-500 text-xs italic">
-                        {errors.tags}
-                      </p>
-                    )}
-                    {/* <span className="text-xs text-gray-500 ml-auto">
-                      {tags.length}/5 tags
-                    </span> */}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {tags.map((tag, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center bg-DGXgreen text-white rounded-full px-3 py-1"
+          <div className="flex flex-col space-y-8">
+            {/* New Discussion Form */}
+            {isFormOpen && (
+              <div className="animate-slide-down">
+                <div className="bg-white border-2 border-DGXgreen/20 rounded-xl shadow-lg overflow-hidden">
+                  <div className="bg-gradient-to-r from-DGXgreen to-DGXblue p-4">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <span>{tag}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            removeTag(tag);
-                            validateTags();
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
+                      </svg>
+                      Start a New Discussion
+                    </h3>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    {/* Title Field */}
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm font-semibold text-gray-700">
+                        <span>Discussion Title</span>
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="title"
+                          type="text"
+                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
+                            errors.title
+                              ? "border-red-500 ring-2 ring-red-200"
+                              : "border-gray-300"
+                          }`}
+                          value={title}
+                          onChange={(e) => {
+                            setTitle(e.target.value);
+                            if (errors.title) validateTitle();
                           }}
-                          className="ml-2 text-white hover:text-red-200"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-bold mb-2">
-                    Links <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    // type="text"
-                    type="url"
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.links ? "border-red-500" : ""
-                      }`}
-                    value={linkInput}
-                    onChange={handleLinkInputChange}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter" && linkInput.trim() !== "") {
-                        e.preventDefault();
-                        const urlRegex =
-                          /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-                        if (urlRegex.test(linkInput.trim())) {
-                          setLinks([...links, linkInput.trim()]);
-                          setLinkInput("");
-                          setErrors({ ...errors, links: "" });
-                        } else {
-                          setErrors({
-                            ...errors,
-                            links: "Please enter a valid URL",
-                          });
-                        }
-                      }
-                    }}
-                    onBlur={validateLinks}
-                    placeholder="Press Enter to add a valid URL (e.g., https://example.com)"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddLink}
-                    className="bg-DGXblue text-white px-4 py-2 rounded-lg mt-2"
-                  >
-                    Add
-                  </button>
-                  {errors.links && (
-                    <p className="text-red-500 text-xs italic">
-                      {errors.links}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {links.map((link, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center bg-DGXblue text-white rounded-full px-3 py-1"
-                      >
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white hover:underline truncate max-w-xs"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {link}
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            removeLink(link);
-                            validateLinks();
-                          }}
-                          className="ml-2 text-white hover:text-red-200"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-bold mb-2">
-                    Repost Permission <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="allowRepost"
-                        value="true"
-                        checked={allowRepost === true}
-                        onChange={() => setAllowRepost(true)}
-                      />
-                      Yes
-                    </label>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="allowRepost"
-                        value="false"
-                        checked={allowRepost === false}
-                        onChange={() => setAllowRepost(false)}
-                      />
-                      No
-                    </label>
-                  </div>
-                  {errors.allowRepost && (
-                    <p className="text-red-500 text-xs italic">
-                      {errors.allowRepost}
-                    </p>
-                  )}
-                </div>
-
-                {/* <div className="mb-4">
-                  <label className="block text-gray-700 font-bold mb-2">
-                    Image
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                  {selectedImage && (
-                    <div className="mt-2">
-                      <img
-                        src={selectedImage}
-                        alt="Selected"
-                        className="max-h-40"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setSelectedImage(null)}
-                        className="mt-2 text-red-500 text-sm"
-                      >
-                        Remove Image
-                      </button>
-                    </div>
-                  )}
-                </div> */}
-                <FileUploader
-                  moduleName="Discussion"
-                  folderName="discussion-banners"
-                  onUploadComplete={handleDiscussionImageUpload}
-                  accept="image/*"
-                  maxSize={200 * 1024}
-                  label="Upload Banner Image"
-                />
-                {selectedImage && (
-                  <div className="mt-2">
-                    <img
-                      src={selectedImage}
-                      alt="Banner Preview"
-                      className="max-h-40 object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedImage(null);
-                        setBannerFilePath("");
-                      }}
-                      className="mt-2 text-red-500 text-sm"
-                    >
-                      Remove Image
-                    </button>
-                  </div>
-                )}
-                <div className="mb-4">
-                  <label className="block text-gray-700 font-bold mb-2">
-                    Privacy <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={privacy}
-                    onChange={(e) => {
-                      setPrivacy(e.target.value);
-                      setErrors({ ...errors, privacy: "" });
-                    }}
-                    onBlur={validatePrivacy}
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.privacy ? "border-red-500" : ""
-                      }`}
-                  >
-                    <option value="">Select privacy</option>
-                    <option value="private">Private</option>
-                    <option value="public">Public</option>
-                  </select>
-                  {errors.privacy && (
-                    <p className="text-red-500 text-xs italic">
-                      {errors.privacy}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300"
-                    onClick={closeModal}
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-DGXgreen text-white py-2 px-4 rounded-lg hover:bg-DGXblue disabled:opacity-50"
-                    disabled={
-                      loading ||
-                      isCheckingToxicity ||
-                      Object.values(errors).some((error) => error)
-                    }
-                  >
-                    {isCheckingToxicity ? (
-                      <span className="flex items-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Checking content...
-                      </span>
-                    ) : loading ? (
-                      <span className="flex items-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Posting...
-                      </span>
-                    ) : (
-                      "Submit"
-                    )}
-                  </button>
-                </div>
-              </form>
-            )}
-            <div className="two-h-screen scrollbar scrollbar-thin  overflow-y-auto px-6">
-              {isLoading
-                ? demoDiscussions.map((_, index) => (
-                  <div
-                    key={index}
-                    className="relative shadow my-4 border border-gray-300 rounded-lg p-4 w-full max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl bg-gray-200 animate-pulse"
-                  >
-                    <div className="h-10 bg-gray-300 rounded w-3/4 mb-2"></div>
-                    <div className="h-24 bg-gray-300 rounded w-full mb-2"></div>
-                    <div className="h-40 w-60 bg-gray-300 rounded mb-2"></div>
-                    <div className="flex gap-2">
-                      {Array.from({ length: 3 }).map((_, tagIndex) => (
-                        <span
-                          key={tagIndex}
-                          className="h-8 w-20 bg-gray-300 rounded"
-                        ></span>
-                      ))}
-                    </div>
-                    <div className="mt-4 h-5 bg-gray-300 rounded w-1/2"></div>
-                    <div className="mt-4 h-8 bg-gray-300 rounded w-52"></div>
-                  </div>
-                ))
-                : filteredDiscussions.map((discussion, i) => (
-                  <div
-                    key={i}
-                    className="relative shadow my-4 border border-gray-300 rounded-lg p-4 w-full max-w-screen-sm sm:max-w-screen-md md:max-w-screen-lg lg:max-w-screen-xl xl:max-w-screen-2xl transition-transform transform  hover:shadow-lg hover:bg-gray-100 cursor-pointer focus-within:z-10 hover:z-10"
-                    onClick={(e) => {
-                      if (
-                        !e.target.closest("a") &&
-                        !e.target.closest("button") &&
-                        !e.target.classList.contains("text-blue-700")
-                      ) {
-                        openModal(discussion);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-2">
-                        {discussion.User?.ProfilePicture ? (
-                          <img
-                            src={discussion.User.ProfilePicture}
-                            alt={discussion.UserName}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-DGXgreen flex items-center justify-center text-white text-sm">
-                            {discussion.UserName?.charAt(0) || "U"}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">
-                            {discussion.UserName}
-                          </p>
-                          {/* Show original creator for reposts */}
-                          {discussion.RepostID && discussion.originalPost && (
-                            <p className="text-xs text-gray-500">
-                              Reposted from{" "}
-                              {discussion.originalPost.OriginalUserName}
-                            </p>
-                          )}
+                          onBlur={validateTitle}
+                          required
+                          maxLength={100}
+                          placeholder="What would you like to discuss?"
+                        />
+                        <div className="absolute right-3 top-3">
+                          <span
+                            className={`text-xs font-medium ${
+                              title.length > 80
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {title.length}/100
+                          </span>
                         </div>
                       </div>
-
-                      {/* Repost Badge */}
-                      {discussion.RepostID && (
-                        <span className="flex items-center text-xs bg-DGXblue text-white px-2 py-1 rounded-full">
-                          <FiRepeat className="mr-1" size={12} />
-                          Repost
-                        </span>
+                      {errors.title && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {errors.title}
+                        </p>
                       )}
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold md:text-lg lg:text-xl xl:text-2xl">
-                        {discussion.Title}
-                      </h3>
-                      <div className="text-gray-600 text-sm md:text-base lg:text-lg xl:text-xl">
-                        {discussion.Content.length > 500 ? (
-                          <>
-                            <div
-                              className="ql-snow"
-                              dangerouslySetInnerHTML={{
-                                __html: DOMPurify.sanitize(
-                                  discussion.Content.slice(0, 500) + "..."
-                                ),
-                              }}
+
+                    {/* Content Field */}
+                    <div className="space-y-2">
+                      <label className="flex items-center text-sm font-semibold text-gray-700">
+                        <span>Discussion Content</span>
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <div
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                          errors.content
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <ReactQuill
+                          id="content"
+                          theme="snow"
+                          value={content}
+                          onChange={(value) => {
+                            setContent(value);
+                            if (errors.content) validateContent();
+                          }}
+                          onBlur={validateContent}
+                          className="rounded-lg"
+                          modules={{
+                            toolbar: [
+                              [{ header: [1, 2, 3, false] }],
+                              ["bold", "italic", "underline", "strike"],
+                              ["blockquote", "code-block"],
+                              [{ list: "ordered" }, { list: "bullet" }],
+                              ["link", "formula"],
+                              ["clean"],
+                            ],
+                          }}
+                        />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        {errors.content && (
+                          <p className="text-red-500 text-sm flex items-center gap-1">
+                            <svg
+                              className="w-4 h-4"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            {errors.content}
+                          </p>
+                        )}
+                        <span
+                          className={`text-xs font-medium ml-auto ${
+                            content.replace(/<[^>]*>/g, "").length > 4500
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {content.replace(/<[^>]*>/g, "").length}/5000
+                          characters
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tags Field */}
+                    <div className="space-y-3">
+                      <label className="flex items-center text-sm font-semibold text-gray-700">
+                        <span>Tags</span>
+                        <span className="text-red-500 ml-1">*</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({5 - tags.length} remaining)
+                        </span>
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
+                              errors.tags
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-gray-300"
+                            }`}
+                            value={tagInput}
+                            onChange={handleTagInputChange}
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter" && tagInput.trim() !== "") {
+                                e.preventDefault();
+                                if (tags.length < 5) {
+                                  setTags([...tags, tagInput.trim()]);
+                                  setTagInput("");
+                                  setErrors({ ...errors, tags: "" });
+                                } else {
+                                  setErrors({
+                                    ...errors,
+                                    tags: "Maximum 5 tags allowed",
+                                  });
+                                }
+                              }
+                            }}
+                            onBlur={validateTags}
+                            placeholder="Type a tag and press Enter..."
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (tagInput.trim() !== "" && tags.length < 5) {
+                              setTags([...tags, tagInput.trim()]);
+                              setTagInput("");
+                              setErrors({ ...errors, tags: "" });
+                            } else if (tags.length >= 5) {
+                              setErrors({
+                                ...errors,
+                                tags: "Maximum 5 tags allowed",
+                              });
+                            }
+                          }}
+                          className="bg-DGXblue text-white px-6 py-3 rounded-xl hover:bg-DGXgreen transition-colors duration-300 font-semibold"
+                        >
+                          Add
+                        </button>
+                      </div>
+
+                      {errors.tags && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
                             />
-                            <span
-                              className="text-blue-700 cursor-pointer"
+                          </svg>
+                          {errors.tags}
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-4 py-2 shadow-lg transform hover:scale-105 transition-transform duration-200"
+                          >
+                            <span className="text-sm font-medium">#{tag}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                removeTag(tag);
+                                validateTags();
+                              }}
+                              className="ml-2 text-white hover:text-red-200 transition-colors duration-200 rounded-full w-5 h-5 flex items-center justify-center hover:bg-white/20"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Links Field */}
+                    <div className="space-y-3">
+                      <label className="flex items-center text-sm font-semibold text-gray-700">
+                        <span>Reference Links</span>
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="flex-1 relative">
+                          <input
+                            type="url"
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
+                              errors.links
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-gray-300"
+                            }`}
+                            value={linkInput}
+                            onChange={handleLinkInputChange}
+                            onKeyPress={(e) => {
+                              if (
+                                e.key === "Enter" &&
+                                linkInput.trim() !== ""
+                              ) {
+                                e.preventDefault();
+                                const urlRegex =
+                                  /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+                                if (urlRegex.test(linkInput.trim())) {
+                                  setLinks([...links, linkInput.trim()]);
+                                  setLinkInput("");
+                                  setErrors({ ...errors, links: "" });
+                                } else {
+                                  setErrors({
+                                    ...errors,
+                                    links: "Please enter a valid URL",
+                                  });
+                                }
+                              }
+                            }}
+                            onBlur={validateLinks}
+                            placeholder="https://example.com (Press Enter to add)"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddLink}
+                          className="bg-DGXblue text-white px-6 py-3 rounded-xl hover:bg-DGXgreen transition-colors duration-300 font-semibold"
+                        >
+                          Add
+                        </button>
+                      </div>
+
+                      {errors.links && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {errors.links}
+                        </p>
+                      )}
+
+                      <div className="flex flex-wrap gap-2">
+                        {links.map((link, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center bg-gradient-to-r from-DGXblue to-DGXgreen text-white rounded-xl px-4 py-2 shadow-lg transform hover:scale-105 transition-transform duration-200 group"
+                          >
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-white hover:underline truncate max-w-xs text-sm font-medium flex items-center gap-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                              {link.replace(/^https?:\/\//, "")}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                removeLink(link);
+                                validateLinks();
+                              }}
+                              className="ml-2 text-white hover:text-red-200 transition-colors duration-200 rounded-full w-5 h-5 flex items-center justify-center hover:bg-white/20"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Repost Permission */}
+                    <div className="space-y-3">
+                      <label className="flex items-center text-sm font-semibold text-gray-700">
+                        <span>Allow Reposting</span>
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <div className="flex gap-6">
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                          <div
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                              allowRepost === true
+                                ? "border-DGXgreen bg-DGXgreen"
+                                : "border-gray-300 group-hover:border-DGXgreen"
+                            }`}
+                          >
+                            {allowRepost === true && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <input
+                            type="radio"
+                            name="allowRepost"
+                            value="true"
+                            checked={allowRepost === true}
+                            onChange={() => setAllowRepost(true)}
+                            className="hidden"
+                          />
+                          <span className="text-gray-700 font-medium">
+                            Yes, others can repost
+                          </span>
+                        </label>
+
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                          <div
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                              allowRepost === false
+                                ? "border-DGXgreen bg-DGXgreen"
+                                : "border-gray-300 group-hover:border-DGXgreen"
+                            }`}
+                          >
+                            {allowRepost === false && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <input
+                            type="radio"
+                            name="allowRepost"
+                            value="false"
+                            checked={allowRepost === false}
+                            onChange={() => setAllowRepost(false)}
+                            className="hidden"
+                          />
+                          <span className="text-gray-700 font-medium">
+                            No, keep it original
+                          </span>
+                        </label>
+                      </div>
+                      {errors.allowRepost && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {errors.allowRepost}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Banner Image Upload */}
+                    <div className="space-y-3">
+                      <FileUploader
+                        moduleName="Discussion"
+                        folderName="discussion-banners"
+                        onUploadComplete={handleDiscussionImageUpload}
+                        accept="image/*"
+                        maxSize={200 * 1024}
+                        label="Upload Banner Image"
+                      />
+                      {selectedImage && (
+                        <div className="mt-4 p-4 border-2 border-dashed border-DGXgreen/30 rounded-xl bg-green-50">
+                          <p className="text-sm font-semibold text-DGXgreen mb-2">
+                            Banner Preview
+                          </p>
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={selectedImage}
+                              alt="Banner Preview"
+                              className="h-20 w-32 object-cover rounded-lg shadow-md"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedImage(null);
+                                setBannerFilePath("");
+                              }}
+                              className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center gap-1 transition-colors duration-200"
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                              Remove Image
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Privacy Setting */}
+                    <div className="space-y-3">
+                      <label className="flex items-center text-sm font-semibold text-gray-700">
+                        <span>Privacy Setting</span>
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
+                      <select
+                        value={privacy}
+                        onChange={(e) => {
+                          setPrivacy(e.target.value);
+                          setErrors({ ...errors, privacy: "" });
+                        }}
+                        onBlur={validatePrivacy}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
+                          errors.privacy
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Select privacy setting</option>
+                        <option value="private">
+                          🔒 Private - Only visible to you
+                        </option>
+                        <option value="public">
+                          🌍 Public - Visible to everyone
+                        </option>
+                      </select>
+                      {errors.privacy && (
+                        <p className="text-red-500 text-sm flex items-center gap-1">
+                          <svg
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          {errors.privacy}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                      <button
+                        type="button"
+                        className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 font-semibold transform hover:scale-105"
+                        onClick={closeModal}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-8 py-3 bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-xl hover:shadow-lg transition-all duration-300 font-semibold transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                        disabled={
+                          loading ||
+                          isCheckingToxicity ||
+                          Object.values(errors).some((error) => error)
+                        }
+                      >
+                        {isCheckingToxicity ? (
+                          <span className="flex items-center gap-2">
+                            <svg
+                              className="animate-spin h-5 w-5 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            Checking content...
+                          </span>
+                        ) : loading ? (
+                          <span className="flex items-center gap-2">
+                            <svg
+                              className="animate-spin h-5 w-5 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            Creating Discussion...
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13 10V3L4 14h7v7l9-11h-7z"
+                              />
+                            </svg>
+                            Publish Discussion
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Discussions List */}
+            <div className="space-y-6">
+              {isLoading ? (
+                // Enhanced Loading Skeleton
+                <div className="space-y-4">
+                  {demoDiscussions.map((_, index) => (
+                    <div
+                      key={index}
+                      className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm animate-pulse"
+                    >
+                      <div className="flex items-center space-x-3 mb-4">
+                        <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+                        <div className="space-y-2">
+                          <div className="h-4 bg-gray-300 rounded w-32"></div>
+                          <div className="h-3 bg-gray-300 rounded w-24"></div>
+                        </div>
+                      </div>
+                      <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
+                      <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
+                      <div className="h-4 bg-gray-300 rounded w-5/6 mb-4"></div>
+                      <div className="h-40 bg-gray-300 rounded mb-4"></div>
+                      <div className="flex gap-2 mb-4">
+                        <div className="h-6 bg-gray-300 rounded w-16"></div>
+                        <div className="h-6 bg-gray-300 rounded w-20"></div>
+                        <div className="h-6 bg-gray-300 rounded w-12"></div>
+                      </div>
+                      <div className="flex space-x-6">
+                        <div className="h-4 bg-gray-300 rounded w-16"></div>
+                        <div className="h-4 bg-gray-300 rounded w-20"></div>
+                        <div className="h-4 bg-gray-300 rounded w-14"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                // Actual Discussions
+                <div className="space-y-6">
+                  {filteredDiscussions.map((discussion, i) => (
+                    <div
+                      key={i}
+                      className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer focus-within:z-10 hover:z-10 relative overflow-hidden"
+                      onClick={(e) => {
+                        if (
+                          !e.target.closest("a") &&
+                          !e.target.closest("button") &&
+                          !e.target.classList.contains("text-blue-700")
+                        ) {
+                          openModal(discussion);
+                        }
+                      }}
+                    >
+                      {/* Gradient Border Effect on Hover */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+
+                      <div className="relative">
+                        {/* Header with User Info */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            {discussion.User?.ProfilePicture ? (
+                              <img
+                                src={discussion.User.ProfilePicture}
+                                alt={discussion.UserName}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-DGXgreen to-DGXblue flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                                {discussion.UserName?.charAt(0) || "U"}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-semibold text-gray-800">
+                                {discussion.UserName}
+                              </p>
+                              {/* Show original creator for reposts */}
+                              {discussion.RepostID &&
+                                discussion.originalPost && (
+                                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                                    <FiRepeat className="w-3 h-3" />
+                                    Reposted from{" "}
+                                    {discussion.originalPost.OriginalUserName}
+                                  </p>
+                                )}
+                            </div>
+                          </div>
+
+                          {/* Repost Badge */}
+                          {discussion.RepostID && (
+                            <span className="flex items-center text-xs bg-gradient-to-r from-DGXblue to-DGXgreen text-white px-3 py-1 rounded-full shadow-md">
+                              <FiRepeat className="mr-1" size={12} />
+                              Repost
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Discussion Content */}
+                        <div className="mb-4">
+                          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-DGXgreen transition-colors duration-300">
+                            {discussion.Title}
+                          </h3>
+                          <div className="text-gray-700 leading-relaxed">
+                            {discussion.Content.length > 500 ? (
+                              <>
+                                <div
+                                  className="ql-snow"
+                                  dangerouslySetInnerHTML={{
+                                    __html: DOMPurify.sanitize(
+                                      discussion.Content.slice(0, 500) + "..."
+                                    ),
+                                  }}
+                                />
+                                <span
+                                  className="text-DGXblue cursor-pointer font-semibold hover:underline inline-flex items-center gap-1 mt-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openModal(discussion);
+                                  }}
+                                >
+                                  Continue reading
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 5l7 7-7 7"
+                                    />
+                                  </svg>
+                                </span>
+                              </>
+                            ) : (
+                              <div
+                                className="ql-snow discussion-content"
+                                dangerouslySetInnerHTML={{
+                                  __html: DOMPurify.sanitize(
+                                    discussion.Content
+                                  ),
+                                }}
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Discussion Image */}
+                        {(discussion.DiscussionImagePath || discussion.Image) && (
+  <div
+    className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-screen-lg mx-auto"
+    onClick={() => openModal(discussion)}
+    style={{ height: 'auto', maxHeight: '80vh' }} // adjustable max height relative to viewport
+  >
+    <img
+      src={
+        discussion.ImageUrl ||
+        `${window.location.origin}/${discussion.DiscussionImagePath}` ||
+        discussion.Image
+      }
+      alt="Discussion"
+      className="w-full h-auto max-h-[80vh] object-contain hover:scale-105 transition-transform duration-500"
+      onError={(e) => {
+        e.target.onerror = null;
+        e.target.src =
+          "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+      }}
+    />
+  </div>
+)}
+
+
+                        {/* Tags */}
+                        {discussion.Tag && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {(typeof discussion.Tag === "string"
+                              ? discussion.Tag.split(",").filter((tag) => tag)
+                              : Array.isArray(discussion.Tag)
+                              ? discussion.Tag
+                              : []
+                            ).map((tag, tagIndex) => (
+                              <span
+                                key={tagIndex}
+                                className="bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-3 py-1 text-xs font-medium shadow-md hover:shadow-lg transition-shadow duration-300"
+                              >
+                                #{tag.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Resource Links */}
+                        {discussion.ResourceUrl && (
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {(typeof discussion.ResourceUrl === "string"
+                              ? discussion.ResourceUrl.split(",")
+                              : Array.isArray(discussion.ResourceUrl)
+                              ? discussion.ResourceUrl
+                              : []
+                            ).map((link, linkIndex) => (
+                              <a
+                                key={linkIndex}
+                                href={link}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1 bg-blue-50 text-DGXblue rounded-lg px-3 py-1 text-xs font-medium hover:bg-blue-100 transition-colors duration-200 border border-blue-200"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                  />
+                                </svg>
+                                Resource {linkIndex + 1}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <div className="flex items-center space-x-6">
+                            {/* Like Button */}
+                            <button
+                              className="flex items-center gap-2 text-gray-600 hover:text-DGXblue transition-colors duration-200 group"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openModal(discussion);
+                                handleAddLike(
+                                  discussion.DiscussionID,
+                                  discussion.userLike
+                                );
                               }}
                             >
-                              see more
-                            </span>
-                          </>
-                        ) : (
-                          <div
-                            className="ql-snow discussion-content"
-                            dangerouslySetInnerHTML={{
-                              __html: DOMPurify.sanitize(discussion.Content),
-                            }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                    {discussion.DiscussionImagePath ? (
-                      <div
-                        className="mt-2"
-                        onClick={() => openModal(discussion)}
-                      >
-                        <img
-                          src={
-                            discussion.ImageUrl ||
-                            `${window.location.origin}/${discussion.DiscussionImagePath}`
-                          }
-                          alt="Discussion"
-                          className="max-h-40 w-auto object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src =
-                              "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-                          }}
-                        />
-                      </div>
-                    ) : discussion.Image ? (
-                      <div
-                        className="mt-2"
-                        onClick={() => openModal(discussion)}
-                      >
-                        <img
-                          src={discussion.Image}
-                          alt="Discussion"
-                          className="max-h-40 w-auto object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src =
-                              "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-                          }}
-                        />
-                      </div>
-                    ) : null}
+                              <div
+                                className={`p-2 rounded-full group-hover:bg-blue-50 transition-colors duration-200 ${
+                                  discussion.userLike === 1
+                                    ? "bg-blue-50 text-DGXblue"
+                                    : ""
+                                }`}
+                              >
+                                {discussion.userLike === 1 ? (
+                                  <AiFillLike className="w-5 h-5" />
+                                ) : (
+                                  <AiOutlineLike className="w-5 h-5" />
+                                )}
+                              </div>
+                              <span className="font-medium">
+                                {discussion.likeCount}
+                              </span>
+                            </button>
 
-                    <div
-                      className="mt-2 flex flex-wrap gap-2"
-                      onClick={() => openModal(discussion)}
-                    >
-                      {discussion.Tag && typeof discussion.Tag === "string"
-                        ? discussion.Tag.split(",")
-                          .filter((tag) => tag)
-                          .map((tag, tagIndex) => (
-                            <span
-                              key={tagIndex}
-                              className="bg-DGXgreen text-white rounded-full px-3 py-1 text-xs md:text-sm lg:text-base"
+                            {/* Comment Button */}
+                            <button
+                              className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen transition-colors duration-200 group"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleComment(discussion);
+                              }}
                             >
-                              {tag}
-                            </span>
-                          ))
-                        : Array.isArray(discussion.Tag)
-                          ? discussion.Tag.map((tag, tagIndex) => (
-                            <span
-                              key={tagIndex}
-                              className="bg-DGXgreen text-white rounded-full px-3 py-1 text-xs md:text-sm lg:text-base"
-                            >
-                              {tag}
-                            </span>
-                          ))
-                          : null}
-                    </div>
-                    <div
-                      className="mt-2 flex flex-wrap gap-2"
-                      onClick={() => openModal(discussion)}
-                    >
-                      {discussion.ResourceUrl &&
-                        typeof discussion.ResourceUrl === "string"
-                        ? discussion.ResourceUrl.split(",").map(
-                          (link, linkIndex) => (
-                            <a
-                              key={linkIndex}
-                              href={link}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-DGXgreen hover:underline text-xs md:text-sm lg:text-base"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {link}
-                            </a>
-                          )
-                        )
-                        : Array.isArray(discussion.ResourceUrl)
-                          ? discussion.ResourceUrl.map((link, linkIndex) => (
-                            <a
-                              key={linkIndex}
-                              href={link}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-DGXgreen hover:underline text-xs md:text-sm lg:text-base"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {link}
-                            </a>
-                          ))
-                          : null}
-                    </div>
-                    <div className="mt-4 flex items-center space-x-4">
-                      <button
-                        className="flex items-center text-sm md:text-base lg:text-lg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddLike(discussion.DiscussionID, discussion.userLike);
-                        }}
-                      >
-                        {discussion.userLike === 1 ? ( // Changed from == to === for strict comparison
-                          <AiFillLike className="text-DGXblue" /> // Added color for better visibility
-                        ) : (
-                          <AiOutlineLike />
-                        )}
-                        {discussion.likeCount} Likes
-                      </button>
-                      <button
-                        className="flex items-center text-DGXgreen text-sm md:text-base lg:text-lg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleComment(discussion);
-                        }}
-                      >
-                        <FaComment className="mr-2" />
-                        {discussion.commentCount} Comment
-                        {discussion.commentCount !== 1 ? "s" : ""}
-                      </button>
+                              <div className="p-2 rounded-full group-hover:bg-green-50 transition-colors duration-200">
+                                <FaComment className="w-5 h-5" />
+                              </div>
+                              <span className="font-medium">
+                                {discussion.commentCount}{" "}
+                                {discussion.commentCount !== 1
+                                  ? "Comments"
+                                  : "Comment"}
+                              </span>
+                            </button>
 
-                      {/* Enhanced repost logic */}
-                      {getRepostMessage(discussion) ? (
-                        <span className="flex items-center text-gray-400 text-sm md:text-base lg:text-lg">
-                          <FiRepeat className="mr-2" />
-                          {getRepostMessage(discussion)}
-                        </span>
-                      ) : (
-                        <button
-                          className="flex items-center text-DGXblue text-sm md:text-base lg:text-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRepost(discussion);
-                          }}
-                          disabled={
-                            loading &&
-                            userReposts.has(discussion.DiscussionID)
-                          }
-                        >
-                          <FiRepeat className="mr-2" />
-                          {loading && userReposts.has(discussion.DiscussionID)
-                            ? "Reposting..."
-                            : "Repost"}
-                        </button>
-                      )}
+                            {/* Repost Button */}
+                            {getRepostMessage(discussion) ? (
+                              <span className="flex items-center gap-2 text-gray-400">
+                                <div className="p-2 rounded-full">
+                                  <FiRepeat className="w-5 h-5" />
+                                </div>
+                                <span className="font-medium">
+                                  {getRepostMessage(discussion)}
+                                </span>
+                              </span>
+                            ) : (
+                              <button
+                                className="flex items-center gap-2 text-gray-600 hover:text-DGXblue transition-colors duration-200 group"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRepost(discussion);
+                                }}
+                                disabled={
+                                  loading &&
+                                  userReposts.has(discussion.DiscussionID)
+                                }
+                              >
+                                <div className="p-2 rounded-full group-hover:bg-blue-50 transition-colors duration-200">
+                                  <FiRepeat className="w-5 h-5" />
+                                </div>
+                                <span className="font-medium">
+                                  {loading &&
+                                  userReposts.has(discussion.DiscussionID)
+                                    ? "Reposting..."
+                                    : "Repost"}
+                                </span>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Timestamp */}
+                          <div className="text-xs text-gray-500">
+                            {new Date(
+                              discussion.CreatedAt || Date.now()
+                            ).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+
+              {/* Empty State */}
               {!isLoading &&
                 filteredDiscussions.length === 0 &&
                 searchQuery && (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">
+                  <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                    <svg
+                      className="w-16 h-16 text-gray-400 mx-auto mb-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p className="text-gray-500 text-lg mb-2">
                       No discussions found matching your search.
                     </p>
                     <button
@@ -1846,15 +2027,29 @@ const Discussion = () => {
                         setSearchQuery("");
                         setFilteredDiscussions(demoDiscussions);
                       }}
-                      className="mt-2 text-DGXgreen hover:underline"
+                      className="text-DGXgreen hover:text-DGXblue font-semibold transition-colors duration-200 inline-flex items-center gap-1"
                     >
-                      Clear search
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      Clear search and show all discussions
                     </button>
                   </div>
                 )}
             </div>
           </div>
         </section>
+
         {isLoading ? (
           <Skeleton
             height="2.5rem"
