@@ -229,10 +229,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              commentCount: newCommentCount,
-              ...(updatedComments ? { comment: updatedComments } : {}),
-            }
+            ...discussion,
+            commentCount: newCommentCount,
+            ...(updatedComments ? { comment: updatedComments } : {}),
+          }
           : discussion
       )
     );
@@ -240,10 +240,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              commentCount: newCommentCount,
-              ...(updatedComments ? { comment: updatedComments } : {}),
-            }
+            ...discussion,
+            commentCount: newCommentCount,
+            ...(updatedComments ? { comment: updatedComments } : {}),
+          }
           : discussion
       )
     );
@@ -258,10 +258,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              likeCount: newLikeCount,
-              ...(isLiked !== null ? { userLike: isLiked } : {}),
-            }
+            ...discussion,
+            likeCount: newLikeCount,
+            ...(isLiked !== null ? { userLike: isLiked } : {}),
+          }
           : discussion
       )
     );
@@ -270,10 +270,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              likeCount: newLikeCount,
-              ...(isLiked !== null ? { userLike: isLiked } : {}),
-            }
+            ...discussion,
+            likeCount: newLikeCount,
+            ...(isLiked !== null ? { userLike: isLiked } : {}),
+          }
           : discussion
       )
     );
@@ -294,8 +294,8 @@ const Discussion = () => {
           return typeof discussion.Tag === "string"
             ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
             : discussion.Tag?.some((tag) =>
-                tag.toLowerCase().includes(lowerCaseQuery)
-              );
+              tag.toLowerCase().includes(lowerCaseQuery)
+            );
         default: // 'all'
           return (
             discussion.Title.toLowerCase().includes(lowerCaseQuery) ||
@@ -303,8 +303,8 @@ const Discussion = () => {
             (typeof discussion.Tag === "string"
               ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
               : discussion.Tag?.some((tag) =>
-                  tag.toLowerCase().includes(lowerCaseQuery)
-                ))
+                tag.toLowerCase().includes(lowerCaseQuery)
+              ))
           );
       }
     });
@@ -534,14 +534,15 @@ const Discussion = () => {
 
     // Calculate new like state and count immediately for optimistic update
     const newLikeState = currentUserLike === 1 ? 0 : 1;
-    const discussion = demoDiscussions.find((d) => d.DiscussionID === id);
+    const discussion = demoDiscussions.find(d => d.DiscussionID === id);
     const currentLikes = Number(discussion?.likeCount) || 0;
 
     // Calculate new like count correctly
-    const newLikeCount =
-      newLikeState === 1 ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+    const newLikeCount = newLikeState === 1 ?
+      currentLikes + 1 :
+      Math.max(0, currentLikes - 1);
 
-    // OPTIMISTIC UPDATE: Update UI immediately
+    // Enhanced OPTIMISTIC UPDATE with better visual feedback
     setDemoDiscussions((prevDiscussions) =>
       prevDiscussions.map((discussion) => {
         if (discussion.DiscussionID === id) {
@@ -549,6 +550,8 @@ const Discussion = () => {
             ...discussion,
             userLike: newLikeState,
             likeCount: newLikeCount,
+            // Add temporary animation state
+            isAnimating: true
           };
         }
         return discussion;
@@ -562,6 +565,7 @@ const Discussion = () => {
             ...discussion,
             userLike: newLikeState,
             likeCount: newLikeCount,
+            isAnimating: true
           };
         }
         return discussion;
@@ -584,7 +588,7 @@ const Discussion = () => {
       const data = await fetchData(endpoint, method, body, headers);
 
       if (!data.success) {
-        console.error("Error occurred while liking the post");
+        console.error("Error occurred while toggling like");
 
         // REVERT OPTIMISTIC UPDATE if API call failed
         setDemoDiscussions((prevDiscussions) =>
@@ -594,6 +598,7 @@ const Discussion = () => {
                 ...discussion,
                 userLike: currentUserLike,
                 likeCount: currentLikes,
+                isAnimating: false
               };
             }
             return discussion;
@@ -607,6 +612,7 @@ const Discussion = () => {
                 ...discussion,
                 userLike: currentUserLike,
                 likeCount: currentLikes,
+                isAnimating: false
               };
             }
             return discussion;
@@ -621,18 +627,39 @@ const Discussion = () => {
         return;
       }
 
-      console.log("✅ Like action recorded successfully:", {
+      console.log("✅ Like toggle action successful:", {
         discussionId: id,
         newLikeState,
-        response: data,
+        response: data
       });
 
-      // Refresh to get accurate counts from backend
-      if (userToken && user) {
-        await fetchDiscussionData(user.EmailId);
-      } else {
-        await fetchDiscussionData(null);
-      }
+      // Remove animation state after successful update
+      setTimeout(() => {
+        setDemoDiscussions((prevDiscussions) =>
+          prevDiscussions.map((discussion) => {
+            if (discussion.DiscussionID === id) {
+              return {
+                ...discussion,
+                isAnimating: false
+              };
+            }
+            return discussion;
+          })
+        );
+
+        setFilteredDiscussions((prevDiscussions) =>
+          prevDiscussions.map((discussion) => {
+            if (discussion.DiscussionID === id) {
+              return {
+                ...discussion,
+                isAnimating: false
+              };
+            }
+            return discussion;
+          })
+        );
+      }, 500);
+
     } catch (error) {
       console.error("Error:", error);
 
@@ -644,6 +671,7 @@ const Discussion = () => {
               ...discussion,
               userLike: currentUserLike,
               likeCount: currentLikes,
+              isAnimating: false
             };
           }
           return discussion;
@@ -657,6 +685,7 @@ const Discussion = () => {
               ...discussion,
               userLike: currentUserLike,
               likeCount: currentLikes,
+              isAnimating: false
             };
           }
           return discussion;
@@ -1013,7 +1042,7 @@ const Discussion = () => {
         style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
       />
 
-        {modalIsOpen && selectedDiscussion && (
+      {modalIsOpen && selectedDiscussion && (
         <DiscussionModal
           isOpen={modalIsOpen}
           onRequestClose={handleModalClose}
@@ -1025,12 +1054,12 @@ const Discussion = () => {
           updateLikeCount={updateDiscussionLikeCount} // Add this new prop
         />
       )}
-       <div className="flex-1 flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4 overflow-hidden">
         <CommunitySidebar
           isLoading={isLoading}
           communityHighlights={communityHighlights}
           topUsers={topUsers}
-          
+
         />
 
         <section className="w-full px-4 flex flex-col overflow-y-scroll h-[80vh]">
@@ -1042,40 +1071,40 @@ const Discussion = () => {
                   selectedSection.slice(1)}{" "}
                 Discussions
               </h2>
-                   <div className="sm:order-4 flex items-center w-full sm:w-auto mt-0 sm:mt-0 sm:ml-4 ">
-            {isLoading ? (
-              <Skeleton
-                height="2.16rem"
-                width={250}
-                className="w-full sm:w-1/2 bg-gray-500 rounded-lg mb-1"
-              />
-            ) : (
-              <div className="relative w-full sm:w-64 mb-2">
-                <input
-                  type="text"
-                  className="w-full py-2 pl-10 pr-4 bg-white border border-gray-200 rounded-lg shadow-sm text-gray-800 focus:border-DGXgreen focus:ring-DGXgreen"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <FaSearch className="text-gray-400" />
-                </div>
-                <div className="absolute right-0 top-0 h-full flex items-center pr-2">
-                  <select
-                    value={searchScope}
-                    onChange={(e) => handleScopeChange(e.target.value)}
-                    className="text-xs border rounded p-1 bg-white"
-                  >
-                    <option value="all">All</option>
-                    <option value="title">Title</option>
-                    <option value="content">Content</option>
-                    <option value="tags">Tags</option>
-                  </select>
-                </div>
+              <div className="sm:order-4 flex items-center w-full sm:w-auto mt-0 sm:mt-0 sm:ml-4 ">
+                {isLoading ? (
+                  <Skeleton
+                    height="2.16rem"
+                    width={250}
+                    className="w-full sm:w-1/2 bg-gray-500 rounded-lg mb-1"
+                  />
+                ) : (
+                  <div className="relative w-full sm:w-64 mb-2">
+                    <input
+                      type="text"
+                      className="w-full py-2 pl-10 pr-4 bg-white border border-gray-200 rounded-lg shadow-sm text-gray-800 focus:border-DGXgreen focus:ring-DGXgreen"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={handleSearchChange}
+                    />
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <FaSearch className="text-gray-400" />
+                    </div>
+                    <div className="absolute right-0 top-0 h-full flex items-center pr-2">
+                      <select
+                        value={searchScope}
+                        onChange={(e) => handleScopeChange(e.target.value)}
+                        className="text-xs border rounded p-1 bg-white"
+                      >
+                        <option value="all">All</option>
+                        <option value="title">Title</option>
+                        <option value="content">Content</option>
+                        <option value="tags">Tags</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
               <button
                 onClick={() => setIsFormOpen(!isFormOpen)}
                 className="flex items-center gap-2 bg-gradient-to-r from-DGXgreen to-DGXblue text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
@@ -1121,11 +1150,10 @@ const Discussion = () => {
                         <input
                           id="title"
                           type="text"
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
-                            errors.title
-                              ? "border-red-500 ring-2 ring-red-200"
-                              : "border-gray-300"
-                          }`}
+                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.title
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                            }`}
                           value={title}
                           onChange={(e) => {
                             setTitle(e.target.value);
@@ -1138,11 +1166,10 @@ const Discussion = () => {
                         />
                         <div className="absolute right-3 top-3">
                           <span
-                            className={`text-xs font-medium ${
-                              title.length > 80
-                                ? "text-red-500"
-                                : "text-gray-500"
-                            }`}
+                            className={`text-xs font-medium ${title.length > 80
+                              ? "text-red-500"
+                              : "text-gray-500"
+                              }`}
                           >
                             {title.length}/100
                           </span>
@@ -1173,11 +1200,10 @@ const Discussion = () => {
                         <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                          errors.content
-                            ? "border-red-500 ring-2 ring-red-200"
-                            : "border-gray-300"
-                        }`}
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${errors.content
+                          ? "border-red-500 ring-2 ring-red-200"
+                          : "border-gray-300"
+                          }`}
                       >
                         <ReactQuill
                           id="content"
@@ -1219,11 +1245,10 @@ const Discussion = () => {
                           </p>
                         )}
                         <span
-                          className={`text-xs font-medium ml-auto ${
-                            content.replace(/<[^>]*>/g, "").length > 4500
-                              ? "text-red-500"
-                              : "text-gray-500"
-                          }`}
+                          className={`text-xs font-medium ml-auto ${content.replace(/<[^>]*>/g, "").length > 4500
+                            ? "text-red-500"
+                            : "text-gray-500"
+                            }`}
                         >
                           {content.replace(/<[^>]*>/g, "").length}/5000
                           characters
@@ -1244,11 +1269,10 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="text"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
-                              errors.tags
-                                ? "border-red-500 ring-2 ring-red-200"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.tags
+                              ? "border-red-500 ring-2 ring-red-200"
+                              : "border-gray-300"
+                              }`}
                             value={tagInput}
                             onChange={handleTagInputChange}
                             onKeyPress={(e) => {
@@ -1339,11 +1363,10 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="url"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
-                              errors.links
-                                ? "border-red-500 ring-2 ring-red-200"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.links
+                              ? "border-red-500 ring-2 ring-red-200"
+                              : "border-gray-300"
+                              }`}
                             value={linkInput}
                             onChange={handleLinkInputChange}
                             onKeyPress={(e) => {
@@ -1448,11 +1471,10 @@ const Discussion = () => {
                       <div className="flex gap-6">
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                              allowRepost === true
-                                ? "border-DGXgreen bg-DGXgreen"
-                                : "border-gray-300 group-hover:border-DGXgreen"
-                            }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === true
+                              ? "border-DGXgreen bg-DGXgreen"
+                              : "border-gray-300 group-hover:border-DGXgreen"
+                              }`}
                           >
                             {allowRepost === true && (
                               <svg
@@ -1483,11 +1505,10 @@ const Discussion = () => {
 
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                              allowRepost === false
-                                ? "border-DGXgreen bg-DGXgreen"
-                                : "border-gray-300 group-hover:border-DGXgreen"
-                            }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === false
+                              ? "border-DGXgreen bg-DGXgreen"
+                              : "border-gray-300 group-hover:border-DGXgreen"
+                              }`}
                           >
                             {allowRepost === false && (
                               <svg
@@ -1596,11 +1617,10 @@ const Discussion = () => {
                           setErrors({ ...errors, privacy: "" });
                         }}
                         onBlur={validatePrivacy}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
-                          errors.privacy
-                            ? "border-red-500 ring-2 ring-red-200"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.privacy
+                          ? "border-red-500 ring-2 ring-red-200"
+                          : "border-gray-300"
+                          }`}
                       >
                         <option value="">Select privacy setting</option>
                         <option value="private">
@@ -1867,27 +1887,27 @@ const Discussion = () => {
 
                         {/* Discussion Image */}
                         {(discussion.DiscussionImagePath || discussion.Image) && (
-  <div
-    className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-screen-lg mx-auto"
-    onClick={() => openModal(discussion)}
-    style={{ height: 'auto', maxHeight: '80vh' }} // adjustable max height relative to viewport
-  >
-    <img
-      src={
-        discussion.ImageUrl ||
-        `${window.location.origin}/${discussion.DiscussionImagePath}` ||
-        discussion.Image
-      }
-      alt="Discussion"
-      className="w-full h-auto max-h-[80vh] object-contain hover:scale-105 transition-transform duration-500"
-      onError={(e) => {
-        e.target.onerror = null;
-        e.target.src =
-          "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-      }}
-    />
-  </div>
-)}
+                          <div
+                            className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-screen-lg mx-auto"
+                            onClick={() => openModal(discussion)}
+                            style={{ height: 'auto', maxHeight: '80vh' }} // adjustable max height relative to viewport
+                          >
+                            <img
+                              src={
+                                discussion.ImageUrl ||
+                                `${window.location.origin}/${discussion.DiscussionImagePath}` ||
+                                discussion.Image
+                              }
+                              alt="Discussion"
+                              className="w-full h-auto max-h-[80vh] object-contain hover:scale-105 transition-transform duration-500"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src =
+                                  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                              }}
+                            />
+                          </div>
+                        )}
 
 
                         {/* Tags */}
@@ -1896,8 +1916,8 @@ const Discussion = () => {
                             {(typeof discussion.Tag === "string"
                               ? discussion.Tag.split(",").filter((tag) => tag)
                               : Array.isArray(discussion.Tag)
-                              ? discussion.Tag
-                              : []
+                                ? discussion.Tag
+                                : []
                             ).map((tag, tagIndex) => (
                               <span
                                 key={tagIndex}
@@ -1915,8 +1935,8 @@ const Discussion = () => {
                             {(typeof discussion.ResourceUrl === "string"
                               ? discussion.ResourceUrl.split(",")
                               : Array.isArray(discussion.ResourceUrl)
-                              ? discussion.ResourceUrl
-                              : []
+                                ? discussion.ResourceUrl
+                                : []
                             ).map((link, linkIndex) => (
                               <a
                                 key={linkIndex}
@@ -1949,32 +1969,50 @@ const Discussion = () => {
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                           <div className="flex items-center space-x-6">
                             {/* Like Button */}
+                            {/* Like Button */}
                             <button
-                              className="flex items-center gap-2 text-gray-600 hover:text-DGXblue transition-colors duration-200 group"
+                              className="flex items-center gap-2 transition-all duration-300 group relative"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleAddLike(
-                                  discussion.DiscussionID,
-                                  discussion.userLike
-                                );
+                                handleAddLike(discussion.DiscussionID, discussion.userLike);
                               }}
                             >
+                              {/* Animated Background */}
                               <div
-                                className={`p-2 rounded-full group-hover:bg-blue-50 transition-colors duration-200 ${
-                                  discussion.userLike === 1
-                                    ? "bg-blue-50 text-DGXblue"
-                                    : ""
-                                }`}
+                                className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${discussion.userLike === 1
+                                  ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
+                                  : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
+                                  }`}
                               >
-                                {discussion.userLike === 1 ? (
-                                  <AiFillLike className="w-5 h-5" />
-                                ) : (
-                                  <AiOutlineLike className="w-5 h-5" />
-                                )}
+                                {/* Like Icon with Animation */}
+                                <div className="relative">
+                                  {discussion.userLike === 1 ? (
+                                    <AiFillLike className="w-5 h-5 transform scale-110" />
+                                  ) : (
+                                    <AiOutlineLike className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                  )}
+
+                                  {/* Pulse Animation when Liked */}
+                                  {discussion.userLike === 1 && (
+                                    <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20"></div>
+                                  )}
+                                </div>
                               </div>
-                              <span className="font-medium">
+
+                              {/* Like Count with Animation */}
+                              <span
+                                className={`font-semibold transition-all duration-300 ${discussion.userLike === 1
+                                  ? "text-DGXblue transform scale-105"
+                                  : "text-gray-600 group-hover:text-DGXblue"
+                                  }`}
+                              >
                                 {discussion.likeCount}
                               </span>
+
+                              {/* Tooltip */}
+                              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                                {discussion.userLike === 1 ? "Unlike" : "Like"}
+                              </div>
                             </button>
 
                             {/* Comment Button */}
@@ -2023,7 +2061,7 @@ const Discussion = () => {
                                 </div>
                                 <span className="font-medium">
                                   {loading &&
-                                  userReposts.has(discussion.DiscussionID)
+                                    userReposts.has(discussion.DiscussionID)
                                     ? "Reposting..."
                                     : "Repost"}
                                 </span>
