@@ -10,6 +10,28 @@ import ByteArrayImage from "../../utils/ByteArrayImage";
 import ProgressBar from "./ProgressBar";
 import { FaAngleDown, FaAngleUp, FaArrowLeft } from "react-icons/fa";
 import images from "../../../public/images";
+import { motion, AnimatePresence } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
+  hover: { scale: 1.03, boxShadow: "0 10px 20px rgba(0,0,0,0.12)" },
+};
+
+const imageVariants = {
+  hover: { scale: 1.05 },
+  initial: { scale: 1 },
+};
+
+const descriptionVariants = {
+  collapsed: { height: 72, opacity: 0.8, transition: { duration: 0.3 } }, // approx 3 lines height
+  expanded: { height: "auto", opacity: 1, transition: { duration: 0.5 } },
+};
 
 const SubModuleCard = () => {
   const { moduleId } = useParams();
@@ -25,46 +47,57 @@ const SubModuleCard = () => {
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
   const renderSubModuleImage = (subModule) => {
-    // ✅ If we already have a full URL
     if (subModule.SubModuleImageUrl) {
       return (
-        <img
+        <motion.img
           src={subModule.SubModuleImageUrl}
           alt={subModule.SubModuleName}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover rounded-t-lg"
+          variants={imageVariants}
+          initial="initial"
+          whileHover="hover"
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           onError={(e) => {
             e.target.onerror = null; // prevent infinite loop
-            e.target.src = images.Noimage; // Use Noimage on error
-            e.target.className = "w-full h-full object-contain bg-gray-200 p-4";
+            e.target.src = images.Noimage; // fallback
+            e.target.className =
+              "w-full h-full object-contain bg-gray-200 p-4 rounded-t-lg";
           }}
+          loading="lazy"
         />
       );
     }
 
-    // ✅ If we have a byte array image
     if (subModule.SubModuleImage) {
       return (
-        <ByteArrayImage
-          byteArray={subModule.SubModuleImage.data}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-        />
+        <motion.div
+          className="w-full h-full rounded-t-lg overflow-hidden"
+          variants={imageVariants}
+          initial="initial"
+          whileHover="hover"
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        >
+          <ByteArrayImage
+            byteArray={subModule.SubModuleImage.data}
+            className="w-full h-full object-cover rounded-t-lg"
+          />
+        </motion.div>
       );
     }
 
-    // ✅ Fallback placeholder - using Noimage
     return (
-      <div className="flex items-center justify-center h-full bg-gray-200">
+      <div className="flex items-center justify-center h-full bg-gray-200 rounded-t-lg animate-pulse">
         <img
           src={images.Noimage}
           alt="No Image Available"
           className="w-3/4 h-3/4 object-contain opacity-70"
+          loading="lazy"
         />
       </div>
     );
   };
 
   useEffect(() => {
-    console.log("useEffect");
     const nameFromParams = searchParams.get("moduleName");
     if (nameFromParams) {
       setModuleName(decodeURIComponent(nameFromParams));
@@ -75,12 +108,10 @@ const SubModuleCard = () => {
       try {
         setLoading(true);
         setError(null);
-        // console.log("check calls");
         const subModulesResponse = await fetchData(
           `dropdown/getSubModules?moduleId=${moduleId}`,
           "GET"
         );
-        console.log("resss", subModulesResponse)
         if (!subModulesResponse?.success) {
           setError(subModulesResponse?.message || "Failed to fetch submodules");
           return;
@@ -97,12 +128,9 @@ const SubModuleCard = () => {
             "auth-token": userToken,
           }
         );
-        console.log("progress response", progressResponse);
 
         if (progressResponse?.success) {
           setProgressData(progressResponse.data);
-        } else {
-          console.error("Progress fetch failed:", progressResponse?.message);
         }
 
         const initialExpandedState = {};
@@ -111,7 +139,6 @@ const SubModuleCard = () => {
         });
         setExpandedDescriptions(initialExpandedState);
 
-        // Set module name if not already set
         if (!moduleName) {
           const currentModule = subModulesResponse.data[0]?.ModuleName;
           if (currentModule) {
@@ -124,7 +151,6 @@ const SubModuleCard = () => {
           }
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
         setError("An error occurred while fetching data");
       } finally {
         setLoading(false);
@@ -133,13 +159,12 @@ const SubModuleCard = () => {
 
     fetchAllData();
   }, [
-    location.state, searchParams,
+    location.state,
+    searchParams,
     moduleId,
     fetchData,
     navigate,
-    searchParams,
     moduleName,
-    location.state,
     userToken,
   ]);
 
@@ -161,27 +186,23 @@ const SubModuleCard = () => {
     });
   };
 
-  const isDescriptionClamped = (description) => {
-    return description && description.length > 100;
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-md overflow-hidden h-[400px] flex flex-col"
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden h-[400px] flex flex-col"
               >
-                <div className="h-48 bg-gray-200 animate-pulse flex-shrink-0"></div>
+                <div className="h-48 bg-gray-200 dark:bg-gray-700 animate-pulse flex-shrink-0 rounded-t-xl"></div>
                 <div className="p-6 flex-grow flex flex-col">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4 animate-pulse"></div>
-                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-3 animate-pulse"></div>
-                  <div className="h-16 bg-gray-200 rounded animate-pulse flex-grow"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4 animate-pulse"></div>
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-3 animate-pulse"></div>
+                  <div className="h-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse flex-grow"></div>
                   <div className="h-12 mt-4 flex items-center">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-full"></div>
                   </div>
                 </div>
               </div>
@@ -194,13 +215,13 @@ const SubModuleCard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-6 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
             <p className="text-red-500 mb-4">{error}</p>
             <button
               onClick={() => navigate(-1)}
-              className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-300"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-300"
             >
               Back to Modules
             </button>
@@ -211,76 +232,137 @@ const SubModuleCard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 relative">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 relative">
       <button
-        onClick={() => navigate("/LearningPath")}
-        className="fixed left-6 top-18 z-10 flex items-center space-x-2 bg-white px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 hover:bg-gray-50 border border-gray-200 group"
-      >
-        <FaArrowLeft className="text-blue-600 group-hover:text-blue-800 transition-colors" />
-        <span className="font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
-          All Modules
-        </span>
-      </button>
+  onClick={() => navigate("/LearningPath")}
+  aria-label="Back to all Modules"
+  className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow border border-gray-300
+    hover:shadow-md hover:bg-gray-100 hover:border-gray-400
+    focus:outline-none focus:ring-2 focus:ring-blue-400
+    transition-all duration-150 group"
+>
+  {/* Animated left arrow on hover */}
+  <FaArrowLeft className="text-gray-600 group-hover:-translate-x-1 group-hover:text-blue-700 transition-transform duration-150" aria-hidden="true" />
+  <span className="font-semibold text-gray-700 group-hover:text-blue-700 transition-colors duration-150">
+    All Modules
+  </span>
+  {/* Tooltip for screen readers */}
+  <span className="sr-only">
+    Return to the module list page
+  </span>
+</button>
 
-      <div className="max-w-7xl mx-auto pt-2">
+
+      <div className="max-w-7xl mx-auto pt-6 px-2 sm:px-6 lg:px-8">
         {moduleName && (
-          <div className="w-full text-center mb-10 mt-6">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+          <motion.div
+            className="w-full text-center mb-12 mt-8 px-4 sm:px-0"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 mb-3 select-none">
               {moduleName}
             </h1>
-            <p className="text-gray-500 text-lg">
+            <p className="text-gray-600 dark:text-gray-400 text-lg sm:text-xl font-light select-none">
               Explore the learning modules under this section
             </p>
-          </div>
+            <div className="h-1 w-24 mx-auto mt-3 rounded-full bg-gradient-to-r from-blue-500 to-teal-400"></div>
+          </motion.div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
           {subModules.length > 0 ? (
-            subModules.map((subModule) => (
-              <div
-                key={subModule.SubModuleID}
-                className={`bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer ${expandedDescriptions[subModule.SubModuleID] ? "h-auto" : "h-[400px]"
-                  }`}
-                onClick={() => handleSubModuleClick(subModule)}
-              >
-                <div className="h-40 bg-gray-100 overflow-hidden flex-shrink-0">
-                  {renderSubModuleImage(subModule)}
-                </div>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-3 hover:text-blue-600 transition-colors duration-200 break-words">
-                    {subModule.SubModuleName}
-                  </h3>
-                  <div className="overflow-hidden">
-                    <p
-                      className={`text-gray-600 text-base mb-1 hover:text-gray-800 transition-colors duration-200 break-words ${expandedDescriptions[subModule.SubModuleID]
-                        ? "overflow-y-auto max-h-32"
-                        : "line-clamp-3"
-                        }`}
-                    >
-                      {subModule.SubModuleDescription}
-                    </p>
+            subModules.map((subModule) => {
+              const isExpanded = expandedDescriptions[subModule.SubModuleID];
+
+              return (
+                <motion.div
+                  key={subModule.SubModuleID}
+                  layout
+                  variants={cardVariants}
+                  whileHover="hover"
+                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg cursor-pointer flex flex-col overflow-hidden border border-transparent hover:border-gradient-to-r hover:from-blue-400 hover:via-teal-300 hover:to-blue-500 transition-all duration-300`}
+                  onClick={() => handleSubModuleClick(subModule)}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      handleSubModuleClick(subModule);
+                    }
+                  }}
+                >
+                  <div className="h-48 sm:h-44 md:h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden rounded-t-xl">
+                    {renderSubModuleImage(subModule)}
                   </div>
-                  <ProgressBar
-                    subModuleID={subModule.SubModuleID}
-                    progressData={progressData}
-                  />
-                </div>
-              </div>
-            ))
+
+                  <div className="p-6 flex flex-col flex-grow">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 break-words hover:text-blue-600 dark:hover:text-teal-400 transition-colors duration-200 select-text">
+                      {subModule.SubModuleName}
+                    </h3>
+
+                    <motion.div
+                      className="relative overflow-hidden text-gray-700 dark:text-gray-300 text-base mb-3 select-text"
+                      initial={false}
+                      animate={isExpanded ? "expanded" : "collapsed"}
+                      variants={descriptionVariants}
+                    >
+                      <p
+                        className={`leading-relaxed ${
+                          !isExpanded ? "line-clamp-3" : ""
+                        }`}
+                        aria-live="polite"
+                      >
+                        {subModule.SubModuleDescription}
+                      </p>
+
+                      {subModule.SubModuleDescription &&
+                      subModule.SubModuleDescription.length > 100 ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDescription(subModule.SubModuleID, e);
+                          }}
+                          aria-label={
+                            isExpanded
+                              ? "Collapse description"
+                              : "Expand description"
+                          }
+                          className="absolute bottom-0 right-0 bg-gradient-to-t from-white dark:from-gray-900 via-white/50 dark:via-gray-900/70 p-1 rounded-full backdrop-blur-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                        >
+                          {isExpanded ? <FaAngleUp /> : <FaAngleDown />}
+                        </button>
+                      ) : null}
+                    </motion.div>
+
+                    <div className="mt-auto pt-2">
+                      <ProgressBar
+                        subModuleID={subModule.SubModuleID}
+                        progressData={progressData}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
           ) : (
-            <div className="col-span-full bg-white rounded-xl shadow-lg p-6 text-center">
-              <p className="text-gray-600">
-                No submodules found for this module
-              </p>
+            <div className="col-span-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
+              <p className="text-gray-600 dark:text-gray-300">No submodules found for this module</p>
               <button
                 onClick={() => navigate(-1)}
-                className="mt-4 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-300"
+                className="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-300"
               >
                 Back to Modules
               </button>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

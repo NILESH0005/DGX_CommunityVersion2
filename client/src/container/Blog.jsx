@@ -5,6 +5,8 @@ import ApiContext from "../context/ApiContext";
 import PublicBlogModal from "./PublicBlogModal";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { PiHandsClappingLight, PiHandsClappingFill } from "react-icons/pi";
+
 import {
   motion,
   AnimatePresence,
@@ -12,7 +14,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { ChevronDown, ArrowRight } from "lucide-react";
-  import BlogForm from "../Admin/Components/BlogComponents/BlogForm";
+import BlogForm from "../Admin/Components/BlogComponents/BlogForm";
 const ParticleBackground = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -179,6 +181,7 @@ const BlogPage = () => {
       category,
       readTime,
       RepostUser,
+      BlogID,
     } = blog;
     const fallbackImage =
       "https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
@@ -189,6 +192,33 @@ const BlogPage = () => {
       }
       return AuthAdd || "Unknown author";
     };
+
+    const [blogStats, setBlogStats] = useState({
+      totalLikes: 0,
+      averageRating: 0,
+      totalRatings: 0
+    });
+
+
+    useEffect(() => {
+      const fetchBlogStats = async () => {
+        try {
+          const endpoint = `blog/stats/${BlogID}`;
+          const method = "GET";
+
+          const result = await fetchData(endpoint, method);
+
+          if (result.success) {
+            setBlogStats(result.data);
+          }
+        } catch (error) {
+          console.error("Error fetching blog stats:", error);
+        }
+      };
+
+      fetchBlogStats();
+    }, [BlogID]);
+
     return (
       <motion.div
         className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer h-full flex flex-col"
@@ -218,6 +248,21 @@ const BlogPage = () => {
             >
               {category}
             </motion.span>
+          )}
+
+          {blogStats.averageRating > 0 && (
+            <motion.div
+              className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              <span className="text-yellow-500">⭐</span>
+              <span className="text-gray-700">{blogStats.averageRating.toFixed(1)}</span>
+              {blogStats.totalRatings > 0 && (
+                <span className="text-gray-500 text-xs">({blogStats.totalRatings})</span>
+              )}
+            </motion.div>
           )}
           {RepostUser && RepostUser.Name && (
             <motion.span
@@ -254,6 +299,15 @@ const BlogPage = () => {
           <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
             {title}
           </h3>
+
+          <div className="flex items-center gap-4 mb-3">
+            {blogStats.totalLikes > 0 && (
+              <div className="flex items-center gap-1 text-sm text-gray-600">
+                <PiHandsClappingLight className="text-gray-500" />
+                <span>{blogStats.totalLikes} claps</span>
+              </div>
+            )}
+          </div>
 
           <div className="mt-auto flex items-center gap-3">
             <motion.div
@@ -369,11 +423,10 @@ const BlogPage = () => {
               transition={{ staggerChildren: 0.1 }}
             >
               <motion.button
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  !selectedCategory
-                    ? "bg-DGXgreen text-black shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!selectedCategory
+                  ? "bg-DGXgreen text-black shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
                 onClick={() => handleCategorySelect(null)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -387,11 +440,10 @@ const BlogPage = () => {
               {categories.map((category) => (
                 <motion.button
                   key={category.ddId || category.ddValue}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    selectedCategory === category.ddValue
-                      ? "bg-DGXgreen text-black shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === category.ddValue
+                    ? "bg-DGXgreen text-black shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                   onClick={() => handleCategorySelect(category.ddValue)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

@@ -10,3 +10,4 @@ import db from './models/index.js';
     process.exit(1);
   }
 })();
+
