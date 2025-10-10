@@ -136,6 +136,34 @@ CommunityBlog.belongsTo(User, {
   foreignKey: "RepostUserID",
   as: "RepostUser",
 });
+
+ContentInteraction.belongsTo(User, {
+  foreignKey: 'UserID',
+  targetKey: 'UserID',
+  as: 'User'
+});
+
+User.hasMany(ContentInteraction, {
+  foreignKey: 'UserID',
+  sourceKey: 'UserID',
+  as: 'ContentInteractions'
+});
+
+// ContentInteraction association with CommunityDiscussion
+ContentInteraction.belongsTo(CommunityDiscussion, {
+  foreignKey: 'reference',
+  targetKey: 'DiscussionID',
+  as: 'Discussion',
+  constraints: false
+});
+
+CommunityDiscussion.hasMany(ContentInteraction, {
+  foreignKey: 'reference',
+  sourceKey: 'DiscussionID',
+  as: 'ContentInteractions',
+  constraints: false
+});
+
 export default db;
 export { sequelize };
 

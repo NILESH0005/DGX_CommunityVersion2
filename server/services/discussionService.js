@@ -1,7 +1,7 @@
 import db from "../models/index.js";
 import { Op } from "sequelize"; // ✅ direct import
 
-const { User, CommunityDiscussion, TableDDReference } = db;
+const { User, CommunityDiscussion, TableDDReference, ContentInteraction } = db;
 
 // export const createDiscussionPost = async (userId, postData) => {
 //   try {
@@ -606,4 +606,209 @@ export const deleteDiscussionService = async (userId, discussionId) => {
     delOnDt: deletedDiscussion.delOnDt,
     delStatus: deletedDiscussion.delStatus,
   };
+};
+
+export const handleDiscussionLikeAction = async (userEmail, postData) => {
+  try {
+    const discussionId = postData.reference;
+    if (!discussionId) throw new Error("Invalid discussion reference");
+
+    console.log("Service - Fetching user with email:", userEmail);
+
+    // Fetch user from database using email
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: 0
+      },
+      attributes: ['UserID', 'Name', 'EmailId']
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const userId = user.UserID;
+    const userName = user.Name || 'Unknown User';
+
+    console.log("User action - UserID:", userId, "DiscussionID:", discussionId);
+
+    // Check if an interaction already exists for this user & discussion
+    let interaction = await ContentInteraction.findOne({
+      where: {
+        ProcessName: 'Discussion',
+        UserID: userId,
+        reference: discussionId,
+        delStatus: 0
+      },
+    });
+
+    const currentDate = new Date();
+    let finalLikeStatus;
+    let message;
+
+    if (interaction) {
+      // Toggle like status
+      if (interaction.Likes === 1) {
+        // User already liked - unlike it
+        finalLikeStatus = 0;
+        message = "Discussion unliked successfully";
+      } else {
+        // User hasn't liked or was unliked - like it
+        finalLikeStatus = 1;
+        message = "Discussion liked successfully";
+      }
+
+      console.log("Toggle like - Current:", interaction.Likes, "New:", finalLikeStatus);
+
+      // Update existing interaction
+      await ContentInteraction.update({
+        Likes: finalLikeStatus,
+        LikeStatus: 0,
+        AuthLstEdt: userName,
+        editOnDt: currentDate
+      }, {
+        where: { id: interaction.id },
+      });
+
+      return {
+        success: true,
+        data: {
+          liked: finalLikeStatus === 1,
+          interactionId: interaction.id,
+        },
+        message: message,
+      };
+    }
+
+    // No existing interaction - create new one with like (1)
+    finalLikeStatus = 1;
+    message = "Discussion liked successfully";
+
+    const newInteraction = await ContentInteraction.create({
+      ProcessName: 'Discussion',
+      UserID: userId,
+      reference: discussionId,
+      Likes: finalLikeStatus,
+      LikeStatus: 0,
+      Rating: null,
+      RatingStatus: null,
+      AuthAdd: userName,
+      AuthDel: null,
+      AuthLstEdt: null,
+      delOnDt: null,
+      AddOnDt: currentDate,
+      editOnDt: null,
+      delStatus: 0
+    });
+
+    return {
+      success: true,
+      data: {
+        liked: finalLikeStatus === 1,
+        interactionId: newInteraction.id,
+      },
+      message: message,
+    };
+  } catch (error) {
+    console.error("Discussion Like Error:", error);
+    throw error;
+  }
+};
+
+export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail = null) => {
+  try {
+    if (!discussionIds || discussionIds.length === 0) {
+      return {};
+    }
+
+    console.log("Getting likes info for discussions (raw):", discussionIds);
+    console.log("Current user email:", currentUserEmail);
+
+    let currentUserId = null;
+
+    // If user is logged in, get their UserID
+    if (currentUserEmail) {
+      const currentUser = await User.findOne({
+        where: {
+          EmailId: currentUserEmail,
+          delStatus: 0
+        },
+        attributes: ['UserID']
+      });
+
+      if (currentUser) {
+        currentUserId = currentUser.UserID;
+        console.log("Current user ID found:", currentUserId);
+      }
+    }
+
+    // Use raw query to avoid association issues
+    const [likes] = await db.sequelize.query(`
+      SELECT 
+        ci.id,
+        ci.reference,
+        ci.UserID,
+        ci.Likes,
+        ci.AddOnDt,
+        u.Name as UserName,
+        u.ProfilePicture
+      FROM Content_Interaction ci
+      LEFT JOIN Community_User u ON ci.UserID = u.UserID
+      WHERE 
+        ci.ProcessName = 'Discussion'
+        AND ci.reference IN (?)
+        AND ci.Likes = 1
+        AND ci.delStatus = 0
+        AND u.delStatus = 0
+    `, {
+      replacements: [discussionIds]
+    });
+
+    console.log("Found likes (raw):", likes.length);
+
+    // Structure the data
+    const likesInfo = {};
+
+    // Initialize for all discussion IDs
+    discussionIds.forEach(discussionId => {
+      likesInfo[discussionId] = {
+        totalLikes: 0,
+        userLikes: [],
+        currentUserLiked: false
+      };
+    });
+
+    // Process each like
+    likes.forEach(like => {
+      const discussionId = like.reference;
+
+      if (likesInfo[discussionId]) {
+        // Increment total likes count
+        likesInfo[discussionId].totalLikes++;
+
+        // Add user like information
+        const userLikeInfo = {
+          userId: like.UserID,
+          userName: like.UserName || 'Unknown User',
+          profilePicture: like.ProfilePicture,
+          likedAt: like.AddOnDt
+        };
+
+        likesInfo[discussionId].userLikes.push(userLikeInfo);
+
+        // Check if current user liked this discussion
+        if (currentUserId && like.UserID === currentUserId) {
+          likesInfo[discussionId].currentUserLiked = true;
+        }
+      }
+    });
+
+    console.log("Processed likes info (raw):", likesInfo);
+    return likesInfo;
+
+  } catch (error) {
+    console.error("Error getting discussion likes info (raw):", error);
+    throw error;
+  }
 };

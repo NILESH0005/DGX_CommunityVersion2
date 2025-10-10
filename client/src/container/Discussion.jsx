@@ -407,6 +407,7 @@ const Discussion = () => {
     setErrors((prev) => ({ ...prev, privacy: "" }));
     return true;
   };
+
   const fetchDiscussionData = async (userEmail) => {
     try {
       const body = userEmail ? { email: userEmail } : { email: null };
@@ -421,8 +422,51 @@ const Discussion = () => {
       console.log("ressssss", result);
 
       if (result?.data?.updatedDiscussions) {
-        const discussionsWithComments = result.data.updatedDiscussions.map(
-          (discussion) => ({
+        const discussions = result.data.updatedDiscussions;
+
+        // Extract discussion IDs to fetch likes information
+        const discussionIds = discussions.map(d => d.DiscussionID);
+
+        // Fetch likes information for all discussions
+        const likesEndpoint = "discussion/get-likes";
+        const likesBody = { discussionIds };
+
+        try {
+          const likesResult = await fetchData(likesEndpoint, "POST", likesBody, headers);
+
+          if (likesResult.success) {
+            const likesInfo = likesResult.data;
+
+            const discussionsWithCommentsAndLikes = discussions.map((discussion) => {
+              const discussionLikes = likesInfo[discussion.DiscussionID] || {
+                totalLikes: 0,
+                userLikes: [],
+                currentUserLiked: false
+              };
+
+              return {
+                ...discussion,
+                userLike: discussionLikes.currentUserLiked ? 1 : 0,
+                likeCount: discussionLikes.totalLikes,
+                commentCount: discussion.commentCount || 0,
+                ImageUrl: discussion.DiscussionImagePath
+                  ? `${BASE_URL}/${discussion.DiscussionImagePath}`
+                  : discussion.Image || null,
+                isRepostOfMyPost: discussion.RepostUserID === currentUserId,
+                isMyPost: discussion.UserID === currentUserId,
+                originalPost: discussion.originalPost || null,
+                // Additional like information if needed
+                likesInfo: discussionLikes
+              };
+            });
+
+            setDemoDiscussions(discussionsWithCommentsAndLikes);
+            setFilteredDiscussions(discussionsWithCommentsAndLikes);
+          }
+        } catch (likesError) {
+          console.error("Error fetching likes:", likesError);
+          // Fallback: use basic like information
+          const discussionsWithComments = discussions.map((discussion) => ({
             ...discussion,
             userLike: discussion.userLike || 0,
             likeCount: discussion.likeCount || 0,
@@ -433,16 +477,15 @@ const Discussion = () => {
             isRepostOfMyPost: discussion.RepostUserID === currentUserId,
             isMyPost: discussion.UserID === currentUserId,
             originalPost: discussion.originalPost || null,
-          })
-        );
+          }));
 
-        setDemoDiscussions(discussionsWithComments);
-        setFilteredDiscussions(discussionsWithComments);
+          setDemoDiscussions(discussionsWithComments);
+          setFilteredDiscussions(discussionsWithComments);
+        }
 
         if (currentUserId) {
           const repostedDiscussionIds = new Set();
-          discussionsWithComments.forEach((discussion) => {
-            // If the current user is the author of this discussion AND it's a repost
+          discussions.forEach((discussion) => {
             if (discussion.UserID === currentUserId && discussion.RepostID) {
               repostedDiscussionIds.add(discussion.RepostID);
             }
@@ -451,11 +494,11 @@ const Discussion = () => {
         }
 
         // Calculate highlights based on comment count
-        const highlights = getCommunityHighlights(discussionsWithComments);
+        const highlights = getCommunityHighlights(discussions);
         setCommunityHighlights(highlights);
 
         // Calculate top users
-        const topUsers = getTopUsersByDiscussions(discussionsWithComments);
+        const topUsers = getTopUsersByDiscussions(discussions);
         setTopUsers(topUsers);
       }
       setLoading(false);
@@ -525,7 +568,7 @@ const Discussion = () => {
       })
     );
 
-    const endpoint = "discussion/discussionpost";
+    const endpoint = "discussion/like";
     const method = "POST";
     const headers = {
       "Content-Type": "application/json",
@@ -628,7 +671,7 @@ const Discussion = () => {
       });
     }
   };
-  
+
   const toggleNav = () => setIsNavOpen(!isNavOpen);
   const handleLike = () => setLikeCount(likeCount + 1);
 
@@ -1788,8 +1831,8 @@ const Discussion = () => {
                           handleAddLike(discussion.DiscussionID, discussion.userLike);
                         }}
                       >
-                        {discussion.userLike === 1 ? ( // Changed from == to === for strict comparison
-                          <AiFillLike className="text-DGXblue" /> // Added color for better visibility
+                        {discussion.userLike === 1 ? (
+                          <AiFillLike className="text-DGXblue" />
                         ) : (
                           <AiOutlineLike />
                         )}
