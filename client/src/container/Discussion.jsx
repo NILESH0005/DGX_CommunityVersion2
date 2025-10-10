@@ -434,6 +434,7 @@ const Discussion = () => {
 
         try {
           const likesResult = await fetchData(likesEndpoint, "POST", likesBody, headers);
+          console.log("nijiiiii", likesResult)
 
           if (likesResult.success) {
             const likesInfo = likesResult.data;
@@ -445,9 +446,14 @@ const Discussion = () => {
                 currentUserLiked: false
               };
 
+              // Check if current user has liked this discussion
+              const currentUserLiked = discussionLikes.userLikes.some(
+                like => like.userId === currentUserId
+              );
+
               return {
                 ...discussion,
-                userLike: discussionLikes.currentUserLiked ? 1 : 0,
+                userLike: currentUserLiked ? 1 : 0, // This will be used for highlighting
                 likeCount: discussionLikes.totalLikes,
                 commentCount: discussion.commentCount || 0,
                 ImageUrl: discussion.DiscussionImagePath
@@ -456,13 +462,18 @@ const Discussion = () => {
                 isRepostOfMyPost: discussion.RepostUserID === currentUserId,
                 isMyPost: discussion.UserID === currentUserId,
                 originalPost: discussion.originalPost || null,
-                // Additional like information if needed
-                likesInfo: discussionLikes
+                // Store the full likes info for debugging
+                likesInfo: {
+                  ...discussionLikes,
+                  currentUserLiked: currentUserLiked
+                }
               };
             });
 
             setDemoDiscussions(discussionsWithCommentsAndLikes);
             setFilteredDiscussions(discussionsWithCommentsAndLikes);
+
+            console.log("Processed discussions with likes:", discussionsWithCommentsAndLikes);
           }
         } catch (likesError) {
           console.error("Error fetching likes:", likesError);
@@ -542,7 +553,7 @@ const Discussion = () => {
       currentLikes + 1 :
       Math.max(0, currentLikes - 1);
 
-    // Enhanced OPTIMISTIC UPDATE with better visual feedback
+    // OPTIMISTIC UPDATE: Update UI immediately
     setDemoDiscussions((prevDiscussions) =>
       prevDiscussions.map((discussion) => {
         if (discussion.DiscussionID === id) {
@@ -550,8 +561,6 @@ const Discussion = () => {
             ...discussion,
             userLike: newLikeState,
             likeCount: newLikeCount,
-            // Add temporary animation state
-            isAnimating: true
           };
         }
         return discussion;
@@ -565,7 +574,6 @@ const Discussion = () => {
             ...discussion,
             userLike: newLikeState,
             likeCount: newLikeCount,
-            isAnimating: true
           };
         }
         return discussion;
@@ -598,7 +606,6 @@ const Discussion = () => {
                 ...discussion,
                 userLike: currentUserLike,
                 likeCount: currentLikes,
-                isAnimating: false
               };
             }
             return discussion;
@@ -612,7 +619,6 @@ const Discussion = () => {
                 ...discussion,
                 userLike: currentUserLike,
                 likeCount: currentLikes,
-                isAnimating: false
               };
             }
             return discussion;
@@ -633,32 +639,12 @@ const Discussion = () => {
         response: data
       });
 
-      // Remove animation state after successful update
-      setTimeout(() => {
-        setDemoDiscussions((prevDiscussions) =>
-          prevDiscussions.map((discussion) => {
-            if (discussion.DiscussionID === id) {
-              return {
-                ...discussion,
-                isAnimating: false
-              };
-            }
-            return discussion;
-          })
-        );
-
-        setFilteredDiscussions((prevDiscussions) =>
-          prevDiscussions.map((discussion) => {
-            if (discussion.DiscussionID === id) {
-              return {
-                ...discussion,
-                isAnimating: false
-              };
-            }
-            return discussion;
-          })
-        );
-      }, 500);
+      // Refresh to get accurate counts from backend
+      if (userToken && user) {
+        await fetchDiscussionData(user.EmailId);
+      } else {
+        await fetchDiscussionData(null);
+      }
 
     } catch (error) {
       console.error("Error:", error);
@@ -671,7 +657,6 @@ const Discussion = () => {
               ...discussion,
               userLike: currentUserLike,
               likeCount: currentLikes,
-              isAnimating: false
             };
           }
           return discussion;
@@ -685,7 +670,6 @@ const Discussion = () => {
               ...discussion,
               userLike: currentUserLike,
               likeCount: currentLikes,
-              isAnimating: false
             };
           }
           return discussion;
@@ -1977,42 +1961,32 @@ const Discussion = () => {
                                 handleAddLike(discussion.DiscussionID, discussion.userLike);
                               }}
                             >
-                              {/* Animated Background */}
+                              {/* Animated Background - Based on userLike from backend */}
                               <div
                                 className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${discussion.userLike === 1
-                                  ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
-                                  : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
+                                    ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
+                                    : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
                                   }`}
                               >
-                                {/* Like Icon with Animation */}
+                                {/* Like Icon */}
                                 <div className="relative">
                                   {discussion.userLike === 1 ? (
-                                    <AiFillLike className="w-5 h-5 transform scale-110" />
+                                    <AiFillLike className="w-5 h-5" />
                                   ) : (
-                                    <AiOutlineLike className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                  )}
-
-                                  {/* Pulse Animation when Liked */}
-                                  {discussion.userLike === 1 && (
-                                    <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20"></div>
+                                    <AiOutlineLike className="w-5 h-5" />
                                   )}
                                 </div>
                               </div>
 
-                              {/* Like Count with Animation */}
+                              {/* Like Count */}
                               <span
                                 className={`font-semibold transition-all duration-300 ${discussion.userLike === 1
-                                  ? "text-DGXblue transform scale-105"
-                                  : "text-gray-600 group-hover:text-DGXblue"
+                                    ? "text-DGXblue"
+                                    : "text-gray-600 group-hover:text-DGXblue"
                                   }`}
                               >
                                 {discussion.likeCount}
                               </span>
-
-                              {/* Tooltip */}
-                              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                                {discussion.userLike === 1 ? "Unlike" : "Like"}
-                              </div>
                             </button>
 
                             {/* Comment Button */}
