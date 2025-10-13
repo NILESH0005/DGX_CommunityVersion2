@@ -2020,7 +2020,11 @@ const Discussion = () => {
                         <div className="text-xs text-gray-500">
                           {new Date(
                             discussion.CreatedAt || Date.now()
-                          ).toLocaleDateString()}
+                          ).toLocaleDateString("en-US", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
                         </div>
                       </div>
                     </div>
