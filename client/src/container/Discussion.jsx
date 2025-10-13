@@ -2019,7 +2019,7 @@ const Discussion = () => {
                         {/* Timestamp */}
                         <div className="text-xs text-gray-500">
                           {new Date(
-                            discussion.CreatedAt || Date.now()
+                            discussion.AddOnDt 
                           ).toLocaleDateString("en-US", {
                             year: "numeric",
                             month: "long",
