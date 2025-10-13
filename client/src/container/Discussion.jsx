@@ -229,10 +229,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            commentCount: newCommentCount,
-            ...(updatedComments ? { comment: updatedComments } : {}),
-          }
+              ...discussion,
+              commentCount: newCommentCount,
+              ...(updatedComments ? { comment: updatedComments } : {}),
+            }
           : discussion
       )
     );
@@ -240,10 +240,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            commentCount: newCommentCount,
-            ...(updatedComments ? { comment: updatedComments } : {}),
-          }
+              ...discussion,
+              commentCount: newCommentCount,
+              ...(updatedComments ? { comment: updatedComments } : {}),
+            }
           : discussion
       )
     );
@@ -258,10 +258,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            likeCount: newLikeCount,
-            ...(isLiked !== null ? { userLike: isLiked } : {}),
-          }
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
           : discussion
       )
     );
@@ -270,10 +270,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            likeCount: newLikeCount,
-            ...(isLiked !== null ? { userLike: isLiked } : {}),
-          }
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
           : discussion
       )
     );
@@ -294,8 +294,8 @@ const Discussion = () => {
           return typeof discussion.Tag === "string"
             ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
             : discussion.Tag?.some((tag) =>
-              tag.toLowerCase().includes(lowerCaseQuery)
-            );
+                tag.toLowerCase().includes(lowerCaseQuery)
+              );
         default: // 'all'
           return (
             discussion.Title.toLowerCase().includes(lowerCaseQuery) ||
@@ -303,8 +303,8 @@ const Discussion = () => {
             (typeof discussion.Tag === "string"
               ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
               : discussion.Tag?.some((tag) =>
-                tag.toLowerCase().includes(lowerCaseQuery)
-              ))
+                  tag.toLowerCase().includes(lowerCaseQuery)
+                ))
           );
       }
     });
@@ -426,54 +426,64 @@ const Discussion = () => {
         const discussions = result.data.updatedDiscussions;
 
         // Extract discussion IDs to fetch likes information
-        const discussionIds = discussions.map(d => d.DiscussionID);
+        const discussionIds = discussions.map((d) => d.DiscussionID);
 
         // Fetch likes information for all discussions
         const likesEndpoint = "discussion/get-likes";
         const likesBody = { discussionIds };
 
         try {
-          const likesResult = await fetchData(likesEndpoint, "POST", likesBody, headers);
-          console.log("nijiiiii", likesResult)
+          const likesResult = await fetchData(
+            likesEndpoint,
+            "POST",
+            likesBody,
+            headers
+          );
+          console.log("nijiiiii", likesResult);
 
           if (likesResult.success) {
             const likesInfo = likesResult.data;
 
-            const discussionsWithCommentsAndLikes = discussions.map((discussion) => {
-              const discussionLikes = likesInfo[discussion.DiscussionID] || {
-                totalLikes: 0,
-                userLikes: [],
-                currentUserLiked: false
-              };
+            const discussionsWithCommentsAndLikes = discussions.map(
+              (discussion) => {
+                const discussionLikes = likesInfo[discussion.DiscussionID] || {
+                  totalLikes: 0,
+                  userLikes: [],
+                  currentUserLiked: false,
+                };
 
-              // Check if current user has liked this discussion
-              const currentUserLiked = discussionLikes.userLikes.some(
-                like => like.userId === currentUserId
-              );
+                // Check if current user has liked this discussion
+                const currentUserLiked = discussionLikes.userLikes.some(
+                  (like) => like.userId === currentUserId
+                );
 
-              return {
-                ...discussion,
-                userLike: currentUserLiked ? 1 : 0, // This will be used for highlighting
-                likeCount: discussionLikes.totalLikes,
-                commentCount: discussion.commentCount || 0,
-                ImageUrl: discussion.DiscussionImagePath
-                  ? `${BASE_URL}/${discussion.DiscussionImagePath}`
-                  : discussion.Image || null,
-                isRepostOfMyPost: discussion.RepostUserID === currentUserId,
-                isMyPost: discussion.UserID === currentUserId,
-                originalPost: discussion.originalPost || null,
-                // Store the full likes info for debugging
-                likesInfo: {
-                  ...discussionLikes,
-                  currentUserLiked: currentUserLiked
-                }
-              };
-            });
+                return {
+                  ...discussion,
+                  userLike: currentUserLiked ? 1 : 0, // This will be used for highlighting
+                  likeCount: discussionLikes.totalLikes,
+                  commentCount: discussion.commentCount || 0,
+                  ImageUrl: discussion.DiscussionImagePath
+                    ? `${BASE_URL}/${discussion.DiscussionImagePath}`
+                    : discussion.Image || null,
+                  isRepostOfMyPost: discussion.RepostUserID === currentUserId,
+                  isMyPost: discussion.UserID === currentUserId,
+                  originalPost: discussion.originalPost || null,
+                  // Store the full likes info for debugging
+                  likesInfo: {
+                    ...discussionLikes,
+                    currentUserLiked: currentUserLiked,
+                  },
+                };
+              }
+            );
 
             setDemoDiscussions(discussionsWithCommentsAndLikes);
             setFilteredDiscussions(discussionsWithCommentsAndLikes);
 
-            console.log("Processed discussions with likes:", discussionsWithCommentsAndLikes);
+            console.log(
+              "Processed discussions with likes:",
+              discussionsWithCommentsAndLikes
+            );
           }
         } catch (likesError) {
           console.error("Error fetching likes:", likesError);
@@ -545,13 +555,12 @@ const Discussion = () => {
 
     // Calculate new like state and count immediately for optimistic update
     const newLikeState = currentUserLike === 1 ? 0 : 1;
-    const discussion = demoDiscussions.find(d => d.DiscussionID === id);
+    const discussion = demoDiscussions.find((d) => d.DiscussionID === id);
     const currentLikes = Number(discussion?.likeCount) || 0;
 
     // Calculate new like count correctly
-    const newLikeCount = newLikeState === 1 ?
-      currentLikes + 1 :
-      Math.max(0, currentLikes - 1);
+    const newLikeCount =
+      newLikeState === 1 ? currentLikes + 1 : Math.max(0, currentLikes - 1);
 
     // OPTIMISTIC UPDATE: Update UI immediately
     setDemoDiscussions((prevDiscussions) =>
@@ -636,7 +645,7 @@ const Discussion = () => {
       console.log("✅ Like toggle action successful:", {
         discussionId: id,
         newLikeState,
-        response: data
+        response: data,
       });
 
       // Refresh to get accurate counts from backend
@@ -645,7 +654,6 @@ const Discussion = () => {
       } else {
         await fetchDiscussionData(null);
       }
-
     } catch (error) {
       console.error("Error:", error);
 
@@ -1043,11 +1051,13 @@ const Discussion = () => {
           isLoading={isLoading}
           communityHighlights={communityHighlights}
           topUsers={topUsers}
-
+          openModal={openModal} // Make sure this is passed
+          discussions={demoDiscussions} // Pass the main discussions array
+          updateDiscussionLikeCount={updateDiscussionLikeCount} // Pass the update function
+          updateDiscussionCommentCount={updateDiscussionCommentCount} // Pass the update function
         />
 
         <section className="w-full px-4 flex flex-col overflow-y-scroll h-[80vh]">
-
           <div className="sticky top-0 bg-white z-20 flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-DGXgreen to-DGXblue bg-clip-text text-transparent">
@@ -1055,40 +1065,34 @@ const Discussion = () => {
                   selectedSection.slice(1)}{" "}
                 Discussions
               </h2>
-              <div className="sm:order-4 flex items-center w-full sm:w-auto mt-0 sm:mt-0 sm:ml-4 ">
-                {isLoading ? (
-                  <Skeleton
-                    height="2.16rem"
-                    width={250}
-                    className="w-full sm:w-1/2 bg-gray-500 rounded-lg mb-1"
+
+              <div className="sm:order-4 flex items-center w-full sm:w-auto mt-0 sm:mt-0 sm:ml-4">
+                <div className="relative w-full sm:w-64 mb-2">
+                  <input
+                    type="text"
+                    className="w-full py-2 pl-10 pr-4 bg-white border border-gray-200 rounded-lg shadow-sm text-gray-800 focus:border-DGXgreen focus:ring-DGXgreen"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
                   />
-                ) : (
-                  <div className="relative w-full sm:w-64 mb-2">
-                    <input
-                      type="text"
-                      className="w-full py-2 pl-10 pr-4 bg-white border border-gray-200 rounded-lg shadow-sm text-gray-800 focus:border-DGXgreen focus:ring-DGXgreen"
-                      placeholder="Search..."
-                      value={searchQuery}
-                      onChange={handleSearchChange}
-                    />
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <FaSearch className="text-gray-400" />
-                    </div>
-                    <div className="absolute right-0 top-0 h-full flex items-center pr-2">
-                      <select
-                        value={searchScope}
-                        onChange={(e) => handleScopeChange(e.target.value)}
-                        className="text-xs border rounded p-1 bg-white"
-                      >
-                        <option value="all">All</option>
-                        <option value="title">Title</option>
-                        <option value="content">Content</option>
-                        <option value="tags">Tags</option>
-                      </select>
-                    </div>
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <FaSearch className="text-gray-400" />
                   </div>
-                )}
+                  <div className="absolute right-0 top-0 h-full flex items-center pr-2">
+                    <select
+                      value={searchScope}
+                      onChange={(e) => handleScopeChange(e.target.value)}
+                      className="text-xs border rounded p-1 bg-white"
+                    >
+                      <option value="all">All</option>
+                      <option value="title">Title</option>
+                      <option value="content">Content</option>
+                      <option value="tags">Tags</option>
+                    </select>
+                  </div>
+                </div>
               </div>
+
               <button
                 onClick={() => setIsFormOpen(!isFormOpen)}
                 className="flex items-center gap-2 bg-gradient-to-r from-DGXgreen to-DGXblue text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-105"
@@ -1134,10 +1138,11 @@ const Discussion = () => {
                         <input
                           id="title"
                           type="text"
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.title
-                            ? "border-red-500 ring-2 ring-red-200"
-                            : "border-gray-300"
-                            }`}
+                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
+                            errors.title
+                              ? "border-red-500 ring-2 ring-red-200"
+                              : "border-gray-300"
+                          }`}
                           value={title}
                           onChange={(e) => {
                             setTitle(e.target.value);
@@ -1150,10 +1155,11 @@ const Discussion = () => {
                         />
                         <div className="absolute right-3 top-3">
                           <span
-                            className={`text-xs font-medium ${title.length > 80
-                              ? "text-red-500"
-                              : "text-gray-500"
-                              }`}
+                            className={`text-xs font-medium ${
+                              title.length > 80
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
                           >
                             {title.length}/100
                           </span>
@@ -1184,10 +1190,11 @@ const Discussion = () => {
                         <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${errors.content
-                          ? "border-red-500 ring-2 ring-red-200"
-                          : "border-gray-300"
-                          }`}
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                          errors.content
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                        }`}
                       >
                         <ReactQuill
                           id="content"
@@ -1229,10 +1236,11 @@ const Discussion = () => {
                           </p>
                         )}
                         <span
-                          className={`text-xs font-medium ml-auto ${content.replace(/<[^>]*>/g, "").length > 4500
-                            ? "text-red-500"
-                            : "text-gray-500"
-                            }`}
+                          className={`text-xs font-medium ml-auto ${
+                            content.replace(/<[^>]*>/g, "").length > 4500
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
                         >
                           {content.replace(/<[^>]*>/g, "").length}/5000
                           characters
@@ -1253,10 +1261,11 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="text"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.tags
-                              ? "border-red-500 ring-2 ring-red-200"
-                              : "border-gray-300"
-                              }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
+                              errors.tags
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-gray-300"
+                            }`}
                             value={tagInput}
                             onChange={handleTagInputChange}
                             onKeyPress={(e) => {
@@ -1347,10 +1356,11 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="url"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.links
-                              ? "border-red-500 ring-2 ring-red-200"
-                              : "border-gray-300"
-                              }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
+                              errors.links
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-gray-300"
+                            }`}
                             value={linkInput}
                             onChange={handleLinkInputChange}
                             onKeyPress={(e) => {
@@ -1455,10 +1465,11 @@ const Discussion = () => {
                       <div className="flex gap-6">
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === true
-                              ? "border-DGXgreen bg-DGXgreen"
-                              : "border-gray-300 group-hover:border-DGXgreen"
-                              }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                              allowRepost === true
+                                ? "border-DGXgreen bg-DGXgreen"
+                                : "border-gray-300 group-hover:border-DGXgreen"
+                            }`}
                           >
                             {allowRepost === true && (
                               <svg
@@ -1489,10 +1500,11 @@ const Discussion = () => {
 
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === false
-                              ? "border-DGXgreen bg-DGXgreen"
-                              : "border-gray-300 group-hover:border-DGXgreen"
-                              }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                              allowRepost === false
+                                ? "border-DGXgreen bg-DGXgreen"
+                                : "border-gray-300 group-hover:border-DGXgreen"
+                            }`}
                           >
                             {allowRepost === false && (
                               <svg
@@ -1601,10 +1613,11 @@ const Discussion = () => {
                           setErrors({ ...errors, privacy: "" });
                         }}
                         onBlur={validatePrivacy}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.privacy
-                          ? "border-red-500 ring-2 ring-red-200"
-                          : "border-gray-300"
-                          }`}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
+                          errors.privacy
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                        }`}
                       >
                         <option value="">Select privacy setting</option>
                         <option value="private">
@@ -1725,213 +1738,89 @@ const Discussion = () => {
 
             {/* Discussions List */}
             <div className="space-y-6">
-              {isLoading ? (
-                // Enhanced Loading Skeleton
-                <div className="space-y-4">
-                  {demoDiscussions.map((_, index) => (
-                    <div
-                      key={index}
-                      className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm animate-pulse"
-                    >
-                      <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 bg-gray-300 rounded w-32"></div>
-                          <div className="h-3 bg-gray-300 rounded w-24"></div>
-                        </div>
-                      </div>
-                      <div className="h-6 bg-gray-300 rounded w-3/4 mb-3"></div>
-                      <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
-                      <div className="h-4 bg-gray-300 rounded w-5/6 mb-4"></div>
-                      <div className="h-40 bg-gray-300 rounded mb-4"></div>
-                      <div className="flex gap-2 mb-4">
-                        <div className="h-6 bg-gray-300 rounded w-16"></div>
-                        <div className="h-6 bg-gray-300 rounded w-20"></div>
-                        <div className="h-6 bg-gray-300 rounded w-12"></div>
-                      </div>
-                      <div className="flex space-x-6">
-                        <div className="h-4 bg-gray-300 rounded w-16"></div>
-                        <div className="h-4 bg-gray-300 rounded w-20"></div>
-                        <div className="h-4 bg-gray-300 rounded w-14"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                // Actual Discussions
-                <div className="space-y-6">
-                  {filteredDiscussions.map((discussion, i) => (
-                    <div
-                      key={i}
-                      className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer focus-within:z-10 hover:z-10 relative overflow-hidden"
-                      onClick={(e) => {
-                        if (
-                          !e.target.closest("a") &&
-                          !e.target.closest("button") &&
-                          !e.target.classList.contains("text-blue-700")
-                        ) {
-                          openModal(discussion);
-                        }
-                      }}
-                    >
-                      {/* Gradient Border Effect on Hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+              <div className="space-y-6">
+                {filteredDiscussions.map((discussion, i) => (
+                  <div
+                    key={i}
+                    className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer focus-within:z-10 hover:z-10 relative overflow-hidden"
+                    onClick={(e) => {
+                      if (
+                        !e.target.closest("a") &&
+                        !e.target.closest("button") &&
+                        !e.target.classList.contains("text-blue-700")
+                      ) {
+                        openModal(discussion);
+                      }
+                    }}
+                  >
+                    {/* Gradient Border Effect on Hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
 
-                      <div className="relative">
-                        {/* Header with User Info */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            {discussion.User?.ProfilePicture ? (
-                              <img
-                                src={discussion.User.ProfilePicture}
-                                alt={discussion.UserName}
-                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-DGXgreen to-DGXblue flex items-center justify-center text-white font-semibold text-sm shadow-md">
-                                {discussion.UserName?.charAt(0) || "U"}
-                              </div>
-                            )}
-                            <div>
-                              <p className="text-sm font-semibold text-gray-800">
-                                {discussion.UserName}
-                              </p>
-                              {/* Show original creator for reposts */}
-                              {discussion.RepostID &&
-                                discussion.originalPost && (
-                                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                                    <FiRepeat className="w-3 h-3" />
-                                    Reposted from{" "}
-                                    {discussion.originalPost.OriginalUserName}
-                                  </p>
-                                )}
+                    <div className="relative">
+                      {/* Header with User Info */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          {discussion.User?.ProfilePicture ? (
+                            <img
+                              src={discussion.User.ProfilePicture}
+                              alt={discussion.UserName}
+                              className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-DGXgreen to-DGXblue flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                              {discussion.UserName?.charAt(0) || "U"}
                             </div>
-                          </div>
-
-                          {/* Repost Badge */}
-                          {discussion.RepostID && (
-                            <span className="flex items-center text-xs bg-gradient-to-r from-DGXblue to-DGXgreen text-white px-3 py-1 rounded-full shadow-md">
-                              <FiRepeat className="mr-1" size={12} />
-                              Repost
-                            </span>
                           )}
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">
+                              {discussion.UserName}
+                            </p>
+                            {/* Show original creator for reposts */}
+                            {discussion.RepostID && discussion.originalPost && (
+                              <p className="text-xs text-gray-500 flex items-center gap-1">
+                                <FiRepeat className="w-3 h-3" />
+                                Reposted from{" "}
+                                {discussion.originalPost.OriginalUserName}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Discussion Content */}
-                        <div className="mb-4">
-                          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-DGXgreen transition-colors duration-300">
-                            {discussion.Title}
-                          </h3>
-                          <div className="text-gray-700 leading-relaxed">
-                            {discussion.Content.length > 500 ? (
-                              <>
-                                <div
-                                  className="ql-snow"
-                                  dangerouslySetInnerHTML={{
-                                    __html: DOMPurify.sanitize(
-                                      discussion.Content.slice(0, 500) + "..."
-                                    ),
-                                  }}
-                                />
-                                <span
-                                  className="text-DGXblue cursor-pointer font-semibold hover:underline inline-flex items-center gap-1 mt-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openModal(discussion);
-                                  }}
-                                >
-                                  Continue reading
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M9 5l7 7-7 7"
-                                    />
-                                  </svg>
-                                </span>
-                              </>
-                            ) : (
+                        {/* Repost Badge */}
+                        {discussion.RepostID && (
+                          <span className="flex items-center text-xs bg-gradient-to-r from-DGXblue to-DGXgreen text-white px-3 py-1 rounded-full shadow-md">
+                            <FiRepeat className="mr-1" size={12} />
+                            Repost
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Discussion Content */}
+                      <div className="mb-4">
+                        <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-DGXgreen transition-colors duration-300">
+                          {discussion.Title}
+                        </h3>
+                        <div className="text-gray-700 leading-relaxed">
+                          {discussion.Content.length > 500 ? (
+                            <>
                               <div
-                                className="ql-snow discussion-content"
+                                className="ql-snow"
                                 dangerouslySetInnerHTML={{
                                   __html: DOMPurify.sanitize(
-                                    discussion.Content
+                                    discussion.Content.slice(0, 500) + "..."
                                   ),
                                 }}
                               />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Discussion Image */}
-                        {(discussion.DiscussionImagePath || discussion.Image) && (
-                          <div
-                            className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-screen-lg mx-auto"
-                            onClick={() => openModal(discussion)}
-                            style={{ height: 'auto', maxHeight: '80vh' }} // adjustable max height relative to viewport
-                          >
-                            <img
-                              src={
-                                discussion.ImageUrl ||
-                                `${window.location.origin}/${discussion.DiscussionImagePath}` ||
-                                discussion.Image
-                              }
-                              alt="Discussion"
-                              className="w-full h-auto max-h-[80vh] object-contain hover:scale-105 transition-transform duration-500"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src =
-                                  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-                              }}
-                            />
-                          </div>
-                        )}
-
-
-                        {/* Tags */}
-                        {discussion.Tag && (
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {(typeof discussion.Tag === "string"
-                              ? discussion.Tag.split(",").filter((tag) => tag)
-                              : Array.isArray(discussion.Tag)
-                                ? discussion.Tag
-                                : []
-                            ).map((tag, tagIndex) => (
                               <span
-                                key={tagIndex}
-                                className="bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-3 py-1 text-xs font-medium shadow-md hover:shadow-lg transition-shadow duration-300"
+                                className="text-DGXblue cursor-pointer font-semibold hover:underline inline-flex items-center gap-1 mt-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openModal(discussion);
+                                }}
                               >
-                                #{tag.trim()}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Resource Links */}
-                        {discussion.ResourceUrl && (
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {(typeof discussion.ResourceUrl === "string"
-                              ? discussion.ResourceUrl.split(",")
-                              : Array.isArray(discussion.ResourceUrl)
-                                ? discussion.ResourceUrl
-                                : []
-                            ).map((link, linkIndex) => (
-                              <a
-                                key={linkIndex}
-                                href={link}
-                                onClick={(e) => e.stopPropagation()}
-                                className="inline-flex items-center gap-1 bg-blue-50 text-DGXblue rounded-lg px-3 py-1 text-xs font-medium hover:bg-blue-100 transition-colors duration-200 border border-blue-200"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
+                                Continue reading
                                 <svg
-                                  className="w-3 h-3"
+                                  className="w-4 h-4"
                                   fill="none"
                                   stroke="currentColor"
                                   viewBox="0 0 24 24"
@@ -1940,121 +1829,204 @@ const Discussion = () => {
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                     strokeWidth={2}
-                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                    d="M9 5l7 7-7 7"
                                   />
                                 </svg>
-                                Resource {linkIndex + 1}
-                              </a>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div className="flex items-center space-x-6">
-                            {/* Like Button */}
-                            {/* Like Button */}
-                            <button
-                              className="flex items-center gap-2 transition-all duration-300 group relative"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddLike(discussion.DiscussionID, discussion.userLike);
-                              }}
-                            >
-                              {/* Animated Background - Based on userLike from backend */}
-                              <div
-                                className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${discussion.userLike === 1
-                                    ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
-                                    : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
-                                  }`}
-                              >
-                                {/* Like Icon */}
-                                <div className="relative">
-                                  {discussion.userLike === 1 ? (
-                                    <AiFillLike className="w-5 h-5" />
-                                  ) : (
-                                    <AiOutlineLike className="w-5 h-5" />
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Like Count */}
-                              <span
-                                className={`font-semibold transition-all duration-300 ${discussion.userLike === 1
-                                    ? "text-DGXblue"
-                                    : "text-gray-600 group-hover:text-DGXblue"
-                                  }`}
-                              >
-                                {discussion.likeCount}
                               </span>
-                            </button>
-
-                            {/* Comment Button */}
-                            <button
-                              className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen transition-colors duration-200 group"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleComment(discussion);
+                            </>
+                          ) : (
+                            <div
+                              className="ql-snow discussion-content"
+                              dangerouslySetInnerHTML={{
+                                __html: DOMPurify.sanitize(discussion.Content),
                               }}
+                            />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Discussion Image */}
+                      {(discussion.DiscussionImagePath || discussion.Image) && (
+                        <div
+                          className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-screen-lg mx-auto"
+                          onClick={() => openModal(discussion)}
+                          style={{ height: "auto", maxHeight: "80vh" }}
+                        >
+                          <img
+                            src={
+                              discussion.ImageUrl ||
+                              `${window.location.origin}/${discussion.DiscussionImagePath}` ||
+                              discussion.Image
+                            }
+                            alt="Discussion"
+                            className="w-full h-auto max-h-[80vh] object-contain hover:scale-105 transition-transform duration-500"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src =
+                                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* Tags */}
+                      {discussion.Tag && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {(typeof discussion.Tag === "string"
+                            ? discussion.Tag.split(",").filter((tag) => tag)
+                            : Array.isArray(discussion.Tag)
+                            ? discussion.Tag
+                            : []
+                          ).map((tag, tagIndex) => (
+                            <span
+                              key={tagIndex}
+                              className="bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-3 py-1 text-xs font-medium shadow-md hover:shadow-lg transition-shadow duration-300"
                             >
-                              <div className="p-2 rounded-full group-hover:bg-green-50 transition-colors duration-200">
-                                <FaComment className="w-5 h-5" />
+                              #{tag.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Resource Links */}
+                      {discussion.ResourceUrl && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {(typeof discussion.ResourceUrl === "string"
+                            ? discussion.ResourceUrl.split(",")
+                            : Array.isArray(discussion.ResourceUrl)
+                            ? discussion.ResourceUrl
+                            : []
+                          ).map((link, linkIndex) => (
+                            <a
+                              key={linkIndex}
+                              href={link}
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 bg-blue-50 text-DGXblue rounded-lg px-3 py-1 text-xs font-medium hover:bg-blue-100 transition-colors duration-200 border border-blue-200"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                />
+                              </svg>
+                              Resource {linkIndex + 1}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <div className="flex items-center space-x-6">
+                          {/* Like Button */}
+                          <button
+                            className="flex items-center gap-2 transition-all duration-300 group relative"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddLike(
+                                discussion.DiscussionID,
+                                discussion.userLike
+                              );
+                            }}
+                          >
+                            <div
+                              className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${
+                                discussion.userLike === 1
+                                  ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
+                                  : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
+                              }`}
+                            >
+                              {discussion.userLike === 1 ? (
+                                <AiFillLike className="w-5 h-5" />
+                              ) : (
+                                <AiOutlineLike className="w-5 h-5" />
+                              )}
+                            </div>
+                            <span
+                              className={`font-semibold transition-all duration-300 ${
+                                discussion.userLike === 1
+                                  ? "text-DGXblue"
+                                  : "text-gray-600 group-hover:text-DGXblue"
+                              }`}
+                            >
+                              {discussion.likeCount}
+                            </span>
+                          </button>
+
+                          {/* Comment Button */}
+                          <button
+                            className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen transition-colors duration-200 group"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleComment(discussion);
+                            }}
+                          >
+                            <div className="p-2 rounded-full group-hover:bg-green-50 transition-colors duration-200">
+                              <FaComment className="w-5 h-5" />
+                            </div>
+                            <span className="font-medium">
+                              {discussion.commentCount}{" "}
+                              {discussion.commentCount !== 1
+                                ? "Comments"
+                                : "Comment"}
+                            </span>
+                          </button>
+
+                          {/* Repost Button */}
+                          {getRepostMessage(discussion) ? (
+                            <span className="flex items-center gap-2 text-gray-400">
+                              <div className="p-2 rounded-full">
+                                <FiRepeat className="w-5 h-5" />
                               </div>
                               <span className="font-medium">
-                                {discussion.commentCount}{" "}
-                                {discussion.commentCount !== 1
-                                  ? "Comments"
-                                  : "Comment"}
+                                {getRepostMessage(discussion)}
+                              </span>
+                            </span>
+                          ) : (
+                            <button
+                              className="flex items-center gap-2 text-gray-600 hover:text-DGXblue transition-colors duration-200 group"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRepost(discussion);
+                              }}
+                              disabled={
+                                loading &&
+                                userReposts.has(discussion.DiscussionID)
+                              }
+                            >
+                              <div className="p-2 rounded-full group-hover:bg-blue-50 transition-colors duration-200">
+                                <FiRepeat className="w-5 h-5" />
+                              </div>
+                              <span className="font-medium">
+                                {loading &&
+                                userReposts.has(discussion.DiscussionID)
+                                  ? "Reposting..."
+                                  : "Repost"}
                               </span>
                             </button>
+                          )}
+                        </div>
 
-                            {/* Repost Button */}
-                            {getRepostMessage(discussion) ? (
-                              <span className="flex items-center gap-2 text-gray-400">
-                                <div className="p-2 rounded-full">
-                                  <FiRepeat className="w-5 h-5" />
-                                </div>
-                                <span className="font-medium">
-                                  {getRepostMessage(discussion)}
-                                </span>
-                              </span>
-                            ) : (
-                              <button
-                                className="flex items-center gap-2 text-gray-600 hover:text-DGXblue transition-colors duration-200 group"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRepost(discussion);
-                                }}
-                                disabled={
-                                  loading &&
-                                  userReposts.has(discussion.DiscussionID)
-                                }
-                              >
-                                <div className="p-2 rounded-full group-hover:bg-blue-50 transition-colors duration-200">
-                                  <FiRepeat className="w-5 h-5" />
-                                </div>
-                                <span className="font-medium">
-                                  {loading &&
-                                    userReposts.has(discussion.DiscussionID)
-                                    ? "Reposting..."
-                                    : "Repost"}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-
-                          {/* Timestamp */}
-                          <div className="text-xs text-gray-500">
-                            {new Date(
-                              discussion.CreatedAt || Date.now()
-                            ).toLocaleDateString()}
-                          </div>
+                        {/* Timestamp */}
+                        <div className="text-xs text-gray-500">
+                          {new Date(
+                            discussion.CreatedAt || Date.now()
+                          ).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
 
               {/* Empty State */}
               {!isLoading &&
@@ -2105,91 +2077,86 @@ const Discussion = () => {
           </div>
         </section>
 
-        {isLoading ? (
-          <Skeleton
-            height="2.5rem"
-            className="w-full bg-gray-300 rounded-lg mb-4"
-          />
-        ) : (
-          <div className="lg:hidden mt-8">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="bg-DGXblue text-white py-2 px-4 rounded-lg w-full"
-            >
-              {isDropdownOpen ? "Hide" : "Show"} Community Highlights and Top
-              Contributors
-            </button>
-            {isDropdownOpen && (
-              <aside className="mt-4 px-4">
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold mb-4">
-                    Community Highlights
-                  </h2>
-                  <div className="space-y-4">
-                    {communityHighlights.map((topic, index) => (
-                      <div
-                        key={topic.DiscussionID}
-                        className="rounded-lg shadow-lg p-4 border border-DGXblack hover:bg-DGXgreen/50 transition-transform transform hover:scale-105 hover:shadow-xl"
-                        onClick={() => openModal(topic)}
-                      >
-                        <h3 className="text-xl font-semibold">
-                          <a
-                            href={topic.link}
-                            className="text-DGXblack hover:underline"
-                          >
-                            {topic.Title}
-                          </a>
-                        </h3>
-                        <div className="text-DGXblack mt-2">
-                          {topic.Content.length > 150 ? (
-                            <>
-                              <div
-                                dangerouslySetInnerHTML={{
-                                  __html: topic.Content.substring(0, 147),
-                                }}
-                              />
-                              <span
-                                className="text-blue-700 cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openModal(topic);
-                                }}
-                              >
-                                ...see more
-                              </span>
-                            </>
-                          ) : (
+        <div className="lg:hidden mt-8">
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="bg-DGXblue text-white py-2 px-4 rounded-lg w-full"
+          >
+            {isDropdownOpen ? "Hide" : "Show"} Community Highlights and Top
+            Contributors
+          </button>
+
+          {isDropdownOpen && (
+            <aside className="mt-4 px-4">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold mb-4">
+                  Community Highlights
+                </h2>
+                <div className="space-y-4">
+                  {communityHighlights.map((topic, index) => (
+                    <div
+                      key={topic.DiscussionID}
+                      className="rounded-lg shadow-lg p-4 border border-DGXblack hover:bg-DGXgreen/50 transition-transform transform hover:scale-105 hover:shadow-xl"
+                      onClick={() => openModal(topic)}
+                    >
+                      <h3 className="text-xl font-semibold">
+                        <a
+                          href={topic.link}
+                          className="text-DGXblack hover:underline"
+                        >
+                          {topic.Title}
+                        </a>
+                      </h3>
+                      <div className="text-DGXblack mt-2">
+                        {topic.Content.length > 150 ? (
+                          <>
                             <div
                               dangerouslySetInnerHTML={{
-                                __html: topic.Content,
+                                __html: topic.Content.substring(0, 147),
                               }}
                             />
-                          )}
-                        </div>
+                            <span
+                              className="text-blue-700 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openModal(topic);
+                              }}
+                            >
+                              ...see more
+                            </span>
+                          </>
+                        ) : (
+                          <div
+                            dangerouslySetInnerHTML={{
+                              __html: topic.Content,
+                            }}
+                          />
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold mb-4">Top Contributors</h2>
-                  <div className="space-y-2">
-                    {topUsers.map((user, index) => (
-                      <div
-                        key={user.userID}
-                        className="flex justify-between items-center bg-DGXblue border border-gray-200 rounded-lg shadow-sm p-3 hover:shadow-xl hover:scale-105 transition-colors"
-                      >
-                        <span className="font-medium text-white">
-                          {user.userName}
-                        </span>
-                        <span className="text-white">{user.count} Post(s)</span>
-                      </div>
-                    ))}
-                  </div>
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold mb-4">Top Contributors</h2>
+                <div className="space-y-2">
+                  {topUsers.map((user, index) => (
+                    <div
+                      key={user.userID}
+                      className="flex justify-between items-center bg-DGXblue border border-gray-200 rounded-lg shadow-sm p-3 hover:shadow-xl hover:scale-105 transition-colors"
+                    >
+                      <span className="font-medium text-white">
+                        {user.userName}
+                      </span>
+                      <span className="text-white">{user.count} Post(s)</span>
+                    </div>
+                  ))}
                 </div>
-              </aside>
-            )}
-          </div>
-        )}
+              </div>
+            </aside>
+          )}
+        </div>
       </div>
     </div>
   );
