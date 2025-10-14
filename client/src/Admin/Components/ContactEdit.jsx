@@ -53,8 +53,8 @@ const EditContactUs = () => {
       } catch (error) {
         // console.error("Error fetching contact details:", error);
         Swal.fire({
-          icon: "error",
-          title: "Error",
+          icon: "warning",
+          title: "warning",
           text: error.message || "Failed to load contact details",
         });
       } finally {
@@ -151,8 +151,8 @@ const EditContactUs = () => {
     } catch (error) {
       // console.error("Error updating contact details:", error);
       Swal.fire({
-        icon: "error",
-        title: "Error",
+        icon: "warning",
+        title: "Warning",
         text: error.message || "Something went wrong. Please try again.",
         background: "#f8fafc",
       });
@@ -192,7 +192,7 @@ const EditContactUs = () => {
           {/* Form Title */}
           <motion.div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-800 mb-4">
-              Edit Contact Information
+              Edit Contact Information 
             </h1>
           </motion.div>
 
