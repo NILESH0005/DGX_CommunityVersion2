@@ -1953,7 +1953,6 @@ const Discussion = () => {
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                           <div className="flex items-center space-x-6">
                             {/* Like Button */}
-                            {/* Like Button */}
                             <button
                               className="flex items-center gap-2 transition-all duration-300 group relative"
                               onClick={(e) => {
@@ -1977,8 +1976,6 @@ const Discussion = () => {
                                   )}
                                 </div>
                               </div>
-
-                              {/* Like Count */}
                               <span
                                 className={`font-semibold transition-all duration-300 ${discussion.userLike === 1
                                     ? "text-DGXblue"
@@ -1988,8 +1985,6 @@ const Discussion = () => {
                                 {discussion.likeCount}
                               </span>
                             </button>
-
-                            {/* Comment Button */}
                             <button
                               className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen transition-colors duration-200 group"
                               onClick={(e) => {
@@ -2007,8 +2002,6 @@ const Discussion = () => {
                                   : "Comment"}
                               </span>
                             </button>
-
-                            {/* Repost Button */}
                             {getRepostMessage(discussion) ? (
                               <span className="flex items-center gap-2 text-gray-400">
                                 <div className="p-2 rounded-full">
@@ -2042,8 +2035,6 @@ const Discussion = () => {
                               </button>
                             )}
                           </div>
-
-                          {/* Timestamp */}
                           <div className="text-xs text-gray-500">
                             {new Date(
                               discussion.CreatedAt || Date.now()
@@ -2055,8 +2046,6 @@ const Discussion = () => {
                   ))}
                 </div>
               )}
-
-              {/* Empty State */}
               {!isLoading &&
                 filteredDiscussions.length === 0 &&
                 searchQuery && (
@@ -2104,7 +2093,6 @@ const Discussion = () => {
             </div>
           </div>
         </section>
-
         {isLoading ? (
           <Skeleton
             height="2.5rem"
