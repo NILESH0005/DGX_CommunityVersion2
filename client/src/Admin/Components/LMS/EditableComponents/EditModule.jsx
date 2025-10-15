@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
 import ByteArrayImage from "../../../../utils/ByteArrayImage";
 import FileUploader from "../../../../container/FileUploader";
-import Noimage from "../../../../../public/images"; 
+import Noimage from "../../../../../public/images";
 import {
   FaEdit,
   FaTrash,
@@ -33,25 +33,26 @@ const EditModule = ({
 
   useEffect(() => {
     setEditedModule(module);
-    // ✅ Priority 1: If ModuleImageUrl exists → use it directly
-    if (module.ModuleImageUrl) {
+
+    // ✅ Priority 1: If ModuleImageUrl exists → use it directly (ensure it's a string)
+    if (module.ModuleImageUrl && typeof module.ModuleImageUrl === 'string') {
       setImagePreview(module.ModuleImageUrl);
       return;
     }
 
     // ✅ Priority 2: If ModuleImage (byte array) exists → render as base64
-    if (module.ModuleImage?.data) {
+    if (module.ModuleImage?.data && typeof module.ModuleImage.data === 'string') {
       setImagePreview(
-        `data:${module.ModuleImage.contentType || "image/jpeg"};base64,${
-          module.ModuleImage.data
-        }`
+        `data:${module.ModuleImage.contentType || "image/jpeg"};base64,${module.ModuleImage.data}`
       );
       return;
     }
 
     // ✅ Priority 3: If ModuleImagePath exists → serve from local upload folder
-    if (module.ModuleImagePath) {
-      setImagePreview(`${window.location.origin}/${module.ModuleImagePath}`);
+    if (module.ModuleImagePath && typeof module.ModuleImagePath === 'string') {
+      // Ensure we're not creating a malformed URL
+      const cleanPath = module.ModuleImagePath.replace(/^\/+/, ''); // Remove leading slashes
+      setImagePreview(`${window.location.origin}/${cleanPath}`);
       return;
     }
 
@@ -85,16 +86,34 @@ const EditModule = ({
   };
 
   const handleImageUpload = (uploadResult) => {
+    // Add validation
+    if (!uploadResult || typeof uploadResult !== 'object') {
+      console.error('Invalid upload result:', uploadResult);
+      return;
+    }
+
     const { filePath } = uploadResult;
+
+    // Validate filePath is a string
+    if (typeof filePath !== 'string') {
+      console.error('Invalid filePath:', filePath);
+      return;
+    }
+
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-    const newImageUrl = `${baseUploadsUrl}/${filePath}`;
+
+    // Ensure we're creating a proper URL
+    const cleanFilePath = filePath.replace(/^\/+/, '');
+    const newImageUrl = `${baseUploadsUrl}/${cleanFilePath}`;
+
+    console.log('Setting image preview to:', newImageUrl); // Debug log
 
     setImagePreview(newImageUrl);
     setIsImageEditing(false);
 
     setEditedModule((prev) => ({
       ...prev,
-      ModuleImagePath: filePath,
+      ModuleImagePath: cleanFilePath,
       ModuleImageUrl: newImageUrl,
       ModuleImage: null,
     }));
@@ -217,10 +236,10 @@ const EditModule = ({
             src={imagePreview}
             alt={editedModule.ModuleName}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = Noimage;
-            }}
+            // onError={(e) => {
+            //   e.target.onerror = null;
+            //   // e.target.src = Noimage;
+            // }}
           />
           {isEditing && (
             <button
@@ -327,9 +346,8 @@ const EditModule = ({
               <div className="prose dark:prose-invert max-w-none mb-2">
                 <div
                   ref={descriptionRef}
-                  className={`text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm sm:text-base ${
-                    !showFullDescription ? "line-clamp-3" : ""
-                  }`}
+                  className={`text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm sm:text-base ${!showFullDescription ? "line-clamp-3" : ""
+                    }`}
                 >
                   {editedModule.ModuleDescription || "No description provided"}
                 </div>

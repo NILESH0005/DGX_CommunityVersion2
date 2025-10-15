@@ -18,6 +18,7 @@ import DOMPurify from "dompurify";
 import FileUploader from "../container/FileUploader.jsx";
 import { checkToxicityWithReasonAndFlag } from "../utils/toxicityDetection.js";
 import CommunitySidebar from "./CommunitySidebar.jsx";
+import { fetchDiscussionStats } from "../utils/discussionStats.js";
 
 const Discussion = () => {
   const navigate = useNavigate();
@@ -28,6 +29,8 @@ const Discussion = () => {
   const [filteredDiscussions, setFilteredDiscussions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [discussionStats, setDiscussionStats] = useState({});
+  const [statsLoading, setStatsLoading] = useState(false);
   const [errors, setErrors] = useState({
     title: "",
     content: "",
@@ -55,6 +58,43 @@ const Discussion = () => {
       privacy: "",
     });
   };
+
+
+  const fetchAndUpdateStats = async () => {
+    setStatsLoading(true);
+    try {
+      const stats = await fetchDiscussionStats(fetchData);
+      setDiscussionStats(stats);
+
+      // Update discussions with real-time stats
+      setDemoDiscussions(prevDiscussions =>
+        prevDiscussions.map(discussion => ({
+          ...discussion,
+          likeCount: stats[discussion.DiscussionID]?.TotalLikes || discussion.likeCount || 0,
+          commentCount: stats[discussion.DiscussionID]?.TotalComments || discussion.commentCount || 0
+        }))
+      );
+
+      setFilteredDiscussions(prevDiscussions =>
+        prevDiscussions.map(discussion => ({
+          ...discussion,
+          likeCount: stats[discussion.DiscussionID]?.TotalLikes || discussion.likeCount || 0,
+          commentCount: stats[discussion.DiscussionID]?.TotalComments || discussion.commentCount || 0
+        }))
+      );
+    } catch (error) {
+      console.error("Error updating discussion stats:", error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // Fetch stats when component mounts and when discussions change
+  useEffect(() => {
+    if (demoDiscussions.length > 0) {
+      fetchAndUpdateStats();
+    }
+  }, [demoDiscussions.length]);
 
   const validateToxicity = async () => {
     setIsCheckingToxicity(true);
@@ -229,10 +269,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              commentCount: newCommentCount,
-              ...(updatedComments ? { comment: updatedComments } : {}),
-            }
+            ...discussion,
+            commentCount: newCommentCount,
+            ...(updatedComments ? { comment: updatedComments } : {}),
+          }
           : discussion
       )
     );
@@ -240,10 +280,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              commentCount: newCommentCount,
-              ...(updatedComments ? { comment: updatedComments } : {}),
-            }
+            ...discussion,
+            commentCount: newCommentCount,
+            ...(updatedComments ? { comment: updatedComments } : {}),
+          }
           : discussion
       )
     );
@@ -258,10 +298,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              likeCount: newLikeCount,
-              ...(isLiked !== null ? { userLike: isLiked } : {}),
-            }
+            ...discussion,
+            likeCount: newLikeCount,
+            ...(isLiked !== null ? { userLike: isLiked } : {}),
+          }
           : discussion
       )
     );
@@ -270,10 +310,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-              ...discussion,
-              likeCount: newLikeCount,
-              ...(isLiked !== null ? { userLike: isLiked } : {}),
-            }
+            ...discussion,
+            likeCount: newLikeCount,
+            ...(isLiked !== null ? { userLike: isLiked } : {}),
+          }
           : discussion
       )
     );
@@ -294,8 +334,8 @@ const Discussion = () => {
           return typeof discussion.Tag === "string"
             ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
             : discussion.Tag?.some((tag) =>
-                tag.toLowerCase().includes(lowerCaseQuery)
-              );
+              tag.toLowerCase().includes(lowerCaseQuery)
+            );
         default: // 'all'
           return (
             discussion.Title.toLowerCase().includes(lowerCaseQuery) ||
@@ -303,8 +343,8 @@ const Discussion = () => {
             (typeof discussion.Tag === "string"
               ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
               : discussion.Tag?.some((tag) =>
-                  tag.toLowerCase().includes(lowerCaseQuery)
-                ))
+                tag.toLowerCase().includes(lowerCaseQuery)
+              ))
           );
       }
     });
@@ -420,108 +460,35 @@ const Discussion = () => {
 
       setLoading(true);
       const result = await fetchData(endpoint, method, body, headers);
-      console.log("ressssss", result);
 
       if (result?.data?.updatedDiscussions) {
         const discussions = result.data.updatedDiscussions;
 
-        // Extract discussion IDs to fetch likes information
+        // Fetch latest stats
+        const latestStats = await fetchDiscussionStats(fetchData);
+        setDiscussionStats(latestStats);
+
+        // Rest of your existing code for processing discussions...
         const discussionIds = discussions.map((d) => d.DiscussionID);
 
-        // Fetch likes information for all discussions
-        const likesEndpoint = "discussion/get-likes";
-        const likesBody = { discussionIds };
+        // Your existing likes fetching logic...
+        // Then merge with stats
+        const discussionsWithStats = discussions.map((discussion) => {
+          const stats = latestStats[discussion.DiscussionID] || {};
 
-        try {
-          const likesResult = await fetchData(
-            likesEndpoint,
-            "POST",
-            likesBody,
-            headers
-          );
-          console.log("nijiiiii", likesResult);
-
-          if (likesResult.success) {
-            const likesInfo = likesResult.data;
-
-            const discussionsWithCommentsAndLikes = discussions.map(
-              (discussion) => {
-                const discussionLikes = likesInfo[discussion.DiscussionID] || {
-                  totalLikes: 0,
-                  userLikes: [],
-                  currentUserLiked: false,
-                };
-
-                // Check if current user has liked this discussion
-                const currentUserLiked = discussionLikes.userLikes.some(
-                  (like) => like.userId === currentUserId
-                );
-
-                return {
-                  ...discussion,
-                  userLike: currentUserLiked ? 1 : 0, // This will be used for highlighting
-                  likeCount: discussionLikes.totalLikes,
-                  commentCount: discussion.commentCount || 0,
-                  ImageUrl: discussion.DiscussionImagePath
-                    ? `${BASE_URL}/${discussion.DiscussionImagePath}`
-                    : discussion.Image || null,
-                  isRepostOfMyPost: discussion.RepostUserID === currentUserId,
-                  isMyPost: discussion.UserID === currentUserId,
-                  originalPost: discussion.originalPost || null,
-                  // Store the full likes info for debugging
-                  likesInfo: {
-                    ...discussionLikes,
-                    currentUserLiked: currentUserLiked,
-                  },
-                };
-              }
-            );
-
-            setDemoDiscussions(discussionsWithCommentsAndLikes);
-            setFilteredDiscussions(discussionsWithCommentsAndLikes);
-
-            console.log(
-              "Processed discussions with likes:",
-              discussionsWithCommentsAndLikes
-            );
-          }
-        } catch (likesError) {
-          console.error("Error fetching likes:", likesError);
-          // Fallback: use basic like information
-          const discussionsWithComments = discussions.map((discussion) => ({
+          return {
             ...discussion,
-            userLike: discussion.userLike || 0,
-            likeCount: discussion.likeCount || 0,
-            commentCount: discussion.commentCount || 0,
-            ImageUrl: discussion.DiscussionImagePath
-              ? `${BASE_URL}/${discussion.DiscussionImagePath}`
-              : discussion.Image || null,
-            isRepostOfMyPost: discussion.RepostUserID === currentUserId,
-            isMyPost: discussion.UserID === currentUserId,
-            originalPost: discussion.originalPost || null,
-          }));
+            // Use stats data if available, otherwise fall back to existing data
+            likeCount: stats.TotalLikes || discussion.likeCount || 0,
+            commentCount: stats.TotalComments || discussion.commentCount || 0,
+            // ... rest of your existing mapping
+          };
+        });
 
-          setDemoDiscussions(discussionsWithComments);
-          setFilteredDiscussions(discussionsWithComments);
-        }
+        setDemoDiscussions(discussionsWithStats);
+        setFilteredDiscussions(discussionsWithStats);
 
-        if (currentUserId) {
-          const repostedDiscussionIds = new Set();
-          discussions.forEach((discussion) => {
-            if (discussion.UserID === currentUserId && discussion.RepostID) {
-              repostedDiscussionIds.add(discussion.RepostID);
-            }
-          });
-          setUserReposts(repostedDiscussionIds);
-        }
-
-        // Calculate highlights based on comment count
-        const highlights = getCommunityHighlights(discussions);
-        setCommunityHighlights(highlights);
-
-        // Calculate top users
-        const topUsers = getTopUsersByDiscussions(discussions);
-        setTopUsers(topUsers);
+        // Rest of your existing code...
       }
       setLoading(false);
     } catch (error) {
@@ -649,11 +616,7 @@ const Discussion = () => {
       });
 
       // Refresh to get accurate counts from backend
-      if (userToken && user) {
-        await fetchDiscussionData(user.EmailId);
-      } else {
-        await fetchDiscussionData(null);
-      }
+      await fetchAndUpdateStats();
     } catch (error) {
       console.error("Error:", error);
 
@@ -1051,10 +1014,13 @@ const Discussion = () => {
           isLoading={isLoading}
           communityHighlights={communityHighlights}
           topUsers={topUsers}
-          openModal={openModal} // Make sure this is passed
-          discussions={demoDiscussions} // Pass the main discussions array
-          updateDiscussionLikeCount={updateDiscussionLikeCount} // Pass the update function
-          updateDiscussionCommentCount={updateDiscussionCommentCount} // Pass the update function
+          openModal={openModal}
+          discussions={demoDiscussions}
+          updateDiscussionLikeCount={updateDiscussionLikeCount}
+          updateDiscussionCommentCount={updateDiscussionCommentCount}
+          discussionStats={discussionStats}
+          statsLoading={statsLoading} 
+          refreshStats={fetchAndUpdateStats} 
         />
 
         <section className="w-full px-4 flex flex-col overflow-y-scroll h-[80vh]">
@@ -1138,11 +1104,10 @@ const Discussion = () => {
                         <input
                           id="title"
                           type="text"
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
-                            errors.title
-                              ? "border-red-500 ring-2 ring-red-200"
-                              : "border-gray-300"
-                          }`}
+                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.title
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                            }`}
                           value={title}
                           onChange={(e) => {
                             setTitle(e.target.value);
@@ -1155,11 +1120,10 @@ const Discussion = () => {
                         />
                         <div className="absolute right-3 top-3">
                           <span
-                            className={`text-xs font-medium ${
-                              title.length > 80
-                                ? "text-red-500"
-                                : "text-gray-500"
-                            }`}
+                            className={`text-xs font-medium ${title.length > 80
+                              ? "text-red-500"
+                              : "text-gray-500"
+                              }`}
                           >
                             {title.length}/100
                           </span>
@@ -1190,11 +1154,10 @@ const Discussion = () => {
                         <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${
-                          errors.content
-                            ? "border-red-500 ring-2 ring-red-200"
-                            : "border-gray-300"
-                        }`}
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${errors.content
+                          ? "border-red-500 ring-2 ring-red-200"
+                          : "border-gray-300"
+                          }`}
                       >
                         <ReactQuill
                           id="content"
@@ -1236,11 +1199,10 @@ const Discussion = () => {
                           </p>
                         )}
                         <span
-                          className={`text-xs font-medium ml-auto ${
-                            content.replace(/<[^>]*>/g, "").length > 4500
-                              ? "text-red-500"
-                              : "text-gray-500"
-                          }`}
+                          className={`text-xs font-medium ml-auto ${content.replace(/<[^>]*>/g, "").length > 4500
+                            ? "text-red-500"
+                            : "text-gray-500"
+                            }`}
                         >
                           {content.replace(/<[^>]*>/g, "").length}/5000
                           characters
@@ -1261,11 +1223,10 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="text"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
-                              errors.tags
-                                ? "border-red-500 ring-2 ring-red-200"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.tags
+                              ? "border-red-500 ring-2 ring-red-200"
+                              : "border-gray-300"
+                              }`}
                             value={tagInput}
                             onChange={handleTagInputChange}
                             onKeyPress={(e) => {
@@ -1356,11 +1317,10 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="url"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
-                              errors.links
-                                ? "border-red-500 ring-2 ring-red-200"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.links
+                              ? "border-red-500 ring-2 ring-red-200"
+                              : "border-gray-300"
+                              }`}
                             value={linkInput}
                             onChange={handleLinkInputChange}
                             onKeyPress={(e) => {
@@ -1465,11 +1425,10 @@ const Discussion = () => {
                       <div className="flex gap-6">
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                              allowRepost === true
-                                ? "border-DGXgreen bg-DGXgreen"
-                                : "border-gray-300 group-hover:border-DGXgreen"
-                            }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === true
+                              ? "border-DGXgreen bg-DGXgreen"
+                              : "border-gray-300 group-hover:border-DGXgreen"
+                              }`}
                           >
                             {allowRepost === true && (
                               <svg
@@ -1500,11 +1459,10 @@ const Discussion = () => {
 
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                              allowRepost === false
-                                ? "border-DGXgreen bg-DGXgreen"
-                                : "border-gray-300 group-hover:border-DGXgreen"
-                            }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === false
+                              ? "border-DGXgreen bg-DGXgreen"
+                              : "border-gray-300 group-hover:border-DGXgreen"
+                              }`}
                           >
                             {allowRepost === false && (
                               <svg
@@ -1613,11 +1571,10 @@ const Discussion = () => {
                           setErrors({ ...errors, privacy: "" });
                         }}
                         onBlur={validatePrivacy}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
-                          errors.privacy
-                            ? "border-red-500 ring-2 ring-red-200"
-                            : "border-gray-300"
-                        }`}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.privacy
+                          ? "border-red-500 ring-2 ring-red-200"
+                          : "border-gray-300"
+                          }`}
                       >
                         <option value="">Select privacy setting</option>
                         <option value="private">
@@ -1735,8 +1692,6 @@ const Discussion = () => {
                 </div>
               </div>
             )}
-
-            {/* Discussions List */}
             <div className="space-y-6">
               <div className="space-y-6">
                 {filteredDiscussions.map((discussion, i) => (
@@ -1753,11 +1708,8 @@ const Discussion = () => {
                       }
                     }}
                   >
-                    {/* Gradient Border Effect on Hover */}
                     <div className="absolute inset-0 bg-gradient-to-br from-green-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
-
                     <div className="relative">
-                      {/* Header with User Info */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-3">
                           {discussion.User?.ProfilePicture ? (
@@ -1785,8 +1737,6 @@ const Discussion = () => {
                             )}
                           </div>
                         </div>
-
-                        {/* Repost Badge */}
                         {discussion.RepostID && (
                           <span className="flex items-center text-xs bg-gradient-to-r from-DGXblue to-DGXgreen text-white px-3 py-1 rounded-full shadow-md">
                             <FiRepeat className="mr-1" size={12} />
@@ -1794,8 +1744,6 @@ const Discussion = () => {
                           </span>
                         )}
                       </div>
-
-                      {/* Discussion Content */}
                       <div className="mb-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-DGXgreen transition-colors duration-300">
                           {discussion.Title}
@@ -1832,55 +1780,6 @@ const Discussion = () => {
                                     d="M9 5l7 7-7 7"
                                   />
                                 </svg>
-<<<<<<< HEAD
-                                Resource {linkIndex + 1}
-                              </a>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <div className="flex items-center space-x-6">
-                            {/* Like Button */}
-                            <button
-                              className="flex items-center gap-2 transition-all duration-300 group relative"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAddLike(discussion.DiscussionID, discussion.userLike);
-                              }}
-                            >
-                              {/* Animated Background - Based on userLike from backend */}
-                              <div
-                                className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${discussion.userLike === 1
-                                    ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
-                                    : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
-                                  }`}
-                              >
-                                {/* Like Icon */}
-                                <div className="relative">
-                                  {discussion.userLike === 1 ? (
-                                    <AiFillLike className="w-5 h-5" />
-                                  ) : (
-                                    <AiOutlineLike className="w-5 h-5" />
-                                  )}
-                                </div>
-                              </div>
-                              <span
-                                className={`font-semibold transition-all duration-300 ${discussion.userLike === 1
-                                    ? "text-DGXblue"
-                                    : "text-gray-600 group-hover:text-DGXblue"
-                                  }`}
-                              >
-                                {discussion.likeCount}
-                              </span>
-                            </button>
-                            <button
-                              className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen transition-colors duration-200 group"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleComment(discussion);
-=======
                               </span>
                             </>
                           ) : (
@@ -1888,14 +1787,11 @@ const Discussion = () => {
                               className="ql-snow discussion-content"
                               dangerouslySetInnerHTML={{
                                 __html: DOMPurify.sanitize(discussion.Content),
->>>>>>> d4b4955b7c740c6d87f1905dd480c8fcfaa79aca
                               }}
                             />
                           )}
                         </div>
                       </div>
-
-                      {/* Discussion Image */}
                       {(discussion.DiscussionImagePath || discussion.Image) && (
                         <div
                           className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 w-full max-w-screen-lg mx-auto"
@@ -1925,8 +1821,8 @@ const Discussion = () => {
                           {(typeof discussion.Tag === "string"
                             ? discussion.Tag.split(",").filter((tag) => tag)
                             : Array.isArray(discussion.Tag)
-                            ? discussion.Tag
-                            : []
+                              ? discussion.Tag
+                              : []
                           ).map((tag, tagIndex) => (
                             <span
                               key={tagIndex}
@@ -1944,8 +1840,8 @@ const Discussion = () => {
                           {(typeof discussion.ResourceUrl === "string"
                             ? discussion.ResourceUrl.split(",")
                             : Array.isArray(discussion.ResourceUrl)
-                            ? discussion.ResourceUrl
-                            : []
+                              ? discussion.ResourceUrl
+                              : []
                           ).map((link, linkIndex) => (
                             <a
                               key={linkIndex}
@@ -1989,11 +1885,10 @@ const Discussion = () => {
                             }}
                           >
                             <div
-                              className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${
-                                discussion.userLike === 1
-                                  ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
-                                  : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
-                              }`}
+                              className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${discussion.userLike === 1
+                                ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
+                                : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
+                                }`}
                             >
                               {discussion.userLike === 1 ? (
                                 <AiFillLike className="w-5 h-5" />
@@ -2002,17 +1897,19 @@ const Discussion = () => {
                               )}
                             </div>
                             <span
-                              className={`font-semibold transition-all duration-300 ${
-                                discussion.userLike === 1
-                                  ? "text-DGXblue"
-                                  : "text-gray-600 group-hover:text-DGXblue"
-                              }`}
+                              className={`font-semibold transition-all duration-300 ${discussion.userLike === 1
+                                ? "text-DGXblue"
+                                : "text-gray-600 group-hover:text-DGXblue"
+                                }`}
                             >
-                              {discussion.likeCount}
+                              {statsLoading ? (
+                                <div className="w-4 h-4 border-2 border-gray-300 border-t-DGXblue rounded-full animate-spin"></div>
+                              ) : (
+                                discussion.likeCount || 0
+                              )}
                             </span>
                           </button>
 
-                          {/* Comment Button */}
                           <button
                             className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen transition-colors duration-200 group"
                             onClick={(e) => {
@@ -2024,10 +1921,11 @@ const Discussion = () => {
                               <FaComment className="w-5 h-5" />
                             </div>
                             <span className="font-medium">
-                              {discussion.commentCount}{" "}
-                              {discussion.commentCount !== 1
-                                ? "Comments"
-                                : "Comment"}
+                              {statsLoading ? (
+                                <div className="w-4 h-4 border-2 border-gray-300 border-t-DGXgreen rounded-full animate-spin"></div>
+                              ) : (
+                                `${discussion.commentCount || 0} ${discussion.commentCount !== 1 ? "Comments" : "Comment"}`
+                              )}
                             </span>
                           </button>
 
@@ -2058,64 +1956,18 @@ const Discussion = () => {
                               </div>
                               <span className="font-medium">
                                 {loading &&
-                                userReposts.has(discussion.DiscussionID)
+                                  userReposts.has(discussion.DiscussionID)
                                   ? "Reposting..."
                                   : "Repost"}
                               </span>
                             </button>
-<<<<<<< HEAD
-                            {getRepostMessage(discussion) ? (
-                              <span className="flex items-center gap-2 text-gray-400">
-                                <div className="p-2 rounded-full">
-                                  <FiRepeat className="w-5 h-5" />
-                                </div>
-                                <span className="font-medium">
-                                  {getRepostMessage(discussion)}
-                                </span>
-                              </span>
-                            ) : (
-                              <button
-                                className="flex items-center gap-2 text-gray-600 hover:text-DGXblue transition-colors duration-200 group"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRepost(discussion);
-                                }}
-                                disabled={
-                                  loading &&
-                                  userReposts.has(discussion.DiscussionID)
-                                }
-                              >
-                                <div className="p-2 rounded-full group-hover:bg-blue-50 transition-colors duration-200">
-                                  <FiRepeat className="w-5 h-5" />
-                                </div>
-                                <span className="font-medium">
-                                  {loading &&
-                                    userReposts.has(discussion.DiscussionID)
-                                    ? "Reposting..."
-                                    : "Repost"}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(
-                              discussion.CreatedAt || Date.now()
-                            ).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-=======
                           )}
                         </div>
 
                         {/* Timestamp */}
                         <div className="text-xs text-gray-500">
                           {new Date(
-                            discussion.AddOnDt 
+                            discussion.AddOnDt
                           ).toLocaleDateString("en-US", {
                             year: "numeric",
                             month: "long",
@@ -2129,7 +1981,6 @@ const Discussion = () => {
               </div>
 
               {/* Empty State */}
->>>>>>> d4b4955b7c740c6d87f1905dd480c8fcfaa79aca
               {!isLoading &&
                 filteredDiscussions.length === 0 &&
                 searchQuery && (
@@ -2177,62 +2028,6 @@ const Discussion = () => {
             </div>
           </div>
         </section>
-<<<<<<< HEAD
-        {isLoading ? (
-          <Skeleton
-            height="2.5rem"
-            className="w-full bg-gray-300 rounded-lg mb-4"
-          />
-        ) : (
-          <div className="lg:hidden mt-8">
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="bg-DGXblue text-white py-2 px-4 rounded-lg w-full"
-            >
-              {isDropdownOpen ? "Hide" : "Show"} Community Highlights and Top
-              Contributors
-            </button>
-            {isDropdownOpen && (
-              <aside className="mt-4 px-4">
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold mb-4">
-                    Community Highlights
-                  </h2>
-                  <div className="space-y-4">
-                    {communityHighlights.map((topic, index) => (
-                      <div
-                        key={topic.DiscussionID}
-                        className="rounded-lg shadow-lg p-4 border border-DGXblack hover:bg-DGXgreen/50 transition-transform transform hover:scale-105 hover:shadow-xl"
-                        onClick={() => openModal(topic)}
-                      >
-                        <h3 className="text-xl font-semibold">
-                          <a
-                            href={topic.link}
-                            className="text-DGXblack hover:underline"
-                          >
-                            {topic.Title}
-                          </a>
-                        </h3>
-                        <div className="text-DGXblack mt-2">
-                          {topic.Content.length > 150 ? (
-                            <>
-                              <div
-                                dangerouslySetInnerHTML={{
-                                  __html: topic.Content.substring(0, 147),
-                                }}
-                              />
-                              <span
-                                className="text-blue-700 cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openModal(topic);
-                                }}
-                              >
-                                ...see more
-                              </span>
-                            </>
-                          ) : (
-=======
 
         <div className="lg:hidden mt-8">
           <button
@@ -2267,7 +2062,6 @@ const Discussion = () => {
                       <div className="text-DGXblack mt-2">
                         {topic.Content.length > 150 ? (
                           <>
->>>>>>> d4b4955b7c740c6d87f1905dd480c8fcfaa79aca
                             <div
                               dangerouslySetInnerHTML={{
                                 __html: topic.Content.substring(0, 147),

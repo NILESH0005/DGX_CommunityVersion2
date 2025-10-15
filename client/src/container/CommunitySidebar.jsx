@@ -8,14 +8,16 @@ const CommunitySidebar = ({
   isLoading = false,
   communityHighlights = [],
   topUsers = [],
-  openModal = () => {},
-  discussions = [], // Add this prop to get real-time data
-  updateDiscussionLikeCount, // Add this prop
-  updateDiscussionCommentCount, // Add this prop
+  openModal = () => { },
+  discussions = [],
+  updateDiscussionLikeCount,
+  updateDiscussionCommentCount,
+  discussionStats = {},
+  statsLoading = false,
+  refreshStats = () => { },
 }) => {
   const [localHighlights, setLocalHighlights] = useState(communityHighlights);
 
-  // Update local highlights when discussions or communityHighlights change
   useEffect(() => {
     if (discussions.length > 0) {
       // Recalculate highlights from the latest discussions data
@@ -29,37 +31,47 @@ const CommunitySidebar = ({
     }
   }, [discussions, communityHighlights]);
 
-  // Function to handle like updates in sidebar
+  // Add this function - it was missing
+  const getUpdatedDiscussion = (discussionId) => {
+    return discussions.find(d => d.DiscussionID === discussionId) || 
+           localHighlights.find(d => d.DiscussionID === discussionId);
+  };
+
   const handleSidebarLike = async (discussionId, currentUserLike) => {
     if (updateDiscussionLikeCount) {
-      // Calculate new values for optimistic update
       const discussion = discussions.find(d => d.DiscussionID === discussionId);
       const currentLikes = Number(discussion?.likeCount) || 0;
       const newLikeState = currentUserLike === 1 ? 0 : 1;
       const newLikeCount = newLikeState === 1 ? currentLikes + 1 : Math.max(0, currentLikes - 1);
 
-      // Update locally first for immediate UI feedback
-      setLocalHighlights(prev => 
-        prev.map(item => 
-          item.DiscussionID === discussionId 
-            ? { 
-                ...item, 
-                userLike: newLikeState, 
-                likeCount: newLikeCount 
-              }
+      // Update locally first
+      setLocalHighlights(prev =>
+        prev.map(item =>
+          item.DiscussionID === discussionId
+            ? {
+              ...item,
+              userLike: newLikeState,
+              likeCount: newLikeCount
+            }
             : item
         )
       );
 
       // Call parent's update function
       await updateDiscussionLikeCount(discussionId, newLikeCount, newLikeState);
+
+      // Refresh stats after like action
+      refreshStats();
     }
   };
 
-  // Get the most up-to-date discussion data
-  const getUpdatedDiscussion = (discussionId) => {
-    return discussions.find(d => d.DiscussionID === discussionId) || 
-           localHighlights.find(d => d.DiscussionID === discussionId);
+  const getDiscussionWithStats = (discussion) => {
+    const stats = discussionStats[discussion.DiscussionID];
+    return {
+      ...discussion,
+      likeCount: stats?.TotalLikes || discussion.likeCount || 0,
+      commentCount: stats?.TotalComments || discussion.commentCount || 0,
+    };
   };
 
   return (
@@ -82,8 +94,8 @@ const CommunitySidebar = ({
           {localHighlights.length > 0 ? (
             localHighlights.map((topic, index) => {
               // Get the most recent data for this discussion
-              const updatedTopic = getUpdatedDiscussion(topic.DiscussionID) || topic;
-              
+              const updatedTopic = getDiscussionWithStats(getUpdatedDiscussion(topic.DiscussionID) || topic);
+
               return (
                 <div
                   key={updatedTopic.DiscussionID || index}
@@ -112,8 +124,14 @@ const CommunitySidebar = ({
                           {updatedTopic.UserName}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {updatedTopic.likeCount || 0} likes • {updatedTopic.commentCount || 0}{" "}
-                          comments
+                          {statsLoading ? (
+                            <div className="flex items-center gap-1">
+                              <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                              Loading...
+                            </div>
+                          ) : (
+                            `${updatedTopic.likeCount || 0} likes • ${updatedTopic.commentCount || 0} comments`
+                          )}
                         </p>
                       </div>
                     </div>
@@ -167,24 +185,36 @@ const CommunitySidebar = ({
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
                       <div className="flex items-center gap-4">
                         {/* Like Button with real-time functionality */}
-                        <button 
+                        <button
                           className="flex items-center gap-1 hover:text-blue-600 transition-colors duration-200"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleSidebarLike(updatedTopic.DiscussionID, updatedTopic.userLike);
                           }}
                         >
-                          <AiOutlineLike 
-                            className={`w-3 h-3 ${updatedTopic.userLike === 1 ? 'text-blue-600 fill-blue-600' : ''}`} 
+                          <AiOutlineLike
+                            className={`w-3 h-3 ${updatedTopic.userLike === 1 ? 'text-blue-600 fill-blue-600' : ''}`}
                           />
-                          <span>{updatedTopic.likeCount || 0}</span>
+                          <span>
+                            {statsLoading ? (
+                              <div className="w-3 h-3 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                            ) : (
+                              updatedTopic.likeCount || 0
+                            )}
+                          </span>
                         </button>
-                        
+
                         <div className="flex items-center gap-1">
                           <FaComment className="w-3 h-3" />
-                          <span>{updatedTopic.commentCount || 0}</span>
+                          <span>
+                            {statsLoading ? (
+                              <div className="w-3 h-3 border-2 border-gray-300 border-t-green-500 rounded-full animate-spin"></div>
+                            ) : (
+                              updatedTopic.commentCount || 0
+                            )}
+                          </span>
                         </div>
-                        
+
                         {updatedTopic.RepostID && (
                           <div className="flex items-center gap-1">
                             <FiRepeat className="w-3 h-3" />
@@ -193,11 +223,11 @@ const CommunitySidebar = ({
                         )}
                       </div>
                       <div className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                        {updatedTopic.CreatedAt
-                          ? new Date(updatedTopic.CreatedAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })
+                        {updatedTopic.CreatedAt || updatedTopic.AddOnDt
+                          ? new Date(updatedTopic.CreatedAt || updatedTopic.AddOnDt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
                           : "Recent"}
                       </div>
                     </div>
@@ -219,7 +249,7 @@ const CommunitySidebar = ({
         </div>
       </div>
 
-      {/* Top Contributors Section - This will auto-update when discussions change */}
+      {/* Top Contributors Section */}
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="bg-gradient-to-r from-DGXblue to-DGXgreen p-4">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -242,13 +272,12 @@ const CommunitySidebar = ({
               >
                 {index < 3 && (
                   <div
-                    className={`absolute -left-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${
-                      index === 0
-                        ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
-                        : index === 1
+                    className={`absolute -left-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${index === 0
+                      ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                      : index === 1
                         ? "bg-gradient-to-r from-gray-400 to-gray-500"
                         : "bg-gradient-to-r from-orange-400 to-orange-500"
-                    }`}
+                      }`}
                   >
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
                   </div>
