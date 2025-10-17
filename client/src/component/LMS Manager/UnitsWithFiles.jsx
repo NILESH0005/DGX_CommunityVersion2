@@ -1008,9 +1008,10 @@ const UnitsWithFiles = () => {
                   }
                 >
                   <FileViewer
-                    fileUrl={`${import.meta.env.VITE_API_BASEURL}${
-                      selectedFile?.FilePath
-                    }`}
+                    fileUrl={`${import.meta.env.VITE_API_BASEURL.replace(
+                      /\/$/,
+                      ""
+                    )}/${selectedFile?.FilePath.replace(/^\//, "")}`}
                     className="w-full h-full"
                   />
                 </div>

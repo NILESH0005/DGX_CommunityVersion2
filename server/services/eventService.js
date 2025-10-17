@@ -1,9 +1,17 @@
 import db from "../models/index.js";
 import { Op } from "sequelize"; // ✅ direct import
+import moment from "moment-timezone";
 
 const CommunityEvents = db.CommunityEvents;
 const User = db.User;
 const MasterTable = db.TableDDReference;
+const istToUtc = (dateString) => {
+  if (!dateString) return null;
+  return moment
+    .tz(dateString, "Asia/Kolkata")
+    .utc()
+    .format("YYYY-MM-DD HH:mm:ss");
+};
 
 export const addEventService = async (decodedUser, payload) => {
   const {
@@ -53,11 +61,32 @@ export const addEventService = async (decodedUser, payload) => {
   const approvedOn = isAdmin ? new Date() : null;
 
   // 🔹 Create event
+  // const newEvent = await CommunityEvents.create({
+  //   EventTitle: title,
+  //   StartDate: start,
+  //   EndDate: end,
+  //   EventType: eventTypeId, // ✅ use the integer idCode, not string
+  //   Category: companyCategory,
+  //   Venue: venue,
+  //   Host: host,
+  //   RegistrationLink: registerLink,
+  //   EventImage: poster,
+  //   EventDescription: description,
+  //   AuthAdd: user.Name,
+  //   AddOnDt: new Date(),
+  //   delStatus: 0,
+  //   Status: status,
+  //   AdminRemark: null,
+  //   ApprovedBy: approvedBy,
+  //   ApprovedOn: approvedOn,
+  //   UserID: user.UserID,
+  // });
+
   const newEvent = await CommunityEvents.create({
     EventTitle: title,
     StartDate: start,
     EndDate: end,
-    EventType: eventTypeId, // ✅ use the integer idCode, not string
+    EventType: eventTypeId,
     Category: companyCategory,
     Venue: venue,
     Host: host,

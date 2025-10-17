@@ -341,7 +341,7 @@ export const getPublicBlogsService = async () => {
     include: [
       {
         model: User,
-        as: "RepostUser", // ✅ must match the alias in index.js
+        as: "RepostUser", // ✅ must match alias in index.js
         attributes: ["UserID", "Name"],
       },
     ],
@@ -351,12 +351,34 @@ export const getPublicBlogsService = async () => {
     return { success: false, message: "No public blogs found", data: [] };
   }
 
+  // ✅ Group by RepostUserID and RepostID
+  const grouped = [];
+  const seen = new Map();
+
+  publicBlogs.forEach(blog => {
+    const key = `${blog.RepostID}_${blog.RepostUserID}`;
+
+    if (seen.has(key)) {
+      // Push this blog into existing repost array
+      seen.get(key).reposts.push(blog);
+    } else {
+      // Create new group with repost array
+      const group = {
+        ...blog.toJSON(),
+        reposts: [blog],
+      };
+      grouped.push(group);
+      seen.set(key, group);
+    }
+  });
+
   return {
     success: true,
-    data: publicBlogs,
+    data: grouped,
     message: "Public blogs fetched successfully",
   };
 };
+
 
 export const updateBlogService = async (blogId, user, data) => {
   const { CommunityBlog } = db;

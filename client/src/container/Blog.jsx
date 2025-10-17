@@ -5,7 +5,7 @@ import ApiContext from "../context/ApiContext";
 import PublicBlogModal from "./PublicBlogModal";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { PiHandsClappingLight, PiHandsClappingFill } from "react-icons/pi";
+import { PiHandsClappingLight, PiHandsClappingFill, PiRepeat } from "react-icons/pi";
 
 import {
   motion,
@@ -13,8 +13,8 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-import { ChevronDown, ArrowRight } from "lucide-react";
-import BlogForm from "../Admin/Components/BlogComponents/BlogForm";
+import { ChevronDown, ArrowRight, CalendarDays, Heart, Repeat2 } from "lucide-react";
+
 const ParticleBackground = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -49,6 +49,110 @@ const ParticleBackground = () => {
   );
 };
 
+// RepostCard Component - Updated to show multiple users
+const RepostCard = ({ repost, className }) => {
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map(n => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "U";
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "Recently";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  // If repost has multiple users, show them in a compact way
+  const hasMultipleUsers = repost.users && repost.users.length > 1;
+
+  return (
+    <div
+      className={`w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow ${className}`}
+      role="group"
+      aria-label={`Reposted by ${repost.users?.length || 0} users`}
+    >
+      {/* Header with repost count */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <PiRepeat className="text-DGXgreen" size={16} />
+          <span className="text-sm font-semibold text-gray-900">
+            Reposted ({repost.users?.length || 0} times)
+          </span>
+        </div>
+        <span className="text-xs text-gray-500">
+          {repost.latestDate ? formatDate(repost.latestDate) : "Recently"}
+        </span>
+      </div>
+
+      {/* User Avatars Grid */}
+      <div className="flex flex-wrap gap-2">
+        {repost.users?.slice(0, 8).map((user, index) => (
+          <div key={user.id || index} className="relative group">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-xs font-bold border-2 border-white shadow-sm">
+              {getInitials(user.name)}
+            </div>
+            {/* Tooltip on hover */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+              {user.name}
+              {user.date && (
+                <div className="text-gray-300">
+                  {formatDate(user.date)}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        
+        {/* Show +X for additional users beyond 8 */}
+        {repost.users && repost.users.length > 8 && (
+          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold border-2 border-white shadow-sm">
+            +{repost.users.length - 8}
+          </div>
+        )}
+      </div>
+
+      {/* User List for accessibility */}
+      <div className="sr-only">
+        Reposted by: {repost.users?.map(user => user.name).join(', ')}
+      </div>
+    </div>
+  );
+};
+
+// StarRating Component
+const StarRating = ({ value }) => {
+  const stars = [];
+  const fullStars = Math.floor(value);
+  const hasHalfStar = value % 1 >= 0.5;
+
+  for (let i = 0; i < fullStars; i++) {
+    stars.push(<span key={i} className="text-yellow-400">★</span>);
+  }
+
+  if (hasHalfStar) {
+    stars.push(<span key="half" className="text-yellow-400">★</span>);
+  }
+
+  const emptyStars = 5 - stars.length;
+  for (let i = 0; i < emptyStars; i++) {
+    stars.push(<span key={`empty-${i}`} className="text-gray-300">★</span>);
+  }
+
+  return (
+    <div className="flex items-center gap-1" aria-label={`Rating: ${value} out of 5 stars`}>
+      {stars}
+    </div>
+  );
+};
+
 const BlogPage = () => {
   const { fetchData, userToken } = useContext(ApiContext);
   const { scrollYProgress } = useScroll();
@@ -63,6 +167,9 @@ const BlogPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [expandedAccordions, setExpandedAccordions] = useState({});
+  const [repostsData, setRepostsData] = useState({});
+  const [loadingReposts, setLoadingReposts] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,6 +199,101 @@ const BlogPage = () => {
     }
   };
 
+  // Fetch reposts for a specific blog and aggregate users
+  const fetchRepostsForBlog = async (blogId) => {
+    try {
+      setLoadingReposts(prev => ({ ...prev, [blogId]: true }));
+      
+      // Try different possible endpoints for reposts
+      const endpoints = [
+        `blog/getReposts/${blogId}`,
+        `blog/reposts/${blogId}`,
+        `blog/${blogId}/reposts`,
+        `blog/getBlogReposts/${blogId}`
+      ];
+
+      let reposts = [];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const method = "GET";
+          const headers = { "Content-Type": "application/json" };
+
+          const result = await fetchData(endpoint, method, {}, headers);
+          console.log(`Reposts response from ${endpoint}:`, result);
+          
+          if (result && (result.data || result.reposts)) {
+            reposts = result.data || result.reposts || [];
+            break;
+          }
+        } catch (error) {
+          console.log(`Endpoint ${endpoint} failed, trying next...`);
+          continue;
+        }
+      }
+
+      // If no reposts found from API, check if the blog itself is a repost
+      if (reposts.length === 0) {
+        const blog = blogs.find(b => b.BlogID === blogId);
+        if (blog && blog.RepostUser) {
+          // If this blog is a repost, create a repost entry for the original author
+          reposts = [{
+            id: `repost-${blogId}`,
+            user: { 
+              name: blog.AuthAdd || "Unknown User",
+              avatar: ""
+            },
+            date: blog.AddOnDt || blog.publishedDate
+          }];
+        }
+      }
+
+      // Transform and aggregate repost data
+      const transformedReposts = transformRepostData(reposts);
+      
+      // Create a single aggregated repost object with all users
+      const aggregatedRepost = {
+        id: `aggregated-${blogId}`,
+        users: transformedReposts,
+        latestDate: transformedReposts.length > 0 
+          ? transformedReposts.reduce((latest, user) => 
+              new Date(user.date) > new Date(latest) ? user.date : latest, 
+              transformedReposts[0].date
+            )
+          : null,
+        totalCount: transformedReposts.length
+      };
+
+      setRepostsData(prev => ({
+        ...prev,
+        [blogId]: aggregatedRepost.totalCount > 0 ? [aggregatedRepost] : []
+      }));
+
+      return aggregatedRepost;
+    } catch (error) {
+      console.error(`Error fetching reposts for blog ${blogId}:`, error);
+      setRepostsData(prev => ({
+        ...prev,
+        [blogId]: []
+      }));
+      return { users: [], totalCount: 0 };
+    } finally {
+      setLoadingReposts(prev => ({ ...prev, [blogId]: false }));
+    }
+  };
+
+  // Transform API repost data to the format expected by RepostCard
+  const transformRepostData = (reposts) => {
+    if (!reposts || !Array.isArray(reposts)) return [];
+    
+    return reposts.map(repost => ({
+      id: repost.repostId || repost.userId || repost.id || `repost-${Math.random()}`,
+      name: repost.userName || repost.name || repost.user?.name || repost.AuthAdd || "Unknown User",
+      avatar: repost.avatar || repost.user?.avatar || "",
+      date: repost.repostDate || repost.createdAt || repost.date || repost.AddOnDt || new Date().toISOString()
+    }));
+  };
+
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
@@ -102,7 +304,7 @@ const BlogPage = () => {
         let headers = { "Content-Type": "application/json" };
 
         const result = await fetchData(endpoint, method, {}, headers);
-        console.log("blogggg", result);
+        console.log("Fetched blogs:", result);
         if (result && result.data) {
           setBlogs(result.data);
         } else {
@@ -169,6 +371,18 @@ const BlogPage = () => {
     setSelectedBlog(null);
   };
 
+  const toggleAccordion = async (blogId) => {
+    // If opening the accordion and we don't have repost data yet, fetch it
+    if (!expandedAccordions[blogId] && !repostsData[blogId]) {
+      await fetchRepostsForBlog(blogId);
+    }
+    
+    setExpandedAccordions(prev => ({
+      ...prev,
+      [blogId]: !prev[blogId]
+    }));
+  };
+
   const BlogCard = ({ blog, index }) => {
     if (!blog) return null;
 
@@ -183,22 +397,23 @@ const BlogPage = () => {
       RepostUser,
       BlogID,
     } = blog;
+
     const fallbackImage =
       "https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
-
-    const getAuthorDisplay = () => {
-      if (RepostUser && RepostUser.Name) {
-        return `Reposted from ${RepostUser.Name}`;
-      }
-      return AuthAdd || "Unknown author";
-    };
 
     const [blogStats, setBlogStats] = useState({
       totalLikes: 0,
       averageRating: 0,
-      totalRatings: 0
+      totalRatings: 0,
     });
 
+    // Get reposts for this blog - now it's a single aggregated object
+    const blogReposts = repostsData[BlogID] || [];
+    const aggregatedRepost = blogReposts[0]; // Only one aggregated repost card now
+    const isRepostLoading = loadingReposts[BlogID];
+    const hasReposts = aggregatedRepost?.totalCount > 0 || blog.RepostUser;
+    const isAccordionOpen = expandedAccordions[BlogID];
+    const displayRepostCount = aggregatedRepost?.totalCount || (blog.RepostUser ? 1 : 0);
 
     useEffect(() => {
       const fetchBlogStats = async () => {
@@ -219,9 +434,35 @@ const BlogPage = () => {
       fetchBlogStats();
     }, [BlogID]);
 
+    const getAuthorInitials = (name) => {
+      if (!name) return "U";
+      return name
+        .split(" ")
+        .map(n => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase() || "U";
+    };
+
+    const getAuthorDisplay = () => {
+      // If this is a repost, show who reposted it
+      if (RepostUser && RepostUser.Name) {
+        return `Reposted by ${AuthAdd || "Unknown"}`;
+      }
+      return AuthAdd || "Unknown author";
+    };
+
+    const getOriginalAuthor = () => {
+      // If this is a repost, show original author
+      if (RepostUser && RepostUser.Name) {
+        return RepostUser.Name;
+      }
+      return null;
+    };
+
     return (
       <motion.div
-        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer h-full flex flex-col"
+        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer h-full flex flex-col"
         onClick={() => openModal(blog)}
         initial={{ opacity: 0, y: 50 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -229,9 +470,10 @@ const BlogPage = () => {
         viewport={{ once: true }}
         whileHover={{ scale: 1.02 }}
       >
+        {/* Cover Image */}
         <div className="relative h-48 w-full overflow-hidden">
           <motion.img
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+            className="w-full h-full object-cover transition-transform duration-500"
             src={image || fallbackImage}
             alt={title}
             onError={(e) => (e.target.src = fallbackImage)}
@@ -239,6 +481,8 @@ const BlogPage = () => {
             whileHover={{ scale: 1.1 }}
             transition={{ duration: 0.3 }}
           />
+          
+          {/* Category Badge */}
           {category && (
             <motion.span
               className="absolute top-3 left-3 bg-white text-DGXblue px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
@@ -250,23 +494,25 @@ const BlogPage = () => {
             </motion.span>
           )}
 
-          {blogStats.averageRating > 0 && (
-            <motion.div
-              className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
+          {/* Reposts Badge - Show if there are reposts */}
+          {hasReposts && displayRepostCount > 0 && (
+            <motion.span
+              className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <span className="text-yellow-500">⭐</span>
-              <span className="text-gray-700">{blogStats.averageRating.toFixed(1)}</span>
-              {blogStats.totalRatings > 0 && (
-                <span className="text-gray-500 text-xs">({blogStats.totalRatings})</span>
-              )}
-            </motion.div>
+              <PiRepeat className="text-DGXgreen" size={14} />
+              <span className="text-gray-700">
+                Reposts {displayRepostCount}
+              </span>
+            </motion.span>
           )}
+
+          {/* Repost Indicator - Show if this specific blog is a repost */}
           {RepostUser && RepostUser.Name && (
             <motion.span
-              className="absolute top-3 right-3 bg-DGXgreen text-black px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
+              className="absolute bottom-3 left-3 bg-DGXgreen text-black px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.4 }}
@@ -274,12 +520,30 @@ const BlogPage = () => {
               Repost
             </motion.span>
           )}
+
+          {/* Rating Badge */}
+          {blogStats.averageRating > 0 && (
+            <motion.div
+              className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <span className="text-yellow-500">⭐</span>
+              <span className="text-gray-700">
+                {blogStats.averageRating.toFixed(1)}
+              </span>
+            </motion.div>
+          )}
         </div>
 
+        {/* Main Content */}
         <div className="p-5 flex-grow flex flex-col">
-          <div className="flex items-center text-xs text-gray-500 mb-2">
-            <span>
-              {new Date(AddOnDt).toLocaleDateString("en-US", {
+          {/* Date and Read Time */}
+          <div className="flex items-center text-xs text-gray-500 mb-3">
+            <span className="flex items-center">
+              <CalendarDays className="mr-1" size={14} />
+              {new Date(AddOnDt || publishedDate).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "short",
                 day: "numeric",
@@ -296,39 +560,103 @@ const BlogPage = () => {
             )}
           </div>
 
+          {/* Title */}
           <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
             {title}
           </h3>
 
-          <div className="flex items-center gap-4 mb-3">
+          {/* Rating and Claps */}
+          <div className="flex items-center gap-4 mb-4">
+            {blogStats.averageRating > 0 && (
+              <div className="flex items-center gap-2">
+                <StarRating value={blogStats.averageRating} />
+                <span className="text-sm text-gray-600">({blogStats.totalRatings})</span>
+              </div>
+            )}
+            
             {blogStats.totalLikes > 0 && (
-              <div className="flex items-center gap-1 text-sm text-gray-600">
-                <PiHandsClappingLight className="text-gray-500" />
+              <div className="flex items-center gap-1 text-sm text-gray-600 ml-auto">
+                <Heart className="text-red-500" size={16} />
                 <span>{blogStats.totalLikes} claps</span>
               </div>
             )}
           </div>
 
-          <div className="mt-auto flex items-center gap-3">
+          {/* Author Info */}
+          <div className="mt-auto flex items-center gap-3 mb-4">
             <motion.div
-              className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-xs font-bold"
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.5 }}
             >
-              <TbUserSquareRounded className="text-gray-700" size={18} />
+              {getAuthorInitials(AuthAdd || "Unknown Author")}
             </motion.div>
             <div className="flex flex-col">
-              <span className="text-sm text-gray-600">
-                {AuthAdd || "Unknown author"}
+              <span className="text-sm font-medium text-gray-900">
+                {getAuthorDisplay()}
               </span>
-              {/* Display repost credit if available */}
               {RepostUser && RepostUser.Name && (
                 <span className="text-xs text-DGXgreen font-medium">
-                  Reposted from {RepostUser.Name}
+                  Originally by {RepostUser.Name}
                 </span>
               )}
             </div>
           </div>
+
+          {/* Reposts Accordion - Show if there are reposts */}
+          {hasReposts && displayRepostCount > 0 && (
+            <div className="border-t border-gray-100 pt-4">
+              <motion.button
+                className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleAccordion(BlogID);
+                }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={isRepostLoading}
+              >
+                <div className="flex items-center gap-2">
+                  <PiRepeat className="text-DGXgreen" size={16} />
+                  <span className="text-sm font-medium text-gray-700">
+                    {isRepostLoading ? "Loading..." : `View reposts (${displayRepostCount})`}
+                  </span>
+                </div>
+                <motion.div
+                  animate={{ rotate: isAccordionOpen ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ChevronDown size={16} className="text-gray-500" />
+                </motion.div>
+              </motion.button>
+
+              <AnimatePresence>
+                {isAccordionOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3">
+                      {isRepostLoading ? (
+                        <div className="text-center text-gray-500 py-4">
+                          Loading reposts...
+                        </div>
+                      ) : aggregatedRepost ? (
+                        <RepostCard repost={aggregatedRepost} />
+                      ) : (
+                        <div className="text-center text-gray-500 py-4">
+                          No reposts available
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </motion.div>
     );
@@ -423,10 +751,11 @@ const BlogPage = () => {
               transition={{ staggerChildren: 0.1 }}
             >
               <motion.button
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${!selectedCategory
-                  ? "bg-DGXgreen text-black shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  !selectedCategory
+                    ? "bg-DGXgreen text-black shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
                 onClick={() => handleCategorySelect(null)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -440,10 +769,11 @@ const BlogPage = () => {
               {categories.map((category) => (
                 <motion.button
                   key={category.ddId || category.ddValue}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${selectedCategory === category.ddValue
-                    ? "bg-DGXgreen text-black shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategory === category.ddValue
+                      ? "bg-DGXgreen text-black shadow-md"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
                   onClick={() => handleCategorySelect(category.ddValue)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
