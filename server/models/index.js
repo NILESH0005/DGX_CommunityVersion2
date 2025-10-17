@@ -122,10 +122,10 @@ db.QuizQuestionOptions.belongsTo(db.QuizQuestions, {
 db.QuizQuestions.hasMany(db.QuizMapp, { foreignKey: "QuestionsID" });
 db.QuizMapp.belongsTo(db.QuizQuestions, { foreignKey: "QuestionsID" });
 
-db.QuizQuestions.belongsTo(db.QuizDetails, {
-  foreignKey: "id",
-  targetKey: "QuizID",
-});
+// db.QuizQuestions.belongsTo(db.QuizDetails, {
+//   foreignKey: "id",
+//   targetKey: "QuizID",
+// });
 db.QuizDetails.hasMany(db.QuizMapp, { foreignKey: "quizId", as: "QuizMapps" });
 db.QuizMapp.belongsTo(db.QuizDetails, {
   foreignKey: "quizId",
