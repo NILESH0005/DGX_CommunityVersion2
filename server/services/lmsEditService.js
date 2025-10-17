@@ -225,21 +225,43 @@ export const updateSubModuleService = async (userEmail, subModuleId, payload) =>
   }
 };
 
-export const deleteModuleService = async (moduleId) => {
+export const deleteModuleService = async (userEmail, moduleId) => {
   try {
-    // Find the module by ID and delStatus
+    // 🔹 Step 1: Find the user performing deletion
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: { [Op.or]: [0, null] },
+      },
+    });
+
+    if (!user) {
+      logWarning(`User not found for email: ${userEmail}`);
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "User not found",
+        },
+      };
+    }
+
+    // 🔹 Step 2: Find the module by ID and ensure it’s active
     const existingModule = await ModuleDetails.findOne({
-      where: { ModuleID: moduleId, delStatus: 0 }
+      where: { ModuleID: moduleId, delStatus: 0 },
     });
 
     if (!existingModule) {
       return {
         status: 404,
-        response: { success: false, message: "Module not found or already deleted" }
+        response: {
+          success: false,
+          message: "Module not found or already deleted",
+        },
       };
     }
 
-    // Move image to deleted-files folder if present
+    // 🔹 Step 3: Move image to deleted-files folder (if exists)
     if (existingModule.ModuleImagePath && typeof existingModule.ModuleImagePath === "string") {
       const originalPath = path.join(process.cwd(), existingModule.ModuleImagePath);
 
@@ -261,28 +283,39 @@ export const deleteModuleService = async (moduleId) => {
       }
     }
 
-    // Perform soft delete
-    existingModule.delStatus = 1;
-    existingModule.delOnDt = new Date();
-    await existingModule.save();
+    // 🔹 Step 4: Perform soft delete
+    await existingModule.update({
+      delStatus: 1,
+      delOnDt: new Date(),
+      AddDel: user.Name, // ✅ store deleted user name here
+    });
 
+    logInfo(`Module ID ${moduleId} soft deleted by ${user.Name}`);
+
+    // 🔹 Step 5: Return response
     return {
       status: 200,
       response: {
         success: true,
-        data: { moduleId, deletedAt: existingModule.delOnDt, movedToTrash: true },
-        message: "Module soft-deleted & image moved to trash"
-      }
+        data: {
+          moduleId,
+          deletedAt: existingModule.delOnDt,
+          deletedBy: user.Name,
+          movedToTrash: !!existingModule.ModuleImagePath,
+        },
+        message: "Module soft-deleted successfully",
+      },
     };
   } catch (error) {
     logError("Module deletion failed", error);
+
     return {
       status: 500,
       response: {
         success: false,
+        message: "Something went wrong during module deletion",
         data: error,
-        message: "Something went wrong during module deletion"
-      }
+      },
     };
   }
 };
@@ -667,6 +700,211 @@ export const addUnitService = async ({ UnitName, UnitDescription, SubModuleID, u
   } catch (error) {
     await t.rollback();
     throw error;
+  }
+};
+
+export const deleteUnitService = async (userEmail, unitId) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: { [Op.or]: [0, null] },
+      },
+    });
+
+    if (!user) {
+      logWarning(`User not found for email: ${userEmail}`);
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "User not found",
+        },
+      };
+    }
+
+    // Step 2: Find the unit by ID
+    const existingUnit = await LMSUnitsDetails.findOne({
+      where: { UnitID: unitId, delStatus: 0 },
+    });
+
+    if (!existingUnit) {
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "Unit not found or already deleted",
+        },
+      };
+    }
+
+    // Step 3: Optional - move any attached files to trash folder
+    if (existingUnit.UnitFilePath && typeof existingUnit.UnitFilePath === "string") {
+      const originalPath = path.join(process.cwd(), existingUnit.UnitFilePath);
+
+      if (fs.existsSync(originalPath)) {
+        const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
+        if (!fs.existsSync(deletedFolder)) {
+          fs.mkdirSync(deletedFolder, { recursive: true });
+        }
+
+        const fileName = path.basename(existingUnit.UnitFilePath);
+        const newPath = path.join(deletedFolder, fileName);
+
+        try {
+          fs.renameSync(originalPath, newPath);
+          logInfo(`Moved unit file to trash → ${newPath}`);
+        } catch (err) {
+          logError("Error moving unit file to trash", err);
+        }
+      }
+    }
+
+    // Step 4: Perform soft delete
+    await existingUnit.update({
+      delStatus: 1,
+      delOnDt: new Date(),
+      AuthDel: user.Name,
+    });
+
+    logInfo(`Unit ID ${unitId} soft deleted by ${user.Name}`);
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: {
+          unitId,
+          deletedAt: new Date(),
+          deletedBy: user.Name,
+        },
+        message: "Unit soft-deleted successfully",
+      },
+    };
+  } catch (error) {
+    logError("❌ Error deleting unit:", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        message: "Something went wrong during unit deletion",
+        data: error,
+      },
+    };
+  }
+};
+
+export const deleteFileService = async (userEmail, fileId) => {
+  try {
+    // 🔹 Step 1: Find the user performing deletion
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: { [Op.or]: [0, null] },
+      },
+    });
+
+    if (!user) {
+      logWarning(`User not found for email: ${userEmail}`);
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "User not found",
+        },
+      };
+    }
+
+    // 🔹 Step 2: Find the file
+    const existingFile = await LMSFilesDetails.findOne({
+      where: { FileID: fileId, delStatus: { [Op.or]: [0, null] } },
+    });
+
+    if (!existingFile) {
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "File not found or already deleted",
+        },
+      };
+    }
+
+    const unitId = existingFile.UnitID;
+
+    // 🔹 Step 3: Move file to deleted-files folder if exists
+    if (existingFile.FilePath && typeof existingFile.FilePath === "string") {
+      const originalPath = path.join(process.cwd(), existingFile.FilePath);
+
+      if (fs.existsSync(originalPath)) {
+        const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
+        if (!fs.existsSync(deletedFolder)) {
+          fs.mkdirSync(deletedFolder, { recursive: true });
+        }
+
+        const fileName = path.basename(existingFile.FilePath);
+        const newPath = path.join(deletedFolder, fileName);
+
+        try {
+          fs.renameSync(originalPath, newPath);
+          logInfo(`Moved file to trash → ${newPath}`);
+        } catch (err) {
+          logError("Error moving file to trash", err);
+        }
+      }
+    }
+
+    // 🔹 Step 4: Perform soft delete
+    await existingFile.update({
+      delStatus: 1,
+      delOnDt: new Date(),
+      AddDel: user.Name,
+    });
+
+    // 🔹 Step 5: Count remaining active files in this unit
+    const remainingFilesCount = await LMSFilesDetails.count({
+      where: { UnitID: unitId, delStatus: { [Op.or]: [0, null] } },
+    });
+
+    // 🔹 Step 6: Update percentage for remaining files
+    let newPercentage = 0;
+    if (remainingFilesCount > 0) {
+      newPercentage = (100 / remainingFilesCount).toFixed(2);
+      await LMSFilesDetails.update(
+        { Percentage: newPercentage },
+        { where: { UnitID: unitId, delStatus: { [Op.or]: [0, null] } } }
+      );
+    }
+
+    // 🔹 Step 7: Return response
+    logInfo(`File ID ${fileId} soft deleted by ${user.Name}`);
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: {
+          fileId,
+          deletedAt: new Date(),
+          deletedBy: user.Name,
+          fileName: existingFile.FilesName,
+          unitId,
+          remainingFiles: remainingFilesCount,
+          newPercentage,
+        },
+        message: "File soft-deleted successfully",
+      },
+    };
+  } catch (error) {
+    logError("❌ Error deleting file:", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        message: "Something went wrong during file deletion",
+        data: error,
+      },
+    };
   }
 };
 

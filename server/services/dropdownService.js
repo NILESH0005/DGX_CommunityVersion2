@@ -8,6 +8,9 @@ const {
   LMSUnitsDetails,
   LMSFilesDetails,
   LMSUserProgress,
+  CommunityDiscussion,
+  ContentInteraction,
+  CommunityBlog,
 } = db;
 import { Op } from "sequelize";
 
@@ -444,3 +447,109 @@ export const getQuizDropdownService = async () => {
     throw new Error(error.message);
   }
 };
+
+export const getDiscussionStatsService = async () => {
+  try {
+    const discussions = await CommunityDiscussion.findAll({
+      where: {
+        delStatus: 0,
+        [Op.or]: [{ Reference: null }, { Reference: 0 }],
+      },
+      attributes: ["DiscussionID", "Title"],
+    });
+
+    const results = await Promise.all(
+      discussions.map(async (discussion) => {
+        // ✅ Count only top-level comments
+        const commentCount = await CommunityDiscussion.count({
+          where: {
+            Reference: discussion.DiscussionID,
+            delStatus: 0,
+            [Op.or]: [
+              { Comment: { [Op.ne]: null } },
+              { Comment: { [Op.ne]: "" } },
+            ],
+          },
+        });
+
+        const likeCount = await ContentInteraction.count({
+          where: {
+            ProcessName: "Discussion",
+            reference: discussion.DiscussionID,
+            LikeStatus: 1,
+            delStatus: 0,
+          },
+        });
+
+        return {
+          DiscussionID: discussion.DiscussionID,
+          Title: discussion.Title,
+          TotalLikes: likeCount,
+          TotalComments: commentCount,
+        };
+      })
+    );
+
+    return { success: true, data: results };
+  } catch (error) {
+    console.error("Error in getDiscussionStatsService:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+export const getBlogStatsService = async () => {
+  try {
+    const blogs = await CommunityBlog.findAll({
+      where: { delStatus: 0 },
+      attributes: ["BlogID", "title"],
+    });
+
+    const results = await Promise.all(
+      blogs.map(async (blog) => {
+        // ✅ Count likes
+        const likeCount = await ContentInteraction.count({
+          where: {
+            ProcessName: "Blog",
+            reference: blog.BlogID,
+            LikeStatus: 1,
+            delStatus: 0,
+          },
+        });
+
+        // ✅ Calculate average rating only for rated entries
+        const ratingData = await ContentInteraction.findAll({
+          where: {
+            ProcessName: "Blog",
+            reference: blog.BlogID,
+            delStatus: 0,
+            Rating: { [Op.ne]: null },
+          },
+          attributes: ["Rating"],
+        });
+
+        let avgRating = null;
+        if (ratingData.length > 0) {
+          const validRatings = ratingData
+            .map(r => parseFloat(r.Rating))
+            .filter(r => !isNaN(r));
+          const total = validRatings.reduce((sum, r) => sum + r, 0);
+          avgRating = (total / validRatings.length).toFixed(2);
+        }
+
+        return {
+          BlogID: blog.BlogID,
+          Title: blog.title,
+          TotalLikes: likeCount,
+          AvgRating: avgRating,
+        };
+      })
+    );
+
+    return { success: true, data: results };
+  } catch (error) {
+    console.error("Error in getBlogStatsService:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+

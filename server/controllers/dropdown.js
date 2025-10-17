@@ -3,6 +3,8 @@ import { connectToDatabase, closeConnection } from "../database/mySql.js";
 import dotenv from "dotenv";
 import { queryAsync, logError, logInfo } from "../helper/index.js";
 import {
+  getBlogStatsService,
+  getDiscussionStatsService,
   getDropdownValuesService,
   getModuleByIdService,
   getModulesService,
@@ -214,5 +216,23 @@ export const getUnitsWithFiles = async (req, res) => {
       message: "Unexpected error occurred",
       data: error.message,
     });
+  }
+};
+
+export const getDiscussionStats = async (req, res) => {
+  const result = await getDiscussionStatsService();
+  if (result.success) {
+    res.status(200).json(result);
+  } else {
+    res.status(500).json(result);
+  }
+};
+
+export const getBlogStats = async (req, res) => {
+  const result = await getBlogStatsService();
+  if (result.success) {
+    res.status(200).json(result);
+  } else {
+    res.status(500).json(result);
   }
 };

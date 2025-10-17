@@ -12,7 +12,7 @@ import { log } from "util";
 import { Console } from "console";
 import fs from "fs";
 import path from "path";
-import { addSubmoduleService, addUnitService, deleteModuleService, deleteSubModuleService, recordFileViewService, updateFileService, updateFileViewEndTimeService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
+import { addSubmoduleService, addUnitService, deleteFileService, deleteModuleService, deleteSubModuleService, deleteUnitService, recordFileViewService, updateFileService, updateFileViewEndTimeService, updateModuleOrderService, updateModuleService, updateSubModuleService } from "../services/lmsEditService.js";
 
 dotenv.config();
 
@@ -137,16 +137,23 @@ export const updateModuleOrder = async (req, res) => {
 
 export const deleteModule = async (req, res) => {
   const { moduleId } = req.body;
+  const userEmail = req.user?.EmailId || req.user?.email || req.user?.id;
 
   if (!moduleId || isNaN(moduleId)) {
     return res.status(400).json({
       success: false,
-      message: "Invalid module ID provided",  // Ensure correct message
+      message: "Invalid module ID provided",
     });
   }
 
-  const result = await deleteModuleService(moduleId);
+  if (!userEmail) {
+    return res.status(401).json({
+      success: false,
+      message: "User not authenticated",
+    });
+  }
 
+  const result = await deleteModuleService(userEmail, moduleId);
   return res.status(result.status).json(result.response);
 };
 
@@ -202,7 +209,97 @@ export const updateSubModule = async (req, res) => {
   return res.status(result.status).json(result.response);
 };
 
+export const addSubmodule = async (req, res) => {
+  console.log("Incoming request body:", req.body);
 
+  try {
+    const { SubModuleName, SubModuleDescription, ModuleID, SubModuleImagePath } = req.body;
+    const SubModuleImage = req.file;
+
+    // ✅ Ensure compatibility: user might have either UserID or id
+    const userId = req.user?.UserID || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+        data: {},
+      });
+    }
+
+    if (!ModuleID) {
+      return res.status(400).json({
+        success: false,
+        message: "ModuleID is required",
+        data: {},
+      });
+    }
+
+    const result = await addSubmoduleService({
+      SubModuleName,
+      SubModuleDescription,
+      ModuleID,
+      SubModuleImagePath,
+      SubModuleImage,
+      userId,
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Error adding submodule:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+      data: {},
+    });
+  }
+};
+
+export const addUnit = async (req, res) => {
+  console.log("Incoming request body", req.body);
+  let success = false;
+  const userId = req.user?.id || req.user?.UserID;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success,
+      data: errors.array(),
+      message: "Data is not in the right format",
+    });
+  }
+
+  try {
+    const { UnitName, UnitDescription, SubModuleID } = req.body;
+
+    if (!SubModuleID) {
+      return res.status(400).json({
+        success: false,
+        message: "SubModuleID is required",
+      });
+    }
+
+    const result = await addUnitService({
+      UnitName,
+      UnitDescription,
+      SubModuleID,
+      userId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      UnitID: result.data.UnitID,
+      message: "Unit added successfully",
+    });
+  } catch (error) {
+    console.error("Error in addUnit controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal server error",
+    });
+  }
+};
 
 export const updateSubmoduleOrder = async (req, res) => {
   let success = false;
@@ -397,56 +494,11 @@ export const updateFilesOrder = async (req, res) => {
   }
 };
 
-export const addSubmodule = async (req, res) => {
-  console.log("Incoming request body:", req.body);
 
-  try {
-    const { SubModuleName, SubModuleDescription, ModuleID, SubModuleImagePath } = req.body;
-    const SubModuleImage = req.file;
-
-    // ✅ Ensure compatibility: user might have either UserID or id
-    const userId = req.user?.UserID || req.user?.id;
-
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: "User not authenticated",
-        data: {},
-      });
-    }
-
-    if (!ModuleID) {
-      return res.status(400).json({
-        success: false,
-        message: "ModuleID is required",
-        data: {},
-      });
-    }
-
-    const result = await addSubmoduleService({
-      SubModuleName,
-      SubModuleDescription,
-      ModuleID,
-      SubModuleImagePath,
-      SubModuleImage,
-      userId,
-    });
-
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Error adding submodule:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Internal server error",
-      data: {},
-    });
-  }
-};
-
-export const deleteUnit = (req, res) => {
+export const deleteUnit = async (req, res) => {
   const { unitId } = req.body;
+  const userEmail = req.user?.EmailId || req.user?.email || req.user?.id;
 
-  // Input validation
   if (!unitId || isNaN(unitId)) {
     return res.status(400).json({
       success: false,
@@ -454,72 +506,17 @@ export const deleteUnit = (req, res) => {
     });
   }
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        return res.status(500).json({
-          success: false,
-          message: "Database connection error",
-        });
-      }
-
-      try {
-        // Check if unit exists and isn't deleted
-        const checkQuery = `
-                    SELECT * FROM UnitsDetails 
-                    WHERE UnitID = ? AND (delStatus IS NULL OR delStatus = 0)
-                `;
-        const [existingUnit] = await queryAsync(conn, checkQuery, [unitId]);
-
-        if (!existingUnit) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success: false,
-            message: "Unit not found or already deleted",
-          });
-        }
-
-        // Perform the soft delete
-        const deleteQuery = `
-                    UPDATE UnitsDetails
-                    SET 
-                        delStatus = 1,
-                        delOnDt = GETDATE(),
-                        AddDel = ?
-                    WHERE UnitID = ? AND (delStatus IS NULL OR delStatus = 0)
-                `;
-
-        const adminId = req.user?.id; // Get current user ID
-        await queryAsync(conn, deleteQuery, [adminId, unitId]);
-        closeConnection(conn);
-
-        return res.status(200).json({
-          success: true,
-          data: {
-            unitId: unitId,
-            deletedAt: new Date().toISOString(),
-            deletedBy: adminId,
-          },
-          message: "Unit deleted successfully",
-        });
-      } catch (error) {
-        closeConnection(conn);
-        logError(`Error deleting unit: ${error.message}`);
-        return res.status(500).json({
-          success: false,
-          message: "Database error during deletion",
-        });
-      }
-    });
-  } catch (outerError) {
-    logError(`Unexpected error: ${outerError.message}`);
-    return res.status(500).json({
+  if (!userEmail) {
+    return res.status(401).json({
       success: false,
-      message: "Unexpected server error",
+      message: "User not authenticated",
     });
   }
+
+  const result = await deleteUnitService(userEmail, unitId);
+  return res.status(result.status).json(result.response);
 };
+
 
 export const updateUnit = async (req, res) => {
   let success = false;
@@ -665,10 +662,10 @@ export const updateUnit = async (req, res) => {
   }
 };
 
-export const deleteFile = (req, res) => {
+export const deleteFile = async (req, res) => {
   const { fileId } = req.body;
+  const userEmail = req.user?.EmailId || req.user?.email || req.user?.id;
 
-  // Input validation
   if (!fileId || isNaN(fileId)) {
     return res.status(400).json({
       success: false,
@@ -676,110 +673,15 @@ export const deleteFile = (req, res) => {
     });
   }
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError(err);
-        return res.status(500).json({
-          success: false,
-          message: "Database connection error",
-        });
-      }
-
-      try {
-        await queryAsync(conn, "BEGIN TRANSACTION");
-
-        // Check if file exists and isn't deleted
-        const checkQuery = `
-                    SELECT * FROM FilesDetails 
-                    WHERE FileID = ? AND (delStatus IS NULL OR delStatus = 0)
-                `;
-        const [existingFile] = await queryAsync(conn, checkQuery, [fileId]);
-
-        if (!existingFile) {
-          await queryAsync(conn, "ROLLBACK TRANSACTION");
-          closeConnection(conn);
-          return res.status(404).json({
-            success: false,
-            message: "File not found or already deleted",
-          });
-        }
-
-        // Get the unit ID before deleting
-        const unitId = existingFile.UnitID;
-
-        // Perform the soft delete
-        const deleteQuery = `
-                    UPDATE FilesDetails
-                    SET 
-                        delStatus = 1,
-                        delOnDt = GETDATE(),
-                        AddDel = ?
-                    WHERE FileID = ? AND (delStatus IS NULL OR delStatus = 0)
-                `;
-
-        const adminId = req.user?.id; // Get current user ID
-        await queryAsync(conn, deleteQuery, [adminId, fileId]);
-
-        // Count remaining active files in the unit
-        const countQuery = `
-                    SELECT COUNT(*) as remainingCount 
-                    FROM FilesDetails 
-                    WHERE UnitID = ? AND (delStatus IS NULL OR delStatus = 0)
-                `;
-        const [countResult] = await queryAsync(conn, countQuery, [unitId]);
-
-        // Update percentages if files remain
-        if (countResult.remainingCount > 0) {
-          const newPercentage = (100 / countResult.remainingCount).toFixed(2);
-
-          await queryAsync(
-            conn,
-            `UPDATE FilesDetails 
-                         SET Percentage = ?
-                         WHERE UnitID = ? AND (delStatus IS NULL OR delStatus = 0)`,
-            [newPercentage, unitId]
-          );
-        }
-
-        await queryAsync(conn, "COMMIT TRANSACTION");
-        closeConnection(conn);
-
-        return res.status(200).json({
-          success: true,
-          data: {
-            fileId: fileId,
-            deletedAt: new Date().toISOString(),
-            deletedBy: adminId,
-            fileName: existingFile.FilesName,
-            unitId: unitId,
-            remainingFiles: countResult.remainingCount,
-            newPercentage:
-              countResult.remainingCount > 0
-                ? (100 / countResult.remainingCount).toFixed(2)
-                : 0,
-          },
-          message: "File deleted successfully",
-        });
-      } catch (error) {
-        await queryAsync(conn, "ROLLBACK TRANSACTION");
-        closeConnection(conn);
-        logError(`Error deleting file: ${error.message}`);
-        return res.status(500).json({
-          success: false,
-          message: "Database error during deletion",
-          details: error.message,
-        });
-      }
-    });
-  } catch (outerError) {
-    logError(`Unexpected error: ${outerError.message}`);
-    return res.status(500).json({
+  if (!userEmail) {
+    return res.status(401).json({
       success: false,
-      message: "Unexpected server error",
-      details: outerError.message,
+      message: "User not authenticated",
     });
   }
+
+  const result = await deleteFileService(userEmail, fileId);
+  return res.status(result.status).json(result.response);
 };
 
 export const deleteMultipleFiles = (req, res) => {
@@ -916,51 +818,7 @@ export const deleteMultipleFiles = (req, res) => {
   }
 };
 
-export const addUnit = async (req, res) => {
-  console.log("Incoming request body", req.body);
-  let success = false;
-  const userId = req.user?.id || req.user?.UserID;
 
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success,
-      data: errors.array(),
-      message: "Data is not in the right format",
-    });
-  }
-
-  try {
-    const { UnitName, UnitDescription, SubModuleID } = req.body;
-
-    if (!SubModuleID) {
-      return res.status(400).json({
-        success: false,
-        message: "SubModuleID is required",
-      });
-    }
-
-    const result = await addUnitService({
-      UnitName,
-      UnitDescription,
-      SubModuleID,
-      userId,
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: result.data,
-      UnitID: result.data.UnitID,
-      message: "Unit added successfully",
-    });
-  } catch (error) {
-    console.error("Error in addUnit controller:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Internal server error",
-    });
-  }
-};
 
 /*-----------------------progress api -------------------------*/
 
