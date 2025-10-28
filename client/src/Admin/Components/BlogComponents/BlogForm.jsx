@@ -82,33 +82,35 @@ const BlogForm = (props) => {
     }
 
     const file = e.target.files[0];
-    if (file) {
-      const allowedFormats = ["image/jpeg", "image/png", "image/svg+xml"];
-      const maxSize = 50 * 1024;
+   if (file) {
+  const allowedFormats = ["image/jpeg", "image/png", "image/svg+xml"];
+  const maxSize = 200 * 1024; // ✅ 200KB limit
 
-      if (!allowedFormats.includes(file.type)) {
-        setErrors((prev) => ({
-          ...prev,
-          image: "Only JPEG, PNG, and SVG files are allowed.",
-        }));
-        return;
-      }
-      if (file.size > maxSize) {
-        setErrors((prev) => ({
-          ...prev,
-          image: "Image size should be less than 50KB.",
-        }));
-        return;
-      }
+  if (!allowedFormats.includes(file.type)) {
+    setErrors((prev) => ({
+      ...prev,
+      image: "Only JPEG, PNG, and SVG files are allowed.",
+    }));
+    return;
+  }
 
-      try {
-        const compressedFile = await compressImage(file);
-        setSelectedImage(compressedFile);
-        setErrors((prev) => ({ ...prev, image: null }));
-      } catch (error) {
-        Swal.fire("Error", "Failed to compress image.", "error");
-      }
-    }
+  if (file.size > maxSize) {
+    setErrors((prev) => ({
+      ...prev,
+      image: "Image size should be less than 200KB.", // ✅ Updated message
+    }));
+    return;
+  }
+
+  try {
+    const compressedFile = await compressImage(file);
+    setSelectedImage(compressedFile);
+    setErrors((prev) => ({ ...prev, image: null }));
+  } catch (error) {
+    Swal.fire("Error", "Failed to compress image.", "error");
+  }
+}
+
   };
 
   const handleContentChange = (newContent) => {
@@ -234,57 +236,74 @@ const BlogForm = (props) => {
   };
 
   const handleConfirmSubmit = async () => {
-    setLoading(true);
+  setLoading(true);
 
-    const blogStatus = user.role === "admin" ? "approved" : "pending";
+  const blogStatus = user.role === "admin" ? "approved" : "pending";
+  const endpoint = "blog/blogpost";
+  const method = "POST";
 
-    const endpoint = "blog/blogpost";
-    const method = "POST";
-    const headers = {
-      "Content-Type": "application/json",
-      "auth-token": userToken,
-    };
-    const body = {
-      title,
-      content,
-      image: selectedImage,
-      category,
-      Status: blogStatus,
-      UserName: user.Name,
-      allowRepost,
-    };
-
-    try {
-      const data = await fetchData(endpoint, method, body, headers);
-      setLoading(false);
-
-      if (data.success) {
-        if (typeof props.setBlogs === "function") {
-          props.setBlogs((prevBlogs) => [
-            {
-              BlogId: data.data.postId,
-              title,
-              content,
-              category,
-              image: selectedImage,
-              Status: blogStatus,
-              UserID: user.UserID,
-              UserName: user.Name,
-              allowRepost,
-            },
-            ...prevBlogs,
-          ]);
-        }
-        Swal.fire("Success", "Blog Posted Successfully", "success");
-        resetForm();
-      } else {
-        Swal.fire("Error", `Error: ${data.message}`, "error");
-      }
-    } catch (error) {
-      setLoading(false);
-      Swal.fire("Error", "Something went wrong, please try again.", "error");
-    }
+  // Convert the File to Base64 string
+  const getBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
   };
+
+  let base64Image = null;
+  if (selectedImage) {
+    base64Image = await getBase64(selectedImage);
+  }
+
+  const body = {
+    title,
+    content,
+    image: base64Image,
+    category,
+    Status: blogStatus,
+    UserName: user.Name,
+    allowRepost,
+  };
+
+  const headers = {
+    "Content-Type": "application/json",
+    "auth-token": userToken,
+  };
+
+  try {
+    const data = await fetchData(endpoint, method, headers, JSON.stringify(body));
+    setLoading(false);
+
+    if (data.success) {
+      if (typeof props.setBlogs === "function") {
+        props.setBlogs((prevBlogs) => [
+          {
+            BlogId: data.data.postId,
+            title,
+            content,
+            category,
+            image: base64Image,
+            Status: blogStatus,
+            UserID: user.UserID,
+            UserName: user.Name,
+            allowRepost,
+          },
+          ...prevBlogs,
+        ]);
+      }
+      Swal.fire("Success", "Blog Posted Successfully", "success");
+      resetForm();
+    } else {
+      Swal.fire("Error", `Error: ${data.message}`, "error");
+    }
+  } catch (error) {
+    setLoading(false);
+    Swal.fire("Error", "Something went wrong, please try again.", "error");
+  }
+};
+
 
   const resetForm = () => {
     setTitle("");
@@ -368,7 +387,7 @@ const BlogForm = (props) => {
       <div className="mb-4 relative pt-10">
         <label className="block text-sm font-medium mb-2">Upload Image</label>
         <div className="text-xs text-gray-500 mb-2">
-          Max size: 50KB | Formats: .jpeg, .png
+          Max size: 200KB | Formats: .jpeg, .png
         </div>
         <input
           type="file"
