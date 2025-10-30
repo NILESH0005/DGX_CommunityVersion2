@@ -414,13 +414,15 @@ export const getLogoutHomePageContentService = async () => {
         },
         attributes: [
           'DiscussionID',
+          'UserID',
           'Title',
           'Content',
           'Image',
           'Likes',
           'Tag',
           'Visibility',
-          'AddOnDt'
+          'AddOnDt',
+          'AuthAdd'
         ],
         order: [['AddOnDt', 'DESC']],
         limit: 3

@@ -1821,7 +1821,6 @@ const Discussion = () => {
                         >
                           <img
                             src={
-                              discussion.ImageUrl ||
                               `${UPLOADS_BASE_URL}/${discussion.DiscussionImagePath}` ||
                               discussion.Image
                             }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { MdAdd } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete } from "react-icons/md";
 import { IoMdList } from "react-icons/io";
 import BlogForm from "../Admin/Components/BlogComponents/BlogForm.jsx";
 import LoadPage from "./LoadPage.jsx";
@@ -7,6 +7,7 @@ import ApiContext from "../context/ApiContext";
 import BlogModal from "./BlogModal.jsx";
 import moment from "moment";
 import images from "../../public/images.js";
+import Swal from "sweetalert2";
 
 const AddUserBlog = (props) => {
   const [showForm, setShowForm] = useState(false);
@@ -15,8 +16,10 @@ const AddUserBlog = (props) => {
   const [selectedBlog, setSelectedBlog] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [blogs, setBlogs] = useState([]);
+  const [editingBlog, setEditingBlog] = useState(null); // State for blog being edited
 
   const stripHtmlTags = (html) => {
+    if (!html) return "";
     const doc = new DOMParser().parseFromString(html, "text/html");
     return doc.body.textContent || "";
   };
@@ -31,28 +34,111 @@ const AddUserBlog = (props) => {
     setSelectedBlog(null);
   };
 
+  // Function to handle edit
+  const handleEditBlog = (blog) => {
+    setEditingBlog(blog);
+    setShowForm(true); // Switch to form view
+  };
+
+  // Function to handle delete
+  const handleDeleteBlog = async (blog) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `Do you want to delete the blog "${blog.title || "Untitled"}"?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const endpoint = `blog/deleteBlog/${blog.BlogID}`;
+        const method = "DELETE";
+        const headers = {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        };
+
+        const result = await fetchData(endpoint, method, {}, headers);
+
+        if (result.success) {
+          // Remove from local state
+          setBlogs((prev) => prev.filter((b) => b.BlogID !== blog.BlogID));
+          if (props.setBlogs) {
+            props.setBlogs((prev) =>
+              prev.filter((b) => b.BlogID !== blog.BlogID)
+            );
+          }
+          Swal.fire("Deleted!", "Your blog has been deleted.", "success");
+        } else {
+          Swal.fire(
+            "Error!",
+            result.message || "Failed to delete blog.",
+            "error"
+          );
+        }
+      } catch (error) {
+        console.error("Error deleting blog:", error);
+        Swal.fire("Error!", "Failed to delete blog.", "error");
+      }
+    }
+  };
+
+  // Function to handle form submission success
+  const handleFormSuccess = (newBlog, isEdit = false) => {
+    if (isEdit) {
+      // Update the existing blog
+      setBlogs((prev) =>
+        prev.map((blog) => (blog.BlogID === newBlog.BlogID ? newBlog : blog))
+      );
+      if (props.setBlogs) {
+        props.setBlogs((prev) =>
+          prev.map((blog) => (blog.BlogID === newBlog.BlogID ? newBlog : blog))
+        );
+      }
+    } else {
+      // Add new blog
+      setBlogs((prev) => [newBlog, ...prev]);
+      if (props.setBlogs) {
+        props.setBlogs((prev) => [newBlog, ...prev]);
+      }
+    }
+    setEditingBlog(null);
+    setShowForm(false);
+  };
+
+  // Function to cancel editing
+  const handleCancelEdit = () => {
+    setEditingBlog(null);
+    setShowForm(false);
+  };
+
   useEffect(() => {
     const fetchBlogs = async () => {
       const endpoint = "blog/getUserBlogs";
       const method = "GET";
       const headers = {
         "Content-Type": "application/json",
-        "auth-token": userToken, // Add auth token
+        "auth-token": userToken,
       };
       try {
         const result = await fetchData(endpoint, method, {}, headers);
-        console.log("API Response:", result); // Debug log
+        console.log("API Response:", result);
 
         if (result?.success && result?.data?.blogs) {
-          // Filter blogs by current user's ID
-          const userBlogs = result.data.blogs.filter(
-            (blog) => blog.UserID === user?.UserID
-          );
+          const userBlogs = result.data.blogs
+            .filter((blog) => blog.UserID === user?.UserID)
+            .map((blog) => ({
+              ...blog,
+              isDraft: Boolean(blog.isDraft), // 👈 Convert to true/false
+            }));
           setBlogs(userBlogs);
           if (props.setBlogs) {
             props.setBlogs(userBlogs);
           }
-          console.log("Filtered blogs:", userBlogs);
         } else {
           console.error("Invalid data format:", result);
           setBlogs([]);
@@ -66,7 +152,7 @@ const AddUserBlog = (props) => {
     };
 
     fetchBlogs();
-  }, [fetchData, user?.UserID]);
+  }, [fetchData, user?.UserID, userToken]);
 
   if (loading) {
     return <LoadPage />;
@@ -76,7 +162,10 @@ const AddUserBlog = (props) => {
     <div className="p-6 min-h-screen bg-gray-50">
       <div className="flex justify-center mb-8">
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setEditingBlog(null);
+            setShowForm(!showForm);
+          }}
           className="flex items-center gap-3 bg-DGXblue from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-lg font-semibold hover:scale-105"
         >
           {showForm ? "My Blogs" : "Add Blog"}
@@ -89,17 +178,50 @@ const AddUserBlog = (props) => {
       </div>
 
       {showForm ? (
-        <BlogForm setBlogs={setBlogs} />
+        <BlogForm
+          setBlogs={setBlogs}
+          editingBlog={editingBlog} // Pass the blog to edit
+          onSuccess={handleFormSuccess}
+          onCancel={handleCancelEdit}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {blogs.length > 0 ? (
             blogs.map((blog) => (
               <div
                 key={blog.BlogID}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full"
+                className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full relative"
               >
-                {/* Image Section */}
+                {/* Draft Badge */}
+                {blog.isDraft && (
+                  <div className="absolute top-3 left-3 z-10">
+                    {/* <span className="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                      Draft
+                    </span> */}
+                  </div>
+                )}
 
+                {/* Action Buttons */}
+                {(blog.isDraft || blog.Status === "Pending") && (
+                  <div className="absolute top-3 right-3 z-10 flex gap-1">
+                    <button
+                      onClick={() => handleEditBlog(blog)}
+                      className="bg-blue-500 text-white p-1.5 rounded-full hover:bg-blue-600 transition-colors"
+                      title="Edit Blog"
+                    >
+                      <MdEdit className="size-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBlog(blog)}
+                      className="bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors"
+                      title="Delete Blog"
+                    >
+                      <MdDelete className="size-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Image Section */}
                 <div className="w-full h-48 bg-gray-100 overflow-hidden">
                   {blog.image ? (
                     <img
@@ -129,7 +251,7 @@ const AddUserBlog = (props) => {
                   </p>
 
                   <div className="text-xs text-gray-500 mb-3">
-                    Published:{" "}
+                    {blog.isDraft ? "Last updated: " : "Published: "}
                     {blog.AddOnDt
                       ? moment(blog.AddOnDt, "YYYY-MM-DD HH:mm:ss").format(
                           "MMMM D, YYYY"
@@ -141,7 +263,9 @@ const AddUserBlog = (props) => {
                   <div className="mb-3">
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                        user?.isAdmin === 1
+                        blog.isDraft
+                          ? "bg-yellow-100 text-yellow-800"
+                          : user?.isAdmin === 1
                           ? "bg-green-100 text-green-800"
                           : blog.Status === "Approved"
                           ? "bg-green-100 text-green-800"
@@ -150,7 +274,11 @@ const AddUserBlog = (props) => {
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {user?.isAdmin === 1 ? "Approved" : blog.Status}
+                      {blog.isDraft
+                        ? "Draft"
+                        : user?.isAdmin === 1
+                        ? "Approved"
+                        : blog.Status}
                     </span>
                   </div>
 
