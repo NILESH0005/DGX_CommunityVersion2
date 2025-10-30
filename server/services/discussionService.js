@@ -389,7 +389,6 @@ export const getPublicDiscussionsService = async (email) => {
     const userId = user ? user.UserID : null;
     console.log("📌 userId:", userId);
 
-    // Step 2: Get top-level public discussions
     const discussions = await CommunityDiscussion.findAll({
       where: {
         delStatus: { [Op.or]: [{ [Op.eq]: 0 }, { [Op.is]: null }] },
@@ -446,19 +445,39 @@ export const getPublicDiscussionsService = async (email) => {
           order: [["AddOnDt", "DESC"]],
         });
 
+        const likeCount = await ContentInteraction.count({
+          where: {
+            ProcessName: "Discussion",
+            reference: discussion.DiscussionID,
+            Likes: 1,
+            delStatus: { [Op.or]: [0, null] },
+          },
+        });
+
+        const userLike = await ContentInteraction.findOne({
+          where: {
+            ProcessName: "Discussion",
+            reference: discussion.DiscussionID,
+            UserID: userId,
+            Likes: 1,
+            delStatus: { [Op.or]: [0, null] },
+          },
+        });
+
+        const commentCount = countAllComments(comments);
+
         // Group by UserID and get only their latest action
         const userLatestActions = new Map();
 
-        allLikeEntries.forEach(entry => {
-          const existingEntry = userLatestActions.get(entry.UserID);
-          if (!existingEntry || new Date(entry.AddOnDt) > new Date(existingEntry.AddOnDt)) {
-            userLatestActions.set(entry.UserID, entry);
-          }
-        });
-
-        // Count likes: only count if latest action has Likes = 1
-        let likeCount = 0;
-        let userLike = 0;
+        // allLikeEntries.forEach((entry) => {
+        //   const existingEntry = userLatestActions.get(entry.UserID);
+        //   if (
+        //     !existingEntry ||
+        //     new Date(entry.AddOnDt) > new Date(existingEntry.AddOnDt)
+        //   ) {
+        //     userLatestActions.set(entry.UserID, entry);
+        //   }
+        // });
 
         userLatestActions.forEach((entry) => {
           if (entry.Likes === 1) {
@@ -474,16 +493,16 @@ export const getPublicDiscussionsService = async (email) => {
           uniqueUsers: userLatestActions.size,
           likeCount,
           userLike,
-          userId
+          userId,
         });
 
         return {
           ...discussion.toJSON(),
           UserName: discussion.AuthAdd,
           VisibilityName: discussion.visibilityRef?.ddValue || null,
-          likeCount: likeCount,
-          userLike: userLike,
-          commentCount: countAllComments(comments),
+          likeCount,
+          userLike: userLike ? 1 : 0,
+          commentCount,
           comment: comments,
           ImageUrl: discussion.User?.ProfilePicture || null,
           originalPost,

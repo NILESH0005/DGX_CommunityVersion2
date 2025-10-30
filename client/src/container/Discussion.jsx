@@ -1918,6 +1918,7 @@ const Discussion = () => {
                                 <AiOutlineLike className="w-5 h-5" />
                               )}
                             </div>
+
                             <span
                               className={`font-semibold transition-all duration-300 ${
                                 discussion.userLike === 1
