@@ -8,7 +8,7 @@ import {
   logInfo,
   logWarning,
 } from "../helper/index.js";
-import { log } from "util";
+// import { log } from "util";
 import { Console } from "console";
 import fs from "fs";
 import path from "path";

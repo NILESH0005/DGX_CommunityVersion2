@@ -90,7 +90,8 @@ export const createDiscussionPost = async (userId, postData) => {
 
     // ===== IMPROVED LIKE DETECTION =====
     // Check if this is PURELY a like action (no post content, just reference and likes)
-    const isPureLikeAction = postData.reference &&
+    const isPureLikeAction =
+      postData.reference &&
       (postData.likes === 1 || postData.likes === 0) &&
       !postData.title &&
       !postData.content &&
@@ -130,7 +131,7 @@ export const createDiscussionPost = async (userId, postData) => {
       // Find the original post to get its UserID
       const originalPost = await CommunityDiscussion.findOne({
         where: { DiscussionID: repostId, delStatus: 0 },
-        attributes: ['UserID']
+        attributes: ["UserID"],
       });
 
       if (originalPost) {
@@ -192,7 +193,7 @@ const handleLikeAction = async (user, postData) => {
 
     // Check if the post exists
     const post = await CommunityDiscussion.findOne({
-      where: { DiscussionID: postId, delStatus: 0 }
+      where: { DiscussionID: postId, delStatus: 0 },
     });
 
     if (!post) {
@@ -211,18 +212,18 @@ const handleLikeAction = async (user, postData) => {
         Image: { [Op.is]: null },
         Tag: { [Op.is]: null },
         ResourceUrl: { [Op.is]: null },
-        RepostID: { [Op.is]: null }
-      }
+        RepostID: { [Op.is]: null },
+      },
     });
 
-    console.log('=== LIKE ACTION DEBUG ===');
-    console.log('Searching for like entry with:', {
+    console.log("=== LIKE ACTION DEBUG ===");
+    console.log("Searching for like entry with:", {
       Reference: postId,
       UserID: user.UserID,
       existingLikeFound: !!existingLike,
-      existingLikeId: existingLike ? existingLike.DiscussionID : 'NOT FOUND'
+      existingLikeId: existingLike ? existingLike.DiscussionID : "NOT FOUND",
     });
-    console.log('========================');
+    console.log("========================");
 
     if (existingLike) {
       // UPDATE existing like entry
@@ -230,26 +231,36 @@ const handleLikeAction = async (user, postData) => {
         {
           Likes: likeStatus,
           AuthLstEdt: user.Name,
-          editOnDt: new Date()
+          editOnDt: new Date(),
         },
         {
           where: {
-            DiscussionID: existingLike.DiscussionID
-          }
+            DiscussionID: existingLike.DiscussionID,
+          },
         }
       );
 
-      console.log('Update result:', updateResult);
-      console.log('✅ Updated existing like:', existingLike.DiscussionID, 'from', existingLike.Likes, 'to', likeStatus);
+      console.log("Update result:", updateResult);
+      console.log(
+        "✅ Updated existing like:",
+        existingLike.DiscussionID,
+        "from",
+        existingLike.Likes,
+        "to",
+        likeStatus
+      );
 
       return {
         success: true,
         data: {
-          action: likeStatus === 1 ? 'liked' : 'unliked',
+          action: likeStatus === 1 ? "liked" : "unliked",
           likeId: existingLike.DiscussionID,
-          updated: true
+          updated: true,
         },
-        message: likeStatus === 1 ? 'Post liked successfully' : 'Post unliked successfully'
+        message:
+          likeStatus === 1
+            ? "Post liked successfully"
+            : "Post unliked successfully",
       };
     } else {
       // CREATE new like entry (only for first time like)
@@ -273,16 +284,24 @@ const handleLikeAction = async (user, postData) => {
         delStatus: 0,
       });
 
-      console.log('🆕 Created new like entry:', newLike.DiscussionID, 'for post:', postId);
+      console.log(
+        "🆕 Created new like entry:",
+        newLike.DiscussionID,
+        "for post:",
+        postId
+      );
 
       return {
         success: true,
         data: {
-          action: likeStatus === 1 ? 'liked' : 'unliked',
+          action: likeStatus === 1 ? "liked" : "unliked",
           likeId: newLike.DiscussionID,
-          updated: false
+          updated: false,
         },
-        message: likeStatus === 1 ? 'Post liked successfully' : 'Post unliked successfully'
+        message:
+          likeStatus === 1
+            ? "Post liked successfully"
+            : "Post unliked successfully",
       };
     }
   } catch (error) {
@@ -480,6 +499,78 @@ export const getPublicDiscussionsService = async (email) => {
   }
 };
 
+// export const getPublicDiscussionsService = async (email) => {
+//   try {
+//     const user = await User.findOne({
+//       where: {
+//         EmailId: email,
+//         [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+//       },
+//     });
+
+//     const userId = user ? user.UserID : null;
+
+//     const discussions = await CommunityDiscussion.findAll({
+//       where: {
+//         delStatus: { [Op.or]: [{ [Op.eq]: 0 }, { [Op.is]: null }] },
+//         Reference: 0,
+//       },
+//       include: [
+//         { model: User, attributes: ["UserID", "Name", "ProfilePicture"] },
+//       ],
+//       order: [["AddOnDt", "DESC"]],
+//     });
+
+//     const updatedDiscussions = await Promise.all(
+//       discussions.map(async (discussion) => {
+//         const comments = await getCommentsRecursive(
+//           discussion.DiscussionID,
+//           userId
+//         );
+
+//         // 🆕 Like count via Content_Interaction
+//         const likeCount = await ContentInteraction.count({
+//           where: {
+//             ProcessName: "Discussion",
+//             reference: discussion.DiscussionID,
+//             Likes: 1,
+//             delStatus: { [Op.or]: [0, null] },
+//           },
+//         });
+
+//         // 🆕 User like status
+//         const userLike = await ContentInteraction.findOne({
+//           where: {
+//             ProcessName: "Discussion",
+//             reference: discussion.DiscussionID,
+//             UserID: userId,
+//             Likes: 1,
+//             delStatus: { [Op.or]: [0, null] },
+//           },
+//         });
+
+//         // 🆕 Comment count (using recursive result)
+//         const commentCount = countAllComments(comments);
+
+//         return {
+//           ...discussion.toJSON(),
+//           UserName: discussion.AuthAdd,
+//           likeCount,
+//           userLike: userLike ? 1 : 0,
+//           commentCount,
+//           comment: comments,
+//           ImageUrl: discussion.User?.ProfilePicture || null,
+//         };
+//       })
+//     );
+
+//     return { success: true, data: updatedDiscussions };
+//   } catch (error) {
+//     console.error("❌ Error in getPublicDiscussionsService:", error);
+//     return { success: false, error };
+//   }
+// };
+
 export const updateDiscussionService = async (userId, payload) => {
   const { reference, title, content, image, tags, url, visibility } = payload;
 
@@ -619,9 +710,9 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
     const user = await User.findOne({
       where: {
         EmailId: userEmail,
-        delStatus: 0
+        delStatus: 0,
       },
-      attributes: ['UserID', 'Name', 'EmailId']
+      attributes: ["UserID", "Name", "EmailId"],
     });
 
     if (!user) {
@@ -629,17 +720,17 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
     }
 
     const userId = user.UserID;
-    const userName = user.Name || 'Unknown User';
+    const userName = user.Name || "Unknown User";
 
     console.log("User action - UserID:", userId, "DiscussionID:", discussionId);
 
     // Check if an interaction already exists for this user & discussion
     let interaction = await ContentInteraction.findOne({
       where: {
-        ProcessName: 'Discussion',
+        ProcessName: "Discussion",
         UserID: userId,
         reference: discussionId,
-        delStatus: 0
+        delStatus: 0,
       },
     });
 
@@ -659,17 +750,25 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
         message = "Discussion liked successfully";
       }
 
-      console.log("Toggle like - Current:", interaction.Likes, "New:", finalLikeStatus);
+      console.log(
+        "Toggle like - Current:",
+        interaction.Likes,
+        "New:",
+        finalLikeStatus
+      );
 
       // Update existing interaction
-      await ContentInteraction.update({
-        Likes: finalLikeStatus,
-        LikeStatus: 0,
-        AuthLstEdt: userName,
-        editOnDt: currentDate
-      }, {
-        where: { id: interaction.id },
-      });
+      await ContentInteraction.update(
+        {
+          Likes: finalLikeStatus,
+          LikeStatus: 0,
+          AuthLstEdt: userName,
+          editOnDt: currentDate,
+        },
+        {
+          where: { id: interaction.id },
+        }
+      );
 
       return {
         success: true,
@@ -686,7 +785,7 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
     message = "Discussion liked successfully";
 
     const newInteraction = await ContentInteraction.create({
-      ProcessName: 'Discussion',
+      ProcessName: "Discussion",
       UserID: userId,
       reference: discussionId,
       Likes: finalLikeStatus,
@@ -699,7 +798,7 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
       delOnDt: null,
       AddOnDt: currentDate,
       editOnDt: null,
-      delStatus: 0
+      delStatus: 0,
     });
 
     return {
@@ -716,7 +815,10 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
   }
 };
 
-export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail = null) => {
+export const getDiscussionLikesInfoRaw = async (
+  discussionIds,
+  currentUserEmail = null
+) => {
   try {
     if (!discussionIds || discussionIds.length === 0) {
       return {};
@@ -732,9 +834,9 @@ export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail 
       const currentUser = await User.findOne({
         where: {
           EmailId: currentUserEmail,
-          delStatus: 0
+          delStatus: 0,
         },
-        attributes: ['UserID']
+        attributes: ["UserID"],
       });
 
       if (currentUser) {
@@ -744,7 +846,8 @@ export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail 
     }
 
     // Use raw query to avoid association issues
-    const [likes] = await db.sequelize.query(`
+    const [likes] = await db.sequelize.query(
+      `
       SELECT 
         ci.id,
         ci.reference,
@@ -761,9 +864,11 @@ export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail 
         AND ci.Likes = 1
         AND ci.delStatus = 0
         AND u.delStatus = 0
-    `, {
-      replacements: [discussionIds]
-    });
+    `,
+      {
+        replacements: [discussionIds],
+      }
+    );
 
     console.log("Found likes (raw):", likes.length);
 
@@ -771,16 +876,16 @@ export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail 
     const likesInfo = {};
 
     // Initialize for all discussion IDs
-    discussionIds.forEach(discussionId => {
+    discussionIds.forEach((discussionId) => {
       likesInfo[discussionId] = {
         totalLikes: 0,
         userLikes: [],
-        currentUserLiked: false
+        currentUserLiked: false,
       };
     });
 
     // Process each like
-    likes.forEach(like => {
+    likes.forEach((like) => {
       const discussionId = like.reference;
 
       if (likesInfo[discussionId]) {
@@ -790,9 +895,9 @@ export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail 
         // Add user like information
         const userLikeInfo = {
           userId: like.UserID,
-          userName: like.UserName || 'Unknown User',
+          userName: like.UserName || "Unknown User",
           profilePicture: like.ProfilePicture,
-          likedAt: like.AddOnDt
+          likedAt: like.AddOnDt,
         };
 
         likesInfo[discussionId].userLikes.push(userLikeInfo);
@@ -806,7 +911,6 @@ export const getDiscussionLikesInfoRaw = async (discussionIds, currentUserEmail 
 
     console.log("Processed likes info (raw):", likesInfo);
     return likesInfo;
-
   } catch (error) {
     console.error("Error getting discussion likes info (raw):", error);
     throw error;

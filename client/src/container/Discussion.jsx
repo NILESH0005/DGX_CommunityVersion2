@@ -22,6 +22,7 @@ import { fetchDiscussionStats } from "../utils/discussionStats.js";
 
 const Discussion = () => {
   const navigate = useNavigate();
+  const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
   const { fetchData, userToken, user } = useContext(ApiContext);
   console.log("user detailsss", user);
   const [searchScope, setSearchScope] = useState("all");
@@ -59,7 +60,6 @@ const Discussion = () => {
     });
   };
 
-
   const fetchAndUpdateStats = async () => {
     setStatsLoading(true);
     try {
@@ -67,19 +67,31 @@ const Discussion = () => {
       setDiscussionStats(stats);
 
       // Update discussions with real-time stats
-      setDemoDiscussions(prevDiscussions =>
-        prevDiscussions.map(discussion => ({
+      setDemoDiscussions((prevDiscussions) =>
+        prevDiscussions.map((discussion) => ({
           ...discussion,
-          likeCount: stats[discussion.DiscussionID]?.TotalLikes || discussion.likeCount || 0,
-          commentCount: stats[discussion.DiscussionID]?.TotalComments || discussion.commentCount || 0
+          likeCount:
+            stats[discussion.DiscussionID]?.TotalLikes ||
+            discussion.likeCount ||
+            0,
+          commentCount:
+            stats[discussion.DiscussionID]?.TotalComments ||
+            discussion.commentCount ||
+            0,
         }))
       );
 
-      setFilteredDiscussions(prevDiscussions =>
-        prevDiscussions.map(discussion => ({
+      setFilteredDiscussions((prevDiscussions) =>
+        prevDiscussions.map((discussion) => ({
           ...discussion,
-          likeCount: stats[discussion.DiscussionID]?.TotalLikes || discussion.likeCount || 0,
-          commentCount: stats[discussion.DiscussionID]?.TotalComments || discussion.commentCount || 0
+          likeCount:
+            stats[discussion.DiscussionID]?.TotalLikes ||
+            discussion.likeCount ||
+            0,
+          commentCount:
+            stats[discussion.DiscussionID]?.TotalComments ||
+            discussion.commentCount ||
+            0,
         }))
       );
     } catch (error) {
@@ -269,10 +281,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            commentCount: newCommentCount,
-            ...(updatedComments ? { comment: updatedComments } : {}),
-          }
+              ...discussion,
+              commentCount: newCommentCount,
+              ...(updatedComments ? { comment: updatedComments } : {}),
+            }
           : discussion
       )
     );
@@ -280,10 +292,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            commentCount: newCommentCount,
-            ...(updatedComments ? { comment: updatedComments } : {}),
-          }
+              ...discussion,
+              commentCount: newCommentCount,
+              ...(updatedComments ? { comment: updatedComments } : {}),
+            }
           : discussion
       )
     );
@@ -298,10 +310,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            likeCount: newLikeCount,
-            ...(isLiked !== null ? { userLike: isLiked } : {}),
-          }
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
           : discussion
       )
     );
@@ -310,10 +322,10 @@ const Discussion = () => {
       prevDiscussions.map((discussion) =>
         discussion.DiscussionID === discussionId
           ? {
-            ...discussion,
-            likeCount: newLikeCount,
-            ...(isLiked !== null ? { userLike: isLiked } : {}),
-          }
+              ...discussion,
+              likeCount: newLikeCount,
+              ...(isLiked !== null ? { userLike: isLiked } : {}),
+            }
           : discussion
       )
     );
@@ -334,8 +346,8 @@ const Discussion = () => {
           return typeof discussion.Tag === "string"
             ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
             : discussion.Tag?.some((tag) =>
-              tag.toLowerCase().includes(lowerCaseQuery)
-            );
+                tag.toLowerCase().includes(lowerCaseQuery)
+              );
         default: // 'all'
           return (
             discussion.Title.toLowerCase().includes(lowerCaseQuery) ||
@@ -343,8 +355,8 @@ const Discussion = () => {
             (typeof discussion.Tag === "string"
               ? discussion.Tag.toLowerCase().includes(lowerCaseQuery)
               : discussion.Tag?.some((tag) =>
-                tag.toLowerCase().includes(lowerCaseQuery)
-              ))
+                  tag.toLowerCase().includes(lowerCaseQuery)
+                ))
           );
       }
     });
@@ -1019,8 +1031,8 @@ const Discussion = () => {
           updateDiscussionLikeCount={updateDiscussionLikeCount}
           updateDiscussionCommentCount={updateDiscussionCommentCount}
           discussionStats={discussionStats}
-          statsLoading={statsLoading} 
-          refreshStats={fetchAndUpdateStats} 
+          statsLoading={statsLoading}
+          refreshStats={fetchAndUpdateStats}
         />
 
         <section className="w-full px-4 flex flex-col overflow-y-scroll h-[80vh]">
@@ -1104,10 +1116,11 @@ const Discussion = () => {
                         <input
                           id="title"
                           type="text"
-                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.title
-                            ? "border-red-500 ring-2 ring-red-200"
-                            : "border-gray-300"
-                            }`}
+                          className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
+                            errors.title
+                              ? "border-red-500 ring-2 ring-red-200"
+                              : "border-gray-300"
+                          }`}
                           value={title}
                           onChange={(e) => {
                             setTitle(e.target.value);
@@ -1120,10 +1133,11 @@ const Discussion = () => {
                         />
                         <div className="absolute right-3 top-3">
                           <span
-                            className={`text-xs font-medium ${title.length > 80
-                              ? "text-red-500"
-                              : "text-gray-500"
-                              }`}
+                            className={`text-xs font-medium ${
+                              title.length > 80
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
                           >
                             {title.length}/100
                           </span>
@@ -1154,10 +1168,11 @@ const Discussion = () => {
                         <span className="text-red-500 ml-1">*</span>
                       </label>
                       <div
-                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${errors.content
-                          ? "border-red-500 ring-2 ring-red-200"
-                          : "border-gray-300"
-                          }`}
+                        className={`rounded-xl overflow-hidden border-2 transition-all duration-300 ${
+                          errors.content
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                        }`}
                       >
                         <ReactQuill
                           id="content"
@@ -1199,10 +1214,11 @@ const Discussion = () => {
                           </p>
                         )}
                         <span
-                          className={`text-xs font-medium ml-auto ${content.replace(/<[^>]*>/g, "").length > 4500
-                            ? "text-red-500"
-                            : "text-gray-500"
-                            }`}
+                          className={`text-xs font-medium ml-auto ${
+                            content.replace(/<[^>]*>/g, "").length > 4500
+                              ? "text-red-500"
+                              : "text-gray-500"
+                          }`}
                         >
                           {content.replace(/<[^>]*>/g, "").length}/5000
                           characters
@@ -1223,10 +1239,11 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="text"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${errors.tags
-                              ? "border-red-500 ring-2 ring-red-200"
-                              : "border-gray-300"
-                              }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXgreen focus:border-transparent transition-all duration-300 ${
+                              errors.tags
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-gray-300"
+                            }`}
                             value={tagInput}
                             onChange={handleTagInputChange}
                             onKeyPress={(e) => {
@@ -1317,10 +1334,11 @@ const Discussion = () => {
                         <div className="flex-1 relative">
                           <input
                             type="url"
-                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.links
-                              ? "border-red-500 ring-2 ring-red-200"
-                              : "border-gray-300"
-                              }`}
+                            className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
+                              errors.links
+                                ? "border-red-500 ring-2 ring-red-200"
+                                : "border-gray-300"
+                            }`}
                             value={linkInput}
                             onChange={handleLinkInputChange}
                             onKeyPress={(e) => {
@@ -1425,10 +1443,11 @@ const Discussion = () => {
                       <div className="flex gap-6">
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === true
-                              ? "border-DGXgreen bg-DGXgreen"
-                              : "border-gray-300 group-hover:border-DGXgreen"
-                              }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                              allowRepost === true
+                                ? "border-DGXgreen bg-DGXgreen"
+                                : "border-gray-300 group-hover:border-DGXgreen"
+                            }`}
                           >
                             {allowRepost === true && (
                               <svg
@@ -1459,10 +1478,11 @@ const Discussion = () => {
 
                         <label className="flex items-center gap-3 cursor-pointer group">
                           <div
-                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${allowRepost === false
-                              ? "border-DGXgreen bg-DGXgreen"
-                              : "border-gray-300 group-hover:border-DGXgreen"
-                              }`}
+                            className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                              allowRepost === false
+                                ? "border-DGXgreen bg-DGXgreen"
+                                : "border-gray-300 group-hover:border-DGXgreen"
+                            }`}
                           >
                             {allowRepost === false && (
                               <svg
@@ -1571,10 +1591,11 @@ const Discussion = () => {
                           setErrors({ ...errors, privacy: "" });
                         }}
                         onBlur={validatePrivacy}
-                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${errors.privacy
-                          ? "border-red-500 ring-2 ring-red-200"
-                          : "border-gray-300"
-                          }`}
+                        className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent transition-all duration-300 ${
+                          errors.privacy
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-gray-300"
+                        }`}
                       >
                         <option value="">Select privacy setting</option>
                         <option value="private">
@@ -1801,7 +1822,7 @@ const Discussion = () => {
                           <img
                             src={
                               discussion.ImageUrl ||
-                              `${window.location.origin}/${discussion.DiscussionImagePath}` ||
+                              `${UPLOADS_BASE_URL}/${discussion.DiscussionImagePath}` ||
                               discussion.Image
                             }
                             alt="Discussion"
@@ -1821,8 +1842,8 @@ const Discussion = () => {
                           {(typeof discussion.Tag === "string"
                             ? discussion.Tag.split(",").filter((tag) => tag)
                             : Array.isArray(discussion.Tag)
-                              ? discussion.Tag
-                              : []
+                            ? discussion.Tag
+                            : []
                           ).map((tag, tagIndex) => (
                             <span
                               key={tagIndex}
@@ -1840,8 +1861,8 @@ const Discussion = () => {
                           {(typeof discussion.ResourceUrl === "string"
                             ? discussion.ResourceUrl.split(",")
                             : Array.isArray(discussion.ResourceUrl)
-                              ? discussion.ResourceUrl
-                              : []
+                            ? discussion.ResourceUrl
+                            : []
                           ).map((link, linkIndex) => (
                             <a
                               key={linkIndex}
@@ -1885,10 +1906,11 @@ const Discussion = () => {
                             }}
                           >
                             <div
-                              className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${discussion.userLike === 1
-                                ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
-                                : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
-                                }`}
+                              className={`p-2 rounded-full transition-all duration-300 transform group-hover:scale-110 ${
+                                discussion.userLike === 1
+                                  ? "bg-gradient-to-r from-DGXblue to-blue-400 text-white shadow-lg"
+                                  : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-DGXblue"
+                              }`}
                             >
                               {discussion.userLike === 1 ? (
                                 <AiFillLike className="w-5 h-5" />
@@ -1897,10 +1919,11 @@ const Discussion = () => {
                               )}
                             </div>
                             <span
-                              className={`font-semibold transition-all duration-300 ${discussion.userLike === 1
-                                ? "text-DGXblue"
-                                : "text-gray-600 group-hover:text-DGXblue"
-                                }`}
+                              className={`font-semibold transition-all duration-300 ${
+                                discussion.userLike === 1
+                                  ? "text-DGXblue"
+                                  : "text-gray-600 group-hover:text-DGXblue"
+                              }`}
                             >
                               {statsLoading ? (
                                 <div className="w-4 h-4 border-2 border-gray-300 border-t-DGXblue rounded-full animate-spin"></div>
@@ -1924,7 +1947,11 @@ const Discussion = () => {
                               {statsLoading ? (
                                 <div className="w-4 h-4 border-2 border-gray-300 border-t-DGXgreen rounded-full animate-spin"></div>
                               ) : (
-                                `${discussion.commentCount || 0} ${discussion.commentCount !== 1 ? "Comments" : "Comment"}`
+                                `${discussion.commentCount || 0} ${
+                                  discussion.commentCount !== 1
+                                    ? "Comments"
+                                    : "Comment"
+                                }`
                               )}
                             </span>
                           </button>
@@ -1956,7 +1983,7 @@ const Discussion = () => {
                               </div>
                               <span className="font-medium">
                                 {loading &&
-                                  userReposts.has(discussion.DiscussionID)
+                                userReposts.has(discussion.DiscussionID)
                                   ? "Reposting..."
                                   : "Repost"}
                               </span>
@@ -1966,13 +1993,14 @@ const Discussion = () => {
 
                         {/* Timestamp */}
                         <div className="text-xs text-gray-500">
-                          {new Date(
-                            discussion.AddOnDt
-                          ).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                          {new Date(discussion.AddOnDt).toLocaleDateString(
+                            "en-US",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            }
+                          )}
                         </div>
                       </div>
                     </div>
