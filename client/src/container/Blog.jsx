@@ -5,15 +5,26 @@ import ApiContext from "../context/ApiContext";
 import PublicBlogModal from "./PublicBlogModal";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-import { PiHandsClappingLight, PiHandsClappingFill, PiRepeat } from "react-icons/pi";
-
+import {
+  PiHandsClappingLight,
+  PiHandsClappingFill,
+  PiRepeat,
+} from "react-icons/pi";
+import Noimage from "../assets/No_Image_Available.jpg";
 import {
   motion,
   AnimatePresence,
   useScroll,
   useTransform,
 } from "framer-motion";
-import { ChevronDown, ArrowRight, CalendarDays, Heart, Repeat2 } from "lucide-react";
+import {
+  ChevronDown,
+  ArrowRight,
+  CalendarDays,
+  Heart,
+  Repeat2,
+  User,
+} from "lucide-react";
 
 const ParticleBackground = () => {
   return (
@@ -49,79 +60,61 @@ const ParticleBackground = () => {
   );
 };
 
-// RepostCard Component - Updated to show multiple users
-const RepostCard = ({ repost, className }) => {
-  const getInitials = (name) => {
-    if (!name) return "U";
-    return name
-      .split(" ")
-      .map(n => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "U";
-  };
+// Fixed RepostCard Component for horizontal scrollable users
+const RepostCard = ({ reposts = [] }) => {
+  if (!reposts || reposts.length === 0) return null;
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "Recently";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  // If repost has multiple users, show them in a compact way
-  const hasMultipleUsers = repost.users && repost.users.length > 1;
+  // Sort reposts by AddOnDt descending (latest first)
+  const sortedReposts = [...reposts].sort(
+    (a, b) => new Date(b.AddOnDt) - new Date(a.AddOnDt)
+  );
 
   return (
-    <div
-      className={`w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow ${className}`}
-      role="group"
-      aria-label={`Reposted by ${repost.users?.length || 0} users`}
-    >
-      {/* Header with repost count */}
+    <div className="w-full bg-gray-50 rounded-lg p-4 mt-3">
+      {/* Repost Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <PiRepeat className="text-DGXgreen" size={16} />
+          <PiRepeat className="text-DGXgreen" size={18} />
           <span className="text-sm font-semibold text-gray-900">
-            Reposted ({repost.users?.length || 0} times)
+            Reposted by {reposts.length} user{reposts.length > 1 ? "s" : ""}
           </span>
         </div>
-        <span className="text-xs text-gray-500">
-          {repost.latestDate ? formatDate(repost.latestDate) : "Recently"}
-        </span>
       </div>
 
-      {/* User Avatars Grid */}
-      <div className="flex flex-wrap gap-2">
-        {repost.users?.slice(0, 8).map((user, index) => (
-          <div key={user.id || index} className="relative group">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-xs font-bold border-2 border-white shadow-sm">
-              {getInitials(user.name)}
+      {/* Horizontal Scrollable Users */}
+      <div className="overflow-x-auto">
+        <div className="flex space-x-4 pb-2 min-w-max">
+          {sortedReposts.map((repost, index) => (
+            <div
+              key={`${repost.UserID}-${index}`}
+              className="flex flex-col items-center text-center min-w-[80px]"
+            >
+              {/* User Avatar */}
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-sm font-bold mb-2 shadow-sm">
+                {repost.AuthAdd
+                  ? repost.AuthAdd
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                  : "U"}
+              </div>
+              
+              {/* User Name */}
+              <div className="text-xs font-medium text-gray-900 truncate max-w-[70px]">
+                {repost.AuthAdd || "Unknown User"}
+              </div>
+              
+              {/* Repost Date */}
+              <div className="text-xs text-gray-500 mt-1">
+                {new Date(repost.AddOnDt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </div>
             </div>
-            {/* Tooltip on hover */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-              {user.name}
-              {user.date && (
-                <div className="text-gray-300">
-                  {formatDate(user.date)}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        
-        {/* Show +X for additional users beyond 8 */}
-        {repost.users && repost.users.length > 8 && (
-          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs font-bold border-2 border-white shadow-sm">
-            +{repost.users.length - 8}
-          </div>
-        )}
-      </div>
-
-      {/* User List for accessibility */}
-      <div className="sr-only">
-        Reposted by: {repost.users?.map(user => user.name).join(', ')}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -134,20 +127,35 @@ const StarRating = ({ value }) => {
   const hasHalfStar = value % 1 >= 0.5;
 
   for (let i = 0; i < fullStars; i++) {
-    stars.push(<span key={i} className="text-yellow-400">★</span>);
+    stars.push(
+      <span key={i} className="text-yellow-400">
+        ★
+      </span>
+    );
   }
 
   if (hasHalfStar) {
-    stars.push(<span key="half" className="text-yellow-400">★</span>);
+    stars.push(
+      <span key="half" className="text-yellow-400">
+        ★
+      </span>
+    );
   }
 
   const emptyStars = 5 - stars.length;
   for (let i = 0; i < emptyStars; i++) {
-    stars.push(<span key={`empty-${i}`} className="text-gray-300">★</span>);
+    stars.push(
+      <span key={`empty-${i}`} className="text-gray-300">
+        ★
+      </span>
+    );
   }
 
   return (
-    <div className="flex items-center gap-1" aria-label={`Rating: ${value} out of 5 stars`}>
+    <div
+      className="flex items-center gap-1"
+      aria-label={`Rating: ${value} out of 5 stars`}
+    >
       {stars}
     </div>
   );
@@ -168,8 +176,6 @@ const BlogPage = () => {
   const [categories, setCategories] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedAccordions, setExpandedAccordions] = useState({});
-  const [repostsData, setRepostsData] = useState({});
-  const [loadingReposts, setLoadingReposts] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -199,119 +205,29 @@ const BlogPage = () => {
     }
   };
 
-  // Fetch reposts for a specific blog and aggregate users
-  const fetchRepostsForBlog = async (blogId) => {
-    try {
-      setLoadingReposts(prev => ({ ...prev, [blogId]: true }));
-      
-      // Try different possible endpoints for reposts
-      const endpoints = [
-        `blog/getReposts/${blogId}`,
-        `blog/reposts/${blogId}`,
-        `blog/${blogId}/reposts`,
-        `blog/getBlogReposts/${blogId}`
-      ];
-
-      let reposts = [];
-      
-      for (const endpoint of endpoints) {
-        try {
-          const method = "GET";
-          const headers = { "Content-Type": "application/json" };
-
-          const result = await fetchData(endpoint, method, {}, headers);
-          console.log(`Reposts response from ${endpoint}:`, result);
-          
-          if (result && (result.data || result.reposts)) {
-            reposts = result.data || result.reposts || [];
-            break;
-          }
-        } catch (error) {
-          console.log(`Endpoint ${endpoint} failed, trying next...`);
-          continue;
-        }
-      }
-
-      // If no reposts found from API, check if the blog itself is a repost
-      if (reposts.length === 0) {
-        const blog = blogs.find(b => b.BlogID === blogId);
-        if (blog && blog.RepostUser) {
-          // If this blog is a repost, create a repost entry for the original author
-          reposts = [{
-            id: `repost-${blogId}`,
-            user: { 
-              name: blog.AuthAdd || "Unknown User",
-              avatar: ""
-            },
-            date: blog.AddOnDt || blog.publishedDate
-          }];
-        }
-      }
-
-      // Transform and aggregate repost data
-      const transformedReposts = transformRepostData(reposts);
-      
-      // Create a single aggregated repost object with all users
-      const aggregatedRepost = {
-        id: `aggregated-${blogId}`,
-        users: transformedReposts,
-        latestDate: transformedReposts.length > 0 
-          ? transformedReposts.reduce((latest, user) => 
-              new Date(user.date) > new Date(latest) ? user.date : latest, 
-              transformedReposts[0].date
-            )
-          : null,
-        totalCount: transformedReposts.length
-      };
-
-      setRepostsData(prev => ({
-        ...prev,
-        [blogId]: aggregatedRepost.totalCount > 0 ? [aggregatedRepost] : []
-      }));
-
-      return aggregatedRepost;
-    } catch (error) {
-      console.error(`Error fetching reposts for blog ${blogId}:`, error);
-      setRepostsData(prev => ({
-        ...prev,
-        [blogId]: []
-      }));
-      return { users: [], totalCount: 0 };
-    } finally {
-      setLoadingReposts(prev => ({ ...prev, [blogId]: false }));
-    }
-  };
-
-  // Transform API repost data to the format expected by RepostCard
-  const transformRepostData = (reposts) => {
-    if (!reposts || !Array.isArray(reposts)) return [];
-    
-    return reposts.map(repost => ({
-      id: repost.repostId || repost.userId || repost.id || `repost-${Math.random()}`,
-      name: repost.userName || repost.name || repost.user?.name || repost.AuthAdd || "Unknown User",
-      avatar: repost.avatar || repost.user?.avatar || "",
-      date: repost.repostDate || repost.createdAt || repost.date || repost.AddOnDt || new Date().toISOString()
-    }));
-  };
-
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
         setLoading(true);
 
-        let endpoint = "blog/getPublicBlogs";
-        let method = "GET";
-        let headers = { "Content-Type": "application/json" };
+        const endpoint = "blog/getPublicBlogs";
+        const method = "GET";
+        const headers = { "Content-Type": "application/json" };
 
         const result = await fetchData(endpoint, method, {}, headers);
-        console.log("Fetched blogs:", result);
+        console.log("Fetched blogs raw data:", result);
+
         if (result && result.data) {
+          // Use the data directly as it comes from backend
           setBlogs(result.data);
         } else {
-          throw new Error("Invalid data format");
+          console.error("Invalid data format:", result);
+          setBlogs([]);
         }
       } catch (error) {
         console.error("Error fetching blogs:", error);
+        Swal.fire("Error", "Failed to load blogs. Please try again.", "error");
+        setBlogs([]);
       } finally {
         setLoading(false);
       }
@@ -330,9 +246,9 @@ const BlogPage = () => {
   const refreshBlogs = async () => {
     try {
       setLoading(true);
-      let endpoint = "blog/getPublicBlogs";
-      let method = "GET";
-      let headers = { "Content-Type": "application/json" };
+      const endpoint = "blog/getPublicBlogs";
+      const method = "GET";
+      const headers = { "Content-Type": "application/json" };
 
       const result = await fetchData(endpoint, method, {}, headers);
       if (result && result.data) {
@@ -342,6 +258,7 @@ const BlogPage = () => {
       }
     } catch (error) {
       console.error("Error fetching blogs:", error);
+      Swal.fire("Error", "Failed to refresh blogs.", "error");
     } finally {
       setLoading(false);
     }
@@ -371,15 +288,10 @@ const BlogPage = () => {
     setSelectedBlog(null);
   };
 
-  const toggleAccordion = async (blogId) => {
-    // If opening the accordion and we don't have repost data yet, fetch it
-    if (!expandedAccordions[blogId] && !repostsData[blogId]) {
-      await fetchRepostsForBlog(blogId);
-    }
-    
-    setExpandedAccordions(prev => ({
+  const toggleAccordion = (blogId) => {
+    setExpandedAccordions((prev) => ({
       ...prev,
-      [blogId]: !prev[blogId]
+      [blogId]: !prev[blogId],
     }));
   };
 
@@ -392,14 +304,13 @@ const BlogPage = () => {
       AuthAdd,
       AddOnDt,
       publishedDate,
-      category,
+      Category,
       readTime,
-      RepostUser,
+      reposts = [],
       BlogID,
     } = blog;
 
-    const fallbackImage =
-      "https://images.unsplash.com/photo-1499750310107-5fef28a66643?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60";
+    const fallbackImage = Noimage;
 
     const [blogStats, setBlogStats] = useState({
       totalLikes: 0,
@@ -407,13 +318,8 @@ const BlogPage = () => {
       totalRatings: 0,
     });
 
-    // Get reposts for this blog - now it's a single aggregated object
-    const blogReposts = repostsData[BlogID] || [];
-    const aggregatedRepost = blogReposts[0]; // Only one aggregated repost card now
-    const isRepostLoading = loadingReposts[BlogID];
-    const hasReposts = aggregatedRepost?.totalCount > 0 || blog.RepostUser;
     const isAccordionOpen = expandedAccordions[BlogID];
-    const displayRepostCount = aggregatedRepost?.totalCount || (blog.RepostUser ? 1 : 0);
+    const hasReposts = reposts && reposts.length > 0;
 
     useEffect(() => {
       const fetchBlogStats = async () => {
@@ -436,28 +342,14 @@ const BlogPage = () => {
 
     const getAuthorInitials = (name) => {
       if (!name) return "U";
-      return name
-        .split(" ")
-        .map(n => n[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase() || "U";
-    };
-
-    const getAuthorDisplay = () => {
-      // If this is a repost, show who reposted it
-      if (RepostUser && RepostUser.Name) {
-        return `Reposted by ${AuthAdd || "Unknown"}`;
-      }
-      return AuthAdd || "Unknown author";
-    };
-
-    const getOriginalAuthor = () => {
-      // If this is a repost, show original author
-      if (RepostUser && RepostUser.Name) {
-        return RepostUser.Name;
-      }
-      return null;
+      return (
+        name
+          .split(" ")
+          .map((n) => n[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase() || "U"
+      );
     };
 
     return (
@@ -476,48 +368,38 @@ const BlogPage = () => {
             className="w-full h-full object-cover transition-transform duration-500"
             src={image || fallbackImage}
             alt={title}
-            onError={(e) => (e.target.src = fallbackImage)}
+            onError={(e) => {
+              console.log("Image failed to load, using fallback");
+              e.target.src = fallbackImage;
+              e.target.onerror = null; // Prevent infinite loop
+            }}
             initial={{ scale: 1 }}
             whileHover={{ scale: 1.1 }}
             transition={{ duration: 0.3 }}
           />
-          
+
           {/* Category Badge */}
-          {category && (
+          {Category && (
             <motion.span
               className="absolute top-3 left-3 bg-white text-DGXblue px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3 }}
             >
-              {category}
+              {Category}
             </motion.span>
           )}
 
-          {/* Reposts Badge - Show if there are reposts */}
-          {hasReposts && displayRepostCount > 0 && (
+          {/* Repost Count Badge */}
+          {hasReposts && (
             <motion.span
-              className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
+              className="absolute top-3 right-3 bg-DGXgreen text-black px-3 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <PiRepeat className="text-DGXgreen" size={14} />
-              <span className="text-gray-700">
-                Reposts {displayRepostCount}
-              </span>
-            </motion.span>
-          )}
-
-          {/* Repost Indicator - Show if this specific blog is a repost */}
-          {RepostUser && RepostUser.Name && (
-            <motion.span
-              className="absolute bottom-3 left-3 bg-DGXgreen text-black px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              Repost
+              <PiRepeat size={12} />
+              {reposts.length}
             </motion.span>
           )}
 
@@ -570,10 +452,12 @@ const BlogPage = () => {
             {blogStats.averageRating > 0 && (
               <div className="flex items-center gap-2">
                 <StarRating value={blogStats.averageRating} />
-                <span className="text-sm text-gray-600">({blogStats.totalRatings})</span>
+                <span className="text-sm text-gray-600">
+                  ({blogStats.totalRatings})
+                </span>
               </div>
             )}
-            
+
             {blogStats.totalLikes > 0 && (
               <div className="flex items-center gap-1 text-sm text-gray-600 ml-auto">
                 <Heart className="text-red-500" size={16} />
@@ -593,18 +477,13 @@ const BlogPage = () => {
             </motion.div>
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-900">
-                {getAuthorDisplay()}
+                {AuthAdd || "Unknown Author"}
               </span>
-              {RepostUser && RepostUser.Name && (
-                <span className="text-xs text-DGXgreen font-medium">
-                  Originally by {RepostUser.Name}
-                </span>
-              )}
             </div>
           </div>
 
-          {/* Reposts Accordion - Show if there are reposts */}
-          {hasReposts && displayRepostCount > 0 && (
+          {/* Reposts Accordion */}
+          {hasReposts && (
             <div className="border-t border-gray-100 pt-4">
               <motion.button
                 className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -614,12 +493,11 @@ const BlogPage = () => {
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                disabled={isRepostLoading}
               >
                 <div className="flex items-center gap-2">
                   <PiRepeat className="text-DGXgreen" size={16} />
                   <span className="text-sm font-medium text-gray-700">
-                    {isRepostLoading ? "Loading..." : `View reposts (${displayRepostCount})`}
+                    View Reposts ({reposts.length})
                   </span>
                 </div>
                 <motion.div
@@ -639,19 +517,7 @@ const BlogPage = () => {
                     transition={{ duration: 0.3 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-3">
-                      {isRepostLoading ? (
-                        <div className="text-center text-gray-500 py-4">
-                          Loading reposts...
-                        </div>
-                      ) : aggregatedRepost ? (
-                        <RepostCard repost={aggregatedRepost} />
-                      ) : (
-                        <div className="text-center text-gray-500 py-4">
-                          No reposts available
-                        </div>
-                      )}
-                    </div>
+                    <RepostCard reposts={reposts} />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -664,9 +530,9 @@ const BlogPage = () => {
 
   const filteredBlogs = blogs.filter(
     (blog) =>
-      (!selectedCategory || blog.category === selectedCategory) &&
+      (!selectedCategory || blog.Category === selectedCategory) &&
       (!searchQuery ||
-        blog.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        (blog.title || "").toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (!mounted) return null;
@@ -714,6 +580,7 @@ const BlogPage = () => {
       {/* Search and Filter Section */}
       <section className="py-8 px-4">
         <div className="max-w-6xl mx-auto">
+          {/* Search bar & category filters */}
           <motion.div
             className="mb-12"
             initial={{ opacity: 0, y: 30 }}
@@ -791,6 +658,7 @@ const BlogPage = () => {
             </motion.div>
           </motion.div>
 
+          {/* Loader */}
           {loading ? (
             <motion.div
               className="text-center py-20"
@@ -805,6 +673,7 @@ const BlogPage = () => {
               <p className="mt-4 text-gray-600">Loading articles...</p>
             </motion.div>
           ) : filteredBlogs.length === 0 ? (
+            // No blogs message
             <motion.div
               className="text-center py-20"
               initial={{ opacity: 0 }}
@@ -840,15 +709,18 @@ const BlogPage = () => {
             </motion.div>
           ) : (
             <>
+              {/* Blog Grid */}
               <motion.div
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ staggerChildren: 0.1 }}
               >
-                {filteredBlogs.slice(0, pageSize).map((blog, index) => (
-                  <BlogCard key={blog.BlogID} blog={blog} index={index} />
-                ))}
+                {filteredBlogs
+                  .slice(0, pageSize)
+                  .map((blog, index) => (
+                    <BlogCard key={blog.BlogID} blog={blog} index={index} />
+                  ))}
               </motion.div>
 
               {!showAll && filteredBlogs.length > pageSize && (
@@ -909,7 +781,7 @@ const BlogPage = () => {
         </div>
       </section>
 
-      {/* Blog Modal - Only show if user is logged in */}
+      {/* Blog Modal */}
       <AnimatePresence>
         {isModalOpen && selectedBlog && userToken && (
           <PublicBlogModal

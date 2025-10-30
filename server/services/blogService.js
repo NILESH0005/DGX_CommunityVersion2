@@ -1,12 +1,10 @@
 import db from "../models/index.js"; // assuming your models/index.js exports all models
 import { logInfo, logWarning, logError } from "../helper/index.js";
-import { Op } from "sequelize"; // ✅ direct import
 import Community_Blog from "../models/Community_Blog.js";
-
+import { Op, Sequelize } from "sequelize";
 const Blog = db.CommunityBlog;
-const User = db.User;
-const ContentInteraction = db.ContentInteraction
 
+const { User, CommunityBlog, ContentInteraction } = db;
 // export const createBlogPost = async (userEmail, blogData) => {
 //   try {
 //     const user = await User.findOne({
@@ -140,6 +138,27 @@ export const createBlogPost = async (userEmail, blogData) => {
         repostUserId = originalBlog.UserID;
         repostId = blogData.repostId;
 
+        // ✅ Duplicate repost prevention
+        const existingRepost = await Blog.findOne({
+          where: {
+            RepostUserID: repostUserId,
+            RepostID: repostId,
+            UserID: user.UserID, // current user reposting
+            delStatus: 0,
+          },
+        });
+
+        if (existingRepost) {
+          logWarning("Duplicate repost attempt detected.");
+          return {
+            status: 400,
+            response: {
+              success: false,
+              message: "You have already reposted this blog.",
+            },
+          };
+        }
+
         // ✅ Auto-approve repost if original was approved
         if (originalBlog.Status === "Approved") {
           status = "Approved";
@@ -148,6 +167,7 @@ export const createBlogPost = async (userEmail, blogData) => {
         }
       }
     }
+    
 
     // ✅ Create the blog or repost
     const blogPost = await Blog.create({
@@ -259,71 +279,161 @@ export const getBlogService = async (userEmail) => {
   };
 };
 
+
+
 export const getUserBlogsService = async (userEmail) => {
-  // Get user by EmailId
-  const user = await User.findOne({
-    where: {
-      EmailId: userEmail,
-      delStatus: { [Op.or]: [0, null] },
-    },
-  });
+  try {
+    // Get user by EmailId
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: { [Op.or]: [0, null] },
+      },
+    });
 
-  if (!user) {
-    return { success: false, message: "User not found", data: {} };
+    if (!user) {
+      return { success: false, message: "User not found", data: {} };
+    }
+
+    // Count blogs
+    const totalCount = await CommunityBlog.count({
+      where: {
+        UserID: user.UserID,
+        delStatus: { [Op.or]: [0, null] },
+        Status: { [Op.in]: ["Pending", "Rejected", "Approved"] },
+      },
+    });
+
+    // Fetch blogs
+    const blogs = await CommunityBlog.findAll({
+      where: {
+        UserID: user.UserID,
+        delStatus: { [Op.or]: [0, null] },
+        Status: { [Op.in]: ["Pending", "Rejected", "Approved"] },
+      },
+      order: [["AddOnDt", "DESC"]],
+      attributes: [
+        "BlogID",
+        "title",
+        ["AuthAdd", "UserName"],
+        "author",
+        "content",
+        ["Category", "category"],
+        "publishedDate",
+        ["AddOnDt", "timestamp"],
+        "image",
+        "AddOnDt",
+        "UserID",
+        "Status",
+        "AdminRemark",
+        "allowRepost",
+      ],
+      raw: true,
+    });
+
+    // Fetch interaction and repost data in parallel
+    const blogIds = blogs.map((b) => b.BlogID);
+
+    // Count reposts for each blog
+    const repostCounts = await CommunityBlog.findAll({
+      attributes: [
+        "RepostID",
+        [Sequelize.fn("COUNT", Sequelize.col("RepostID")), "count"],
+      ],
+      where: {
+        RepostID: { [Op.in]: blogIds },
+        delStatus: { [Op.or]: [0, null] },
+      },
+      group: ["RepostID"],
+      raw: true,
+    });
+
+    // Count likes (claps) and calculate ratings for each blog
+    const interactionStats = await ContentInteraction.findAll({
+      attributes: [
+        "reference",
+        [
+          Sequelize.fn(
+            "SUM",
+            Sequelize.literal("CASE WHEN LikeStatus = 1 THEN 1 ELSE 0 END")
+          ),
+          "clapCount",
+        ],
+        [
+          Sequelize.fn(
+            "AVG",
+            Sequelize.literal("CASE WHEN RatingStatus = 1 THEN Rating ELSE NULL END")
+          ),
+          "averageRating",
+        ],
+      ],
+      where: {
+        ProcessName: "Blog",
+        reference: { [Op.in]: blogIds },
+        delStatus: { [Op.or]: [0, null] },
+      },
+      group: ["reference"],
+      raw: true,
+    });
+
+    // Map the aggregated data
+    const repostMap = Object.fromEntries(
+      repostCounts.map((r) => [r.RepostID, r.count])
+    );
+    const interactionMap = Object.fromEntries(
+      interactionStats.map((i) => [
+        i.reference,
+        {
+          clapCount: Number(i.clapCount) || 0,
+          averageRating: Number(i.averageRating) || 0,
+        },
+      ])
+    );
+
+    // Merge data into blogs
+    const blogsWithStats = blogs.map((b) => ({
+      ...b,
+      repostCount: repostMap[b.BlogID] || 0,
+      clapCount: interactionMap[b.BlogID]?.clapCount || 0,
+      averageRating: interactionMap[b.BlogID]?.averageRating || 0,
+    }));
+
+    return {
+      success: true,
+      data: { blogs: blogsWithStats, totalCount },
+      message: "User's blogs fetched successfully",
+    };
+  } catch (error) {
+    console.error("Error in getUserBlogsService:", error);
+    return {
+      success: false,
+      message: "Server error",
+      error: error.message,
+      data: {},
+    };
   }
-
-  // Count blogs
-  const totalCount = await Blog.count({
-    where: {
-      UserID: user.UserID,
-      delStatus: { [Op.or]: [0, null] },
-      Status: { [Op.in]: ["Pending", "Rejected", "Approved"] },
-    },
-  });
-
-  // Fetch blogs
-  const blogs = await Blog.findAll({
-    where: {
-      UserID: user.UserID,
-      delStatus: { [Op.or]: [0, null] },
-      Status: { [Op.in]: ["Pending", "Rejected", "Approved"] },
-    },
-    order: [["AddOnDt", "DESC"]],
-    attributes: [
-      "BlogID",
-      "title",
-      ["AuthAdd", "UserName"],
-      "author",
-      "content",
-      ["Category", "category"],
-      "publishedDate",
-      ["AddOnDt", "timestamp"],
-      "image",
-      "AddOnDt",
-      "UserID",
-      "Status",
-      "AdminRemark",
-      "allowRepost",
-    ],
-  });
-
-  return {
-    success: true,
-    data: { blogs, totalCount },
-    message: "User's blogs fetched successfully",
-  };
 };
 
+
+
+
+
+
+
+
+
+
 export const getPublicBlogsService = async () => {
-  const publicBlogs = await Blog.findAll({
+  // Step 1: Fetch all approved blogs
+  const allBlogs = await Blog.findAll({
     where: {
       delStatus: { [Op.or]: [0, null] },
       Status: "Approved",
     },
     order: [["AddOnDt", "DESC"]],
     attributes: [
-      "UserID",
       "BlogID",
+      "UserID",
       "title",
       "AuthAdd",
       "AddOnDt",
@@ -331,53 +441,65 @@ export const getPublicBlogsService = async () => {
       ["Category", "category"],
       "publishedDate",
       "content",
-      "AddOnDt",
       "image",
-      "UserID",
+      "allowRepost",
       "RepostID",
       "RepostUserID",
-      "allowRepost",
     ],
     include: [
       {
         model: User,
-        as: "RepostUser", // ✅ must match alias in index.js
+        as: "RepostUser", // association alias from model
         attributes: ["UserID", "Name"],
       },
     ],
   });
 
-  if (!publicBlogs || publicBlogs.length === 0) {
+  if (!allBlogs || allBlogs.length === 0) {
     return { success: false, message: "No public blogs found", data: [] };
   }
 
-  // ✅ Group by RepostUserID and RepostID
-  const grouped = [];
-  const seen = new Map();
+  // Step 2: Separate originals and reposts
+  const originals = allBlogs.filter(b => !b.RepostID);
+  const reposts = allBlogs.filter(b => b.RepostID);
 
-  publicBlogs.forEach(blog => {
-    const key = `${blog.RepostID}_${blog.RepostUserID}`;
+  // Step 3: Group reposts under their parent (original) blog
+  const finalData = originals.map(original => {
+    const o = original.toJSON();
 
-    if (seen.has(key)) {
-      // Push this blog into existing repost array
-      seen.get(key).reposts.push(blog);
-    } else {
-      // Create new group with repost array
-      const group = {
-        ...blog.toJSON(),
-        reposts: [blog],
-      };
-      grouped.push(group);
-      seen.set(key, group);
-    }
+    const relatedReposts = reposts
+      .filter(r => r.RepostID === o.BlogID)
+      .map(r => ({
+        BlogID: r.BlogID,
+        RepostID: r.RepostID,
+        RepostUserID: r.RepostUserID,
+        RepostDate: r.AddOnDt,
+        RepostUser: r.RepostUser ? r.RepostUser.toJSON() : null,
+        content: r.content,
+        title: r.title,
+        image: r.image,
+        Status: r.Status,
+      }));
+
+    return {
+      ...o,
+      reposts: relatedReposts,
+    };
   });
+
+  // Step 4: Ensure we also include standalone posts with no reposts
+  const finalResult = finalData.map(item => ({
+    ...item,
+    reposts: item.reposts || [],
+  }));
 
   return {
     success: true,
-    data: grouped,
+    data: finalResult,
     message: "Public blogs fetched successfully",
   };
 };
+
 
 
 export const updateBlogService = async (blogId, user, data) => {

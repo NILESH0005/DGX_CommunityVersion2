@@ -3,7 +3,7 @@ import JoditEditor from "jodit-react";
 import ApiContext from "../../../context/ApiContext";
 import Swal from "sweetalert2";
 import { compressImage } from "../../../utils/compressImage.js";
-import { checkToxicityWithReasonAndFlag } from "../../../utils/toxicityDetection.js";
+import { checkToxicityWithReasonAndFlag } from "../../../utils/toxicityDetection.js"; // Import toxicity detection
 
 const BlogForm = (props) => {
   const [title, setTitle] = useState("");
@@ -11,154 +11,16 @@ const BlogForm = (props) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false);
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add toxicity checking state
   const [categories, setCategories] = useState([]);
   const [content, setContent] = useState("");
   const [allowRepost, setAllowRepost] = useState(false);
 
+
   const editor = useRef(null);
   const { fetchData, userToken, user } = useContext(ApiContext);
 
-  // Check if user is authenticated
-  const isAuthenticated = !!userToken;
-
-  // Show login alert when user tries to interact without authentication
-  const handleUnauthenticatedAction = () => {
-    Swal.fire({
-      icon: "warning",
-      title: "Login Required",
-      text: "Please login to create a blog post.",
-      confirmButtonText: "Login",
-      showCancelButton: true,
-      cancelButtonText: "Cancel"
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // You can redirect to login page or trigger login modal here
-        // Example: window.location.href = "/login";
-        // Or: props.onLoginRequest(); // if you have a prop for handling login
-        console.log("Redirect to login page");
-      }
-    });
-  };
-
-  // Override handleSubmit to check authentication first
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!isAuthenticated) {
-      handleUnauthenticatedAction();
-      return;
-    }
-
-    if (!validateForm()) {
-      return;
-    }
-
-    const isContentAppropriate = await validateBlogToxicity();
-    if (!isContentAppropriate) {
-      return;
-    }
-
-    Swal.fire({
-      title: "Confirm Submission",
-      text: "Are you sure you want to submit this blog post?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Confirm",
-      cancelButtonText: "Cancel",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        handleConfirmSubmit();
-      }
-    });
-  };
-
-  // Override other interactive functions to check authentication
-  const handleImageChange = async (e) => {
-    if (!isAuthenticated) {
-      handleUnauthenticatedAction();
-      e.target.value = ""; // Clear file input
-      return;
-    }
-
-    const file = e.target.files[0];
-   if (file) {
-  const allowedFormats = ["image/jpeg", "image/png", "image/svg+xml"];
-  const maxSize = 200 * 1024; // ✅ 200KB limit
-
-  if (!allowedFormats.includes(file.type)) {
-    setErrors((prev) => ({
-      ...prev,
-      image: "Only JPEG, PNG, and SVG files are allowed.",
-    }));
-    return;
-  }
-
-  if (file.size > maxSize) {
-    setErrors((prev) => ({
-      ...prev,
-      image: "Image size should be less than 200KB.", // ✅ Updated message
-    }));
-    return;
-  }
-
-  try {
-    const compressedFile = await compressImage(file);
-    setSelectedImage(compressedFile);
-    setErrors((prev) => ({ ...prev, image: null }));
-  } catch (error) {
-    Swal.fire("Error", "Failed to compress image.", "error");
-  }
-}
-
-  };
-
-  const handleContentChange = (newContent) => {
-    if (!isAuthenticated) {
-      handleUnauthenticatedAction();
-      return;
-    }
-    setContent(newContent);
-  };
-
-  const handleTitleChange = (e) => {
-    if (!isAuthenticated) {
-      handleUnauthenticatedAction();
-      return;
-    }
-    setTitle(e.target.value);
-  };
-
-  const handleCategoryChange = (e) => {
-    if (!isAuthenticated) {
-      handleUnauthenticatedAction();
-      return;
-    }
-    setCategory(e.target.value);
-  };
-
-  const handleAllowRepostChange = (e) => {
-    if (!isAuthenticated) {
-      handleUnauthenticatedAction();
-      return;
-    }
-    setAllowRepost(e.target.checked);
-  };
-
-  const handleResetForm = () => {
-    if (!isAuthenticated) {
-      handleUnauthenticatedAction();
-      return;
-    }
-    resetForm();
-  };
-
   useEffect(() => {
-    if (!isAuthenticated) {
-      // Don't fetch categories if not authenticated
-      return;
-    }
-
     const fetchCategories = async () => {
       const endpoint = `dropdown/getDropdownValues?category=blogCategory`;
       const method = "GET";
@@ -183,13 +45,17 @@ const BlogForm = (props) => {
     };
 
     fetchCategories();
-  }, [fetchData, userToken, isAuthenticated]);
+  }, [fetchData, userToken]);
 
+  // Toxicity validation function for blog content
   const validateBlogToxicity = async () => {
     setIsCheckingToxicity(true);
 
     try {
+      // Clean content (strip HTML tags)
       const strippedContent = content.replace(/<[^>]*>?/gm, "").trim();
+
+      // Check title + content together
       const combinedText = `${title} ${strippedContent}`.trim();
 
       const result = await checkToxicityWithReasonAndFlag(combinedText);
@@ -205,9 +71,9 @@ const BlogForm = (props) => {
               Please review and modify your content before posting.`,
           confirmButtonText: "I understand",
         });
-        return false;
+        return false; // Content is toxic
       }
-      return true;
+      return true; // Content is safe
     } catch (error) {
       console.error("Toxicity validation error:", error);
       const result = await Swal.fire({
@@ -218,11 +84,43 @@ const BlogForm = (props) => {
         confirmButtonText: "Post Anyway",
         cancelButtonText: "Cancel",
       });
-      return result.isConfirmed;
+      return result.isConfirmed; // Let user decide
     } finally {
       setIsCheckingToxicity(false);
     }
   };
+
+  const handleImageChange = async (e) => {
+  const file = e.target.files[0];
+
+  if (file) {
+    const allowedFormats = ["image/jpeg", "image/png", "image/svg+xml"];
+    const maxSize = 200 * 1024; // Changed from 50KB to 200KB
+
+    if (!allowedFormats.includes(file.type)) {
+      setErrors((prev) => ({
+        ...prev,
+        image: "Only JPEG, PNG, and SVG files are allowed.",
+      }));
+      return;
+    }
+    if (file.size > maxSize) {
+      setErrors((prev) => ({
+        ...prev,
+        image: "Image size should be less than 200KB.", // Updated error message
+      }));
+      return;
+    }
+
+    try {
+      const compressedFile = await compressImage(file);
+      setSelectedImage(compressedFile);
+      setErrors((prev) => ({ ...prev, image: null }));
+    } catch (error) {
+      Swal.fire("Error", "Failed to compress image.", "error");
+    }
+  }
+};
 
   const validateForm = () => {
     const errors = {};
@@ -235,75 +133,86 @@ const BlogForm = (props) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleConfirmSubmit = async () => {
-  setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const blogStatus = user.role === "admin" ? "approved" : "pending";
-  const endpoint = "blog/blogpost";
-  const method = "POST";
+    if (!validateForm()) {
+      return;
+    }
 
-  // Convert the File to Base64 string
-  const getBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
+    // Check for toxicity before submitting
+    const isContentAppropriate = await validateBlogToxicity();
+    if (!isContentAppropriate) {
+      return; // Stop submission if content is inappropriate
+    }
+
+    // If content is appropriate, proceed with confirmation
+    Swal.fire({
+      title: "Confirm Submission",
+      text: "Are you sure you want to submit this blog post?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleConfirmSubmit();
+      }
     });
   };
 
-  let base64Image = null;
-  if (selectedImage) {
-    base64Image = await getBase64(selectedImage);
-  }
+  const handleConfirmSubmit = async () => {
+    setLoading(true);
 
-  const body = {
-    title,
-    content,
-    image: base64Image,
-    category,
-    Status: blogStatus,
-    UserName: user.Name,
-    allowRepost,
-  };
+    const blogStatus = user.role === "admin" ? "approved" : "pending";
 
-  const headers = {
-    "Content-Type": "application/json",
-    "auth-token": userToken,
-  };
+    const endpoint = "blog/blogpost";
+    const method = "POST";
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
+    };
+    const body = {
+      title,
+      content,
+      image: selectedImage,
+      category,
+      Status: blogStatus,
+      UserName: user.Name,
+      allowRepost,
+    };
 
-  try {
-    const data = await fetchData(endpoint, method, headers, JSON.stringify(body));
-    setLoading(false);
+    try {
+      const data = await fetchData(endpoint, method, body, headers);
+      setLoading(false);
 
-    if (data.success) {
-      if (typeof props.setBlogs === "function") {
-        props.setBlogs((prevBlogs) => [
-          {
-            BlogId: data.data.postId,
-            title,
-            content,
-            category,
-            image: base64Image,
-            Status: blogStatus,
-            UserID: user.UserID,
-            UserName: user.Name,
-            allowRepost,
-          },
-          ...prevBlogs,
-        ]);
+      if (data.success) {
+        if (typeof props.setBlogs === "function") {
+          props.setBlogs((prevBlogs) => [
+            {
+              BlogId: data.data.postId,
+              title,
+              content,
+              category,
+              image: selectedImage,
+              Status: blogStatus,
+              UserID: user.UserID,
+              UserName: user.Name,
+              allowRepost,
+            },
+            ...prevBlogs,
+          ]);
+        }
+        Swal.fire("Success", "Blog Posted Successfully", "success");
+        resetForm();
+      } else {
+        Swal.fire("Error", `Error: ${data.message}`, "error");
       }
-      Swal.fire("Success", "Blog Posted Successfully", "success");
-      resetForm();
-    } else {
-      Swal.fire("Error", `Error: ${data.message}`, "error");
+    } catch (error) {
+      setLoading(false);
+      Swal.fire("Error", "Something went wrong, please try again.", "error");
     }
-  } catch (error) {
-    setLoading(false);
-    Swal.fire("Error", "Something went wrong, please try again.", "error");
-  }
-};
-
+  };
 
   const resetForm = () => {
     setTitle("");
@@ -319,23 +228,13 @@ const BlogForm = (props) => {
       onSubmit={handleSubmit}
       className="mx-auto mt-4 bg-white p-6 rounded shadow border-2"
     >
-      {/* Show login prompt message when not authenticated */}
-      {!isAuthenticated && (
-        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-yellow-800 text-center">
-            Please login to create a blog post.
-          </p>
-        </div>
-      )}
-
       <div className="mb-4">
         <label className="block mb-2 font-medium">Blog Title</label>
         <input
           type="text"
           value={title}
-          onChange={handleTitleChange}
+          onChange={(e) => setTitle(e.target.value)}
           className="border w-full p-2 rounded"
-          disabled={!isAuthenticated}
         />
         {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
       </div>
@@ -344,9 +243,8 @@ const BlogForm = (props) => {
         <label className="block mb-2 font-medium">Category</label>
         <select
           value={category}
-          onChange={handleCategoryChange}
+          onChange={(e) => setCategory(e.target.value)}
           className="border w-full p-2 rounded"
-          disabled={!isAuthenticated}
         >
           <option value="">Select Category</option>
           {categories.map((cat) => (
@@ -363,27 +261,23 @@ const BlogForm = (props) => {
         <JoditEditor
           ref={editor}
           value={content}
-          onChange={handleContentChange}
+          onChange={(newContent) => setContent(newContent)}
           className="border rounded min-h-[300px]"
-          disabled={!isAuthenticated}
         />
         {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
       </div>
-
       <div className="mb-4 flex items-center">
         <input
           type="checkbox"
           id="allowRepost"
           checked={allowRepost}
-          onChange={handleAllowRepostChange}
+          onChange={(e) => setAllowRepost(e.target.checked)}
           className="mr-2"
-          disabled={!isAuthenticated}
         />
         <label htmlFor="allowRepost" className="text-sm font-medium">
           Allow others to repost my blog
         </label>
       </div>
-
       <div className="mb-4 relative pt-10">
         <label className="block text-sm font-medium mb-2">Upload Image</label>
         <div className="text-xs text-gray-500 mb-2">
@@ -394,7 +288,6 @@ const BlogForm = (props) => {
           accept="image/*"
           onChange={handleImageChange}
           className="border w-full p-2 rounded"
-          disabled={!isAuthenticated}
         />
         {errors.image && (
           <p className="text-red-500 text-sm mt-1">{errors.image}</p>
@@ -404,16 +297,15 @@ const BlogForm = (props) => {
       <div className="flex justify-between mt-6">
         <button
           type="button"
-          onClick={handleResetForm}
+          onClick={resetForm}
           className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
-          disabled={!isAuthenticated}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={loading || isCheckingToxicity || !isAuthenticated}
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
+          disabled={loading || isCheckingToxicity}
         >
           {isCheckingToxicity ? "Checking content..." : loading ? "Submitting..." : "Submit"}
         </button>

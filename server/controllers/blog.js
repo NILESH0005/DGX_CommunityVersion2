@@ -459,27 +459,56 @@ export const getUserBlogs = async (req, res) => {
   }
 };
 
+
 export const getPublicBlogs = async (req, res) => {
   try {
-    const result = await getPublicBlogsService();
+    const blogs = await db.CommunityBlog.findAll({
+      where: {
+        delStatus: 0,
+        Status: "Approved",
+        RepostID: null,
+      },
+      include: [
+        {
+          model: db.CommunityBlog,
+          as: "reposts",
+          required: false,
+          where: { delStatus: 0 },
+          include: [
+            {
+              model: db.User,
+              as: "RepostUser",
+              attributes: ["UserID", "Name"],
+            },
+          ],
+        },
+        {
+          model: db.User,
+          as: "User",
+          attributes: ["UserID", "Name"],
+        },
+      ],
+      order: [["AddOnDt", "DESC"]],
+    });
 
-    if (!result.success) {
-      return res.status(404).json(result);
+    if (!blogs || blogs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No public blogs found",
+        data: [],
+      });
     }
-
-    logInfo("Public blogs fetched successfully");
 
     return res.status(200).json({
       success: true,
-      data: result.data,
-      message: result.message,
+      data: blogs,
+      message: "Public blogs fetched successfully",
     });
   } catch (error) {
-    logError(error.message || "Unknown error", error.stack);
-
+    console.error("Error fetching public blogs:", error);
     return res.status(500).json({
       success: false,
-      message: error.message || "Unexpected error occurred",
+      message: "Unexpected error occurred",
     });
   }
 };

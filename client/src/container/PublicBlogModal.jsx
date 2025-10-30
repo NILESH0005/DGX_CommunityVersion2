@@ -9,7 +9,7 @@ import { FiRepeat } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { PiHandsClappingLight, PiHandsClappingFill } from "react-icons/pi";
 import RatingStars from "./RatingStars"; // Adjust the import path as needed
-
+import Noimage from "../assets/No_Image_Available.jpg";
 const PublicBlogModal = ({
   blog,
   closeModal,
@@ -37,9 +37,8 @@ const PublicBlogModal = ({
   const [blogStats, setBlogStats] = useState({
     totalLikes: 0,
     averageRating: 0,
-    totalRatings: 0
+    totalRatings: 0,
   });
-
 
   useEffect(() => {
     if (userToken && blog?.BlogID) {
@@ -59,9 +58,6 @@ const PublicBlogModal = ({
       };
 
       const result = await fetchData(endpoint, method, {}, headers);
-
-      console.log("tesssttt", result)
-
       if (result.success) {
         const { hasLiked, userRating } = result.data;
         setIsLiked(hasLiked);
@@ -123,7 +119,6 @@ const PublicBlogModal = ({
         fetchUserInteraction();
         fetchBlogStats();
 
-
         // update UI based on server response
         setIsLiked(result.data.liked);
         setLikeCount((prev) => (result.data.liked ? prev + 1 : prev - 1));
@@ -172,8 +167,6 @@ const PublicBlogModal = ({
         setUserRating(rating);
         fetchUserInteraction();
         fetchBlogStats();
-
-
 
         // Optional: If you want to show success message
         Swal.fire({
@@ -350,6 +343,38 @@ const PublicBlogModal = ({
   const alreadyReposted = blog?.RepostUserID === user?.UserID;
   const canRepost = blog?.allowRepost && !isMyBlog && !alreadyReposted;
 
+  const processBlogs = (blogs) => {
+    const blogMap = {};
+
+    blogs.forEach((b) => {
+      const originalId = b.repostId || b.BlogID; // use original BlogID if not a repost
+      const existing = blogMap[originalId];
+
+      if (!existing) {
+        blogMap[originalId] = b;
+      } else {
+        // if there’s already one, compare by date and keep latest repost
+        const existingDate = new Date(existing.published_date);
+        const newDate = new Date(b.published_date);
+        if (newDate > existingDate) {
+          blogMap[originalId] = b;
+        }
+      }
+    });
+
+    return Object.values(blogMap);
+  };
+
+  const [blogs, setBlogs] = useState([]);
+
+const fetchBlogs = async () => {
+  const result = await fetchData("blog/allBlogs", "GET");
+  if (result.success) {
+    const uniqueBlogs = processBlogs(result.data);
+    setBlogs(uniqueBlogs);
+  }
+};
+
   return (
     <AnimatePresence>
       <motion.div
@@ -380,8 +405,8 @@ const PublicBlogModal = ({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 }}
-                className="w-full rounded-xl shadow-lg object-cover h-64 md:h-80"
-                src={image}
+                className="w-full h-[600px] object-cover rounded-none"
+                src={image || Noimage}
                 alt={title}
               />
 
@@ -392,7 +417,11 @@ const PublicBlogModal = ({
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                <RatingStars value={blogStats.averageRating} readOnly size={16} />
+                <RatingStars
+                  value={blogStats.averageRating}
+                  readOnly
+                  size={16}
+                />
                 <span className="text-gray-700 ml-1">
                   {blogStats.averageRating}
                 </span>
@@ -504,10 +533,11 @@ const PublicBlogModal = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleLike}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${isLiked
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
-                    }`}
+                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${
+                    isLiked
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
+                  }`}
                 >
                   <motion.div
                     animate={isLiked ? { rotate: [0, -10, 10, 0] } : {}}

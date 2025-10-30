@@ -137,6 +137,12 @@ CommunityBlog.belongsTo(User, {
   as: "RepostUser",
 });
 
+// Self association for reposts
+CommunityBlog.hasMany(CommunityBlog, {
+  foreignKey: "RepostID",
+  as: "reposts",
+});
+
 ContentInteraction.belongsTo(User, {
   foreignKey: 'UserID',
   targetKey: 'UserID',
