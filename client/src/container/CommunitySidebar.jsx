@@ -8,13 +8,13 @@ const CommunitySidebar = ({
   isLoading = false,
   communityHighlights = [],
   topUsers = [],
-  openModal = () => { },
+  openModal = () => {},
   discussions = [],
   updateDiscussionLikeCount,
   updateDiscussionCommentCount,
   discussionStats = {},
   statsLoading = false,
-  refreshStats = () => { },
+  refreshStats = () => {},
 }) => {
   const [localHighlights, setLocalHighlights] = useState(communityHighlights);
 
@@ -33,26 +33,31 @@ const CommunitySidebar = ({
 
   // Add this function - it was missing
   const getUpdatedDiscussion = (discussionId) => {
-    return discussions.find(d => d.DiscussionID === discussionId) || 
-           localHighlights.find(d => d.DiscussionID === discussionId);
+    return (
+      discussions.find((d) => d.DiscussionID === discussionId) ||
+      localHighlights.find((d) => d.DiscussionID === discussionId)
+    );
   };
 
   const handleSidebarLike = async (discussionId, currentUserLike) => {
     if (updateDiscussionLikeCount) {
-      const discussion = discussions.find(d => d.DiscussionID === discussionId);
+      const discussion = discussions.find(
+        (d) => d.DiscussionID === discussionId
+      );
       const currentLikes = Number(discussion?.likeCount) || 0;
       const newLikeState = currentUserLike === 1 ? 0 : 1;
-      const newLikeCount = newLikeState === 1 ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+      const newLikeCount =
+        newLikeState === 1 ? currentLikes + 1 : Math.max(0, currentLikes - 1);
 
       // Update locally first
-      setLocalHighlights(prev =>
-        prev.map(item =>
+      setLocalHighlights((prev) =>
+        prev.map((item) =>
           item.DiscussionID === discussionId
             ? {
-              ...item,
-              userLike: newLikeState,
-              likeCount: newLikeCount
-            }
+                ...item,
+                userLike: newLikeState,
+                likeCount: newLikeCount,
+              }
             : item
         )
       );
@@ -94,7 +99,9 @@ const CommunitySidebar = ({
           {localHighlights.length > 0 ? (
             localHighlights.map((topic, index) => {
               // Get the most recent data for this discussion
-              const updatedTopic = getDiscussionWithStats(getUpdatedDiscussion(topic.DiscussionID) || topic);
+              const updatedTopic = getDiscussionWithStats(
+                getUpdatedDiscussion(topic.DiscussionID) || topic
+              );
 
               return (
                 <div
@@ -130,7 +137,9 @@ const CommunitySidebar = ({
                               Loading...
                             </div>
                           ) : (
-                            `${updatedTopic.likeCount || 0} likes • ${updatedTopic.commentCount || 0} comments`
+                            `${updatedTopic.likeCount || 0} likes • ${
+                              updatedTopic.commentCount || 0
+                            } comments`
                           )}
                         </p>
                       </div>
@@ -189,11 +198,18 @@ const CommunitySidebar = ({
                           className="flex items-center gap-1 hover:text-blue-600 transition-colors duration-200"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSidebarLike(updatedTopic.DiscussionID, updatedTopic.userLike);
+                            handleSidebarLike(
+                              updatedTopic.DiscussionID,
+                              updatedTopic.userLike
+                            );
                           }}
                         >
                           <AiOutlineLike
-                            className={`w-3 h-3 ${updatedTopic.userLike === 1 ? 'text-blue-600 fill-blue-600' : ''}`}
+                            className={`w-3 h-3 ${
+                              updatedTopic.userLike === 1
+                                ? "text-blue-600 fill-blue-600"
+                                : ""
+                            }`}
                           />
                           <span>
                             {statsLoading ? (
@@ -224,10 +240,13 @@ const CommunitySidebar = ({
                       </div>
                       <div className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
                         {updatedTopic.CreatedAt || updatedTopic.AddOnDt
-                          ? new Date(updatedTopic.CreatedAt || updatedTopic.AddOnDt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })
+                          ? new Date(
+                              updatedTopic.CreatedAt || updatedTopic.AddOnDt
+                            ).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
                           : "Recent"}
                       </div>
                     </div>
@@ -272,12 +291,13 @@ const CommunitySidebar = ({
               >
                 {index < 3 && (
                   <div
-                    className={`absolute -left-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${index === 0
-                      ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
-                      : index === 1
+                    className={`absolute -left-2 -top-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${
+                      index === 0
+                        ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                        : index === 1
                         ? "bg-gradient-to-r from-gray-400 to-gray-500"
                         : "bg-gradient-to-r from-orange-400 to-orange-500"
-                      }`}
+                    }`}
                   >
                     {index === 0 ? "🥇" : index === 1 ? "🥈" : "🥉"}
                   </div>
