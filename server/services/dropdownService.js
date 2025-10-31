@@ -116,10 +116,10 @@ export const getModuleByIdService = async (moduleId) => {
     let moduleData = module.toJSON();
     moduleData.ModuleImage = module.ModuleImage
       ? {
-        data: Buffer.isBuffer(module.ModuleImage)
-          ? module.ModuleImage.toString("base64")
-          : module.ModuleImage,
-      }
+          data: Buffer.isBuffer(module.ModuleImage)
+            ? module.ModuleImage.toString("base64")
+            : module.ModuleImage,
+        }
       : null;
 
     return {
@@ -258,7 +258,7 @@ export const getUnitsWithFilesService = async (subModuleId, userId) => {
         "UnitDescription",
         "SubModuleID",
         "AuthAdd",
-        ["SortingOrder", "UnitSortingOrder"]
+        ["SortingOrder", "UnitSortingOrder"],
       ],
       include: [
         {
@@ -274,46 +274,73 @@ export const getUnitsWithFilesService = async (subModuleId, userId) => {
             ["AuthAdd", "FileAuthAdd"],
             "Percentage",
             "EstimatedTime",
-            ["SortingOrder", "FileSortingOrder"]
+            ["SortingOrder", "FileSortingOrder"],
           ],
           include: [
             {
               model: LMSUserProgress,
               required: false,
-              attributes: ["TimeSpentSeconds"], // fetch raw values
-              where: { UserID: userId, delStatus: 0 }
-            }
-          ]
-        }
+              as: "UserLmsProgresses", // make sure alias matches your model association
+              attributes: ["TimeSpentSeconds"],
+              where: { UserID: userId, delStatus: 0 },
+            },
+          ],
+        },
       ],
       order: [
-        [sequelize.literal("CASE WHEN `UnitsDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"), "ASC"],
+        [
+          sequelize.literal(
+            "CASE WHEN `UnitsDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"
+          ),
+          "ASC",
+        ],
         ["SortingOrder", "ASC"],
         ["UnitID", "ASC"],
-        [sequelize.literal("CASE WHEN `FilesDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"), "ASC"],
+        [
+          sequelize.literal(
+            "CASE WHEN `FilesDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"
+          ),
+          "ASC",
+        ],
         [LMSFilesDetails, "SortingOrder", "ASC"],
         [LMSFilesDetails, "FileID", "ASC"],
-      ]
+      ],
     });
 
-    // aggregate totalTimeSpent in JS instead of SQL
-    const result = units.map(unit => {
+    let totalTimeAllUnits = 0;
+
+    const result = units.map((unit) => {
       const unitData = unit.toJSON();
-      const filesWithTime = (unitData.FilesDetails || []).map(file => {
-        const totalTime = (file.LMSUserProgress || [])
-          .reduce((sum, progress) => sum + (progress.TimeSpentSeconds || 0), 0);
-        return { ...file, totalTimeSpent: totalTime };
+      let totalTimePerUnit = 0;
+
+      const filesWithTime = (unitData.FilesDetails || []).map((file) => {
+        const fileTime = (file.UserLmsProgresses || []).reduce(
+          (sum, progress) => sum + (progress.TimeSpentSeconds || 0),
+          0
+        );
+        totalTimePerUnit += fileTime;
+        return { ...file, totalTimeSpent: fileTime };
       });
 
-      return { ...unitData, files: filesWithTime };
+      totalTimeAllUnits += totalTimePerUnit;
+
+      return {
+        ...unitData,
+        files: filesWithTime,
+        totalTimeSpent: totalTimePerUnit,
+      };
     });
 
-    return { success: true, data: result, message: "Units with files fetched successfully" };
+    return {
+      success: true,
+      data: result,
+      totalTimeAllUnits,
+      message: "Units with files fetched successfully",
+    };
   } catch (error) {
     throw new Error(error.message || "Error fetching units with files");
   }
 };
-
 
 // export const getUnitsWithFilesService = async (subModuleId, sequelize) => {
 //   try {
@@ -530,8 +557,8 @@ export const getBlogStatsService = async () => {
         let avgRating = null;
         if (ratingData.length > 0) {
           const validRatings = ratingData
-            .map(r => parseFloat(r.Rating))
-            .filter(r => !isNaN(r));
+            .map((r) => parseFloat(r.Rating))
+            .filter((r) => !isNaN(r));
           const total = validRatings.reduce((sum, r) => sum + r, 0);
           avgRating = (total / validRatings.length).toFixed(2);
         }
@@ -551,5 +578,3 @@ export const getBlogStatsService = async () => {
     return { success: false, message: error.message };
   }
 };
-
-

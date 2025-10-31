@@ -1007,3 +1007,72 @@ export const getBlogStatsService = async (blogId) => {
     };
   }
 };
+
+export const userEditBlogPost = async (blogId, userId, blogData) => {
+  try {
+    const blog = await Community_Blog.findOne({
+      where: { BlogID: blogId, UserID: userId },
+    });
+
+    if (!blog) {
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "Blog not found or not authorized",
+        },
+      };
+    }
+
+    // Update only allowed fields
+    const updatedFields = {
+      title: blogData.title,
+      content: blogData.content,
+      image: blogData.image,
+      Category: blogData.category,
+      allowRepost: blogData.allowRepost,
+      isDraft: blogData.isDraft,
+      Status: blogData.Status,
+      ApprovedBy: blogData.ApprovedBy || blog.ApprovedBy,
+      ApprovedOn: blogData.ApprovedOn || blog.ApprovedOn,
+      editOnDt: new Date(), // mark edited date
+      AuthLstEdt: userId.toString(), // or user email/name if needed
+    };
+
+    await blog.update(updatedFields);
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        message: "Blog updated successfully",
+        data: blog,
+      },
+    };
+  } catch (err) {
+    console.error("Error updating blog:", err);
+    return {
+      status: 500,
+      response: { success: false, message: "Unexpected error occurred" },
+    };
+  }
+};
+
+export const softDeleteBlogService = async (blogId) => {
+  if (!blogId) {
+    throw new Error("Blog ID required");
+  }
+
+  // Use the instantiated model
+  const blog = await CommunityBlog.findOne({ where: { BlogID: blogId } });
+  if (!blog) {
+    throw new Error("Blog not found");
+  }
+
+  await blog.update({
+    delStatus: 1,
+    delOnDt: new Date(),
+  });
+
+  return blog;
+};

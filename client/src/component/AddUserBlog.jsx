@@ -42,43 +42,42 @@ const AddUserBlog = (props) => {
 
   // Function to handle delete
   const handleDeleteBlog = async (blog) => {
+    let timerInterval;
+
     const result = await Swal.fire({
-      title: "Are you sure?",
-      text: `Do you want to delete the blog "${blog.title || "Untitled"}"?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
+      title: `Deleting "${blog.title || "Untitled"}"`,
+      html: "Confirming in <b></b> seconds.",
+      timer: 3000, // 3 seconds countdown
+      timerProgressBar: true,
+      didOpen: () => {
+        Swal.showLoading();
+        const b = Swal.getHtmlContainer().querySelector("b");
+        timerInterval = setInterval(() => {
+          const remaining = Swal.getTimerLeft();
+          b.textContent = Math.ceil(remaining / 1000);
+        }, 100);
+      },
+      willClose: () => {
+        clearInterval(timerInterval);
+      },
     });
 
-    if (result.isConfirmed) {
+    if (result.dismiss === Swal.DismissReason.timer) {
       try {
         const endpoint = `blog/deleteBlog/${blog.BlogID}`;
-        const method = "DELETE";
+        const method = "POST"; // because backend route uses POST
         const headers = {
           "Content-Type": "application/json",
           "auth-token": userToken,
         };
 
-        const result = await fetchData(endpoint, method, {}, headers);
+        const res = await fetchData(endpoint, method, {}, headers);
 
-        if (result.success) {
-          // Remove from local state
+        if (res.success) {
           setBlogs((prev) => prev.filter((b) => b.BlogID !== blog.BlogID));
-          if (props.setBlogs) {
-            props.setBlogs((prev) =>
-              prev.filter((b) => b.BlogID !== blog.BlogID)
-            );
-          }
-          Swal.fire("Deleted!", "Your blog has been deleted.", "success");
+          Swal.fire("Deleted!", "Blog has been deleted.", "success");
         } else {
-          Swal.fire(
-            "Error!",
-            result.message || "Failed to delete blog.",
-            "error"
-          );
+          Swal.fire("Error!", res.message || "Failed to delete blog.", "error");
         }
       } catch (error) {
         console.error("Error deleting blog:", error);

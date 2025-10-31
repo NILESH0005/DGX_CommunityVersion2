@@ -27,10 +27,14 @@ const BlogForm = (props) => {
     if (props.editingBlog) {
       setIsEditing(true);
       setTitle(props.editingBlog.title || "");
-      setCategory(props.editingBlog.category || props.editingBlog.Category || "");
+      setCategory(
+        props.editingBlog.category || props.editingBlog.Category || ""
+      );
       setContent(props.editingBlog.content || "");
       setAllowRepost(props.editingBlog.allowRepost || false);
-      setIsDraft(props.editingBlog.isDraft || props.editingBlog.Status === "Draft");
+      setIsDraft(
+        props.editingBlog.isDraft || props.editingBlog.Status === "Draft"
+      );
       setExistingImage(props.editingBlog.image || null);
       setSelectedImage(null); // Reset selected image for new uploads
     } else {
@@ -142,16 +146,23 @@ const BlogForm = (props) => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     // For published posts, validate all fields
     if (!isDraft) {
       if (!title.trim()) errors.title = "Blog title is required.";
       if (!category) errors.category = "Please select a category.";
-      if (!content.trim() || content === "<p></p>") errors.content = "Blog content is required.";
-      if (!selectedImage && !existingImage) errors.image = "Please upload an image.";
+      if (!content.trim() || content === "<p></p>")
+        errors.content = "Blog content is required.";
+      if (!selectedImage && !existingImage)
+        errors.image = "Please upload an image.";
     } else {
       // For drafts, only validate that there's some content
-      if (!title.trim() && !content.trim() && !selectedImage && !existingImage) {
+      if (
+        !title.trim() &&
+        !content.trim() &&
+        !selectedImage &&
+        !existingImage
+      ) {
         errors.general = "Draft must contain at least some content.";
       }
     }
@@ -174,16 +185,22 @@ const BlogForm = (props) => {
       }
     }
 
-    const actionText = isEditing ? 
-      (isDraft ? "update draft" : "update blog") : 
-      (isDraft ? "save as draft" : "submit");
-    
+    const actionText = isEditing
+      ? isDraft
+        ? "update draft"
+        : "update blog"
+      : isDraft
+      ? "save as draft"
+      : "submit";
+
     Swal.fire({
       title: `Confirm ${actionText}`,
       text: `Are you sure you want to ${actionText} this blog?`,
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: `Confirm ${isEditing ? 'Update' : (isDraft ? 'Save' : 'Submit')}`,
+      confirmButtonText: `Confirm ${
+        isEditing ? "Update" : isDraft ? "Save" : "Submit"
+      }`,
       cancelButtonText: "Cancel",
     }).then((result) => {
       if (result.isConfirmed) {
@@ -194,6 +211,11 @@ const BlogForm = (props) => {
 
   const handleConfirmSubmit = async () => {
     setLoading(true);
+
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
+    };
 
     let blogStatus = "Draft";
     let approvedBy = null;
@@ -207,16 +229,15 @@ const BlogForm = (props) => {
       }
     }
 
-    // Use selected image if available, otherwise use existing image
     const finalImage = selectedImage || existingImage;
 
-    const endpoint = isEditing ? `blog/updateBlog/${props.editingBlog.BlogID}` : "blog/blogpost";
-    const method = isEditing ? "PUT" : "POST";
-    const headers = {
-      "Content-Type": "application/json",
-      "auth-token": userToken,
-    };
+    // Always POST request
+    const endpoint = "blog/blogpost"; // even for updating
+    const method = "POST";
+
+    // Include BlogID if editing so backend knows to update
     const body = {
+      BlogID: isEditing ? props.editingBlog.BlogID : undefined,
       title,
       content,
       image: finalImage,
@@ -234,13 +255,12 @@ const BlogForm = (props) => {
       setLoading(false);
 
       if (data.success) {
-        const successMessage = isEditing ? 
-          (isDraft ? "Draft updated successfully!" : "Blog updated successfully!") :
-          (isDraft ? "Blog saved as draft successfully!" : "Blog posted successfully!");
-          
-        Swal.fire("Success", successMessage, "success");
-        
-        // Call success callback
+        Swal.fire(
+          "Success",
+          isEditing ? "Blog updated!" : "Blog posted!",
+          "success"
+        );
+
         if (props.onSuccess) {
           const updatedBlog = {
             BlogID: isEditing ? props.editingBlog.BlogID : data.data.postId,
@@ -263,6 +283,7 @@ const BlogForm = (props) => {
         Swal.fire("Error", `Error: ${data.message}`, "error");
       }
     } catch (error) {
+      console.error("Blog submission error:", error);
       setLoading(false);
       Swal.fire("Error", "Something went wrong, please try again.", "error");
     }
@@ -299,11 +320,11 @@ const BlogForm = (props) => {
     >
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-800">
-          {isEditing ? 'Edit Blog' : 'Create New Blog'}
+          {isEditing ? "Edit Blog" : "Create New Blog"}
         </h2>
         {isEditing && (
           <p className="text-sm text-gray-600 mt-1">
-            Editing: {props.editingBlog?.title || 'Untitled'}
+            Editing: {props.editingBlog?.title || "Untitled"}
           </p>
         )}
       </div>
@@ -315,9 +336,13 @@ const BlogForm = (props) => {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="border w-full p-2 rounded"
-          placeholder={isDraft ? "Title (optional for draft)" : "Enter blog title"}
+          placeholder={
+            isDraft ? "Title (optional for draft)" : "Enter blog title"
+          }
         />
-        {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+        {errors.title && (
+          <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+        )}
       </div>
 
       <div className="mb-4">
@@ -327,14 +352,18 @@ const BlogForm = (props) => {
           onChange={(e) => setCategory(e.target.value)}
           className="border w-full p-2 rounded"
         >
-          <option value="">{isDraft ? "Select Category (optional)" : "Select Category"}</option>
+          <option value="">
+            {isDraft ? "Select Category (optional)" : "Select Category"}
+          </option>
           {categories.map((cat) => (
             <option key={cat.idCode} value={cat.ddValue}>
               {cat.ddValue}
             </option>
           ))}
         </select>
-        {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
+        {errors.category && (
+          <p className="text-red-500 text-sm mt-1">{errors.category}</p>
+        )}
       </div>
 
       <div className="mb-4">
@@ -344,9 +373,15 @@ const BlogForm = (props) => {
           value={content}
           onChange={(newContent) => setContent(newContent)}
           className="border rounded min-h-[300px]"
-          placeholder={isDraft ? "Start writing your blog content..." : "Write your blog content..."}
+          placeholder={
+            isDraft
+              ? "Start writing your blog content..."
+              : "Write your blog content..."
+          }
         />
-        {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
+        {errors.content && (
+          <p className="text-red-500 text-sm mt-1">{errors.content}</p>
+        )}
       </div>
 
       <div className="mb-4 flex items-center">
@@ -365,7 +400,8 @@ const BlogForm = (props) => {
       <div className="mb-4 relative pt-10">
         <label className="block text-sm font-medium mb-2">Upload Image</label>
         <div className="text-xs text-gray-500 mb-2">
-          Max size: 200KB | Formats: .jpeg, .png {isDraft && "| Optional for draft"}
+          Max size: 200KB | Formats: .jpeg, .png{" "}
+          {isDraft && "| Optional for draft"}
         </div>
         <input
           type="file"
@@ -373,7 +409,7 @@ const BlogForm = (props) => {
           onChange={handleImageChange}
           className="border w-full p-2 rounded"
         />
-        
+
         {/* Show existing or selected image */}
         {(existingImage || selectedImage) && (
           <div className="mt-3">
@@ -381,9 +417,9 @@ const BlogForm = (props) => {
               {selectedImage ? "New image selected" : "Current image"}
             </p>
             <div className="flex items-center gap-3">
-              <img 
-                src={selectedImage || existingImage} 
-                alt="Blog" 
+              <img
+                src={selectedImage || existingImage}
+                alt="Blog"
                 className="h-20 w-20 object-cover rounded border"
               />
               <button
@@ -396,7 +432,7 @@ const BlogForm = (props) => {
             </div>
           </div>
         )}
-        
+
         {errors.image && (
           <p className="text-red-500 text-sm mt-1">{errors.image}</p>
         )}
@@ -415,11 +451,14 @@ const BlogForm = (props) => {
             onChange={(e) => setIsDraft(e.target.checked)}
             className="mr-2"
           />
-          <label htmlFor="isDraft" className="text-sm font-medium text-gray-700">
+          <label
+            htmlFor="isDraft"
+            className="text-sm font-medium text-gray-700"
+          >
             Save as draft
           </label>
         </div>
-        
+
         <div className="flex gap-2">
           <button
             type="button"
@@ -431,16 +470,27 @@ const BlogForm = (props) => {
           <button
             type="submit"
             className={`px-4 py-2 rounded-md transition ${
-              isDraft 
-                ? "bg-yellow-500 text-white hover:bg-yellow-600" 
+              isDraft
+                ? "bg-yellow-500 text-white hover:bg-yellow-600"
                 : "bg-blue-500 text-white hover:bg-blue-600"
             }`}
             disabled={loading || isCheckingToxicity}
           >
-            {isCheckingToxicity ? "Checking content..." : 
-             loading ? (isEditing ? "Updating..." : (isDraft ? "Saving..." : "Submitting...")) : 
-             isEditing ? (isDraft ? "Update Draft" : "Update Blog") : 
-             (isDraft ? "Save Draft" : "Submit Blog")}
+            {isCheckingToxicity
+              ? "Checking content..."
+              : loading
+              ? isEditing
+                ? "Updating..."
+                : isDraft
+                ? "Saving..."
+                : "Submitting..."
+              : isEditing
+              ? isDraft
+                ? "Update Draft"
+                : "Update Blog"
+              : isDraft
+              ? "Save Draft"
+              : "Submit Blog"}
           </button>
         </div>
       </div>

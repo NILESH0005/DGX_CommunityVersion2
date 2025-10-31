@@ -18,8 +18,10 @@ import {
   getUserBlogsService,
   handleBlogLikeAction,
   handleBlogRateAction,
+  softDeleteBlogService,
   // updateBlogPost,
   updateBlogService,
+  userEditBlogPost,
 } from "../services/blogService.js";
 
 const User = db.User;
@@ -424,7 +426,7 @@ export const updateUserProfileBlog = async (req, res) => {
     const blogData = req.body;
     const userEmail = req.user.id;
 
-    const result = await updateBlogPost(blogId, userEmail, blogData);
+    const result = await userEditBlogPost(blogId, userEmail, blogData);
     return res.status(result.status).json(result.response);
   } catch (err) {
     logError("Unexpected Error in updateBlog controller:", err);
@@ -669,3 +671,22 @@ export const getBlogStatsController = async (req, res) => {
 };
 
 
+export const softDeleteBlog = async (req, res) => {
+  try {
+    const blogId = req.params.blogId;
+
+    const deletedBlog = await softDeleteBlogService(blogId);
+
+    return res.json({
+      success: true,
+      message: "Blog deleted successfully",
+      blog: deletedBlog,
+    });
+  } catch (error) {
+    console.error("Error in softDeleteBlogController:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+};

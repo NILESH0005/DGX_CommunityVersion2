@@ -13,6 +13,7 @@ import {
   getUserBlogInteractionController,
   getBlogStatsController,
   updateUserProfileBlog,
+  softDeleteBlog,
 } from "../controllers/blog.js";
 
 const router = express.Router();
@@ -23,9 +24,14 @@ router.get("/getBlog", fetchUser, getBlog);
 router.get("/getPublicBlogs", getPublicBlogs);
 router.get("/getUserBlogs", fetchUser, getUserBlogs);
 router.post("/updateBlog/:blogId", fetchUser, updateBlog);
-router.post("/updateBlogupdateUserProfileBlog/:blogId", fetchUser, updateUserProfileBlog);
+router.post(
+  "/updateBlogupdateUserProfileBlog/:blogId",
+  fetchUser,
+  updateUserProfileBlog
+);
 router.post("/likeBlogController", fetchUser, likeBlogController);
 router.post("/rate/:blogId", fetchUser, rateBlogController);
+router.post("/deleteBlog/:blogId", fetchUser, softDeleteBlog);
 
 router.get(
   "/user-interaction/:blogId",
