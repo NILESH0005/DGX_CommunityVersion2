@@ -18,7 +18,10 @@ import {
   getUserBlogsService,
   handleBlogLikeAction,
   handleBlogRateAction,
+  softDeleteBlogService,
+  // updateBlogPost,
   updateBlogService,
+  userEditBlogPost,
 } from "../services/blogService.js";
 
 const User = db.User;
@@ -403,6 +406,8 @@ export const updateBlog = async (req, res) => {
   try {
     const blogId = req.params.blogId;
     const result = await updateBlogService(blogId, req.user, req.body);
+    const blogData = req.body;
+    const userEmail = req.user.id;
 
     return res.status(result.status).json(result);
   } catch (error) {
@@ -411,6 +416,23 @@ export const updateBlog = async (req, res) => {
       success: false,
       data: {},
       message: "Something went wrong, please try again",
+    });
+  }
+};
+
+export const updateUserProfileBlog = async (req, res) => {
+  try {
+    const blogId = req.params.id;
+    const blogData = req.body;
+    const userEmail = req.user.id;
+
+    const result = await userEditBlogPost(blogId, userEmail, blogData);
+    return res.status(result.status).json(result.response);
+  } catch (err) {
+    logError("Unexpected Error in updateBlog controller:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Unexpected error occurred",
     });
   }
 };
@@ -459,7 +481,6 @@ export const getUserBlogs = async (req, res) => {
   }
 };
 
-
 export const getPublicBlogs = async (req, res) => {
   try {
     const blogs = await db.CommunityBlog.findAll({
@@ -467,6 +488,7 @@ export const getPublicBlogs = async (req, res) => {
         delStatus: 0,
         Status: "Approved",
         RepostID: null,
+        isDraft: 0,
       },
       include: [
         {
@@ -543,7 +565,6 @@ export const likeBlogController = async (req, res) => {
   }
 };
 
-
 export const rateBlogController = async (req, res) => {
   try {
     const userEmail = req.user?.id;
@@ -565,7 +586,7 @@ export const rateBlogController = async (req, res) => {
 
     const result = await handleBlogRateAction(user, {
       reference: blogId,
-      rating: parseInt(rating)
+      rating: parseInt(rating),
     });
 
     return res.status(200).json(result);
@@ -578,7 +599,6 @@ export const rateBlogController = async (req, res) => {
   }
 };
 
-
 export const getUserBlogInteractionController = async (req, res) => {
   try {
     const userEmail = req.user?.id;
@@ -587,14 +607,14 @@ export const getUserBlogInteractionController = async (req, res) => {
     if (!blogId) {
       return res.status(400).json({
         success: false,
-        message: "Blog ID is required"
+        message: "Blog ID is required",
       });
     }
 
     if (!userEmail) {
       return res.status(400).json({
         success: false,
-        message: "User not logged in"
+        message: "User not logged in",
       });
     }
 
@@ -606,7 +626,7 @@ export const getUserBlogInteractionController = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -618,7 +638,7 @@ export const getUserBlogInteractionController = async (req, res) => {
     console.error("Get User Blog Interaction Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Something went wrong"
+      message: "Something went wrong",
     });
   }
 };
@@ -630,7 +650,7 @@ export const getBlogStatsController = async (req, res) => {
     if (!blogId) {
       return res.status(400).json({
         success: false,
-        message: "Blog ID is required"
+        message: "Blog ID is required",
       });
     }
 
@@ -645,7 +665,28 @@ export const getBlogStatsController = async (req, res) => {
     console.error("Get Blog Stats Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Something went wrong"
+      message: "Something went wrong",
+    });
+  }
+};
+
+
+export const softDeleteBlog = async (req, res) => {
+  try {
+    const blogId = req.params.blogId;
+
+    const deletedBlog = await softDeleteBlogService(blogId);
+
+    return res.json({
+      success: true,
+      message: "Blog deleted successfully",
+      blog: deletedBlog,
+    });
+  } catch (error) {
+    console.error("Error in softDeleteBlogController:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
     });
   }
 };

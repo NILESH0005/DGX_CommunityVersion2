@@ -3,7 +3,7 @@ import JoditEditor from "jodit-react";
 import ApiContext from "../../../context/ApiContext";
 import Swal from "sweetalert2";
 import { compressImage } from "../../../utils/compressImage.js";
-import { checkToxicityWithReasonAndFlag } from "../../../utils/toxicityDetection.js"; // Import toxicity detection
+import { checkToxicityWithReasonAndFlag } from "../../../utils/toxicityDetection.js";
 
 const BlogForm = (props) => {
   const [title, setTitle] = useState("");
@@ -11,14 +11,37 @@ const BlogForm = (props) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add toxicity checking state
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false);
   const [categories, setCategories] = useState([]);
   const [content, setContent] = useState("");
   const [allowRepost, setAllowRepost] = useState(false);
-
+  const [isDraft, setIsDraft] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [existingImage, setExistingImage] = useState(null);
 
   const editor = useRef(null);
   const { fetchData, userToken, user } = useContext(ApiContext);
+
+  // Initialize form with editing blog data
+  useEffect(() => {
+    if (props.editingBlog) {
+      setIsEditing(true);
+      setTitle(props.editingBlog.title || "");
+      setCategory(
+        props.editingBlog.category || props.editingBlog.Category || ""
+      );
+      setContent(props.editingBlog.content || "");
+      setAllowRepost(props.editingBlog.allowRepost || false);
+      setIsDraft(
+        props.editingBlog.isDraft || props.editingBlog.Status === "Draft"
+      );
+      setExistingImage(props.editingBlog.image || null);
+      setSelectedImage(null); // Reset selected image for new uploads
+    } else {
+      setIsEditing(false);
+      resetForm();
+    }
+  }, [props.editingBlog]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -30,7 +53,7 @@ const BlogForm = (props) => {
       };
 
       try {
-        const data = await fetchData(endpoint, method, headers);
+        const data = await fetchData(endpoint, method, {}, headers);
         if (data.success) {
           const sortedCategories = data.data.sort((a, b) =>
             a.ddValue.localeCompare(b.ddValue)
@@ -49,13 +72,12 @@ const BlogForm = (props) => {
 
   // Toxicity validation function for blog content
   const validateBlogToxicity = async () => {
+    if (isDraft) return true;
+
     setIsCheckingToxicity(true);
 
     try {
-      // Clean content (strip HTML tags)
       const strippedContent = content.replace(/<[^>]*>?/gm, "").trim();
-
-      // Check title + content together
       const combinedText = `${title} ${strippedContent}`.trim();
 
       const result = await checkToxicityWithReasonAndFlag(combinedText);
@@ -71,9 +93,9 @@ const BlogForm = (props) => {
               Please review and modify your content before posting.`,
           confirmButtonText: "I understand",
         });
-        return false; // Content is toxic
+        return false;
       }
-      return true; // Content is safe
+      return true;
     } catch (error) {
       console.error("Toxicity validation error:", error);
       const result = await Swal.fire({
@@ -84,50 +106,66 @@ const BlogForm = (props) => {
         confirmButtonText: "Post Anyway",
         cancelButtonText: "Cancel",
       });
-      return result.isConfirmed; // Let user decide
+      return result.isConfirmed;
     } finally {
       setIsCheckingToxicity(false);
     }
   };
 
   const handleImageChange = async (e) => {
-  const file = e.target.files[0];
+    const file = e.target.files[0];
 
-  if (file) {
-    const allowedFormats = ["image/jpeg", "image/png", "image/svg+xml"];
-    const maxSize = 200 * 1024; // Changed from 50KB to 200KB
+    if (file) {
+      const allowedFormats = ["image/jpeg", "image/png", "image/svg+xml"];
+      const maxSize = 200 * 1024;
 
-    if (!allowedFormats.includes(file.type)) {
-      setErrors((prev) => ({
-        ...prev,
-        image: "Only JPEG, PNG, and SVG files are allowed.",
-      }));
-      return;
-    }
-    if (file.size > maxSize) {
-      setErrors((prev) => ({
-        ...prev,
-        image: "Image size should be less than 200KB.", // Updated error message
-      }));
-      return;
-    }
+      if (!allowedFormats.includes(file.type)) {
+        setErrors((prev) => ({
+          ...prev,
+          image: "Only JPEG, PNG, and SVG files are allowed.",
+        }));
+        return;
+      }
+      if (file.size > maxSize) {
+        setErrors((prev) => ({
+          ...prev,
+          image: "Image size should be less than 200KB.",
+        }));
+        return;
+      }
 
-    try {
-      const compressedFile = await compressImage(file);
-      setSelectedImage(compressedFile);
-      setErrors((prev) => ({ ...prev, image: null }));
-    } catch (error) {
-      Swal.fire("Error", "Failed to compress image.", "error");
+      try {
+        const compressedFile = await compressImage(file);
+        setSelectedImage(compressedFile);
+        setErrors((prev) => ({ ...prev, image: null }));
+      } catch (error) {
+        Swal.fire("Error", "Failed to compress image.", "error");
+      }
     }
-  }
-};
+  };
 
   const validateForm = () => {
     const errors = {};
-    if (!title.trim()) errors.title = "Blog title is required.";
-    if (!category) errors.category = "Please select a category.";
-    if (!content.trim() || content === "<p></p>") errors.content = "Blog content is required.";
-    if (!selectedImage) errors.image = "Please upload an image.";
+
+    // For published posts, validate all fields
+    if (!isDraft) {
+      if (!title.trim()) errors.title = "Blog title is required.";
+      if (!category) errors.category = "Please select a category.";
+      if (!content.trim() || content === "<p></p>")
+        errors.content = "Blog content is required.";
+      if (!selectedImage && !existingImage)
+        errors.image = "Please upload an image.";
+    } else {
+      // For drafts, only validate that there's some content
+      if (
+        !title.trim() &&
+        !content.trim() &&
+        !selectedImage &&
+        !existingImage
+      ) {
+        errors.general = "Draft must contain at least some content.";
+      }
+    }
 
     setErrors(errors);
     return Object.keys(errors).length === 0;
@@ -140,19 +178,29 @@ const BlogForm = (props) => {
       return;
     }
 
-    // Check for toxicity before submitting
-    const isContentAppropriate = await validateBlogToxicity();
-    if (!isContentAppropriate) {
-      return; // Stop submission if content is inappropriate
+    if (!isDraft) {
+      const isContentAppropriate = await validateBlogToxicity();
+      if (!isContentAppropriate) {
+        return;
+      }
     }
 
-    // If content is appropriate, proceed with confirmation
+    const actionText = isEditing
+      ? isDraft
+        ? "update draft"
+        : "update blog"
+      : isDraft
+      ? "save as draft"
+      : "submit";
+
     Swal.fire({
-      title: "Confirm Submission",
-      text: "Are you sure you want to submit this blog post?",
+      title: `Confirm ${actionText}`,
+      text: `Are you sure you want to ${actionText} this blog?`,
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "Confirm",
+      confirmButtonText: `Confirm ${
+        isEditing ? "Update" : isDraft ? "Save" : "Submit"
+      }`,
       cancelButtonText: "Cancel",
     }).then((result) => {
       if (result.isConfirmed) {
@@ -164,22 +212,42 @@ const BlogForm = (props) => {
   const handleConfirmSubmit = async () => {
     setLoading(true);
 
-    const blogStatus = user.role === "admin" ? "approved" : "pending";
-
-    const endpoint = "blog/blogpost";
-    const method = "POST";
     const headers = {
       "Content-Type": "application/json",
       "auth-token": userToken,
     };
+
+    let blogStatus = "Draft";
+    let approvedBy = null;
+    let approvedOn = null;
+
+    if (!isDraft) {
+      blogStatus = user.isAdmin === 1 ? "Approved" : "Pending";
+      if (user.isAdmin === 1) {
+        approvedBy = user.Name;
+        approvedOn = new Date();
+      }
+    }
+
+    const finalImage = selectedImage || existingImage;
+
+    // Always POST request
+    const endpoint = "blog/blogpost"; // even for updating
+    const method = "POST";
+
+    // Include BlogID if editing so backend knows to update
     const body = {
+      BlogID: isEditing ? props.editingBlog.BlogID : undefined,
       title,
       content,
-      image: selectedImage,
+      image: finalImage,
       category,
       Status: blogStatus,
       UserName: user.Name,
       allowRepost,
+      isDraft: isDraft,
+      ApprovedBy: approvedBy,
+      ApprovedOn: approvedOn,
     };
 
     try {
@@ -187,28 +255,35 @@ const BlogForm = (props) => {
       setLoading(false);
 
       if (data.success) {
-        if (typeof props.setBlogs === "function") {
-          props.setBlogs((prevBlogs) => [
-            {
-              BlogId: data.data.postId,
-              title,
-              content,
-              category,
-              image: selectedImage,
-              Status: blogStatus,
-              UserID: user.UserID,
-              UserName: user.Name,
-              allowRepost,
-            },
-            ...prevBlogs,
-          ]);
+        Swal.fire(
+          "Success",
+          isEditing ? "Blog updated!" : "Blog posted!",
+          "success"
+        );
+
+        if (props.onSuccess) {
+          const updatedBlog = {
+            BlogID: isEditing ? props.editingBlog.BlogID : data.data.postId,
+            title,
+            content,
+            category,
+            image: finalImage,
+            Status: blogStatus,
+            UserID: user.UserID,
+            UserName: user.Name,
+            allowRepost,
+            isDraft: isDraft,
+            AddOnDt: new Date().toISOString(),
+          };
+          props.onSuccess(updatedBlog, isEditing);
+        } else {
+          resetForm();
         }
-        Swal.fire("Success", "Blog Posted Successfully", "success");
-        resetForm();
       } else {
         Swal.fire("Error", `Error: ${data.message}`, "error");
       }
     } catch (error) {
+      console.error("Blog submission error:", error);
       setLoading(false);
       Swal.fire("Error", "Something went wrong, please try again.", "error");
     }
@@ -218,9 +293,24 @@ const BlogForm = (props) => {
     setTitle("");
     setCategory("");
     setSelectedImage(null);
+    setExistingImage(null);
     setContent("");
     setErrors({});
     setAllowRepost(false);
+    setIsDraft(false);
+  };
+
+  const handleCancel = () => {
+    if (props.onCancel) {
+      props.onCancel();
+    } else {
+      resetForm();
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setExistingImage(null);
   };
 
   return (
@@ -228,6 +318,17 @@ const BlogForm = (props) => {
       onSubmit={handleSubmit}
       className="mx-auto mt-4 bg-white p-6 rounded shadow border-2"
     >
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">
+          {isEditing ? "Edit Blog" : "Create New Blog"}
+        </h2>
+        {isEditing && (
+          <p className="text-sm text-gray-600 mt-1">
+            Editing: {props.editingBlog?.title || "Untitled"}
+          </p>
+        )}
+      </div>
+
       <div className="mb-4">
         <label className="block mb-2 font-medium">Blog Title</label>
         <input
@@ -235,8 +336,13 @@ const BlogForm = (props) => {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="border w-full p-2 rounded"
+          placeholder={
+            isDraft ? "Title (optional for draft)" : "Enter blog title"
+          }
         />
-        {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+        {errors.title && (
+          <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+        )}
       </div>
 
       <div className="mb-4">
@@ -246,14 +352,18 @@ const BlogForm = (props) => {
           onChange={(e) => setCategory(e.target.value)}
           className="border w-full p-2 rounded"
         >
-          <option value="">Select Category</option>
+          <option value="">
+            {isDraft ? "Select Category (optional)" : "Select Category"}
+          </option>
           {categories.map((cat) => (
             <option key={cat.idCode} value={cat.ddValue}>
               {cat.ddValue}
             </option>
           ))}
         </select>
-        {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
+        {errors.category && (
+          <p className="text-red-500 text-sm mt-1">{errors.category}</p>
+        )}
       </div>
 
       <div className="mb-4">
@@ -263,9 +373,17 @@ const BlogForm = (props) => {
           value={content}
           onChange={(newContent) => setContent(newContent)}
           className="border rounded min-h-[300px]"
+          placeholder={
+            isDraft
+              ? "Start writing your blog content..."
+              : "Write your blog content..."
+          }
         />
-        {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
+        {errors.content && (
+          <p className="text-red-500 text-sm mt-1">{errors.content}</p>
+        )}
       </div>
+
       <div className="mb-4 flex items-center">
         <input
           type="checkbox"
@@ -278,10 +396,12 @@ const BlogForm = (props) => {
           Allow others to repost my blog
         </label>
       </div>
+
       <div className="mb-4 relative pt-10">
         <label className="block text-sm font-medium mb-2">Upload Image</label>
         <div className="text-xs text-gray-500 mb-2">
-          Max size: 200KB | Formats: .jpeg, .png
+          Max size: 200KB | Formats: .jpeg, .png{" "}
+          {isDraft && "| Optional for draft"}
         </div>
         <input
           type="file"
@@ -289,26 +409,90 @@ const BlogForm = (props) => {
           onChange={handleImageChange}
           className="border w-full p-2 rounded"
         />
+
+        {/* Show existing or selected image */}
+        {(existingImage || selectedImage) && (
+          <div className="mt-3">
+            <p className="text-sm text-green-600 mb-2">
+              {selectedImage ? "New image selected" : "Current image"}
+            </p>
+            <div className="flex items-center gap-3">
+              <img
+                src={selectedImage || existingImage}
+                alt="Blog"
+                className="h-20 w-20 object-cover rounded border"
+              />
+              <button
+                type="button"
+                onClick={removeImage}
+                className="text-red-500 text-sm hover:text-red-700"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        )}
+
         {errors.image && (
           <p className="text-red-500 text-sm mt-1">{errors.image}</p>
         )}
       </div>
 
+      {errors.general && (
+        <p className="text-red-500 text-sm mb-4">{errors.general}</p>
+      )}
+
       <div className="flex justify-between mt-6">
-        <button
-          type="button"
-          onClick={resetForm}
-          className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-          disabled={loading || isCheckingToxicity}
-        >
-          {isCheckingToxicity ? "Checking content..." : loading ? "Submitting..." : "Submit"}
-        </button>
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="isDraft"
+            checked={isDraft}
+            onChange={(e) => setIsDraft(e.target.checked)}
+            className="mr-2"
+          />
+          <label
+            htmlFor="isDraft"
+            className="text-sm font-medium text-gray-700"
+          >
+            Save as draft
+          </label>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className={`px-4 py-2 rounded-md transition ${
+              isDraft
+                ? "bg-yellow-500 text-white hover:bg-yellow-600"
+                : "bg-blue-500 text-white hover:bg-blue-600"
+            }`}
+            disabled={loading || isCheckingToxicity}
+          >
+            {isCheckingToxicity
+              ? "Checking content..."
+              : loading
+              ? isEditing
+                ? "Updating..."
+                : isDraft
+                ? "Saving..."
+                : "Submitting..."
+              : isEditing
+              ? isDraft
+                ? "Update Draft"
+                : "Update Blog"
+              : isDraft
+              ? "Save Draft"
+              : "Submit Blog"}
+          </button>
+        </div>
       </div>
     </form>
   );

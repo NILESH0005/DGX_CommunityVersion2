@@ -149,10 +149,31 @@ const UnitsWithFiles = () => {
         console.log("reessspoonnseee", quizzesResponse);
 
         if (unitsResponse?.success) {
-          setAllUnits(unitsResponse.data);
-          const filtered = unitsResponse.data.filter((unit) => {
-            return String(unit.SubModuleID) === String(subModuleId);
+          const unitsWithTotalTime = unitsResponse.data.map((unit) => {
+            const files = unit.files.map((file) => {
+              const totalTimeSpent =
+                file.UserLmsProgresses?.reduce(
+                  (acc, progress) => acc + (progress.TimeSpentSeconds || 0),
+                  0
+                ) || 0;
+
+              return {
+                ...file,
+                totalTimeSpent,
+              };
+            });
+
+            return {
+              ...unit,
+              files,
+            };
           });
+
+          setAllUnits(unitsWithTotalTime);
+
+          const filtered = unitsWithTotalTime.filter(
+            (unit) => String(unit.SubModuleID) === String(subModuleId)
+          );
           setFilteredUnits(filtered);
 
           // Auto-expand first unit on load
@@ -712,12 +733,24 @@ const UnitsWithFiles = () => {
                               <div className="flex flex-col items-end flex-shrink-0 ml-2">
                                 <div className="flex items-center space-x-1 text-xs text-gray-500">
                                   <FiClock className="w-3 h-3" />
-                                  <span>{file.EstimatedTime}m</span>
+                                  <span>
+                                    {Math.floor(file.totalTimeSpent / 60)}m /{" "}
+                                    {file.EstimatedTime}m
+                                  </span>
                                 </div>
                                 <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden mt-1">
                                   <div
                                     className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-500"
-                                    style={{ width: `${percentageSpent}%` }}
+                                    style={{
+                                      width: `${Math.min(
+                                        100,
+                                        Math.floor(
+                                          (file.totalTimeSpent /
+                                            (file.EstimatedTime * 60)) *
+                                            100
+                                        )
+                                      )}%`,
+                                    }}
                                   ></div>
                                 </div>
                               </div>

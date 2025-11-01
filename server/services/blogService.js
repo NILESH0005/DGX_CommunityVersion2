@@ -113,22 +113,27 @@ export const createBlogPost = async (userEmail, blogData) => {
       };
     }
 
-    let status = "Pending";
+    let status = "Draft"; // Default to draft
     let approvedBy = null;
     let approvedOn = null;
 
-    // If admin user, auto approve
-    if (user.isAdmin === 1) {
-      status = "Approved";
-      approvedBy = user.Name;
-      approvedOn = new Date();
+    // If not a draft, handle normal publishing flow
+    if (!blogData.isDraft) {
+      status = "Pending";
+
+      // If admin user and not draft, auto approve
+      if (user.isAdmin === 1) {
+        status = "Approved";
+        approvedBy = user.Name;
+        approvedOn = new Date();
+      }
     }
 
     let repostUserId = null;
     let repostId = null;
 
-    // ✅ Repost check
-    if (blogData.repostId && blogData.repostId !== 0) {
+    // ✅ Repost check (only for published posts, not drafts)
+    if (!blogData.isDraft && blogData.repostId && blogData.repostId !== 0) {
       const originalBlog = await Blog.findOne({
         where: { BlogID: blogData.repostId, delStatus: 0 },
         attributes: ["UserID", "Status", "ApprovedBy", "ApprovedOn"],
@@ -143,7 +148,7 @@ export const createBlogPost = async (userEmail, blogData) => {
           where: {
             RepostUserID: repostUserId,
             RepostID: repostId,
-            UserID: user.UserID, // current user reposting
+            UserID: user.UserID,
             delStatus: 0,
           },
         });
@@ -167,7 +172,6 @@ export const createBlogPost = async (userEmail, blogData) => {
         }
       }
     }
-    
 
     // ✅ Create the blog or repost
     const blogPost = await Blog.create({
@@ -176,7 +180,7 @@ export const createBlogPost = async (userEmail, blogData) => {
       content: blogData.content ?? null,
       image: blogData.image ?? null,
       Category: blogData.category ?? null,
-      publishedDate: blogData.publishedDate ?? null,
+      publishedDate: blogData.isDraft ? null : new Date(), // Only set published date for non-drafts
       AuthAdd: user.Name,
       AddOnDt: new Date(),
       delStatus: 0,
@@ -188,16 +192,25 @@ export const createBlogPost = async (userEmail, blogData) => {
       RepostID: repostId,
       RepostUserID: repostUserId,
       allowRepost: blogData.allowRepost ?? false,
+      isDraft: blogData.isDraft ?? true, // Default to true for safety
     });
 
-    logInfo("Blog posted successfully!");
+    const message = blogData.isDraft
+      ? "Blog saved as draft successfully!"
+      : "Blog posted successfully!";
+
+    logInfo(message);
 
     return {
       status: 200,
       response: {
         success: true,
-        data: { postId: blogPost.BlogID, status },
-        message: "Blog posted successfully!",
+        data: {
+          postId: blogPost.BlogID,
+          status,
+          isDraft: blogData.isDraft,
+        },
+        message: message,
       },
     };
   } catch (error) {
@@ -231,7 +244,7 @@ export const getBlogService = async (userEmail) => {
     where: {
       UserID: user.UserID,
       delStatus: { [Op.or]: [0, null] },
-      [Op.or]: [{ RepostID: null }, { RepostID: 0 }], 
+      [Op.or]: [{ RepostID: null }, { RepostID: 0 }],
     },
   });
 
@@ -248,8 +261,8 @@ export const getBlogService = async (userEmail) => {
       ...(isAdmin
         ? {}
         : {
-          [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
-        }),
+            [Op.or]: [{ UserID: user.UserID }, { Status: "Approved" }],
+          }),
     },
     order: [["AddOnDt", "DESC"]],
     attributes: [
@@ -279,7 +292,6 @@ export const getBlogService = async (userEmail) => {
   };
 };
 
-
 export const getUserBlogsService = async (userEmail) => {
   try {
     // Step 1: Find user by EmailId
@@ -299,16 +311,23 @@ export const getUserBlogsService = async (userEmail) => {
       where: {
         UserID: user.UserID,
         delStatus: { [Op.or]: [0, null] },
-        Status: { [Op.in]: ["Pending", "Rejected", "Approved"] },
+        [Op.or]: [
+          { Status: { [Op.in]: ["Pending", "Rejected", "Approved"] } },
+          { isDraft: true },
+        ],
       },
     });
 
-    // Step 3: Fetch all blogs for this user
+    // Fetch blogs
+    // Fetch blogs
     const blogs = await CommunityBlog.findAll({
       where: {
         UserID: user.UserID,
         delStatus: { [Op.or]: [0, null] },
-        Status: { [Op.in]: ["Pending", "Rejected", "Approved"] },
+        [Op.or]: [
+          { Status: { [Op.in]: ["Pending", "Rejected", "Approved"] } },
+          { isDraft: true },
+        ],
       },
       order: [["AddOnDt", "DESC"]],
       attributes: [
@@ -326,6 +345,7 @@ export const getUserBlogsService = async (userEmail) => {
         "Status",
         "AdminRemark",
         "allowRepost",
+        "isDraft",
       ],
       raw: true,
     });
@@ -469,16 +489,16 @@ export const getPublicBlogsService = async () => {
   }
 
   // Step 2: Separate originals and reposts
-  const originals = allBlogs.filter(b => !b.RepostID);
-  const reposts = allBlogs.filter(b => b.RepostID);
+  const originals = allBlogs.filter((b) => !b.RepostID);
+  const reposts = allBlogs.filter((b) => b.RepostID);
 
   // Step 3: Group reposts under their parent (original) blog
-  const finalData = originals.map(original => {
+  const finalData = originals.map((original) => {
     const o = original.toJSON();
 
     const relatedReposts = reposts
-      .filter(r => r.RepostID === o.BlogID)
-      .map(r => ({
+      .filter((r) => r.RepostID === o.BlogID)
+      .map((r) => ({
         BlogID: r.BlogID,
         RepostID: r.RepostID,
         RepostUserID: r.RepostUserID,
@@ -497,7 +517,7 @@ export const getPublicBlogsService = async () => {
   });
 
   // Step 4: Ensure we also include standalone posts with no reposts
-  const finalResult = finalData.map(item => ({
+  const finalResult = finalData.map((item) => ({
     ...item,
     reposts: item.reposts || [],
   }));
@@ -508,8 +528,6 @@ export const getPublicBlogsService = async () => {
     message: "Public blogs fetched successfully",
   };
 };
-
-
 
 export const updateBlogService = async (blogId, user, data) => {
   const { CommunityBlog } = db;
@@ -591,8 +609,9 @@ export const updateBlogService = async (blogId, user, data) => {
   return {
     success: true,
     status: 200,
-    message: `Blog ${data.Status ? data.Status + "d" : "updated"
-      } successfully!`,
+    message: `Blog ${
+      data.Status ? data.Status + "d" : "updated"
+    } successfully!`,
     data: { blogId },
   };
 };
@@ -685,10 +704,10 @@ export const handleBlogLikeAction = async (user, postData) => {
     // Check if an interaction already exists for this user & blog
     let interaction = await ContentInteraction.findOne({
       where: {
-        ProcessName: 'Blog',
+        ProcessName: "Blog",
         UserID: user.UserID,
         reference: blogId,
-        delStatus: 0
+        delStatus: 0,
       },
     });
 
@@ -727,7 +746,7 @@ export const handleBlogLikeAction = async (user, postData) => {
 
     // Create new interaction if it doesn't exist
     const newInteraction = await ContentInteraction.create({
-      ProcessName: 'Blog',
+      ProcessName: "Blog",
       UserID: user.UserID,
       reference: blogId,
       Likes: intendedLikeStatus,
@@ -740,7 +759,7 @@ export const handleBlogLikeAction = async (user, postData) => {
       delOnDt: null,
       AddOnDt: currentDate,
       editOnDt: null, // null on initial creation
-      delStatus: 0
+      delStatus: 0,
     });
 
     return {
@@ -772,10 +791,10 @@ export const handleBlogRateAction = async (user, postData) => {
 
     let interaction = await ContentInteraction.findOne({
       where: {
-        ProcessName: 'Blog',
+        ProcessName: "Blog",
         UserID: user.UserID,
         reference: blogId,
-        delStatus: 0
+        delStatus: 0,
       },
     });
 
@@ -805,7 +824,7 @@ export const handleBlogRateAction = async (user, postData) => {
     }
 
     const newInteraction = await ContentInteraction.create({
-      ProcessName: 'Blog',
+      ProcessName: "Blog",
       UserID: user.UserID,
       reference: blogId,
       Likes: 0,
@@ -818,7 +837,7 @@ export const handleBlogRateAction = async (user, postData) => {
       delOnDt: null,
       AddOnDt: currentDate,
       editOnDt: null,
-      delStatus: 0
+      delStatus: 0,
     });
 
     return {
@@ -846,10 +865,10 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
 
     let interaction = await ContentInteraction.findOne({
       where: {
-        ProcessName: 'Blog',
+        ProcessName: "Blog",
         UserID: user.UserID,
         reference: blogId,
-        delStatus: 0
+        delStatus: 0,
       },
     });
 
@@ -887,7 +906,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
     }
 
     const newInteraction = await ContentInteraction.create({
-      ProcessName: 'Blog',
+      ProcessName: "Blog",
       UserID: user.UserID,
       reference: blogId,
       Likes: likeValue || 0,
@@ -900,7 +919,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
       delOnDt: null,
       AddOnDt: currentDate,
       editOnDt: null,
-      delStatus: 0
+      delStatus: 0,
     });
 
     return {
@@ -922,11 +941,11 @@ export const getUserBlogInteractionService = async (userId, blogId) => {
   try {
     const interaction = await ContentInteraction.findOne({
       where: {
-        ProcessName: 'Blog',
+        ProcessName: "Blog",
         reference: blogId,
         UserID: userId,
-        delStatus: 0
-      }
+        delStatus: 0,
+      },
     });
 
     // Return user's interaction data
@@ -935,15 +954,15 @@ export const getUserBlogInteractionService = async (userId, blogId) => {
       data: {
         hasLiked: interaction?.Likes === 1,
         userRating: interaction?.Rating || 0,
-        likeCount: interaction?.Likes || 0
-      }
+        likeCount: interaction?.Likes || 0,
+      },
     };
   } catch (error) {
     console.error("Error in getUserBlogInteractionService:", error);
     return {
       success: false,
       data: null,
-      message: error.message
+      message: error.message,
     };
   }
 };
@@ -953,7 +972,7 @@ export const getBlogStatsService = async (blogId) => {
     if (!blogId) {
       return {
         success: false,
-        message: "Blog ID is required"
+        message: "Blog ID is required",
       };
     }
 
@@ -963,26 +982,26 @@ export const getBlogStatsService = async (blogId) => {
     // Get total likes count
     const totalLikes = await ContentInteraction.count({
       where: {
-        ProcessName: 'Blog',
+        ProcessName: "Blog",
         reference: blogId,
         Likes: 1,
-        delStatus: 0
-      }
+        delStatus: 0,
+      },
     });
 
     // Get average rating - FIXED: Use model's sequelize instance
     const ratingData = await ContentInteraction.findOne({
       where: {
-        ProcessName: 'Blog',
+        ProcessName: "Blog",
         reference: blogId,
         Rating: { [Op.gt]: 0 },
-        delStatus: 0
+        delStatus: 0,
       },
       attributes: [
-        [sequelize.fn('COUNT', sequelize.col('Rating')), 'totalRatings'], // ✅ Fixed
-        [sequelize.fn('AVG', sequelize.col('Rating')), 'averageRating']   // ✅ Fixed
+        [sequelize.fn("COUNT", sequelize.col("Rating")), "totalRatings"], // ✅ Fixed
+        [sequelize.fn("AVG", sequelize.col("Rating")), "averageRating"], // ✅ Fixed
       ],
-      raw: true
+      raw: true,
     });
 
     const totalRatings = parseInt(ratingData?.totalRatings) || 0;
@@ -994,19 +1013,83 @@ export const getBlogStatsService = async (blogId) => {
         totalLikes,
         totalRatings,
         averageRating: Math.round(averageRating * 10) / 10,
-        blogId: parseInt(blogId)
-      }
+        blogId: parseInt(blogId),
+      },
     };
   } catch (error) {
     console.error("Error in getBlogStatsService:", error);
     return {
       success: false,
-      message: error.message || "Failed to fetch blog stats"
+      message: error.message || "Failed to fetch blog stats",
     };
   }
 };
 
+export const userEditBlogPost = async (blogId, userId, blogData) => {
+  try {
+    const blog = await Community_Blog.findOne({
+      where: { BlogID: blogId, UserID: userId },
+    });
 
+    if (!blog) {
+      return {
+        status: 404,
+        response: {
+          success: false,
+          message: "Blog not found or not authorized",
+        },
+      };
+    }
 
+    // Update only allowed fields
+    const updatedFields = {
+      title: blogData.title,
+      content: blogData.content,
+      image: blogData.image,
+      Category: blogData.category,
+      allowRepost: blogData.allowRepost,
+      isDraft: blogData.isDraft,
+      Status: blogData.Status,
+      ApprovedBy: blogData.ApprovedBy || blog.ApprovedBy,
+      ApprovedOn: blogData.ApprovedOn || blog.ApprovedOn,
+      editOnDt: new Date(), // mark edited date
+      AuthLstEdt: userId.toString(), // or user email/name if needed
+    };
 
+    await blog.update(updatedFields);
 
+    return {
+      status: 200,
+      response: {
+        success: true,
+        message: "Blog updated successfully",
+        data: blog,
+      },
+    };
+  } catch (err) {
+    console.error("Error updating blog:", err);
+    return {
+      status: 500,
+      response: { success: false, message: "Unexpected error occurred" },
+    };
+  }
+};
+
+export const softDeleteBlogService = async (blogId) => {
+  if (!blogId) {
+    throw new Error("Blog ID required");
+  }
+
+  // Use the instantiated model
+  const blog = await CommunityBlog.findOne({ where: { BlogID: blogId } });
+  if (!blog) {
+    throw new Error("Blog not found");
+  }
+
+  await blog.update({
+    delStatus: 1,
+    delOnDt: new Date(),
+  });
+
+  return blog;
+};

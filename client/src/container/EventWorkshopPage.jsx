@@ -133,7 +133,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                Event Details 
+                Event Details
               </motion.h2>
               <motion.button
                 onClick={onClose}
@@ -192,10 +192,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                     <div>
                       <p className="font-semibold">Date & Time</p>
                       <p>
-                        {moment
-                          .utc(event.StartDate)
-                          .format("MMMM D, YYYY h:mm A")}{" "}
-                        - {moment.utc(event.EndDate).format("h:mm A")}
+                        {moment(event.StartDate).format("MMMM D, YYYY h:mm A")}
                       </p>
                     </div>
                   </motion.div>
@@ -291,7 +288,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
   }, []);
 
   const handleMoreInfoClick = (event) => {
-    // Fixed parameter name from events to event
     if (!userToken) {
       Swal.fire({
         icon: "warning",
@@ -331,14 +327,14 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch (error) { }
+      } catch (error) {}
     } else if (navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(
           `${shareData.text} - ${shareData.url}`
         );
         alert("Link copied to clipboard!");
-      } catch (error) { }
+      } catch (error) {}
     } else {
       alert("Sharing is not supported on this browser.");
     }
@@ -374,35 +370,10 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     setIsModalOpen(false);
   };
 
-  // useEffect(() => {
-  //   if (events && events.length > 0) {
-  //     setIsLoading(false);
-  //   } else {
-  //     // If no events are passed via props, fetch them directly
-  //     const fetchEventsDirectly = async () => {
-  //       try {
-  //         const endpoint = "eventandworkshop/getEvent";
-  //         const eventData = await fetchData(endpoint);
-  //         console.log("Directly fetched events:", eventData);
-  //         if (eventData && eventData.data) {
-  //           setEvents(eventData.data); // Update parent state
-  //           setIsLoading(false);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error fetching events:", error);
-  //         setIsLoading(false);
-  //       }
-  //     };
-
-  //     fetchEventsDirectly();
-  //   }
-  // }, [events, fetchData, setEvents]);
-
   const approvedEvents = events
     ? events.filter((event) => event.Status === "Approved")
     : [];
 
-  const currentDate = new Date().toISOString();
   const upcomingEvents = approvedEvents.filter((event) => {
     try {
       const eventStartDate = new Date(event.StartDate);
@@ -468,7 +439,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
         </div>
       </motion.section>
 
-      {/* Upcoming Events Section */}
       <section className="py-10 px-4 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <motion.div
@@ -635,7 +605,9 @@ const EventWorkshopPage = ({ events, setEvents }) => {
             Browse all our events in an interactive calendar
           </motion.p>
         </div>
-        <GeneralUserCalendar events={events} />
+        <GeneralUserCalendar
+          events={events}
+        />
       </motion.section>
 
       {/* Past Events Section */}

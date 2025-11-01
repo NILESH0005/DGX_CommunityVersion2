@@ -24,8 +24,8 @@ export default (sequelize, DataTypes) => {
     RepostUserID: { type: DataTypes.INTEGER, allowNull: true },
     allowRepost: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     Likes: { type: DataTypes.INTEGER, allowNull: true }, 
-    Reference: { type: DataTypes.INTEGER, allowNull: true }, 
-
+    Reference: { type: DataTypes.INTEGER, allowNull: true },
+    isDraft: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true }, // Add this line
   }, {
     tableName: 'Community_Blog',
     timestamps: false

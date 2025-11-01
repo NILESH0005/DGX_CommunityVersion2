@@ -101,12 +101,43 @@ const Discussion = () => {
     }
   };
 
-  // Fetch stats when component mounts and when discussions change
   useEffect(() => {
     if (demoDiscussions.length > 0) {
-      fetchAndUpdateStats();
+      const highlights = getCommunityHighlights(demoDiscussions);
+      const topUsersList = getTopUsersByDiscussions(demoDiscussions);
+
+      setCommunityHighlights(highlights);
+      setTopUsers(topUsersList);
+
+      console.log("Community Highlights:", highlights);
+      console.log("Top Users:", topUsersList);
+      console.log("All discussions for debugging:", demoDiscussions);
     }
-  }, [demoDiscussions.length]);
+  }, [demoDiscussions]);
+
+  const recordDiscussionView = async (discussionID) => {
+    if (!userToken) return;
+
+    const endpoint = "progressTrack/recordView";
+    const method = "POST";
+    const body = {
+      ProcessName: "Discussion",
+      reference: discussionID,
+    };
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
+    };
+
+    try {
+      const result = await fetchData(endpoint, method, body, headers);
+      console.log("record discussion", result);
+
+      console.log("📊 Discussion view recorded:", result);
+    } catch (error) {
+      console.error("❌ Error recording discussion view:", error);
+    }
+  };
 
   const validateToxicity = async () => {
     setIsCheckingToxicity(true);
@@ -239,8 +270,11 @@ const Discussion = () => {
   const [userReposts, setUserReposts] = useState(new Set());
 
   const getCommunityHighlights = (discussions) => {
+    // Use commentCount for sorting if available, otherwise fall back to comments
     const sortedDiscussions = discussions.sort(
-      (a, b) => (b.comments || 0) - (a.comments || 0)
+      (a, b) =>
+        (b.commentCount || b.comments || 0) -
+        (a.commentCount || a.comments || 0)
     );
     return sortedDiscussions.slice(0, 5);
   };
@@ -251,17 +285,25 @@ const Discussion = () => {
     const userMap = {};
 
     discussions.forEach((discussion) => {
-      const userID = discussion.UserID;
-      const userName = discussion.UserName || "Anonymous"; // Changed from AuthAdd to UserName
+      // Try multiple possible property names for user ID and name
+      const userID =
+        discussion.UserID || discussion.userId || discussion.AuthorID;
+      const userName =
+        discussion.UserName ||
+        discussion.userName ||
+        discussion.AuthorName ||
+        "Anonymous";
 
-      if (!userMap[userID]) {
-        userMap[userID] = {
-          userID,
-          userName,
-          count: 1,
-        };
-      } else {
-        userMap[userID].count += 1;
+      if (userID) {
+        if (!userMap[userID]) {
+          userMap[userID] = {
+            userID,
+            userName,
+            count: 1,
+          };
+        } else {
+          userMap[userID].count += 1;
+        }
       }
     });
 
@@ -269,6 +311,7 @@ const Discussion = () => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    console.log("Processed top users:", sortedUsers);
     return sortedUsers;
   };
 
@@ -1719,13 +1762,14 @@ const Discussion = () => {
                   <div
                     key={i}
                     className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer focus-within:z-10 hover:z-10 relative overflow-hidden"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       if (
                         !e.target.closest("a") &&
                         !e.target.closest("button") &&
                         !e.target.classList.contains("text-blue-700")
                       ) {
                         openModal(discussion);
+                        await recordDiscussionView(discussion.DiscussionID);
                       }
                     }}
                   >
@@ -1917,6 +1961,7 @@ const Discussion = () => {
                                 <AiOutlineLike className="w-5 h-5" />
                               )}
                             </div>
+
                             <span
                               className={`font-semibold transition-all duration-300 ${
                                 discussion.userLike === 1
@@ -2069,51 +2114,67 @@ const Discussion = () => {
             <aside className="mt-4 px-4">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold mb-4">
-                  Community Highlights
+                  Community Highlightsss
                 </h2>
                 <div className="space-y-4">
-                  {communityHighlights.map((topic, index) => (
-                    <div
-                      key={topic.DiscussionID}
-                      className="rounded-lg shadow-lg p-4 border border-DGXblack hover:bg-DGXgreen/50 transition-transform transform hover:scale-105 hover:shadow-xl"
-                      onClick={() => openModal(topic)}
-                    >
-                      <h3 className="text-xl font-semibold">
-                        <a
-                          href={topic.link}
-                          className="text-DGXblack hover:underline"
-                        >
-                          {topic.Title}
-                        </a>
-                      </h3>
-                      <div className="text-DGXblack mt-2">
-                        {topic.Content.length > 150 ? (
-                          <>
+                  {communityHighlights.map((topic) => {
+                    // Format date
+                    const formattedDate = new Date(
+                      topic.Date
+                    ).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    });
+
+                    return (
+                      <div
+                        key={topic.DiscussionID}
+                        className="rounded-lg shadow-lg p-4 border border-DGXblack hover:bg-DGXgreen/50 transition-transform transform hover:scale-105 hover:shadow-xl"
+                        onClick={() => openModal(topic)}
+                      >
+                        <h3 className="text-xl font-semibold">
+                          <a
+                            href={topic.link}
+                            className="text-DGXblack hover:underline"
+                          >
+                            {topic.Title}
+                          </a>
+                        </h3>
+
+                        <div className="text-gray-500 text-sm mt-1">
+                          {formattedDate}
+                        </div>
+
+                        <div className="text-DGXblack mt-2">
+                          {topic.Content.length > 150 ? (
+                            <>
+                              <div
+                                dangerouslySetInnerHTML={{
+                                  __html: topic.Content.substring(0, 147),
+                                }}
+                              />
+                              <span
+                                className="text-blue-700 cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openModal(topic);
+                                }}
+                              >
+                                ...see more
+                              </span>
+                            </>
+                          ) : (
                             <div
                               dangerouslySetInnerHTML={{
-                                __html: topic.Content.substring(0, 147),
+                                __html: topic.Content,
                               }}
                             />
-                            <span
-                              className="text-blue-700 cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openModal(topic);
-                              }}
-                            >
-                              ...see more
-                            </span>
-                          </>
-                        ) : (
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: topic.Content,
-                            }}
-                          />
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

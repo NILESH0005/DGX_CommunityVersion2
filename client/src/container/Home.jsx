@@ -193,6 +193,8 @@ const Home = () => {
           { "Content-Type": "application/json" }
         );
 
+        console.log("hoem page discussion", response)
+
         if (response?.success) {
           setHomeData(response.data);
         } else {
@@ -209,7 +211,6 @@ const Home = () => {
         setLoading(false);
       }
     };
-
     fetchHomeData();
   }, [fetchData]);
 
