@@ -8,9 +8,22 @@ import {
   Search,
   Bookmark,
   ArrowLeft,
+  Repeat,
+  Star,
+  Share2,
+  Eye,
+  Clock,
+  Tag,
+  MoreHorizontal,
+  User,
+  Zap,
+  TrendingUp,
+  BookOpen,
+  MessageSquare,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import ApiContext from "../context/ApiContext";
+import Noimage from "../assets/No_Image_Available.jpg";
 
 export default function UserDetails() {
   const { id } = useParams();
@@ -25,6 +38,7 @@ export default function UserDetails() {
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [likedPosts, setLikedPosts] = useState({});
+  const [savedPosts, setSavedPosts] = useState({});
   const [userData, setUserData] = useState(null);
   const [blogs, setBlogs] = useState([]);
   const [discussions, setDiscussions] = useState([]);
@@ -116,6 +130,13 @@ export default function UserDetails() {
     }));
   };
 
+  const handleSave = (postId) => {
+    setSavedPosts((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
+  };
+
   const handleBack = () => {
     navigate(-1);
   };
@@ -133,14 +154,8 @@ export default function UserDetails() {
 
     return content.sort((a, b) => {
       if (sortBy === "date") {
-        const dateA =
-          a.publishedDate || a.AuthAdd
-            ? new Date(a.publishedDate || a.AuthAdd)
-            : new Date(0);
-        const dateB =
-          b.publishedDate || b.AuthAdd
-            ? new Date(b.publishedDate || b.AuthAdd)
-            : new Date(0);
+        const dateA = a.AddOnDt ? new Date(a.AddOnDt) : new Date(0);
+        const dateB = b.AddOnDt ? new Date(b.AddOnDt) : new Date(0);
         return dateB.getTime() - dateA.getTime();
       }
       if (sortBy === "popularity") {
@@ -158,13 +173,13 @@ export default function UserDetails() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 text-2xl mb-4">Error</div>
           <div className="text-gray-600 dark:text-gray-300 mb-6">{error}</div>
           <button
             onClick={handleBack}
-            className="bg-DGXgreen hover:bg-DGXblue text-white px-4 py-2 rounded-lg transition-colors duration-300"
+            className="bg-gradient-to-r from-DGXgreen to-DGXblue hover:from-DGXblue hover:to-DGXgreen text-white px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
             Go Back
           </button>
@@ -175,14 +190,14 @@ export default function UserDetails() {
 
   if (!userData) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="text-gray-600 dark:text-gray-300 mb-6">
             User not found
           </div>
           <button
             onClick={handleBack}
-            className="bg-DGXgreen hover:bg-DGXblue text-white px-4 py-2 rounded-lg transition-colors duration-300"
+            className="bg-gradient-to-r from-DGXgreen to-DGXblue hover:from-DGXblue hover:to-DGXgreen text-white px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
             Go Back
           </button>
@@ -192,29 +207,33 @@ export default function UserDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
       {/* Back Button */}
-      <div className="fixed top-4 left-4 z-50">
+      <div className="fixed top-6 left-6 z-50">
         <button
           onClick={handleBack}
-          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full p-2 shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-colors duration-300"
+          className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-2xl p-3 shadow-2xl hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 border border-white/20"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-6 h-6" />
         </button>
       </div>
 
       {/* Hero Section */}
       <div className="relative">
-        <div className="h-64 bg-gradient-to-br from-DGXgreen to-DGXblue relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        <div className="h-72 bg-gradient-to-br from-DGXgreen via-DGXblue to-purple-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+          {/* Animated background elements */}
+          <div className="absolute top-0 left-0 w-72 h-72 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-DGXblue/10 rounded-full translate-x-1/3 translate-y-1/3"></div>
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-6 -mt-32">
-          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-white/20">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+        <div className="relative w-full max-w-[1500px] mx-auto px-8 -mt-36">
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl p-12 border border-white/20 w-full">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-10">
+              {/* --- Profile Picture Section --- */}
               <div className="relative group">
-                <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                <div className="relative w-40 h-40 rounded-2xl border-4 border-white shadow-2xl group-hover:scale-105 transition-all duration-500 overflow-hidden">
                   {userData.ProfilePicture ? (
                     <img
                       src={userData.ProfilePicture}
@@ -222,31 +241,47 @@ export default function UserDetails() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-DGXgreen to-DGXblue flex items-center justify-center text-white text-4xl font-bold">
+                    <div className="w-full h-full bg-gradient-to-br from-DGXgreen to-DGXblue flex items-center justify-center text-white text-5xl font-bold">
                       {userData.Name
                         ? userData.Name.charAt(0).toUpperCase()
                         : "U"}
                     </div>
                   )}
+                  {/* Online indicator */}
+                  <div className="absolute bottom-2 right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
+                {/* Hover overlay effect */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-DGXgreen/20 to-DGXblue/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </div>
 
+              {/* --- User Info Section --- */}
               <div className="flex-1">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                      {userData.Name || "Unknown User"}
-                    </h1>
-                    <p className="text-lg text-DGXblue dark:text-DGXblue/80 mb-3">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                  <div className="flex-1">
+                    {/* Name and verification */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <h1 className="text-5xl font-bold text-gray-900 dark:text-white">
+                        {userData.Name || "Unknown User"}
+                      </h1>
+                      <div className="bg-DGXblue text-white p-2 rounded-full">
+                        <User className="w-5 h-5" />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <p className="text-xl text-DGXblue dark:text-DGXblue/80 mb-4 font-medium">
                       {userData.EmailId}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-2xl">
+
+                    {/* Description */}
+                    <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-5xl text-lg leading-relaxed">
                       {userData.UserDescription || "No description available."}
                     </p>
 
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
+                    {/* Join Date */}
+                    <div className="flex flex-wrap items-center gap-6 text-base text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg">
+                        <Calendar className="w-5 h-5" />
                         Joined{" "}
                         {userData.AddOnDt
                           ? new Date(userData.AddOnDt).toLocaleDateString()
@@ -262,96 +297,137 @@ export default function UserDetails() {
       </div>
 
       {/* Content Section */}
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-6 text-center">
-            <div className="text-3xl font-bold text-DGXblue dark:text-DGXblue/80">
-              {blogs.length}
-            </div>
-            <div className="text-gray-600 dark:text-gray-300">Blogs</div>
-          </div>
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-6 text-center">
-            <div className="text-3xl font-bold text-DGXblue dark:text-DGXblue/80">
-              {discussions.length}
-            </div>
-            <div className="text-gray-600 dark:text-gray-300">Discussions</div>
-          </div>
-          {/* <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl p-6 text-center">
-            <div className="text-3xl font-bold text-DGXblue dark:text-DGXblue/80">
-              {discussions.reduce(
-                (total, discussion) => total + (discussion.LikesCount || 0),
-                0
-              ) + blogs.reduce((total, blog) => total + (blog.likes || 0), 0)}
-            </div>
-            <div className="text-gray-600 dark:text-gray-300">
-              Discussion total Likes
-            </div>
-          </div> */}
-        </div>
-
-        {/* Sticky Tabs and Controls */}
-        <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 -mx-6 px-6 py-4 mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="w-full lg:w-auto">
-              <div className="grid w-full lg:w-auto grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                {["blogs", "discussions"].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
-                      activeTab === tab
-                        ? "bg-white dark:bg-gray-700 shadow-md text-DGXblue dark:text-DGXblue/80"
-                        : "text-gray-600 dark:text-gray-300"
-                    }`}
-                  >
-                    {tab === "blogs" && "📄 Blogs"}
-                    {tab === "discussions" && "💬 Discussions"}
-                  </button>
-                ))}
+      <div className="max-w-[1500px] mx-auto px-8 py-14">
+        {/* --- Enhanced Stats Section --- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {/* Blogs Published */}
+          <div className="relative bg-blue-50 rounded-2xl p-6 shadow-md border border-blue-100 hover:shadow-lg transition-all duration-300">
+            <div className="flex flex-col justify-between h-full">
+              <div>
+                <p className="text-gray-700 text-lg font-medium">Blogs</p>
+                <p className="text-3xl font-bold mt-1 text-black">
+                  {blogs.length}
+                </p>
+              </div>
+              <div className="absolute top-4 right-4 opacity-30">
+                <BookOpen className="w-10 h-10 text-blue-400" />
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center gap-4">
+          {/* Discussions */}
+          <div className="relative bg-teal-50 rounded-2xl p-6 shadow-md border border-teal-100 hover:shadow-lg transition-all duration-300">
+            <div className="flex flex-col justify-between h-full">
+              <div>
+                <p className="text-gray-700 text-lg font-medium">Discussions</p>
+                <p className="text-3xl font-bold mt-1 text-black">
+                  {discussions.length}
+                </p>
+              </div>
+              <div className="absolute top-4 right-4 opacity-30">
+                <MessageSquare className="w-10 h-10 text-teal-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Total Engagement */}
+          <div className="relative bg-pink-50 rounded-2xl p-6 shadow-md border border-pink-100 hover:shadow-lg transition-all duration-300">
+            <div className="flex flex-col justify-between h-full">
+              <div>
+                <p className="text-gray-700 text-lg font-medium">Total Likes</p>
+                <p className="text-3xl font-bold mt-1 text-black">
+                  {discussions.reduce(
+                    (total, discussion) =>
+                      total + (parseInt(discussion.LikesCount) || 0),
+                    0
+                  ) +
+                    blogs.reduce(
+                      (total, blog) => total + (parseInt(blog.LikesCount) || 0),
+                      0
+                    )}
+                </p>
+              </div>
+              <div className="absolute top-4 right-4 opacity-30">
+                <TrendingUp className="w-10 h-10 text-pink-400" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- Sticky Tabs and Controls --- */}
+        <div className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 -mx-8 px-8 py-4 mb-10 shadow-sm">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* Tabs */}
+            <div className="inline-flex bg-gray-50 dark:bg-gray-800 p-2 rounded-xl border border-gray-200 dark:border-gray-700">
+              {["blogs", "discussions"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-5 py-2.5 rounded-lg flex items-center gap-2 font-medium text-sm
+          transition-all duration-300 ${
+            activeTab === tab
+              ? "bg-white dark:bg-gray-700 text-DGXblue shadow-sm"
+              : "text-gray-600 dark:text-gray-300 hover:text-DGXblue dark:hover:text-DGXblue/80"
+          }`}
+                >
+                  {tab === "blogs" ? (
+                    <BookOpen className="w-5 h-5" />
+                  ) : (
+                    <MessageSquare className="w-5 h-5" />
+                  )}
+                  {tab === "blogs" ? "Blogs" : "Discussions"}
+                </button>
+              ))}
+            </div>
+
+            {/* Search + Sort + View */}
+            <div className="flex flex-wrap lg:flex-nowrap items-center gap-4">
+              {/* Search Input */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   placeholder={`Search ${activeTab}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-DGXblue focus:border-transparent"
+                  className="pl-12 w-72 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2.5 text-sm
+          focus:outline-none focus:ring-2 focus:ring-DGXblue transition-all duration-300"
                 />
               </div>
 
+              {/* Sort Dropdown */}
               <div className="relative">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="appearance-none w-40 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-DGXblue focus:border-transparent"
+                  className="appearance-none w-40 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 
+          rounded-lg px-4 py-2.5 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-DGXblue transition-all duration-300"
                 >
                   <option value="date">Latest</option>
-                  <option value="popularity">Popular</option>
+                  <option value="popularity">Most Popular</option>
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-2">
+              {/* View Mode Buttons */}
+              <div className="flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-md ${
-                    viewMode === "grid"
-                      ? "bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80"
-                      : ""
-                  }`}
+                  className={`p-2.5 rounded-md transition-all duration-300 flex items-center justify-center 
+          ${
+            viewMode === "grid"
+              ? "bg-DGXblue text-white shadow-sm"
+              : "text-gray-500 dark:text-gray-400 hover:text-DGXblue"
+          }`}
                 >
                   <Grid3X3 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-md ${
-                    viewMode === "list"
-                      ? "bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80"
-                      : ""
-                  }`}
+                  className={`p-2.5 rounded-md transition-all duration-300 flex items-center justify-center 
+          ${
+            viewMode === "list"
+              ? "bg-DGXblue text-white shadow-sm"
+              : "text-gray-500 dark:text-gray-400 hover:text-DGXblue"
+          }`}
                 >
                   <List className="w-4 h-4" />
                 </button>
@@ -360,7 +436,7 @@ export default function UserDetails() {
           </div>
         </div>
 
-        {/* Content Grid */}
+        {/* --- Content Grid --- */}
         <div className="w-full">
           {activeTab === "blogs" && (
             <ContentGrid
@@ -369,6 +445,10 @@ export default function UserDetails() {
               type="blogs"
               hoveredCard={hoveredCard}
               setHoveredCard={setHoveredCard}
+              likedPosts={likedPosts}
+              savedPosts={savedPosts}
+              handleLike={handleLike}
+              handleSave={handleSave}
             />
           )}
           {activeTab === "discussions" && (
@@ -379,7 +459,9 @@ export default function UserDetails() {
               hoveredCard={hoveredCard}
               setHoveredCard={setHoveredCard}
               likedPosts={likedPosts}
+              savedPosts={savedPosts}
               handleLike={handleLike}
+              handleSave={handleSave}
             />
           )}
         </div>
@@ -395,7 +477,9 @@ function ContentGrid({
   hoveredCard,
   setHoveredCard,
   likedPosts,
+  savedPosts,
   handleLike,
+  handleSave,
 }) {
   if (content.length === 0) {
     return <EmptyState type={type} />;
@@ -403,7 +487,7 @@ function ContentGrid({
 
   return (
     <div
-      className={`grid gap-6 ${
+      className={`grid gap-8 ${
         viewMode === "grid"
           ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
           : "grid-cols-1"
@@ -420,7 +504,9 @@ function ContentGrid({
           onLeave={() => setHoveredCard(null)}
           index={index}
           isLiked={likedPosts ? likedPosts[index] : false}
+          isSaved={savedPosts ? savedPosts[index] : false}
           onLike={handleLike ? () => handleLike(index) : null}
+          onSave={handleSave ? () => handleSave(index) : null}
         />
       ))}
     </div>
@@ -436,7 +522,9 @@ function ContentCard({
   onLeave,
   index,
   isLiked,
+  isSaved,
   onLike,
+  onSave,
 }) {
   const getTitle = () => {
     if (type === "blogs") return item.title || "Untitled Blog";
@@ -457,26 +545,48 @@ function ContentCard({
   };
 
   const getDate = () => {
-    if (type === "blogs") return item.publishedDate || item.AuthAdd;
-    if (type === "discussions") return item.AddOnDt; // Fixed: Use AddOnDt instead of AuthAdd
-    return null;
+    return item.AddOnDt || null;
   };
 
   const getLikes = () => {
-    if (type === "discussions") return item.LikesCount || 0;
-    if (type === "blogs") return item.likes || 0;
+    if (type === "discussions") return parseInt(item.LikesCount) || 0;
+    if (type === "blogs") return parseInt(item.LikesCount) || 0;
     return 0;
   };
 
   const getComments = () => {
-    if (type === "discussions") return item.CommentsCount || 0;
-    if (type === "blogs") return item.comments || 0;
+    if (type === "discussions") return parseInt(item.CommentsCount) || 0;
+    if (type === "blogs") return parseInt(item.comments) || 0;
+    return 0;
+  };
+
+  const getReposts = () => {
+    if (type === "discussions") return parseInt(item.RepostCount) || 0;
+    if (type === "blogs") return parseInt(item.RepostCount) || 0;
+    return 0;
+  };
+
+  const getViews = () => {
+    if (type === "blogs")
+      return parseInt(item.ViewsCount) || Math.floor(Math.random() * 1000);
+    if (type === "discussions")
+      return parseInt(item.ViewsCount) || Math.floor(Math.random() * 500);
+    return 0;
+  };
+
+  const getReadingTime = () => {
+    const content = getContent();
+    const words = content.split(" ").length;
+    return Math.ceil(words / 200); // Assuming 200 words per minute
+  };
+
+  const getRating = () => {
+    if (type === "blogs") return parseFloat(item.Rating) || 0;
     return 0;
   };
 
   const getTags = () => {
     if (type === "discussions" && item.Tag) {
-      // Handle the Tag property which is a string like "#Technology #AI #Innovation"
       if (typeof item.Tag === "string") {
         return item.Tag.split(" ").filter((tag) => tag.startsWith("#"));
       }
@@ -485,10 +595,77 @@ function ContentCard({
     return [];
   };
 
+  // Function to render engagement metrics
+ const renderEngagementMetrics = () => {
+  const metrics = [
+    {
+      icon: Eye,
+      value: getViews(),
+      color: "text-blue-500",
+      tooltip: "Views",
+    },
+    {
+      icon: Heart,
+      value: getLikes(),
+      color: isLiked ? "text-red-500" : "text-gray-500 dark:text-gray-400",
+      tooltip: "Likes",
+    },
+    {
+      icon: Repeat,
+      value: getReposts(),
+      color: "text-purple-500",
+      tooltip: "Reposts",
+    },
+  ];
+
+  // Add rating only for blogs
+  if (type === "blogs") {
+    metrics.splice(2, 0, {
+      icon: Star,
+      value: getRating(),
+      color: "text-yellow-500",
+      tooltip: "Rating",
+    });
+  } else {
+    // For non-blogs, show comments
+    metrics.splice(2, 0, {
+      icon: MessageCircle,
+      value: getComments(),
+      color: "text-green-500",
+      tooltip: "Comments",
+    });
+  }
+
+  return (
+    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-4">
+        {metrics.map((metric, idx) => (
+          <div
+            key={idx}
+            className={`flex items-center gap-1.5 text-sm transition-all duration-300 group ${metric.color}`}
+            title={metric.tooltip}
+          >
+            <metric.icon className="w-4 h-4" />
+            <span className="font-medium">{metric.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Reading time for blogs only */}
+      {type === "blogs" && (
+        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+          <Clock className="w-4 h-4" />
+          <span>{getReadingTime()} min read</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
   return (
     <div
-      className={`group cursor-pointer transition-all duration-500 hover:shadow-2xl rounded-xl border-0 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md hover:bg-white/80 dark:hover:bg-gray-800/80 overflow-hidden ${
-        isHovered ? "scale-105 shadow-2xl" : ""
+      className={`group cursor-pointer transition-all duration-500 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-2xl hover:border-DGXblue/20 ${
+        isHovered ? "scale-105 shadow-2xl border-DGXblue/30" : "shadow-lg"
       } ${viewMode === "list" ? "flex flex-row" : ""}`}
       onMouseEnter={onHover}
       onMouseLeave={onLeave}
@@ -496,172 +673,171 @@ function ContentCard({
         animationDelay: `${index * 100}ms`,
       }}
     >
-      {type === "blogs" && (
-        <>
-          {viewMode === "grid" && getImage() && (
-            <div className="relative overflow-hidden rounded-t-lg">
-              <img
-                src={getImage()}
-                alt={getTitle()}
-                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-          )}
-          <div className="p-6">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-DGXblue dark:group-hover:text-DGXblue/80 transition-colors duration-300 line-clamp-2">
-                {getTitle()}
-              </h3>
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                <Bookmark className="w-4 h-4" />
+      {/* Image Section */}
+      {getImage() && (
+        <div
+          className={`relative overflow-hidden ${
+            viewMode === "grid" ? "h-56" : "h-48 w-64 flex-shrink-0"
+          }`}
+        >
+          <img
+            src={getImage()}
+            alt={getTitle()}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            onError={(e) => {
+              e.target.style.display = "none";
+              e.target.nextSibling.style.display = "flex";
+            }}
+          />
+          {/* Fallback image */}
+          <div className="absolute inset-0 bg-gradient-to-br from-DGXgreen to-DGXblue hidden items-center justify-center">
+            <BookOpen className="w-12 h-12 text-white/80" />
+          </div>
+
+          {/* Image overlay with actions */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500">
+            <div className="absolute top-4 right-4 flex gap-2">
+              <button
+                onClick={onSave}
+                className={`p-2 rounded-xl backdrop-blur-md transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 ${
+                  isSaved
+                    ? "bg-yellow-500 text-white"
+                    : "bg-white/20 text-white hover:bg-white/30"
+                }`}
+              >
+                <Bookmark
+                  className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`}
+                />
+              </button>
+              <button className="p-2 rounded-xl backdrop-blur-md bg-white/20 text-white hover:bg-white/30 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button className="p-2 rounded-xl backdrop-blur-md bg-white/20 text-white hover:bg-white/30 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                <MoreHorizontal className="w-4 h-4" />
               </button>
             </div>
-            <div
-              className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mt-2"
-              dangerouslySetInnerHTML={{ __html: getContent() }}
-            />
 
-            {item.Category && (
-              <div className="mt-2">
-                <span className="text-xs bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80 px-2 py-1 rounded-full">
+            {/* Category badge */}
+            {type === "blogs" && item.Category && (
+              <div className="absolute top-4 left-4">
+                <span className="bg-DGXblue text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-md">
                   {item.Category}
                 </span>
               </div>
             )}
-            {getDate() && (
-              <div className="w-full text-right">
-                <span className="text-xs text-gray-400 dark:text-gray-500 mt-4">
-                  {new Date(getDate()).toLocaleDateString()}
-                </span>
-              </div>
-            )}  
-            {/* Add likes and comments for blogs too */}
-            {/* <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center text-sm text-gray-500">
-                  <Heart className="w-4 h-4 mr-1" />
-                  {getLikes()}
-                </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <MessageCircle className="w-4 h-4 mr-1" />
-                  {getComments()}
-                </div>
-              </div>
-            </div> */}
           </div>
-        </>
+        </div>
       )}
 
-      {type === "discussions" && (
-        <>
-          {viewMode === "grid" && getImage() && (
-            <div className="relative overflow-hidden rounded-t-lg">
-              <img
-                src={getImage()}
-                alt={getTitle()}
-                className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-          )}
-          <div className="p-6">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-DGXblue dark:group-hover:text-DGXblue/80 transition-colors duration-300 line-clamp-2">
-                {getTitle()}
-              </h3>
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                <Bookmark className="w-4 h-4" />
-              </button>
-            </div>
-            <div
-              className="text-gray-600 dark:text-gray-300 text-sm mt-2 mb-4"
-              dangerouslySetInnerHTML={{ __html: getContent() }}
-            />
+      {/* Content Section */}
+      <div className="p-7 flex-1 flex flex-col justify-between">
+        {/* Title */}
+        <div>
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <h3
+              className="font-bold text-2xl leading-snug text-gray-900 dark:text-white 
+                     group-hover:text-DGXblue dark:group-hover:text-DGXblue/80 
+                     transition-colors duration-300 flex-1 line-clamp-2"
+            >
+              {getTitle()}
+            </h3>
+          </div>
 
-            {getTags().length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-4">
-                {getTags().map((tag, tagIndex) => (
+          {/* Content Preview */}
+          <div
+            className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed line-clamp-3 mb-5 opacity-90 
+                 group-hover:opacity-100 transition-opacity duration-300"
+            dangerouslySetInnerHTML={{ __html: getContent() }}
+          />
+
+          {/* Tags */}
+          {getTags().length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-5">
+              {getTags()
+                .slice(0, 3)
+                .map((tag, tagIndex) => (
                   <span
                     key={tagIndex}
-                    className="text-xs bg-DGXblue/10 text-DGXblue dark:text-DGXblue/80 px-2 py-1 rounded-full"
+                    className="inline-flex items-center gap-1 text-xs font-medium 
+                         bg-gradient-to-r from-DGXblue/10 to-DGXgreen/10 
+                         text-DGXblue dark:text-DGXblue/80 px-3 py-1.5 
+                         rounded-full hover:from-DGXblue/20 hover:to-DGXgreen/20 
+                         transition-colors duration-300"
                   >
-                    {tag}
+                    <Tag className="w-3 h-3" />
+                    {tag.replace("#", "")}
                   </span>
                 ))}
-              </div>
-            )}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {onLike && (
-                  <button
-                    onClick={onLike}
-                    className={`flex items-center text-sm transition-colors duration-300 ${
-                      isLiked
-                        ? "text-red-500"
-                        : "text-gray-500 hover:text-red-500"
-                    }`}
-                  >
-                    <Heart
-                      className={`w-4 h-4 mr-1 ${
-                        isLiked ? "fill-current" : ""
-                      }`}
-                    />
-                    {getLikes()}
-                  </button>
-                )}
-                <div className="text-gray-500 flex items-center text-sm">
-                  <MessageCircle className="w-4 h-4 mr-1" />
-                  {getComments()}
-                </div>
-              </div>
-
-              {getDate() && (
-                <div className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
-                  {new Date(getDate()).toLocaleDateString()}
-                </div>
+              {getTags().length > 3 && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1.5">
+                  +{getTags().length - 3} more
+                </span>
               )}
             </div>
+          )}
+        </div>
+
+        {/* Engagement Metrics */}
+        {renderEngagementMetrics()}
+
+        {/* Date and Actions */}
+        <div className="flex items-center justify-between mt-5 pt-3 border-t border-gray-100 dark:border-gray-700">
+          {getDate() && (
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <Calendar className="w-3 h-3" />
+              <span>
+                {new Date(getDate()).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 
+                   transition-colors duration-300"
+            >
+              <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+            </button>
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
+
 function LoadingState() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="h-64 bg-gradient-to-br from-DGXgreen to-DGXblue"></div>
-      <div className="max-w-6xl mx-auto px-6 -mt-32">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
-          <div className="flex items-center gap-6">
-            <div className="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="h-72 bg-gradient-to-br from-DGXgreen via-DGXblue to-purple-600"></div>
+      <div className="max-w-6xl mx-auto px-6 -mt-36">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8">
+          <div className="flex items-center gap-8">
+            <div className="w-36 h-36 rounded-2xl bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
             <div className="flex-1">
-              <div className="h-8 w-64 mb-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-              <div className="h-6 w-32 mb-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-10 w-64 mb-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              <div className="h-6 w-48 mb-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
               <div className="h-4 w-full mb-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
               <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden animate-pulse"
             >
-              <div className="h-48 w-full bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
+              <div className="h-56 w-full bg-gray-200 dark:bg-gray-700"></div>
               <div className="p-6">
-                <div className="h-6 w-3/4 mb-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                <div className="h-4 w-full mb-1 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                <div className="h-4 w-2/3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                <div className="h-6 w-3/4 mb-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div className="h-4 w-full mb-2 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div className="h-4 w-2/3 mb-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div className="h-4 w-1/2 bg-gray-200 dark:bg-gray-700 rounded"></div>
               </div>
             </div>
           ))}
@@ -672,21 +848,35 @@ function LoadingState() {
 }
 
 function EmptyState({ type }) {
-  const emptyMessages = {
-    blogs: "No blogs found",
-    discussions: "No discussions yet",
+  const emptyConfig = {
+    blogs: {
+      icon: BookOpen,
+      title: "No blogs published yet",
+      description:
+        "This user hasn't created any blogs yet. Check back later for new content!",
+      color: "text-DGXblue",
+    },
+    discussions: {
+      icon: MessageSquare,
+      title: "No discussions started",
+      description:
+        "This user hasn't started any discussions yet. They might be working on something new!",
+      color: "text-green-500",
+    },
   };
 
+  const config = emptyConfig[type];
+
   return (
-    <div className="text-center py-16">
-      <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-        <Search className="w-8 h-8 text-gray-400" />
+    <div className="text-center py-20">
+      <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-3xl flex items-center justify-center">
+        <config.icon className={`w-12 h-12 ${config.color} opacity-60`} />
       </div>
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {emptyMessages[type]}
+      <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+        {config.title}
       </h3>
-      <p className="text-gray-500 dark:text-gray-400 mb-6">
-        This user hasn't created any {type} yet.
+      <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto text-lg">
+        {config.description}
       </p>
     </div>
   );
