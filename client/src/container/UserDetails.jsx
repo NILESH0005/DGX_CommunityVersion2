@@ -596,71 +596,63 @@ function ContentCard({
   };
 
   // Function to render engagement metrics
- const renderEngagementMetrics = () => {
-  const metrics = [
-    {
-      icon: Eye,
-      value: getViews(),
-      color: "text-blue-500",
-      tooltip: "Views",
-    },
-    {
-      icon: Heart,
-      value: getLikes(),
-      color: isLiked ? "text-red-500" : "text-gray-500 dark:text-gray-400",
-      tooltip: "Likes",
-    },
-    {
-      icon: Repeat,
-      value: getReposts(),
-      color: "text-purple-500",
-      tooltip: "Reposts",
-    },
-  ];
+  const renderEngagementMetrics = () => {
+    const metrics = [
+      {
+        icon: Eye,
+        value: getViews(),
+        color: "text-blue-500",
+        tooltip: "Views",
+      },
+      {
+        icon: Heart,
+        value: getLikes(),
+        color: isLiked ? "text-red-500" : "text-gray-500 dark:text-gray-400",
+        tooltip: "Likes",
+      },
+      {
+        icon: Repeat,
+        value: getReposts(),
+        color: "text-purple-500",
+        tooltip: "Reposts",
+      },
+    ];
 
-  // Add rating only for blogs
-  if (type === "blogs") {
-    metrics.splice(2, 0, {
-      icon: Star,
-      value: getRating(),
-      color: "text-yellow-500",
-      tooltip: "Rating",
-    });
-  } else {
-    // For non-blogs, show comments
-    metrics.splice(2, 0, {
-      icon: MessageCircle,
-      value: getComments(),
-      color: "text-green-500",
-      tooltip: "Comments",
-    });
-  }
+    // Add rating only for blogs
+    if (type === "blogs") {
+      metrics.splice(2, 0, {
+        icon: Star,
+        value: getRating(),
+        color: "text-yellow-500",
+        tooltip: "Rating",
+      });
+    } else {
+      // For non-blogs, show comments
+      metrics.splice(2, 0, {
+        icon: MessageCircle,
+        value: getComments(),
+        color: "text-green-500",
+        tooltip: "Comments",
+      });
+    }
 
-  return (
-    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
-      <div className="flex items-center gap-4">
-        {metrics.map((metric, idx) => (
-          <div
-            key={idx}
-            className={`flex items-center gap-1.5 text-sm transition-all duration-300 group ${metric.color}`}
-            title={metric.tooltip}
-          >
-            <metric.icon className="w-4 h-4" />
-            <span className="font-medium">{metric.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Reading time for blogs only */}
-      {type === "blogs" && (
-        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-          <Clock className="w-4 h-4" />
-          <span>{getReadingTime()} min read</span>
+    return (
+      <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-4">
+          {metrics.map((metric, idx) => (
+            <div
+              key={idx}
+              className={`flex items-center gap-1.5 text-sm transition-all duration-300 group ${metric.color}`}
+              title={metric.tooltip}
+            >
+              <metric.icon className="w-4 h-4" />
+              <span className="font-medium">{metric.value}</span>
+            </div>
+          ))}
         </div>
-      )}
-    </div>
-  );
-};
+      </div>
+    );
+  };
 
   return (
     <div
@@ -692,39 +684,6 @@ function ContentCard({
           {/* Fallback image */}
           <div className="absolute inset-0 bg-gradient-to-br from-DGXgreen to-DGXblue hidden items-center justify-center">
             <BookOpen className="w-12 h-12 text-white/80" />
-          </div>
-
-          {/* Image overlay with actions */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500">
-            <div className="absolute top-4 right-4 flex gap-2">
-              <button
-                onClick={onSave}
-                className={`p-2 rounded-xl backdrop-blur-md transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 ${
-                  isSaved
-                    ? "bg-yellow-500 text-white"
-                    : "bg-white/20 text-white hover:bg-white/30"
-                }`}
-              >
-                <Bookmark
-                  className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`}
-                />
-              </button>
-              <button className="p-2 rounded-xl backdrop-blur-md bg-white/20 text-white hover:bg-white/30 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                <Share2 className="w-4 h-4" />
-              </button>
-              <button className="p-2 rounded-xl backdrop-blur-md bg-white/20 text-white hover:bg-white/30 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Category badge */}
-            {type === "blogs" && item.Category && (
-              <div className="absolute top-4 left-4">
-                <span className="bg-DGXblue text-white px-3 py-1.5 rounded-lg text-sm font-medium backdrop-blur-md">
-                  {item.Category}
-                </span>
-              </div>
-            )}
           </div>
         </div>
       )}
