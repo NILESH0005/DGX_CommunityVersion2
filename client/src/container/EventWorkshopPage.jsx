@@ -287,6 +287,47 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     setMounted(true);
   }, []);
 
+  const recordEventView = async (eventId) => {
+    try {
+      if (!userToken) {
+        console.log("User not logged in, skipping event view recording");
+        return;
+      }
+
+      const viewData = {
+        ProcessName: "Event",
+        reference: eventId, // Event ID goes into reference
+      };
+
+      const response = await fetchData(
+        "progressTrack/recordView",
+        "POST",
+        viewData,
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        }
+      );
+
+      if (response?.success) {
+        if (response.data.alreadyViewed) {
+          console.log("Event view was already recorded previously");
+        } else {
+          console.log(
+            "First-time event view recorded successfully:",
+            response.data
+          );
+          // Refresh view count after recording a new view
+          await fetchEventViewCount(eventId);
+        }
+      } else {
+        console.error("Error recording event view:", response?.message);
+      }
+    } catch (error) {
+      console.error("Error recording event view:", error);
+    }
+  };
+
   const handleMoreInfoClick = (event) => {
     if (!userToken) {
       Swal.fire({
@@ -307,7 +348,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       });
       return;
     }
-
+    recordEventView(event.EventID);
     setSelectedEvent(event);
     setIsModalOpen(true);
   };
@@ -360,7 +401,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       });
       return;
     }
-
+    recordEventView(event.EventID);
     setSelectedEvent(event);
     setIsModalOpen(true);
   };
@@ -400,7 +441,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      {/* Header Section */}
       <motion.section
         style={{ y: headerY }}
         className="relative bg-gradient-to-r from-DGXblue to-DGXgreen py-10 px-4 sm:px-6 lg:px-8 text-center text-DGXgreen"
@@ -605,9 +645,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
             Browse all our events in an interactive calendar
           </motion.p>
         </div>
-        <GeneralUserCalendar
-          events={events}
-        />
+        <GeneralUserCalendar events={events} />
       </motion.section>
 
       {/* Past Events Section */}
