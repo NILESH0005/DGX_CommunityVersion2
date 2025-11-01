@@ -1,74 +1,75 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { BookOpen, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Image as ImageIcon, Clock, BarChart3, Target } from 'lucide-react';
 
 const UnitDetails = ({ subModule }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-DGXwhite rounded-xl shadow-sm border border-DGXgray/20 overflow-hidden w-full"
-        >
-            <div className="p-6">
-                <div className="flex justify-between items-start gap-6">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                            <BookOpen className="w-5 h-5 text-DGXgreen" />
-                            <motion.h3 
-                                whileHover={{ color: '#76B900' }}
-                                className="text-2xl font-bold text-DGXblue truncate"
-                            >
-                                {subModule.SubModuleName}
-                            </motion.h3>
-                        </div>
-                        
-                        {subModule.SubModuleDescription && (
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.1 }}
-                                className="text-DGXgray mt-2 leading-relaxed"
-                            >
-                                {subModule.SubModuleDescription}
-                            </motion.p>
-                        )}
-                    </div>
+  // Calculate total duration and other metrics
+  const totalDuration = subModule.units?.reduce((total, unit) => total + (unit.duration || 0), 0) || 0;
+  const completedUnits = subModule.units?.filter(unit => unit.completed)?.length || 0;
+  const progressPercentage = subModule.units?.length ? (completedUnits / subModule.units.length) * 100 : 0;
 
-                    {subModule.SubModuleImage && (
-                        <motion.div
-                            whileHover={{ scale: 1.03 }}
-                            className="relative group"
-                        >
-                            <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-DGXgray/20 group-hover:border-DGXgreen transition-all">
-                                <img 
-                                    src={subModule.SubModuleImage} 
-                                    alt="Submodule banner" 
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                <ImageIcon className="w-6 h-6 text-DGXwhite" />
-                            </div>
-                        </motion.div>
-                    )}
+  const formatDuration = (minutes) => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full hover:shadow-md transition-shadow duration-200">
+      {/* Header with gradient background */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b border-gray-100">
+        <div className="p-6 sm:p-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-8">
+            {/* Main Content */}
+            <div className="flex-1 min-w-0 space-y-6">
+              {/* Title Section */}
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center shadow-sm">
+                  <BookOpen className="w-6 h-6 text-white" />
                 </div>
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 leading-tight">
+                    {subModule.SubModuleName}
+                  </h3>
+                  
+                  {/* Description */}
+                  {subModule.SubModuleDescription && (
+                    <p className="text-gray-600 mt-2 leading-relaxed text-base max-w-3xl">
+                      {subModule.SubModuleDescription}
+                    </p>
+                  )}
+                </div>
+              </div>
 
-                {subModule.units && subModule.units.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                        className="mt-6 pt-4 border-t border-DGXgray/20"
-                    >
-                        <div className="inline-flex items-center px-3 py-1 rounded-full bg-DGXgreen/10 text-DGXgreen text-sm font-medium">
-                            {subModule.units.length} {subModule.units.length === 1 ? 'Unit' : 'Units'}
-                        </div>
-                    </motion.div>
-                )}
+          
             </div>
-        </motion.div>
-    );
+
+            {/* Image Section */}
+            {subModule.SubModuleImage && (
+              <div className="flex-shrink-0">
+                <div className="relative group cursor-pointer">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden border-2 border-gray-100 shadow-sm group-hover:border-green-400 transition-colors duration-200">
+                    <img 
+                      src={subModule.SubModuleImage} 
+                      alt={subModule.SubModuleName}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 flex items-end justify-center pb-2 rounded-xl transition-all duration-200">
+                    <div className="flex items-center gap-1 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <ImageIcon className="w-3 h-3" />
+                      <span>View</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default UnitDetails;

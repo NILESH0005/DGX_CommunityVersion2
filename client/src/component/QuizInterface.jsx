@@ -390,7 +390,7 @@ const QuizInterface = () => {
                     >
                       Unlock your potential through interactive learning.
                       Challenge yourself, compete with peers, and master new
-                      skills in our gamified quiz environment.
+                      skills in our quiz environment.
                     </motion.p>
                   </motion.div>
 

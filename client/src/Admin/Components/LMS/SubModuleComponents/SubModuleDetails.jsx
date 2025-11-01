@@ -12,23 +12,32 @@ import AddUnitForm from "./AddUnitForm";
 import UnitDetails from "./UnitDetails";
 import FilesTable from "./FilesTable";
 import FileUploadModal from "./FileUploadModal";
-import LinkUploadModal from "./LinkUploadModal"; // We'll create this next
+import LinkUploadModal from "./LinkUploadModal";
 
 const SubModuleDetails = ({
   subModule,
   onAddUnit,
   onRemoveUnit,
   onUploadFile,
-  onUploadLink, // We'll need to add this function
+  onUploadLink,
+  onRemoveFile, // Make sure this prop is passed from parent
   errors,
   setErrors,
 }) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showLinkModal, setShowLinkModal] = useState(false); // New state for link modal
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [currentUnit, setCurrentUnit] = useState(null);
   const [uploadedFile, setUploadedFile] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  // Add local state to track files for each unit
+  const [unitFiles, setUnitFiles] = useState(() => {
+    const initialFiles = {};
+    subModule.units.forEach(unit => {
+      initialFiles[unit.id] = unit.files || [];
+    });
+    return initialFiles;
+  });
 
   const showImagePreview = (imageUrl) => {
     setImagePreview(imageUrl);
@@ -89,6 +98,23 @@ const SubModuleDetails = ({
       );
 
       if (success) {
+        // Update local state immediately
+        const newFile = {
+          id: Date.now().toString(), // Temporary ID until backend provides one
+          fileName: customFileName,
+          fileType: file.type,
+          fileSize: file.size,
+          uploadDate: new Date().toISOString(),
+          estimatedTime: estimatedTime || "0 min",
+          fileUrl: URL.createObjectURL(file), // Temporary local URL
+          isNew: true // Flag to indicate this is a newly added file
+        };
+
+        setUnitFiles(prev => ({
+          ...prev,
+          [currentUnit.id]: [...(prev[currentUnit.id] || []), newFile]
+        }));
+
         Swal.fire({
           title: "Success!",
           text: "File uploaded successfully",
@@ -123,7 +149,6 @@ const SubModuleDetails = ({
     }
   };
 
-  // Add this function to your SubModuleDetails component
   const handleLinkSubmit = async (url, linkName, description, estimatedTime) => {
     if (!url || !linkName) {
       setErrors({
@@ -136,6 +161,8 @@ const SubModuleDetails = ({
 
     try {
       const success = await onUploadLink(
+        subModule.id,
+        currentUnit.id, // Make sure to pass unit ID
         url,
         linkName,
         description,
@@ -143,6 +170,24 @@ const SubModuleDetails = ({
       );
 
       if (success) {
+        // Update local state for links
+        const newLink = {
+          id: Date.now().toString(),
+          fileName: linkName,
+          fileType: 'link',
+          fileSize: 0,
+          uploadDate: new Date().toISOString(),
+          estimatedTime: estimatedTime || "0 min",
+          fileUrl: url,
+          description: description,
+          isNew: true
+        };
+
+        setUnitFiles(prev => ({
+          ...prev,
+          [currentUnit.id]: [...(prev[currentUnit.id] || []), newLink]
+        }));
+
         Swal.fire({
           title: "Success!",
           text: "Link added successfully",
@@ -170,6 +215,38 @@ const SubModuleDetails = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Enhanced file removal handler
+  const handleRemoveFile = async (unitId, fileId) => {
+    try {
+      // Call the parent removal function
+      if (onRemoveFile) {
+        await onRemoveFile(unitId, fileId);
+      }
+      
+      // Update local state immediately
+      setUnitFiles(prev => ({
+        ...prev,
+        [unitId]: (prev[unitId] || []).filter(file => file.id !== fileId)
+      }));
+
+    } catch (error) {
+      Swal.fire({
+        title: "Remove Failed",
+        text: "Failed to remove file",
+        icon: "error",
+        confirmButtonText: "OK",
+        customClass: {
+          confirmButton: "bg-DGXgreen hover:bg-[#68a600]",
+        },
+      });
+    }
+  };
+
+  // Function to get files for a specific unit
+  const getFilesForUnit = (unitId) => {
+    return unitFiles[unitId] || [];
   };
 
   return (
@@ -260,8 +337,9 @@ const SubModuleDetails = ({
                     </div>
                   </div>
                   <FilesTable
-                    files={unit.files}
+                    files={getFilesForUnit(unit.id)}
                     onImageClick={showImagePreview}
+                    onRemoveFile={(fileId) => handleRemoveFile(unit.id, fileId)}
                   />
                 </motion.div>
               ))}
@@ -299,7 +377,7 @@ const SubModuleDetails = ({
         show={showLinkModal}
         onClose={() => setShowLinkModal(false)}
         unitName={currentUnit?.UnitName}
-        onSubmit={handleLinkSubmit} // Use the new handler
+        onSubmit={handleLinkSubmit}
         isSubmitting={isSubmitting}
       />
     </>
