@@ -1371,7 +1371,7 @@ const Discussion = () => {
                     <div className="space-y-3">
                       <label className="flex items-center text-sm font-semibold text-gray-700">
                         <span>Reference Links</span>
-                        <span className="text-red-500 ml-1">*</span>
+                        {/* <span className="text-red-500 ml-1">*</span> */}
                       </label>
                       <div className="flex gap-2">
                         <div className="flex-1 relative">

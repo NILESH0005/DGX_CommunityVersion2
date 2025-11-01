@@ -149,13 +149,19 @@ ContentInteraction.belongsTo(User, {
   as: 'User'
 });
 
+CommunityBlog.hasMany(ContentInteraction, {
+  foreignKey: 'reference',
+  sourceKey: 'BlogID',
+  as: 'ContentInteractions',
+  constraints: false
+});
+
 User.hasMany(ContentInteraction, {
   foreignKey: 'UserID',
   sourceKey: 'UserID',
   as: 'ContentInteractions'
 });
 
-// ContentInteraction association with CommunityDiscussion
 ContentInteraction.belongsTo(CommunityDiscussion, {
   foreignKey: 'reference',
   targetKey: 'DiscussionID',
@@ -163,12 +169,27 @@ ContentInteraction.belongsTo(CommunityDiscussion, {
   constraints: false
 });
 
+ContentInteraction.belongsTo(CommunityBlog, {
+  foreignKey: 'reference',
+  targetKey: 'BlogID',
+  as: 'Blog',
+  constraints: false
+});
+
+
 CommunityDiscussion.hasMany(ContentInteraction, {
   foreignKey: 'reference',
   sourceKey: 'DiscussionID',
   as: 'ContentInteractions',
   constraints: false
 });
+
+CommunityDiscussion.belongsTo(TableDDReference, {
+  foreignKey: "Visibility",
+  targetKey: "idCode",
+  as: "VisibilityRef",
+});
+
 
 export default db;
 export { sequelize };

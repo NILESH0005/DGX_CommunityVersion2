@@ -294,7 +294,7 @@ export const getBlogService = async (userEmail) => {
 
 export const getUserBlogsService = async (userEmail) => {
   try {
-    // Get user by EmailId
+    // Step 1: Find user by EmailId
     const user = await User.findOne({
       where: {
         EmailId: userEmail,
@@ -306,7 +306,7 @@ export const getUserBlogsService = async (userEmail) => {
       return { success: false, message: "User not found", data: {} };
     }
 
-    // Count blogs
+    // Step 2: Count total blogs for this user
     const totalCount = await CommunityBlog.count({
       where: {
         UserID: user.UserID,
@@ -350,10 +350,17 @@ export const getUserBlogsService = async (userEmail) => {
       raw: true,
     });
 
-    // Fetch interaction and repost data in parallel
+    if (!blogs.length) {
+      return {
+        success: true,
+        data: { blogs: [], totalCount: 0 },
+        message: "No blogs found for this user",
+      };
+    }
+
     const blogIds = blogs.map((b) => b.BlogID);
 
-    // Count reposts for each blog
+    // Step 4: Count reposts for each blog
     const repostCounts = await CommunityBlog.findAll({
       attributes: [
         "RepostID",
@@ -367,24 +374,26 @@ export const getUserBlogsService = async (userEmail) => {
       raw: true,
     });
 
-    // Count likes (claps) and calculate ratings for each blog
+    // ✅ Step 5: Calculate total likes and average ratings per blog
     const interactionStats = await ContentInteraction.findAll({
       attributes: [
         "reference",
         [
-          Sequelize.fn(
-            "SUM",
-            Sequelize.literal("CASE WHEN LikeStatus = 1 THEN 1 ELSE 0 END")
-          ),
+          Sequelize.literal(`
+            SUM(CASE 
+              WHEN LikeStatus = 0 THEN Likes 
+              ELSE 0 
+            END)
+          `),
           "clapCount",
         ],
         [
-          Sequelize.fn(
-            "AVG",
-            Sequelize.literal(
-              "CASE WHEN RatingStatus = 1 THEN Rating ELSE NULL END"
-            )
-          ),
+          Sequelize.literal(`
+            AVG(CASE 
+              WHEN RatingStatus = 0 THEN Rating 
+              ELSE NULL 
+            END)
+          `),
           "averageRating",
         ],
       ],
@@ -397,10 +406,11 @@ export const getUserBlogsService = async (userEmail) => {
       raw: true,
     });
 
-    // Map the aggregated data
+    // Step 6: Create lookup maps
     const repostMap = Object.fromEntries(
-      repostCounts.map((r) => [r.RepostID, r.count])
+      repostCounts.map((r) => [r.RepostID, Number(r.count)])
     );
+
     const interactionMap = Object.fromEntries(
       interactionStats.map((i) => [
         i.reference,
@@ -411,7 +421,7 @@ export const getUserBlogsService = async (userEmail) => {
       ])
     );
 
-    // Merge data into blogs
+    // Step 7: Merge data
     const blogsWithStats = blogs.map((b) => ({
       ...b,
       repostCount: repostMap[b.BlogID] || 0,
@@ -419,6 +429,7 @@ export const getUserBlogsService = async (userEmail) => {
       averageRating: interactionMap[b.BlogID]?.averageRating || 0,
     }));
 
+    // Step 8: Return response
     return {
       success: true,
       data: { blogs: blogsWithStats, totalCount },
@@ -434,6 +445,12 @@ export const getUserBlogsService = async (userEmail) => {
     };
   }
 };
+
+
+
+
+
+
 
 export const getPublicBlogsService = async () => {
   // Step 1: Fetch all approved blogs

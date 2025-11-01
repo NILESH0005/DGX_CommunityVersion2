@@ -249,6 +249,26 @@ const AddUserBlog = (props) => {
                     {stripHtmlTags(blog.content) || "No description available"}
                   </p>
 
+                  {/* Engagement Metrics */}
+                  <div className="flex items-center justify-between mb-3 text-xs text-gray-600">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold">{blog.repostCount || 0}</span>
+                        <span>Reposts</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold">{blog.clapCount || 0}</span>
+                        <span>Claps</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">
+                        {blog.averageRating ? blog.averageRating.toFixed(1) : "0.0"}
+                      </span>
+                      <span>⭐</span>
+                    </div>
+                  </div>
+
                   <div className="text-xs text-gray-500 mb-3">
                     {blog.isDraft ? "Last updated: " : "Published: "}
                     {blog.AddOnDt
