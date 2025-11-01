@@ -11,7 +11,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING(100), // 'Blog' or 'Discussion'
         allowNull: false,
       },
-       reference: {
+      reference: {
         type: DataTypes.INTEGER, // Add this field to store BlogID or DiscussionID
         allowNull: false,
       },
@@ -33,6 +33,16 @@ export default (sequelize, DataTypes) => {
       },
       RatingStatus: {
         type: DataTypes.INTEGER,
+        allowNull: true,
+      },
+      ViewStatus: {
+        type: DataTypes.INTEGER,
+        // defaultValue: 0,
+        allowNull: true,
+      },
+      View: {
+        type: DataTypes.INTEGER,
+        // defaultValue: 0,
         allowNull: true,
       },
       AuthAdd: { type: DataTypes.STRING(800), allowNull: true },

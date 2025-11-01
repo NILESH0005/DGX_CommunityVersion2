@@ -29,7 +29,7 @@ const imageVariants = {
 };
 
 const descriptionVariants = {
-  collapsed: { height: 72, opacity: 0.8, transition: { duration: 0.3 } }, // approx 3 lines height
+  collapsed: { height: 72, opacity: 0.8, transition: { duration: 0.3 } },
   expanded: { height: "auto", opacity: 1, transition: { duration: 0.5 } },
 };
 
@@ -45,6 +45,59 @@ const SubModuleCard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
+  const [viewedSubModules, setViewedSubModules] = useState(new Set()); // Track viewed submodules
+
+  const recordSubModuleView = async (subModuleId) => {
+    try {
+      if (!userToken) {
+        console.log("User not logged in, skipping view recording");
+        return;
+      }
+
+      const viewData = {
+        ProcessName: "LMS",
+        reference: subModuleId,
+      };
+
+      const response = await fetchData(
+        "progressTrack/recordView",
+        "POST",
+        viewData,
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        }
+      );
+
+      if (response?.success) {
+        if (response.data.alreadyViewed) {
+          console.log("View was already recorded previously");
+        } else {
+          console.log("First-time view recorded successfully:", response.data);
+        }
+      } else {
+        console.error("Error recording submodule view:", response?.message);
+      }
+    } catch (error) {
+      console.error("Error recording submodule view:", error);
+    }
+  };
+
+  // Handle submodule click
+  const handleSubModuleClick = async (subModule) => {
+    // Record the view (service will handle the "only once" logic)
+    await recordSubModuleView(subModule.SubModuleID);
+
+    navigate(`/submodule/${subModule.SubModuleID}`, {
+      state: {
+        moduleId,
+        moduleName,
+        submoduleName: subModule.SubModuleName,
+      },
+    });
+  };
+
+
 
   const renderSubModuleImage = (subModule) => {
     if (subModule.SubModuleImageUrl) {
@@ -58,8 +111,8 @@ const SubModuleCard = () => {
           whileHover="hover"
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           onError={(e) => {
-            e.target.onerror = null; // prevent infinite loop
-            e.target.src = images.Noimage; // fallback
+            e.target.onerror = null;
+            e.target.src = images.Noimage;
             e.target.className =
               "w-full h-full object-contain bg-gray-200 p-4 rounded-t-lg";
           }}
@@ -104,6 +157,7 @@ const SubModuleCard = () => {
     } else if (location.state?.moduleName) {
       setModuleName(location.state.moduleName);
     }
+
     const fetchAllData = async () => {
       try {
         setLoading(true);
@@ -176,16 +230,6 @@ const SubModuleCard = () => {
     }));
   };
 
-  const handleSubModuleClick = (subModule) => {
-    navigate(`/submodule/${subModule.SubModuleID}`, {
-      state: {
-        moduleId,
-        moduleName,
-        submoduleName: subModule.SubModuleName,
-      },
-    });
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6 dark:bg-gray-900">
@@ -234,24 +278,22 @@ const SubModuleCard = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 relative">
       <button
-  onClick={() => navigate("/LearningPath")}
-  aria-label="Back to all Modules"
-  className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow border border-gray-300
+        onClick={() => navigate("/LearningPath")}
+        aria-label="Back to all Modules"
+        className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow border border-gray-300
     hover:shadow-md hover:bg-gray-100 hover:border-gray-400
     focus:outline-none focus:ring-2 focus:ring-blue-400
     transition-all duration-150 group"
->
-  {/* Animated left arrow on hover */}
-  <FaArrowLeft className="text-gray-600 group-hover:-translate-x-1 group-hover:text-blue-700 transition-transform duration-150" aria-hidden="true" />
-  <span className="font-semibold text-gray-700 group-hover:text-blue-700 transition-colors duration-150">
-    All Modules
-  </span>
-  {/* Tooltip for screen readers */}
-  <span className="sr-only">
-    Return to the module list page
-  </span>
-</button>
-
+      >
+        <FaArrowLeft
+          className="text-gray-600 group-hover:-translate-x-1 group-hover:text-blue-700 transition-transform duration-150"
+          aria-hidden="true"
+        />
+        <span className="font-semibold text-gray-700 group-hover:text-blue-700 transition-colors duration-150">
+          All Modules
+        </span>
+        <span className="sr-only">Return to the module list page</span>
+      </button>
 
       <div className="max-w-7xl mx-auto pt-6 px-2 sm:px-6 lg:px-8">
         {moduleName && (
@@ -353,7 +395,9 @@ const SubModuleCard = () => {
             })
           ) : (
             <div className="col-span-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-              <p className="text-gray-600 dark:text-gray-300">No submodules found for this module</p>
+              <p className="text-gray-600 dark:text-gray-300">
+                No submodules found for this module
+              </p>
               <button
                 onClick={() => navigate(-1)}
                 className="mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-300"

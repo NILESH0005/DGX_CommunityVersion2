@@ -92,19 +92,18 @@ const RepostCard = ({ reposts = [] }) => {
               {/* User Avatar */}
               <div className="w-12 h-12 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-sm font-bold mb-2 shadow-sm">
                 {repost.AuthAdd
-                  ? repost.AuthAdd
-                      .split(" ")
+                  ? repost.AuthAdd.split(" ")
                       .map((n) => n[0])
                       .join("")
                       .toUpperCase()
                   : "U"}
               </div>
-              
+
               {/* User Name */}
               <div className="text-xs font-medium text-gray-900 truncate max-w-[70px]">
                 {repost.AuthAdd || "Unknown User"}
               </div>
-              
+
               {/* Repost Date */}
               <div className="text-xs text-gray-500 mt-1">
                 {new Date(repost.AddOnDt).toLocaleDateString("en-US", {
@@ -243,6 +242,29 @@ const BlogPage = () => {
     setShowAll(false);
   };
 
+  const recordBlogView = async (blogId) => {
+    try {
+      if (!userToken) return;
+
+      const endpoint = "progressTrack/recordView";
+      const method = "POST";
+      const headers = {
+        "Content-Type": "application/json",
+        "auth-token": userToken,
+      };
+
+      const body = {
+        ProcessName: "Blog",
+        reference: blogId,
+      };
+
+      const result = await fetchData(endpoint, method, body, headers);
+      console.log("📊 Blog view recorded:", result);
+    } catch (error) {
+      console.error("❌ Error recording blog view:", error);
+    }
+  };
+
   const refreshBlogs = async () => {
     try {
       setLoading(true);
@@ -272,12 +294,13 @@ const BlogPage = () => {
         icon: "info",
         confirmButtonText: "Go to Login",
       }).then((result) => {
-        if (result.isConfirmed) {
-          navigate("/SignInn");
-        }
+        if (result.isConfirmed) navigate("/SignInn");
       });
       return;
     }
+
+    // ✅ Record the view once modal opens
+    recordBlogView(blog.BlogID);
 
     setSelectedBlog(blog);
     setIsModalOpen(true);
@@ -716,11 +739,9 @@ const BlogPage = () => {
                 animate={{ opacity: 1 }}
                 transition={{ staggerChildren: 0.1 }}
               >
-                {filteredBlogs
-                  .slice(0, pageSize)
-                  .map((blog, index) => (
-                    <BlogCard key={blog.BlogID} blog={blog} index={index} />
-                  ))}
+                {filteredBlogs.slice(0, pageSize).map((blog, index) => (
+                  <BlogCard key={blog.BlogID} blog={blog} index={index} />
+                ))}
               </motion.div>
 
               {!showAll && filteredBlogs.length > pageSize && (

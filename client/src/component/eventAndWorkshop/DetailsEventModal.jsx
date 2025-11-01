@@ -1,4 +1,3 @@
-
 import React, { useState, useContext } from "react";
 import moment from "moment";
 import Swal from "sweetalert2";
@@ -173,11 +172,8 @@ const DetailsEventModal = ({
           <div>
             <strong className="text-xl underline">Date & Time:</strong>
             <div className="mt-1 text-lg">
-              {moment
-                .utc(selectedEvent.StartDate)
-                .format("MMMM D, YYYY h:mm A")}{" "}
-              -{" "}
-              {moment.utc(selectedEvent.EndDate).format("MMMM D, YYYY h:mm A")}
+              {moment(selectedEvent.StartDate).format("MMMM D, YYYY h:mm A")} -{" "}
+              {moment(selectedEvent.EndDate).format("MMMM D, YYYY h:mm A")}
             </div>
           </div>
           <div>

@@ -162,7 +162,7 @@ const QuizTable = () => {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString);
-      const adjustedDate = new Date(date.getTime() - 5 * 60 * 60 * 1000 - 30 * 60 * 1000);
+      const adjustedDate = new Date(date.getTime());
       return adjustedDate.toLocaleString("en-US", {
         month: "long",
         day: "numeric",

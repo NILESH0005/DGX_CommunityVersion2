@@ -101,8 +101,6 @@ const Discussion = () => {
     }
   };
 
-  // Fetch stats when component mounts and when discussions change
-  // Add this useEffect after your existing useEffects
   useEffect(() => {
     if (demoDiscussions.length > 0) {
       const highlights = getCommunityHighlights(demoDiscussions);
@@ -116,6 +114,30 @@ const Discussion = () => {
       console.log("All discussions for debugging:", demoDiscussions);
     }
   }, [demoDiscussions]);
+
+  const recordDiscussionView = async (discussionID) => {
+    if (!userToken) return;
+
+    const endpoint = "progressTrack/recordView";
+    const method = "POST";
+    const body = {
+      ProcessName: "Discussion",
+      reference: discussionID,
+    };
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
+    };
+
+    try {
+      const result = await fetchData(endpoint, method, body, headers);
+      console.log("record discussion", result);
+
+      console.log("📊 Discussion view recorded:", result);
+    } catch (error) {
+      console.error("❌ Error recording discussion view:", error);
+    }
+  };
 
   const validateToxicity = async () => {
     setIsCheckingToxicity(true);
@@ -1740,13 +1762,14 @@ const Discussion = () => {
                   <div
                     key={i}
                     className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 cursor-pointer focus-within:z-10 hover:z-10 relative overflow-hidden"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       if (
                         !e.target.closest("a") &&
                         !e.target.closest("button") &&
                         !e.target.classList.contains("text-blue-700")
                       ) {
                         openModal(discussion);
+                        await recordDiscussionView(discussion.DiscussionID);
                       }
                     }}
                   >

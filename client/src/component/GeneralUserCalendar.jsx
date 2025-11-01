@@ -1,27 +1,27 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
-import DetailsEventModal from './eventAndWorkshop/DetailsEventModal';
-import Swal from 'sweetalert2';
-import { useNavigate } from 'react-router-dom';
-import ApiContext from '../context/ApiContext';
-import { FaCalendarAlt } from 'react-icons/fa';
+import React, { useState, useEffect, useContext } from "react";
+import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import DetailsEventModal from "./eventAndWorkshop/DetailsEventModal";
+import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
+import ApiContext from "../context/ApiContext";
+import { FaCalendarAlt } from "react-icons/fa";
 
 const localizer = momentLocalizer(moment);
 
 const eventColors = {
-  "NVIDIA": '#013D54', // DGXblue
-  "Global Infoventures Event": '#76B900', // DGXgreen
+  NVIDIA: "#013D54", // DGXblue
+  "Global Infoventures Event": "#76B900", // DGXgreen
 };
 
 const GeneralUserCalendar = (props) => {
   const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const {userToken} = useContext(ApiContext);
+  const { userToken } = useContext(ApiContext);
   const [isMobileView, setIsMobileView] = useState(false);
 
   useEffect(() => {
@@ -29,14 +29,14 @@ const GeneralUserCalendar = (props) => {
       setIsMobileView(window.innerWidth <= 768);
     };
     checkMobileView();
-    window.addEventListener('resize', checkMobileView);
+    window.addEventListener("resize", checkMobileView);
     return () => {
-      window.removeEventListener('resize', checkMobileView);
+      window.removeEventListener("resize", checkMobileView);
     };
   }, []);
 
   useEffect(() => {
-    console.log("Updated events list :",);
+    console.log("Updated events list :");
     const loadEvents = async () => {
       setIsLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -48,14 +48,14 @@ const GeneralUserCalendar = (props) => {
   const handleSelectEvent = (event) => {
     if (!userToken) {
       Swal.fire({
-        icon: 'warning',
-        title: 'Login Required',
-        text: 'Please sign in to view event details.',
+        icon: "warning",
+        title: "Login Required",
+        text: "Please sign in to view event details.",
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#aaa',
-        confirmButtonText: 'Sign In',
-        cancelButtonText: 'Cancel',
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#aaa",
+        confirmButtonText: "Sign In",
+        cancelButtonText: "Cancel",
       }).then((result) => {
         if (result.isConfirmed) {
           setTimeout(() => {
@@ -67,27 +67,27 @@ const GeneralUserCalendar = (props) => {
     }
 
     setSelectedEvent(event);
-    const eventDetailElement = document.getElementById('event-detail');
+    const eventDetailElement = document.getElementById("event-detail");
     if (eventDetailElement) {
-      eventDetailElement.scrollIntoView({ behavior: 'smooth' });
+      eventDetailElement.scrollIntoView({ behavior: "smooth" });
     } else {
       console.warn("Element with ID 'event-detail' not found");
     }
   };
 
   const eventStyleGetter = (event) => {
-    const backgroundColor = eventColors[event.Category] || '#C0C0C0';
+    const backgroundColor = eventColors[event.Category] || "#C0C0C0";
     return {
       style: {
         backgroundColor,
-        color: 'white',
-        borderRadius: '5px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        fontSize: '0.75rem',
-        padding: '0.2rem',
+        color: "white",
+        borderRadius: "5px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: "100%",
+        fontSize: "0.75rem",
+        padding: "0.2rem",
       },
     };
   };
@@ -96,41 +96,47 @@ const GeneralUserCalendar = (props) => {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString);
-      return date.toLocaleString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      }).replace(" at ", " ");
+      return date
+        .toLocaleString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })
+        .replace(" at ", " ");
     } catch (e) {
       console.error("Date formatting error:", e);
       return "Invalid Date";
     }
   };
 
-  const formattedEvents = props.events?.map(event => ({
+  const formattedEvents = props.events?.map((event) => ({
     ...event,
-    start: moment.utc(event.StartDate).local().toDate(),
-    end: moment.utc(event.EndDate).local().toDate(),
+    start: moment(event.StartDate).toDate(),
+    end: moment(event.EndDate).toDate(),
     title: event.EventTitle,
   }));
 
   const formats = {
     timeGutterFormat: (date, culture, localizer) =>
-      localizer.format(date, 'HH:mm', culture),
+      localizer.format(date, "HH:mm", culture),
     eventTimeRangeFormat: ({ start, end }) =>
-      `${moment(start).format("MMMM D, YYYY h:mm A")} - ${moment(end).format("MMMM D, YYYY h:mm A")}`,
+      `${moment(start).format("MMMM D, YYYY h:mm A")} - ${moment(end).format(
+        "MMMM D, YYYY h:mm A"
+      )}`,
   };
 
   const renderMobileEventCard = (event, index) => (
     <div
       key={event.EventID}
-      className={`p-4 mb-4 rounded-lg shadow ${eventColors[event.Category] ? 'border-t-4' : ''}`}
-      style={{ 
-        borderTopColor: eventColors[event.Category] || 'transparent',
-        borderTopWidth: '4px'
+      className={`p-4 mb-4 rounded-lg shadow ${
+        eventColors[event.Category] ? "border-t-4" : ""
+      }`}
+      style={{
+        borderTopColor: eventColors[event.Category] || "transparent",
+        borderTopWidth: "4px",
       }}
     >
       <div className="flex justify-between items-start">
@@ -140,7 +146,7 @@ const GeneralUserCalendar = (props) => {
         </div>
         <div className="flex items-center gap-1 text-sm">
           <FaCalendarAlt size={12} />
-          <span>{moment(event.start).format('MMM D')}</span>
+          <span>{moment(event.start).format("MMM D")}</span>
         </div>
       </div>
 
@@ -180,7 +186,9 @@ const GeneralUserCalendar = (props) => {
         <div className="bg-white rounded-lg border-2 border-DGXgreen shadow-lg p-4 mb-10">
           {formattedEvents && formattedEvents.length > 0 ? (
             <div className="space-y-3">
-              {formattedEvents.map((event, index) => renderMobileEventCard(event, index))}
+              {formattedEvents.map((event, index) =>
+                renderMobileEventCard(event, index)
+              )}
             </div>
           ) : (
             <div className="text-center py-10 text-gray-500">
@@ -200,6 +208,7 @@ const GeneralUserCalendar = (props) => {
           style={{ height: 600 }}
           className="bg-white rounded-lg border-2 border-DGXgreen shadow-lg p-5 mb-10"
           onSelectEvent={handleSelectEvent}
+          views={["month", "week"]} // Only show Month and Week views
         />
       )}
 

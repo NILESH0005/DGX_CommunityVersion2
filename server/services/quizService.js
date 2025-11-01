@@ -11,7 +11,9 @@ const {
   QuizQuestionOptions,
   QuizScore,
 } = db;
-import { Op, fn, col, literal } from "sequelize";
+import { Op, fn, col, literal, Sequelize } from "sequelize";
+
+const { QueryTypes } = Sequelize;
 
 export const createQuizService = async (userEmail, quizData) => {
   // Find user by email
@@ -348,66 +350,61 @@ export const createQuestionService = async (payload, userEmail) => {
 
 export const getQuestionsService = async () => {
   try {
-    const questions = await QuizQuestions.findAll({
-      where: { delStatus: 0 },
-      attributes: [
-        "id",
-        "question_text",
-        "group_id",
-        "Ques_level",
-        "question_type",
-        "AddOnDt",
-      ],
-      include: [
-        {
-          model: Group_Master,
-          attributes: ["group_name"],
-        },
-        {
-          model: TableDDReference,
-          attributes: ["ddValue", "idCode"],
-          foreignKey: "Ques_level",
-          targetKey: "idCode",
-        },
-        {
-          model: QuizQuestionOptions,
-          where: {
-            [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
-          },
-          required: false,
-          attributes: ["id", "option_text", "is_correct"],
-        },
-        {
-          model: QuizMapp,
-          required: false,
-          attributes: ["QuestionsID", "quizId", "delStatus"],
-        },
-        {
-          model: QuizDetails,
-          required: false,
-          attributes: ["QuizID", "QuizName"],
-        },
-      ],
+    const query = `
+      SELECT 
+        q.id AS question_id,
+        q.question_text,
+        gm.group_name,
+        td.ddValue,
+        td.idCode,
+        qo.id AS option_id,
+        qo.option_text,
+        qo.is_correct,
+        qm.quizId AS QuizID,
+        qd.QuizName,
+        q.Ques_level,
+        q.question_type,
+        q.AddOnDt
+      FROM giindiadgx_community.questions q
+      LEFT JOIN giindiadgx_community.groupmaster gm ON gm.group_id = q.group_id
+      LEFT JOIN giindiadgx_community.tblddreference td ON td.idCode = q.Ques_level
+      LEFT JOIN giindiadgx_community.questionoptions qo ON qo.question_id = q.id AND (qo.delStatus = 0 OR qo.delStatus IS NULL)
+      LEFT JOIN giindiadgx_community.quizmapping qm ON qm.QuestionsID = q.id AND (qm.delStatus = 0 OR qm.delStatus IS NULL)
+      LEFT JOIN giindiadgx_community.quizdetails qd ON qd.QuizID = qm.quizId
+      WHERE q.delStatus = 0
+    `;
+
+    const result = await sequelize.query(query, { type: QueryTypes.SELECT });
+
+    // Optionally group options under each question if needed
+    const questionsMap = {};
+    result.forEach((row) => {
+      if (!questionsMap[row.question_id]) {
+        questionsMap[row.question_id] = {
+          question_id: row.question_id,
+          question_text: row.question_text,
+          group_name: row.group_name,
+          ddValue: row.ddValue,
+          idCode: row.idCode,
+          Ques_level: row.Ques_level,
+          question_type: row.question_type,
+          AddOnDt: row.AddOnDt,
+          QuizID: row.QuizID,
+          QuizName: row.QuizName,
+          options: [],
+        };
+      }
+
+      if (row.option_id) {
+        questionsMap[row.question_id].options.push({
+          id: row.option_id,
+          option_text: row.option_text,
+          is_correct: row.is_correct,
+        });
+      }
     });
 
-    const response = questions.map((q) => {
-      const quiz_count = q.QuizMappings
-        ? q.QuizMappings.filter((qm) => qm.delStatus === 0).length
-        : 0;
-
-      return {
-        question_id: q.id,
-        question_text: q.question_text,
-        group_name: q.GroupMaster?.group_name || null,
-        ddValue: q.tblDDReference?.ddValue || null,
-        idCode: q.tblDDReference?.idCode || null,
-        options: q.QuestionOptions || [],
-        quiz_count,
-        QuizID: q.QuizDetail?.QuizID || null,
-        QuizName: q.QuizDetail?.QuizName || null,
-      };
-    });
-
+    const response = Object.values(questionsMap);
     return response;
   } catch (err) {
     throw err;
@@ -579,27 +576,27 @@ export const getQuestionsByGroupAndLevelService = async (
 
     // Step 2: Get Questions with Joins
     const questions = await sequelize.query(
-      `SELECT  
-          q.id AS question_id,  
-          q.question_text, 
-          q.Ques_level AS level, 
-          q.group_id, 
-          qm.quizGroupID AS mapped_quiz_id,
-          qm.totalMarks, 
-          qm.negativeMarks, 
-          qd.NegativeMarking,
-          ddr.ddValue AS question_level,
-          qo.option_text,
-          qo.is_correct,
-          qd.QuizName AS quiz_name 
-       FROM \`Questions\` q
-       LEFT JOIN \`QuizMapping\` qm ON q.id = qm.QuestionsID
-       LEFT JOIN \`QuizDetails\` qd ON qm.quizGroupID = qd.QuizID 
-       LEFT JOIN \`tblddreference\` ddr ON q.Ques_level = ddr.idCode
-       LEFT JOIN \`QuestionOptions\` qo ON q.id = qo.question_id
-       WHERE COALESCE(q.delStatus, 0) = 0 
-         AND q.group_id = :group_id
-         AND q.Ques_level = :level_id`,
+      ` SELECT  
+      q.id AS question_id,  
+      q.question_text, 
+      q.Ques_level AS level, 
+      q.group_id, 
+      qm.quizGroupID AS mapped_quiz_id,
+      qm.totalMarks, 
+      qm.negativeMarks, 
+      qd.NegativeMarking,
+      ddr.ddValue AS question_level,
+      qo.option_text,
+      qo.is_correct,
+      qd.QuizName AS quiz_name 
+    FROM giindiadgx_community.questions q
+    LEFT JOIN giindiadgx_community.quizmapping qm ON q.id = qm.QuestionsID
+    LEFT JOIN giindiadgx_community.quizdetails qd ON qm.quizGroupID = qd.QuizID 
+    LEFT JOIN giindiadgx_community.tblddreference ddr ON q.Ques_level = ddr.idCode
+    LEFT JOIN giindiadgx_community.questionoptions qo ON q.id = qo.question_id
+    WHERE COALESCE(q.delStatus, 0) = 0
+      AND q.group_id = :group_id
+      AND q.Ques_level = :level_id`,
       {
         replacements: { group_id, level_id },
         type: sequelize.QueryTypes.SELECT,
@@ -1135,8 +1132,8 @@ export const submitQuizService = async (userId, { quizId, answers }) => {
       const selectedOptions = answer.selectedOptionIds
         ? answer.selectedOptionIds
         : answer.selectedOptionId
-          ? [answer.selectedOptionId]
-          : [];
+        ? [answer.selectedOptionId]
+        : [];
 
       if (selectedOptions.length === 0) continue;
 
@@ -1198,7 +1195,6 @@ export const submitQuizService = async (userId, { quizId, answers }) => {
   });
 };
 
-
 export const getQuizQuestionsByQuizIdService = async (userEmail, QuizID) => {
   try {
     if (!QuizID || isNaN(parseInt(QuizID))) {
@@ -1220,7 +1216,11 @@ export const getQuizQuestionsByQuizIdService = async (userEmail, QuizID) => {
         { model: QuizQuestions, include: [{ model: QuestionOptions }] },
         { model: QuizDetails },
         { model: Group_Master },
-        { model: TableDDReference, foreignKey: "Ques_level", targetKey: "idCode" },
+        {
+          model: TableDDReference,
+          foreignKey: "Ques_level",
+          targetKey: "idCode",
+        },
       ],
     });
 
@@ -1301,7 +1301,6 @@ export const getQuizQuestionsByQuizIdService = async (userEmail, QuizID) => {
     };
   }
 };
-
 
 export const getQuizzesByRefIdService = async (refId) => {
   if (!refId) {
