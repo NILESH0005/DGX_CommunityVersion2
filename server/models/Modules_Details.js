@@ -14,7 +14,7 @@ export default (sequelize, DataTypes) => {
         allowNull: false
       },
       ModuleImage: {
-        type: DataTypes.BLOB, // for 'image' type
+        type: DataTypes.BLOB, 
         allowNull: true
       },
       ModuleDescription: {

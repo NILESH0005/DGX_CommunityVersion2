@@ -1,17 +1,19 @@
 import db from "../models/index.js";
 import { Op } from "sequelize"; // ✅ direct import
 import moment from "moment-timezone";
+import { fn, col } from "sequelize"; // ✅ ADD THIS LINE
 
 const CommunityEvents = db.CommunityEvents;
 const User = db.User;
 const MasterTable = db.TableDDReference;
-const istToUtc = (dateString) => {
-  if (!dateString) return null;
-  return moment
-    .tz(dateString, "Asia/Kolkata")
-    .utc()
-    .format("YYYY-MM-DD HH:mm:ss");
-};
+const ContentInteraction = db.ContentInteraction;
+// const istToUtc = (dateString) => {
+//   if (!dateString) return null;
+//   return moment
+//     .tz(dateString, "Asia/Kolkata")
+//     .utc()
+//     .format("YYYY-MM-DD HH:mm:ss");
+// };
 
 export const addEventService = async (decodedUser, payload) => {
   const {
@@ -267,4 +269,66 @@ export const updateEventService = async (eventId, user, payload) => {
       error,
     };
   }
+};
+
+export const EventViewService = {
+  /**
+   * Fetch total views for each event
+   */
+  async getTotalEventViews() {
+    try {
+      // Fetch all events (assuming you have a CommunityEvents table)
+      const events = await CommunityEvents.findAll({
+        where: { delStatus: 0 },
+        attributes: ["EventID", "EventTitle"],
+        raw: true,
+      });
+
+      // Count views for each event
+      const results = await Promise.all(
+        events.map(async (event) => {
+          const totalViews = await ContentInteraction.count({
+            where: {
+              ProcessName: "Event",
+              reference: event.EventID,
+              delStatus: 0,
+              View: 1,
+            },
+          });
+
+          return {
+            eventID: event.EventID,
+            eventTitle: event.EventTitle,
+            totalViews,
+          };
+        })
+      );
+
+      return { success: true, data: results };
+    } catch (error) {
+      console.error("Error fetching total event views:", error);
+      return { success: false, message: "Error fetching total event views" };
+    }
+  },
+
+  async getEventViewById(eventId) {
+    try {
+      const totalViews = await ContentInteraction.count({
+        where: {
+          ProcessName: "Event",
+          reference: eventId,
+          delStatus: 0,
+          View: 1,
+        },
+      });
+
+      return {
+        success: true,
+        data: { reference: eventId, totalViews },
+      };
+    } catch (error) {
+      console.error("Error fetching event view by ID:", error);
+      return { success: false, message: "Error fetching event view by ID" };
+    }
+  },
 };

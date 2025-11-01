@@ -2,7 +2,12 @@ import { body, validationResult } from "express-validator";
 import { connectToDatabase, closeConnection } from "../database/mySql.js";
 import dotenv from "dotenv";
 import { queryAsync, logError, logInfo, logWarning } from "../helper/index.js";
-import { addEventService, getEventService, updateEventService } from "../services/eventService.js";
+import {
+  addEventService,
+  getEventService,
+  updateEventService,
+  EventViewService,
+} from "../services/eventService.js";
 import User from "../models/User.js";
 
 dotenv.config();
@@ -87,13 +92,11 @@ export const updateEvent = async (req, res) => {
     const result = await updateEventService(eventId, user, payload);
 
     if (!result.success) {
-      return res
-        .status(result.status || 500)
-        .json({
-          success: false,
-          data: result.error || {},
-          message: result.message,
-        });
+      return res.status(result.status || 500).json({
+        success: false,
+        data: result.error || {},
+        message: result.message,
+      });
     }
 
     success = true;
@@ -111,4 +114,25 @@ export const updateEvent = async (req, res) => {
       message: "Something went wrong, please try again",
     });
   }
+};
+
+export const EventViewController = {
+  /**
+   * Get total views for all events
+   */
+  async getAllEventViews(req, res) {
+    const result = await EventViewService.getTotalEventViews();
+    if (!result.success) return res.status(500).json(result);
+    res.json(result);
+  },
+
+  /**
+   * Get total views for a single event (by ID)
+   */
+  async getEventViewById(req, res) {
+    const { eventId } = req.params;
+    const result = await EventViewService.getEventViewById(eventId);
+    if (!result.success) return res.status(500).json(result);
+    res.json(result);
+  },
 };

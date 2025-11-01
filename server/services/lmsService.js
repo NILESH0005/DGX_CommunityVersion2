@@ -8,6 +8,7 @@ const {
   LMSFilesDetails,
   Group_Master,
   User,
+  ContentInteraction,
 } = db;
 
 export class LMSService {
@@ -34,7 +35,7 @@ export class LMSService {
           ModuleName: data.ModuleName,
           ModuleImagePath: data.ModuleImagePath
             ? typeof data.ModuleImagePath === "object"
-              ? data.ModuleImagePath.filePath   // ✅ save only filePath
+              ? data.ModuleImagePath.filePath // ✅ save only filePath
               : data.ModuleImagePath
             : null,
           ModuleDescription: data.ModuleDescription || null,
@@ -64,7 +65,7 @@ export class LMSService {
             SubModuleName: sub.SubModuleName,
             SubModuleImagePath: sub.SubModuleImagePath
               ? typeof sub.SubModuleImagePath === "object"
-                ? sub.SubModuleImagePath.filePath  
+                ? sub.SubModuleImagePath.filePath
                 : sub.SubModuleImagePath
               : null,
             SubModuleDescription: sub.SubModuleDescription || null,
@@ -232,3 +233,99 @@ export const checkModuleExists = async (moduleName) => {
     message: "Module does not exist",
   };
 };
+
+export class LMSViewsService {
+  /**
+   * SubModule-wise total views
+   */
+  static async getSubModuleViews() {
+    try {
+      // Fetch all active submodules
+      const subModules = await LMSSubModulesDetails.findAll({
+        where: { delStatus: 0 },
+        attributes: ["SubModuleID", "SubModuleName", "ModuleID"],
+        raw: true,
+      });
+
+      // For each submodule, count views from Content_Interaction
+      const results = await Promise.all(
+        subModules.map(async (sub) => {
+          const totalViews = await ContentInteraction.count({
+            where: {
+              ProcessName: "LMS",
+              reference: sub.SubModuleID,
+              delStatus: 0,
+              View: 1,
+            },
+          });
+
+          return {
+            subModuleID: sub.SubModuleID,
+            subModuleName: sub.SubModuleName,
+            moduleID: sub.ModuleID,
+            totalViews,
+          };
+        })
+      );
+
+      return results;
+    } catch (error) {
+      console.error("Error in getSubModuleViews:", error);
+      throw new Error(error.message);
+    }
+  }
+
+  /**
+   * Module-wise total views (unique users)
+   */
+  static async getModuleViews() {
+    try {
+      const modules = await LMSModulesDetails.findAll({
+        where: { delStatus: 0 },
+        attributes: ["ModuleID", "ModuleName"],
+        raw: true,
+      });
+
+      const results = await Promise.all(
+        modules.map(async (module) => {
+          // Find all submodules under this module
+          const subModules = await LMSSubModulesDetails.findAll({
+            where: { ModuleID: module.ModuleID, delStatus: 0 },
+            attributes: ["SubModuleID"],
+            raw: true,
+          });
+
+          const subModuleIDs = subModules.map((s) => s.SubModuleID);
+
+          if (subModuleIDs.length === 0) return { ...module, totalViews: 0 };
+
+          // Count unique UserIDs across all submodules (distinct users)
+          const [results] = await ContentInteraction.sequelize.query(
+            `
+            SELECT COUNT(DISTINCT UserID) AS uniqueUsers
+            FROM Content_Interaction
+            WHERE ProcessName = 'LMS'
+            AND delStatus = 0
+            AND View = 1
+            AND reference IN (:subModuleIDs)
+          `,
+            { replacements: { subModuleIDs } }
+          );
+
+          const totalViews = results?.[0]?.uniqueUsers || 0;
+
+          return {
+            moduleID: module.ModuleID,
+            moduleName: module.ModuleName,
+            totalViews,
+          };
+        })
+      );
+
+      return results;
+    } catch (error) {
+      console.error("Error in getModuleViews:", error);
+      throw new Error(error.message);
+    }
+  }
+}

@@ -27,6 +27,7 @@ import moment from "moment-timezone";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import GeneralUserCalendar from "../component/GeneralUserCalendar.jsx";
+import { FaEye } from "react-icons/fa";
 
 const ParticleBackground = () => {
   return (
@@ -282,6 +283,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [eventViewCounts, setEventViewCounts] = useState({});
 
   useEffect(() => {
     setMounted(true);
@@ -353,32 +355,38 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     setIsModalOpen(true);
   };
 
+  const fetchEventViewCounts = async () => {
+    try {
+      const response = await fetchData(
+        "eventandworkshop/event-views",
+        "GET",
+        {},
+        {
+          "Content-Type": "application/json",
+        }
+      );
+
+      if (response?.success) {
+        // Convert array to object for easier access
+        const viewCountsObj = {};
+        response.data.forEach((event) => {
+          viewCountsObj[event.eventID] = event.totalViews;
+        });
+        setEventViewCounts(viewCountsObj);
+        console.log("Event view counts loaded:", viewCountsObj);
+      }
+    } catch (error) {
+      console.error("Error fetching event view counts:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchEventViewCounts();
+  }, []);
+
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
-  };
-
-  const handleShare = async (event) => {
-    const shareData = {
-      title: event.EventTitle,
-      text: `Check out this event: ${event.EventTitle}`,
-      url: window.location.href,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (error) {}
-    } else if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(
-          `${shareData.text} - ${shareData.url}`
-        );
-        alert("Link copied to clipboard!");
-      } catch (error) {}
-    } else {
-      alert("Sharing is not supported on this browser.");
-    }
   };
 
   const handleViewDetails = (event) => {
@@ -538,70 +546,82 @@ const EventWorkshopPage = ({ events, setEvents }) => {
             >
               {upcomingEvents
                 .filter((event) => event.Status === "Approved")
-                .map((event, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    whileHover={{ y: -5, scale: 1.02 }}
-                    className="bg-white rounded-xl shadow-lg overflow-hidden transition-shadow duration-300"
-                  >
-                    <div className="relative">
-                      <motion.img
-                        src={event.EventImage}
-                        alt={`Image for ${event.EventTitle}`}
-                        className="w-full h-48 object-cover"
-                        whileHover={{ scale: 1.05 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                      <motion.div
-                        className="absolute top-2 right-2 bg-DGXgreen text-white text-xs font-bold px-2 py-1 rounded"
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        Upcoming
-                      </motion.div>
-                    </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        {event.EventTitle}
-                      </h3>
-                      <div className="flex items-center text-gray-600 mb-2">
-                        <FontAwesomeIcon
-                          icon={faCalendarAlt}
-                          className="mr-2 text-DGXgreen"
-                        />
-                        <span>
-                          {moment.utc(event.StartDate).format("MMMM D, YYYY")}
-                        </span>
-                      </div>
-                      <div className="flex items-center text-gray-600 mb-4">
-                        <FontAwesomeIcon
-                          icon={faMapMarkerAlt}
-                          className="mr-2 text-DGXgreen"
-                        />
-                        <span>{event.Venue}</span>
-                      </div>
-                      <motion.div
-                        className="flex justify-between space-x-3"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.2 }}
-                      >
-                        <motion.button
-                          onClick={() => handleViewDetails(event)}
-                          className="flex-1 bg-DGXblue hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition"
+                .map((event, index) => {
+                  const viewCount = eventViewCounts[event.EventID] || 0;
+
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: index * 0.1 }}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      className="bg-white rounded-xl shadow-lg overflow-hidden transition-shadow duration-300"
+                    >
+                      <div className="relative">
+                        <motion.img
+                          src={event.EventImage}
+                          alt={`Image for ${event.EventTitle}`}
+                          className="w-full h-48 object-cover"
                           whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                        <motion.div
+                          className="absolute top-2 right-2 bg-DGXgreen text-white text-xs font-bold px-2 py-1 rounded"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.3 }}
                         >
-                          Details
-                        </motion.button>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                ))}
+                          Upcoming
+                        </motion.div>
+
+                        {/* View Count Badge */}
+                        <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs backdrop-blur-sm">
+                          <div className="flex items-center space-x-1">
+                            <FaEye className="text-gray-400 text-base" />
+                            <span>{viewCount}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">
+                          {event.EventTitle}
+                        </h3>
+                        <div className="flex items-center text-gray-600 mb-2">
+                          <FontAwesomeIcon
+                            icon={faCalendarAlt}
+                            className="mr-2 text-DGXgreen"
+                          />
+                          <span>
+                            {moment.utc(event.StartDate).format("MMMM D, YYYY")}
+                          </span>
+                        </div>
+                        <div className="flex items-center text-gray-600 mb-4">
+                          <FontAwesomeIcon
+                            icon={faMapMarkerAlt}
+                            className="mr-2 text-DGXgreen"
+                          />
+                          <span>{event.Venue}</span>
+                        </div>
+                        <motion.div
+                          className="flex justify-between space-x-3"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.2 }}
+                        >
+                          <motion.button
+                            onClick={() => handleViewDetails(event)}
+                            className="flex-1 bg-DGXblue hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            Details
+                          </motion.button>
+                        </motion.div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
             </motion.div>
           ) : (
             <motion.div

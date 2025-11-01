@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import ApiContext from "../../context/ApiContext";
 import ByteArrayImage from "../../utils/ByteArrayImage";
-import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import { FaAngleDown, FaAngleUp, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 import images from "../../../public/images";
 const ModuleCard = () => {
@@ -34,7 +34,7 @@ const ModuleCard = () => {
           Swal.fire({
             title: "Error",
             text: response.message || "Failed to load modules",
-            icon: "error"
+            icon: "error",
           });
         }
       } catch (error) {
@@ -42,7 +42,7 @@ const ModuleCard = () => {
         Swal.fire({
           title: "Connection Error",
           text: "Could not connect to server",
-          icon: "error"
+          icon: "error",
         });
       } finally {
         setLoading(false);
@@ -50,6 +50,57 @@ const ModuleCard = () => {
     };
 
     fetchModules();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const fetchModulesAndViews = async () => {
+      try {
+        setLoading(true);
+
+        const [modulesResponse, viewsResponse] = await Promise.all([
+          fetchData("dropdown/getModules", "GET"),
+          fetchData("lms/module-views", "GET"),
+        ]);
+
+        if (!modulesResponse?.success) {
+          throw new Error(modulesResponse?.message || "Failed to load modules");
+        }
+
+        const modulesData = modulesResponse.data || [];
+        const viewsData = viewsResponse?.data || [];
+
+        // Merge views into module data
+        const mergedModules = modulesData.map((module) => {
+          const viewEntry = viewsData.find(
+            (v) => v.moduleID === module.ModuleID
+          );
+          return {
+            ...module,
+            totalViews: viewEntry ? viewEntry.totalViews : 0,
+          };
+        });
+
+        setModules(mergedModules);
+
+        // Set expanded state for each module
+        const initialExpandedState = {};
+        mergedModules.forEach(
+          (m) => (initialExpandedState[m.ModuleID] = false)
+        );
+        setExpandedDescriptions(initialExpandedState);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        Swal.fire({
+          title: "Error",
+          text: error.message || "Failed to fetch module data",
+          icon: "error",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModulesAndViews();
   }, [fetchData]);
 
   const handleModuleClick = (moduleId, moduleName) => {
@@ -94,7 +145,6 @@ const ModuleCard = () => {
   };
 
   const renderModuleImage = (module) => {
-    // First try to use the image URL if available
     if (module.ModuleImageUrl) {
       return (
         <img
@@ -102,15 +152,14 @@ const ModuleCard = () => {
           alt={module.ModuleName}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
           onError={(e) => {
-            e.target.onerror = null; // Prevent infinite loop
-            e.target.src = images.Noimage; // Use Noimage on error
+            e.target.onerror = null;
+            e.target.src = images.Noimage;
             e.target.className = "w-full h-full object-contain bg-gray-200 p-4";
           }}
         />
       );
     }
 
-    // Then try to use the byte array image if available
     if (module.ModuleImage) {
       return (
         <ByteArrayImage
@@ -176,12 +225,19 @@ const ModuleCard = () => {
                 <h3 className="text-xl font-bold text-gray-800 mb-3 hover:text-blue-600 transition-colors duration-200 break-words">
                   {module.ModuleName}
                 </h3>
-
+                <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">
+                  <FaEye className="text-gray-400" />
+                  <span className="font-medium text-gray-700">
+                    {module.totalViews}
+                  </span>
+                  <span>views</span>
+                </p>
                 <p
-                  className={`text-gray-600 text-base mb-4 hover:text-gray-800 transition-colors duration-200 break-words ${expandedDescriptions[module.ModuleID]
-                    ? "overflow-y-auto max-h-32"
-                    : "line-clamp-2"
-                    }`}
+                  className={`text-gray-600 text-base mb-4 hover:text-gray-800 transition-colors duration-200 break-words ${
+                    expandedDescriptions[module.ModuleID]
+                      ? "overflow-y-auto max-h-32"
+                      : "line-clamp-2"
+                  }`}
                 >
                   {module.ModuleDescription || "No description available"}
                 </p>

@@ -8,7 +8,7 @@ import {
 import ApiContext from "../../context/ApiContext";
 import ByteArrayImage from "../../utils/ByteArrayImage";
 import ProgressBar from "./ProgressBar";
-import { FaAngleDown, FaAngleUp, FaArrowLeft } from "react-icons/fa";
+import { FaAngleDown, FaAngleUp, FaArrowLeft, FaEye } from "react-icons/fa";
 import images from "../../../public/images";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -45,7 +45,8 @@ const SubModuleCard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
-  const [viewedSubModules, setViewedSubModules] = useState(new Set()); // Track viewed submodules
+  const [viewedSubModules, setViewedSubModules] = useState(new Set());
+  const [subModuleViews, setSubModuleViews] = useState([]);
 
   const recordSubModuleView = async (subModuleId) => {
     try {
@@ -97,7 +98,62 @@ const SubModuleCard = () => {
     });
   };
 
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const subModulesResponse = await fetchData(
+        `dropdown/getSubModules?moduleId=${moduleId}`,
+        "GET"
+      );
+      if (!subModulesResponse?.success) {
+        setError(subModulesResponse?.message || "Failed to fetch submodules");
+        return;
+      }
 
+      setSubModules(subModulesResponse.data);
+
+      const progressResponse = await fetchData(
+        "progressTrack/getModuleSubmoduleProgress",
+        "POST",
+        { moduleID: moduleId },
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        }
+      );
+      if (progressResponse?.success) {
+        setProgressData(progressResponse.data);
+      }
+
+      const viewsResponse = await fetchData("lms/submodule-views", "GET");
+      if (viewsResponse?.success) {
+        setSubModuleViews(viewsResponse.data);
+      }
+
+      const initialExpandedState = {};
+      subModulesResponse.data.forEach((subModule) => {
+        initialExpandedState[subModule.SubModuleID] = false;
+      });
+      setExpandedDescriptions(initialExpandedState);
+
+      if (!moduleName) {
+        const currentModule = subModulesResponse.data[0]?.ModuleName;
+        if (currentModule) {
+          setModuleName(currentModule);
+          if (!searchParams.get("moduleName")) {
+            navigate(`?moduleName=${encodeURIComponent(currentModule)}`, {
+              replace: true,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      setError("An error occurred while fetching data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderSubModuleImage = (subModule) => {
     if (subModule.SubModuleImageUrl) {
@@ -185,6 +241,11 @@ const SubModuleCard = () => {
 
         if (progressResponse?.success) {
           setProgressData(progressResponse.data);
+        }
+
+        const viewsResponse = await fetchData("lms/submodule-views", "GET");
+        if (viewsResponse?.success) {
+          setSubModuleViews(viewsResponse.data);
         }
 
         const initialExpandedState = {};
@@ -348,7 +409,17 @@ const SubModuleCard = () => {
                     <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 break-words hover:text-blue-600 dark:hover:text-teal-400 transition-colors duration-200 select-text">
                       {subModule.SubModuleName}
                     </h3>
-
+                    <p className="text-sm text-gray-500 mb-2 flex items-center gap-2">
+                      <FaEye className="text-gray-400 text-base" />
+                      <span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          {subModuleViews.find(
+                            (v) => v.subModuleID === subModule.SubModuleID
+                          )?.totalViews || 0}
+                        </span>{" "}
+                        views
+                      </span>
+                    </p>
                     <motion.div
                       className="relative overflow-hidden text-gray-700 dark:text-gray-300 text-base mb-3 select-text"
                       initial={false}

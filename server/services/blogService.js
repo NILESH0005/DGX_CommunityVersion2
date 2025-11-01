@@ -446,12 +446,6 @@ export const getUserBlogsService = async (userEmail) => {
   }
 };
 
-
-
-
-
-
-
 export const getPublicBlogsService = async () => {
   // Step 1: Fetch all approved blogs
   const allBlogs = await Blog.findAll({
@@ -998,14 +992,23 @@ export const getBlogStatsService = async (blogId) => {
         delStatus: 0,
       },
       attributes: [
-        [sequelize.fn("COUNT", sequelize.col("Rating")), "totalRatings"], // ✅ Fixed
-        [sequelize.fn("AVG", sequelize.col("Rating")), "averageRating"], // ✅ Fixed
+        [sequelize.fn("COUNT", sequelize.col("Rating")), "totalRatings"],
+        [sequelize.fn("AVG", sequelize.col("Rating")), "averageRating"],
       ],
       raw: true,
     });
 
     const totalRatings = parseInt(ratingData?.totalRatings) || 0;
     const averageRating = parseFloat(ratingData?.averageRating) || 0;
+
+    const totalViews = await ContentInteraction.count({
+      where: {
+        ProcessName: "Blog",
+        reference: blogId,
+        View: 1, // Make sure your column for views is called 'View'
+        delStatus: 0,
+      },
+    });
 
     return {
       success: true,
@@ -1014,6 +1017,7 @@ export const getBlogStatsService = async (blogId) => {
         totalRatings,
         averageRating: Math.round(averageRating * 10) / 10,
         blogId: parseInt(blogId),
+        totalViews,
       },
     };
   } catch (error) {
