@@ -6,7 +6,7 @@ import ApiContext from "../context/ApiContext.jsx";
 import DiscussionModal from "../component/discussion/DiscussionModal.jsx";
 import { compressImage } from "../utils/compressImage.js";
 import { AiFillLike, AiOutlineLike, AiOutlineComment } from "react-icons/ai";
-import { FiRepeat } from "react-icons/fi";
+import { FiEye, FiRepeat } from "react-icons/fi";
 import { useCallback } from "react";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
@@ -78,6 +78,10 @@ const Discussion = () => {
             stats[discussion.DiscussionID]?.TotalComments ||
             discussion.commentCount ||
             0,
+          viewCount:
+            stats[discussion.DiscussionID]?.TotalViews ||
+            discussion.viewCount ||
+            0,
         }))
       );
 
@@ -92,6 +96,10 @@ const Discussion = () => {
             stats[discussion.DiscussionID]?.TotalComments ||
             discussion.commentCount ||
             0,
+          viewCount:
+            stats[discussion.DiscussionID]?.TotalViews ||
+            discussion.viewCount ||
+            0,
         }))
       );
     } catch (error) {
@@ -102,6 +110,8 @@ const Discussion = () => {
   };
 
   useEffect(() => {
+    console.log("Discussion Stats State:", discussionStats);
+
     if (demoDiscussions.length > 0) {
       const highlights = getCommunityHighlights(demoDiscussions);
       const topUsersList = getTopUsersByDiscussions(demoDiscussions);
@@ -246,7 +256,6 @@ const Discussion = () => {
   }, []);
 
   const [likeCount, setLikeCount] = useState(0);
-  const [commentCount, setCommentCount] = useState(0);
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -536,6 +545,8 @@ const Discussion = () => {
             // Use stats data if available, otherwise fall back to existing data
             likeCount: stats.TotalLikes || discussion.likeCount || 0,
             commentCount: stats.TotalComments || discussion.commentCount || 0,
+            viewCount: stats.TotalViews || discussion.viewCount || 0,
+
             // ... rest of your existing mapping
           };
         });
@@ -2020,6 +2031,20 @@ const Discussion = () => {
                             </span>
                           </button>
 
+                          <div className="flex items-center gap-2 text-gray-500">
+                            <div className="p-2 rounded-full bg-gray-100">
+                              <FiEye className="w-5 h-5" />
+                            </div>
+                            <span className="font-medium">
+                              {statsLoading ? (
+                                <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin"></div>
+                              ) : (
+                                `${discussion.viewCount || 0} ${
+                                  discussion.viewCount !== 1 ? "Views" : "View"
+                                }`
+                              )}
+                            </span>
+                          </div>
                           {/* Repost Button */}
                           {getRepostMessage(discussion) ? (
                             <span className="flex items-center gap-2 text-gray-400">

@@ -508,11 +508,22 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
+        const viewCount = await ContentInteraction.count({
+          where: {
+            ProcessName: "Discussion",
+            reference: discussion.DiscussionID,
+            delStatus: 0,
+            ViewStatus: 0,
+            View: 1,
+          },
+        });
+
         return {
           DiscussionID: discussion.DiscussionID,
           Title: discussion.Title,
           TotalLikes: likeCount,
           TotalComments: commentCount,
+          TotalViews: viewCount,
         };
       })
     );
@@ -562,12 +573,22 @@ export const getBlogStatsService = async () => {
           const total = validRatings.reduce((sum, r) => sum + r, 0);
           avgRating = (total / validRatings.length).toFixed(2);
         }
+        const viewCount = await ContentInteraction.count({
+          where: {
+            ProcessName: "Blog",
+            reference: blog.BlogID,
+            delStatus: 0,
+            ViewStatus: 0,
+            View: 1,
+          },
+        });
 
         return {
           BlogID: blog.BlogID,
           Title: blog.title,
           TotalLikes: likeCount,
           AvgRating: avgRating,
+          TotalViews: viewCount,
         };
       })
     );
@@ -578,4 +599,3 @@ export const getBlogStatsService = async () => {
     return { success: false, message: error.message };
   }
 };
-

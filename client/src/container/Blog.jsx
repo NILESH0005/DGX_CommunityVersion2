@@ -25,6 +25,7 @@ import {
   Repeat2,
   User,
 } from "lucide-react";
+import { FiEye } from "react-icons/fi";
 
 const ParticleBackground = () => {
   return (
@@ -339,6 +340,7 @@ const BlogPage = () => {
       totalLikes: 0,
       averageRating: 0,
       totalRatings: 0,
+      totalViews: 0,
     });
 
     const isAccordionOpen = expandedAccordions[BlogID];
@@ -485,6 +487,13 @@ const BlogPage = () => {
               <div className="flex items-center gap-1 text-sm text-gray-600 ml-auto">
                 <Heart className="text-red-500" size={16} />
                 <span>{blogStats.totalLikes} claps</span>
+              </div>
+            )}
+
+            {blogStats.totalViews > 0 && (
+              <div className="flex items-center gap-1 text-sm text-gray-600">
+                <FiEye size={16} className="text-blue-500" />
+                <span>{blogStats.totalViews} views</span>
               </div>
             )}
           </div>

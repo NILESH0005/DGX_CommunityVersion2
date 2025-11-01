@@ -1,74 +1,84 @@
 import { upload } from "../config/multerConfig.js";
-import { checkModuleExists, LMSService } from "../services/lmsService.js";
+import {
+  checkModuleExists,
+  LMSService,
+  LMSViewsService,
+} from "../services/lmsService.js";
 
 export class LMS {
   static upload = upload;
 
   static async uploadFile(req, res) {
-  try {
-    const { moduleId, subModuleId, unitId, type, url, description, isLink } = req.body;
+    try {
+      const { moduleId, subModuleId, unitId, type, url, description, isLink } =
+        req.body;
 
-    // Handle file upload
-    if (type === 'file' || !isLink) {
-      if (!req.file) {
-        return res.status(400).json({ success: false, message: "No file uploaded" });
+      // Handle file upload
+      if (type === "file" || !isLink) {
+        if (!req.file) {
+          return res
+            .status(400)
+            .json({ success: false, message: "No file uploaded" });
+        }
+
+        const savedPath = req.file.path.replace(/\\/g, "/");
+
+        const fileData = {
+          fileName: req.file.originalname,
+          filePath: savedPath,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          moduleId,
+          subModuleId,
+          unitId,
+          uploadedBy: req.user?.id || "system",
+        };
+
+        return res.status(201).json({
+          success: true,
+          message: "File uploaded successfully",
+          ...fileData,
+        });
       }
 
-      const savedPath = req.file.path.replace(/\\/g, "/");
-      
-      const fileData = {
-        fileName: req.file.originalname,
-        filePath: savedPath,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        moduleId,
-        subModuleId,
-        unitId,
-        uploadedBy: req.user?.id || "system",
-      };
+      // Handle link submission
+      if (type === "link" || isLink) {
+        if (!url) {
+          return res
+            .status(400)
+            .json({ success: false, message: "URL is required for links" });
+        }
 
-      return res.status(201).json({
-        success: true,
-        message: "File uploaded successfully",
-        ...fileData,
-      });
-    }
+        const linkData = {
+          fileName: req.body.customFileName || "Link",
+          filePath: url,
+          fileSize: 0,
+          mimeType: "link",
+          moduleId,
+          subModuleId,
+          unitId,
+          uploadedBy: req.user?.id || "system",
+          description: description || "",
+        };
 
-    // Handle link submission
-    if (type === 'link' || isLink) {
-      if (!url) {
-        return res.status(400).json({ success: false, message: "URL is required for links" });
+        return res.status(201).json({
+          success: true,
+          message: "Link added successfully",
+          ...linkData,
+        });
       }
 
-      const linkData = {
-        fileName: req.body.customFileName || "Link",
-        filePath: url,
-        fileSize: 0,
-        mimeType: "link",
-        moduleId,
-        subModuleId,
-        unitId,
-        uploadedBy: req.user?.id || "system",
-        description: description || "",
-      };
-
-      return res.status(201).json({
-        success: true,
-        message: "Link added successfully",
-        ...linkData,
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid request type" });
+    } catch (error) {
+      console.error("Upload error:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Upload failed",
       });
     }
-
-    return res.status(400).json({ success: false, message: "Invalid request type" });
-
-  } catch (error) {
-    console.error("Upload error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Upload failed",
-    });
   }
-}
 
   static async getSubModules(req, res) {
     try {
@@ -114,7 +124,8 @@ export class LMS {
 
   static async saveFileOrLink(req, res) {
     try {
-      const { unitId, link, fileName, fileType, description, estimatedTime } = req.body;
+      const { unitId, link, fileName, fileType, description, estimatedTime } =
+        req.body;
       const userName = req.user?.id;
 
       if (!unitId) {
@@ -161,7 +172,7 @@ export class LMS {
     }
   }
 
- static async uploadUpdatedFile(req, res) {
+  static async uploadUpdatedFile(req, res) {
     try {
       if (!req.file) {
         return res
@@ -190,7 +201,7 @@ export class LMS {
       console.error(error);
       res.status(500).json({ success: false, message: error.message });
     }
-  } 
+  }
 }
 
 export const checkModuleExist = async (req, res) => {
@@ -211,5 +222,25 @@ export const checkModuleExist = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getSubModuleViews  = async (req, res) => {
+  try {
+    const result = await LMSViewsService.getSubModuleViews();
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error("Error fetching submodule views:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getModuleViews = async (req, res) => {
+  try {
+    const result = await LMSViewsService.getModuleViews();
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    console.error("Error fetching module views:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

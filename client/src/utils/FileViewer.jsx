@@ -67,27 +67,27 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     });
   }, []);
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  // const handleDownload = () => {
+  //   const link = document.createElement('a');
+  //   link.href = fileUrl;
+  //   link.download = fileName;
+  //   document.body.appendChild(link);
+  //   link.click();
+  //   document.body.removeChild(link);
+  // };
 
   const handleLinkClick = () => {
     window.open(fileUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const renderDownloadButton = () => (
-    <button
-      onClick={handleDownload}
-      className="absolute top-4 right-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors z-10"
-    >
-      Download File
-    </button>
-  );
+  // const renderDownloadButton = () => (
+  //   <button
+  //     onClick={handleDownload}
+  //     className="absolute top-4 right-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors z-10"
+  //   >
+  //     Download File
+  //   </button>
+  // );
 
   const renderSubmoduleHeader = () => (
     <div className="text-center mb-6">
@@ -315,8 +315,8 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   if (fileExtension === 'pdf') {
     return (
       <div className="relative w-full flex flex-col items-center">
-        {renderDownloadButton()}
-        {renderSubmoduleHeader()}
+        {/* {renderDownloadButton()}
+        {renderSubmoduleHeader()} */}
         <div className="w-full max-w-4xl bg-white rounded-lg shadow-md overflow-hidden">
           {pdfError ? (
             <div className="p-8 text-center">
