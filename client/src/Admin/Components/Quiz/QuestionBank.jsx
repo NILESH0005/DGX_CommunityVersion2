@@ -411,7 +411,7 @@ const QuizBank = () => {
                   <th className="border p-2">Correct Answer</th>
                   <th className="border p-2">Group</th>
                   <th className="border p-2">Level</th>
-                  <th className="border p-2">Count</th>
+                  <th className="border p-2">Quiz Count</th>
                   <th className="border p-2">Actions</th>
                 </tr>
               </thead>

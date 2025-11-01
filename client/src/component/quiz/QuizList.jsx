@@ -108,7 +108,6 @@ const QuizList = () => {
           });
         });
 
-        // Finally set the filtered groups to state
         setQuizzes(filteredGroups);
       } else {
         throw new Error(data.message || "Failed to fetch quizzes");
@@ -199,6 +198,44 @@ const QuizList = () => {
     }
   };
 
+  const renderCountdown = (timeRemaining, status) => {
+    return (
+      <div className="mb-4">
+        <p className="text-sm text-gray-500 mb-2">
+          {status === "upcoming" ? "Starts in:" : "Ends in:"}
+        </p>
+        <div className="flex gap-2">
+          {timeRemaining.days > 0 && (
+            <div className="text-center bg-gray-100 p-2 rounded">
+              <span className="block text-lg font-bold">
+                {formatTime(timeRemaining.days)}
+              </span>
+              <span className="text-xs text-gray-500">Days</span>
+            </div>
+          )}
+          <div className="text-center bg-gray-100 p-2 rounded">
+            <span className="block text-lg font-bold">
+              {formatTime(timeRemaining.hours)}
+            </span>
+            <span className="text-xs text-gray-500">Hours</span>
+          </div>
+          <div className="text-center bg-gray-100 p-2 rounded">
+            <span className="block text-lg font-bold">
+              {formatTime(timeRemaining.minutes)}
+            </span>
+            <span className="text-xs text-gray-500">Mins</span>
+          </div>
+          <div className="text-center bg-gray-100 p-2 rounded">
+            <span className="block text-lg font-bold">
+              {formatTime(timeRemaining.seconds)}
+            </span>
+            <span className="text-xs text-gray-500">Secs</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -261,8 +298,10 @@ const QuizList = () => {
                     const status = getQuizStatus(quiz);
                     if (status === "expired") return null;
 
-                    const timeRemaining = getTimeRemaining(quiz.startDate);
-
+                    const timeRemaining =
+                      status === "upcoming"
+                        ? getTimeRemaining(quiz.startDate)
+                        : getTimeRemaining(quiz.endDate);
                     return (
                       <div
                         key={quiz.id}
@@ -385,8 +424,10 @@ const QuizList = () => {
                             </div>
                           )}
 
-                          <div className="flex-grow"></div>
+                          {(status === "upcoming" || status === "active") &&
+                            renderCountdown(timeRemaining, status)}
 
+                          <div className="flex-grow"></div>
                           {status === "active" ? (
                             <button
                               className={`w-full py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-md relative z-10 mt-4 ${
