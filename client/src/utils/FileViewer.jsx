@@ -440,7 +440,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     // Local notebook rendering remains the same
     return (
       <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
-        {renderDownloadButton()}
+        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -463,7 +463,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   if (fileExtension === 'csv') {
     return (
       <div className="relative w-full h-full flex flex-col">
-        {renderDownloadButton()}
+        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         <iframe
           key={iframeKey}
@@ -481,7 +481,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   // Default for unsupported files
   return (
     <div className="relative flex flex-col items-center justify-center p-8">
-      {renderDownloadButton()}
+      {/* {renderDownloadButton()} */}
       {renderSubmoduleHeader()}
       <div className="text-6xl mb-4">📁</div>
       <p className="text-gray-500 mb-6">This file type cannot be previewed</p>

@@ -235,12 +235,9 @@ export const checkModuleExists = async (moduleName) => {
 };
 
 export class LMSViewsService {
-  /**
-   * SubModule-wise total views
-   */
+  
   static async getSubModuleViews() {
     try {
-      // Fetch all active submodules
       const subModules = await LMSSubModulesDetails.findAll({
         where: { delStatus: 0 },
         attributes: ["SubModuleID", "SubModuleName", "ModuleID"],
@@ -264,6 +261,7 @@ export class LMSViewsService {
             subModuleName: sub.SubModuleName,
             moduleID: sub.ModuleID,
             totalViews,
+            
           };
         })
       );
