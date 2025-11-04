@@ -481,7 +481,7 @@ export const getUserBlogs = async (req, res) => {
   }
 };
 
-export const getPublicBlogs = async (req, res) => {
+export const  getPublicBlogs = async (req, res) => {
   try {
     const blogs = await db.CommunityBlog.findAll({
       where: {

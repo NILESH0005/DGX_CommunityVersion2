@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { compressImage } from '../../../../utils/compressImage';
 import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
+import { compressImage } from '../../../../utils/compressImage';
+import { motion } from 'framer-motion';
 
+const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
 const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
   const [isCreated, setIsCreated] = useState(false);
   const [newModule, setNewModule] = useState({
@@ -10,12 +15,17 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
     name: '',
     description: '',
     banner: null
+    name: '',
+    description: '',
+    banner: null
   });
   const [errors, setErrors] = useState({});
+  const [isCompressing, setIsCompressing] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
 
   const handleCreate = async () => {
     if (!newModule.name.trim()) {
+      setErrors({ name: 'Module name is required' });
       setErrors({ name: 'Module name is required' });
       return;
     }
@@ -32,10 +42,25 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
         }
       }
 
+    try {
+      setIsCompressing(true);
+      let compressedBanner = null;
+      if (newModule.banner) {
+        try {
+          compressedBanner = await compressImage(newModule.banner);
+        } catch (error) {
+          console.error('Image compression failed:', error);
+          compressedBanner = await convertFileToBase64(newModule.banner);
+        }
+      }
+
       const module = {
         ModuleName: newModule.name.trim(),
         ModuleImage: compressedBanner,
+        ModuleImage: compressedBanner,
         ModuleDescription: newModule.description.trim(),
+        subModules: [],
+        createdAt: new Date().toISOString()
         subModules: [],
         createdAt: new Date().toISOString()
       };
@@ -43,6 +68,7 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
       onCreate(module);
       setIsCreated(true);
     } catch (error) {
+      console.error('Error creating module:', error);
       console.error('Error creating module:', error);
     } finally {
       setIsCompressing(false);
@@ -247,6 +273,7 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
             placeholder="Brief description of what this module covers..."
             className="border w-full p-3 rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 transition"
             value={newModule.description}
+            onChange={(e) => setNewModule({ ...newModule, description: e.target.value })}
             onChange={(e) => setNewModule({ ...newModule, description: e.target.value })}
           />
         </div>

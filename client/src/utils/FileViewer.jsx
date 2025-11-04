@@ -267,7 +267,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   if (fileType === 'link') {
     return (
       <div className="relative flex flex-col items-center justify-center p-8 min-h-[400px]">
-        {renderDownloadButton()}
+        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         <div className="flex flex-col items-center space-y-6">
           <div className="text-6xl mb-4">🔗</div>
@@ -297,7 +297,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   if (["jpg", "jpeg", "png", "gif", "webp", "svg"].includes(fileExtension)) {
     return (
       <div className="relative flex flex-col items-center">
-        {renderDownloadButton()}
+        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         <div className="max-w-full max-h-[80vh] overflow-auto">
           <img
@@ -315,8 +315,8 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   if (fileExtension === 'pdf') {
     return (
       <div className="relative w-full flex flex-col items-center">
-        {/* {renderDownloadButton()}
-        {renderSubmoduleHeader()} */}
+        {/* {renderDownloadButton()}*/}
+        {renderSubmoduleHeader()} 
         <div className="w-full max-w-4xl bg-white rounded-lg shadow-md overflow-hidden">
           {pdfError ? (
             <div className="p-8 text-center">
@@ -365,7 +365,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(fileExtension)) {
     return (
       <div className="relative w-full h-full flex flex-col">
-        {renderDownloadButton()}
+        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         <div className="flex-1">
           <iframe
@@ -389,7 +389,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     if (!fileUrl.startsWith('http://localhost') && !fileUrl.startsWith('file://')) {
       return (
         <div className="relative w-full h-full flex flex-col">
-          {renderDownloadButton()}
+          {/* {renderDownloadButton()} */}
           {renderSubmoduleHeader()}
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="max-w-2xl w-full">
@@ -440,7 +440,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     // Local notebook rendering remains the same
     return (
       <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
-        {renderDownloadButton()}
+        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -463,7 +463,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   if (fileExtension === 'csv') {
     return (
       <div className="relative w-full h-full flex flex-col">
-        {renderDownloadButton()}
+        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         <iframe
           key={iframeKey}
@@ -481,7 +481,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   // Default for unsupported files
   return (
     <div className="relative flex flex-col items-center justify-center p-8">
-      {renderDownloadButton()}
+      {/* {renderDownloadButton()} */}
       {renderSubmoduleHeader()}
       <div className="text-6xl mb-4">📁</div>
       <p className="text-gray-500 mb-6">This file type cannot be previewed</p>
