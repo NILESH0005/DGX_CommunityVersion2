@@ -300,11 +300,11 @@ const BlogPage = () => {
       return;
     }
 
-    // ✅ Record the view once modal opens
+    // Record the view
     recordBlogView(blog.BlogID);
 
-    setSelectedBlog(blog);
-    setIsModalOpen(true);
+    // Navigate to the blog page instead of opening modal
+    navigate(`/blog/${blog.BlogID}`);
   };
 
   const closeModal = () => {

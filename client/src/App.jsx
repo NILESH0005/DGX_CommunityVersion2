@@ -117,6 +117,7 @@ import ApiContext from "./context/ApiContext.jsx";
 import UserDetails from "../src/container/UserDetails.jsx";
 import BlogForm from "./Admin/Components/BlogComponents/BlogForm.jsx";
 import EventDetailsPage from "./component/EventDetailsPage.jsx";
+import PublicBlogPage from "./component/PublicBlogPage.jsx";
 // Use CDN to load the worker (best option with Vite)
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
@@ -209,7 +210,7 @@ function App() {
             <Route path="/ContactUs" element={<ContactUs />} />
             <Route path="/Blog" element={<Blog />} />
             <Route path="/BlogForm" element={<BlogForm />} />
-
+            <Route path="/blog/:blogId" element={<PublicBlogPage />} />
             {/* <Route path='/DiscussionModal' element={<DiscussionModal />} /> */}
             <Route path="/ResetPassword" element={<ResetPassword />} />
             <Route
@@ -232,7 +233,10 @@ function App() {
               path="/EventRegistrationPage"
               element={<EventRegistrationPage />}
             />
-            <Route path="/event/:eventId" element={<EventDetailsPage />} />
+            <Route
+              path="/event/:eventId"
+              element={<EventDetailsPage events={events} />}
+            />
 
             <Route
               path="/HomeAfterLoginComponent"

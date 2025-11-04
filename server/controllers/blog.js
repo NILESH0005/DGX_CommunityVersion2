@@ -11,6 +11,7 @@ import {
 } from "../helper/index.js";
 import {
   createBlogPost,
+  getBlogByIdService,
   getBlogService,
   getBlogStatsService,
   getPublicBlogsService,
@@ -481,7 +482,35 @@ export const getUserBlogs = async (req, res) => {
   }
 };
 
-export const  getPublicBlogs = async (req, res) => {
+// In your blog controller
+export const getBlogById = async (req, res) => {
+  try {
+    const { blogId } = req.params;
+
+    if (!blogId) {
+      return res.status(400).json({
+        success: false,
+        message: "Blog ID is required",
+      });
+    }
+
+    const result = await getBlogByIdService(blogId);
+
+    return res.status(result.status).json({
+      success: result.success,
+      data: result.data,
+      message: result.message,
+    });
+  } catch (error) {
+    console.error("Error in getBlogById controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getPublicBlogs = async (req, res) => {
   try {
     const blogs = await db.CommunityBlog.findAll({
       where: {
@@ -669,7 +698,6 @@ export const getBlogStatsController = async (req, res) => {
     });
   }
 };
-
 
 export const softDeleteBlog = async (req, res) => {
   try {
