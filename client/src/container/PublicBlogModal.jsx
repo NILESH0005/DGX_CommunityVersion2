@@ -34,6 +34,82 @@ const PublicBlogModal = ({
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
 
+  const getBaseUrl = () => {
+    return import.meta.env.VITE_CLIENT_BASE_URL || window.location.origin;
+  };
+
+  const getBlogUrl = () => {
+    const baseUrl = getBaseUrl();
+    return `${baseUrl}/blog/${BlogID}`;
+  };
+
+  const safeCopyToClipboard = async (
+    text,
+    successMessage = "Blog link copied to clipboard!"
+  ) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        Swal.fire({
+          title: "Copied!",
+          text: successMessage,
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        return true;
+      } catch (error) {
+        console.error("Clipboard API failed:", error);
+      }
+    }
+
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        Swal.fire({
+          title: "Copied!",
+          text: successMessage,
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        return true;
+      }
+
+      Swal.fire({
+        title: "Copy Manually",
+        html: `Please copy this URL:<br>
+          <div class="bg-gray-100 p-2 rounded border break-all text-sm mt-2 font-mono">${text}</div>`,
+        icon: "info",
+        confirmButtonText: "OK",
+        width: "500px",
+      });
+      return false;
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      Swal.fire({
+        title: "Copy Manually",
+        html: `Please copy this URL:<br>
+          <div class="bg-gray-100 p-2 rounded border break-all text-sm mt-2 font-mono">${text}</div>`,
+        icon: "info",
+        confirmButtonText: "OK",
+        width: "500px",
+      });
+      return false;
+    }
+  };
+
   const [blogStats, setBlogStats] = useState({
     totalLikes: 0,
     averageRating: 0,
@@ -640,7 +716,7 @@ const PublicBlogModal = ({
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={async () => {
-                    const blogUrl = `${window.location.origin}/blog/${BlogID}`;
+                    const blogUrl = getBlogUrl();
 
                     // Check if Web Share API is supported
                     if (navigator.share) {
@@ -658,31 +734,13 @@ const PublicBlogModal = ({
                         // Only log if it's not an abort error (user cancelled)
                         if (error.name !== "AbortError") {
                           console.error("Share failed:", error);
+                          // Fallback to clipboard
+                          await safeCopyToClipboard(blogUrl);
                         }
                       }
-                    }
-                    // Check if clipboard API is available
-                    else if (
-                      navigator.clipboard &&
-                      navigator.clipboard.writeText
-                    ) {
-                      try {
-                        await navigator.clipboard.writeText(blogUrl);
-                        Swal.fire({
-                          title: "Copied!",
-                          text: "Blog link copied to clipboard",
-                          icon: "success",
-                          timer: 1500,
-                          showConfirmButton: false,
-                        });
-                      } catch (clipboardError) {
-                        console.error("Clipboard failed:", clipboardError);
-                        // Fallback for older browsers
-                        fallbackCopyToClipboardBlog(blogUrl);
-                      }
                     } else {
-                      // Final fallback
-                      fallbackCopyToClipboardBlog(blogUrl);
+                      // Use clipboard directly
+                      await safeCopyToClipboard(blogUrl);
                     }
                   }}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2"
@@ -702,7 +760,7 @@ const PublicBlogModal = ({
                   </svg>
                   Share
                 </motion.button>
-
+                
                 <motion.button
                   whileHover={{
                     scale: 1.05,

@@ -111,6 +111,75 @@ const EventDetailsPage = ({ events = [] }) => {
     }
   };
 
+  const getBaseUrl = () => {
+    return import.meta.env.VITE_CLIENT_BASE_URL || window.location.origin;
+  };
+
+  // Generate proper event URL
+  const getEventUrl = () => {
+    const baseUrl = getBaseUrl();
+    return `${baseUrl}/event/${eventId}`;
+  };
+
+  // Safe clipboard function
+  const safeCopyToClipboard = async (
+    text,
+    successMessage = "Event link copied to clipboard!"
+  ) => {
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success(successMessage);
+        return true;
+      } catch (error) {
+        console.error("Clipboard API failed:", error);
+      }
+    }
+
+    // Fallback method
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        toast.success(successMessage);
+        return true;
+      }
+
+      // Show manual copy prompt
+      Swal.fire({
+        title: "Copy Manually",
+        html: `Please copy this URL:<br>
+          <div class="bg-gray-100 p-2 rounded border break-all text-sm mt-2 font-mono">${text}</div>`,
+        icon: "info",
+        confirmButtonText: "OK",
+        width: "500px",
+      });
+      return false;
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      Swal.fire({
+        title: "Copy Manually",
+        html: `Please copy this URL:<br>
+          <div class="bg-gray-100 p-2 rounded border break-all text-sm mt-2 font-mono">${text}</div>`,
+        icon: "info",
+        confirmButtonText: "OK",
+        width: "500px",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (events.length > 0) {
       const foundEvent = events.find((e) => e.EventID == eventId);
@@ -124,11 +193,10 @@ const EventDetailsPage = ({ events = [] }) => {
   }, [eventId, events]);
 
   const handleBack = () => {
-    navigate(-1); // Go back to previous page
+    navigate(-1);
   };
 
   const downloadICS = () => {
-    // Implement ICS download functionality
     toast.info("ICS download functionality coming soon!");
   };
 
@@ -140,7 +208,6 @@ const EventDetailsPage = ({ events = [] }) => {
     }
   };
 
-  // Debug: Log the event data when it changes
   useEffect(() => {
     if (event) {
       console.log("Current event data:", event);
@@ -421,7 +488,7 @@ const EventDetailsPage = ({ events = [] }) => {
                 </button>
                 <button
                   onClick={async () => {
-                    const eventUrl = window.location.href;
+                    const eventUrl = getEventUrl();
 
                     // Check if Web Share API is supported
                     if (navigator.share) {
@@ -440,25 +507,13 @@ const EventDetailsPage = ({ events = [] }) => {
                         // Only log if it's not an abort error (user cancelled)
                         if (error.name !== "AbortError") {
                           console.error("Error sharing:", error);
+                          // Fallback to clipboard
+                          await safeCopyToClipboard(eventUrl);
                         }
                       }
-                    }
-                    // Check if clipboard API is available
-                    else if (
-                      navigator.clipboard &&
-                      navigator.clipboard.writeText
-                    ) {
-                      try {
-                        await navigator.clipboard.writeText(eventUrl);
-                        toast.success("Event link copied to clipboard!");
-                      } catch (clipboardError) {
-                        console.error("Clipboard failed:", clipboardError);
-                        // Fallback for older browsers
-                        fallbackCopyToClipboard(eventUrl);
-                      }
                     } else {
-                      // Final fallback
-                      fallbackCopyToClipboard(eventUrl);
+                      // Use clipboard directly
+                      await safeCopyToClipboard(eventUrl);
                     }
                   }}
                   className="border border-DGXblue text-DGXblue px-6 py-3 rounded-lg hover:bg-DGXblue hover:text-white transition font-medium"
