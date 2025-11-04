@@ -22,7 +22,7 @@ import CommunityHighlights from "../component/CommunityHighlights";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
-
+import HeroModel from "./HeroModel.jsx";
 
 const Home = () => {
   const { user, userToken, fetchData } = useContext(ApiContext);
@@ -193,7 +193,7 @@ const Home = () => {
           { "Content-Type": "application/json" }
         );
 
-        console.log("hoem page discussion", response)
+        console.log("hoem page discussion", response);
 
         if (response?.success) {
           setHomeData(response.data);
@@ -296,13 +296,6 @@ const Home = () => {
                 className="flex flex-col sm:flex-row gap-4"
                 variants={itemVariants}
               >
-                <Link
-                  to="/SignInn"
-                  className="px-6 py-3 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-colors duration-300 text-center"
-                >
-                  Get Started{" "}
-                  <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
-                </Link>
                 {/* <Link 
                   to="/learn-more" 
                   className="px-6 py-3 bg-transparent border-2 border-white hover:bg-white/10 rounded-lg font-medium transition-colors duration-300 text-center"
@@ -318,11 +311,9 @@ const Home = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4, type: "spring" }}
             >
-              <img
-                src={images.HeroImg}
-                alt="AI Illustration"
-                className="w-full max-w-3xl h-[350px] mx-auto rounded-xl shadow-2xl"
-              />
+              {/* Use the 3D model here */}
+              <HeroModel />
+
               <motion.div
                 className="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-70"
                 animate={{
@@ -427,7 +418,10 @@ const Home = () => {
             </motion.div>
 
             {/* Text Section */}
-            <motion.div className="w-full lg:w-1/2 text-center lg:text-left" variants={slideInFromRight}>
+            <motion.div
+              className="w-full lg:w-1/2 text-center lg:text-left"
+              variants={slideInFromRight}
+            >
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6">
                 Join Our{" "}
                 <span className="text-blue-600">Growing Community</span>
@@ -441,10 +435,15 @@ const Home = () => {
                 {/* Feature 1 */}
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
-                    <FontAwesomeIcon icon={faUsers} className="text-blue-600 text-xl" />
+                    <FontAwesomeIcon
+                      icon={faUsers}
+                      className="text-blue-600 text-xl"
+                    />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Expert Network</h3>
+                    <h3 className="font-semibold text-gray-900">
+                      Expert Network
+                    </h3>
                     <p className="text-gray-600">
                       Connect with AI/ML professionals, mentors, and learners
                       worldwide
@@ -455,10 +454,15 @@ const Home = () => {
                 {/* Feature 2 */}
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
-                    <FontAwesomeIcon icon={faComment} className="text-blue-600 text-xl" />
+                    <FontAwesomeIcon
+                      icon={faComment}
+                      className="text-blue-600 text-xl"
+                    />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Discussion Forums</h3>
+                    <h3 className="font-semibold text-gray-900">
+                      Discussion Forums
+                    </h3>
                     <p className="text-gray-600">
                       Dive into topic-focused conversations that matter
                     </p>
@@ -468,10 +472,15 @@ const Home = () => {
                 {/* Feature 3 */}
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
-                    <FontAwesomeIcon icon={faCalendarAlt} className="text-blue-600 text-xl" />
+                    <FontAwesomeIcon
+                      icon={faCalendarAlt}
+                      className="text-blue-600 text-xl"
+                    />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Regular Events</h3>
+                    <h3 className="font-semibold text-gray-900">
+                      Regular Events
+                    </h3>
                     <p className="text-gray-600">
                       Stay updated with workshops, webinars, and AI conferences
                     </p>

@@ -116,6 +116,7 @@ import { useEffect } from "react";
 import ApiContext from "./context/ApiContext.jsx";
 import UserDetails from "../src/container/UserDetails.jsx";
 import BlogForm from "./Admin/Components/BlogComponents/BlogForm.jsx";
+import EventDetailsPage from "./component/EventDetailsPage.jsx";
 // Use CDN to load the worker (best option with Vite)
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
@@ -231,6 +232,8 @@ function App() {
               path="/EventRegistrationPage"
               element={<EventRegistrationPage />}
             />
+            <Route path="/event/:eventId" element={<EventDetailsPage />} />
+
             <Route
               path="/HomeAfterLoginComponent"
               element={<HomeAfterLoginComponent />}

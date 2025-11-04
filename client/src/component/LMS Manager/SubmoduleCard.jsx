@@ -8,7 +8,14 @@ import {
 import ApiContext from "../../context/ApiContext";
 import ByteArrayImage from "../../utils/ByteArrayImage";
 import ProgressBar from "./ProgressBar";
-import { FaAngleDown, FaAngleUp, FaArrowLeft, FaEye } from "react-icons/fa";
+import {
+  FaAngleDown,
+  FaAngleUp,
+  FaArrowLeft,
+  FaClock,
+  FaEye,
+  FaPlayCircle,
+} from "react-icons/fa";
 import images from "../../../public/images";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -47,6 +54,22 @@ const SubModuleCard = () => {
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
   const [viewedSubModules, setViewedSubModules] = useState(new Set());
   const [subModuleViews, setSubModuleViews] = useState([]);
+
+  // Custom DGX Colors
+  const DGX_COLORS = {
+    green: {
+      100: "#d1fae5",
+      500: "#10b981",
+      600: "#059669",
+      700: "#047857",
+    },
+    blue: {
+      100: "#dbeafe",
+      500: "#3b82f6",
+      600: "#2563eb",
+      700: "#1d4ed8",
+    }
+  };
 
   const recordSubModuleView = async (subModuleId) => {
     try {
@@ -155,13 +178,65 @@ const SubModuleCard = () => {
     }
   };
 
+  // Time formatting functions
+  const formatTime = (totalSeconds) => {
+    if (!totalSeconds || totalSeconds === 0) return "Not started";
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
+  const formatTimeCompact = (totalSeconds) => {
+    if (!totalSeconds || totalSeconds === 0) return "0s";
+    
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  };
+
+  const getTimeSpentColor = (totalSeconds) => {
+    if (!totalSeconds || totalSeconds === 0) return `text-gray-500 bg-gray-100`;
+    
+    if (totalSeconds < 60) {
+      return `text-${DGX_COLORS.green[700]} bg-${DGX_COLORS.green[100]}`;
+    } else if (totalSeconds < 300) {
+      return `text-${DGX_COLORS.blue[700]} bg-${DGX_COLORS.blue[100]}`;
+    } else {
+      return `text-${DGX_COLORS.green[700]} bg-${DGX_COLORS.green[100]}`;
+    }
+  };
+
+  const getProgressPercentage = (totalSeconds) => {
+    // Assuming a submodule typically takes 15 minutes (900 seconds) to complete
+    const typicalSubModuleTime = 900;
+    const percentage = Math.min((totalSeconds / typicalSubModuleTime) * 100, 100);
+    return Math.round(percentage);
+  };
+
   const renderSubModuleImage = (subModule) => {
     if (subModule.SubModuleImageUrl) {
       return (
         <motion.img
           src={subModule.SubModuleImageUrl}
           alt={subModule.SubModuleName}
-          className="w-full h-full object-cover rounded-t-lg"
+          className="w-full h-full object-cover"
           variants={imageVariants}
           initial="initial"
           whileHover="hover"
@@ -170,7 +245,7 @@ const SubModuleCard = () => {
             e.target.onerror = null;
             e.target.src = images.Noimage;
             e.target.className =
-              "w-full h-full object-contain bg-gray-200 p-4 rounded-t-lg";
+              "w-full h-full object-contain bg-gray-200 p-4";
           }}
           loading="lazy"
         />
@@ -180,7 +255,7 @@ const SubModuleCard = () => {
     if (subModule.SubModuleImage) {
       return (
         <motion.div
-          className="w-full h-full rounded-t-lg overflow-hidden"
+          className="w-full h-full overflow-hidden"
           variants={imageVariants}
           initial="initial"
           whileHover="hover"
@@ -188,18 +263,18 @@ const SubModuleCard = () => {
         >
           <ByteArrayImage
             byteArray={subModule.SubModuleImage.data}
-            className="w-full h-full object-cover rounded-t-lg"
+            className="w-full h-full object-cover"
           />
         </motion.div>
       );
     }
 
     return (
-      <div className="flex items-center justify-center h-full bg-gray-200 rounded-t-lg animate-pulse">
+      <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-100 to-green-100">
         <img
           src={images.Noimage}
           alt="No Image Available"
-          className="w-3/4 h-3/4 object-contain opacity-70"
+          className="w-2/3 h-2/3 object-contain opacity-70"
           loading="lazy"
         />
       </div>
@@ -213,64 +288,6 @@ const SubModuleCard = () => {
     } else if (location.state?.moduleName) {
       setModuleName(location.state.moduleName);
     }
-
-    const fetchAllData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const subModulesResponse = await fetchData(
-          `dropdown/getSubModules?moduleId=${moduleId}`,
-          "GET"
-        );
-        if (!subModulesResponse?.success) {
-          setError(subModulesResponse?.message || "Failed to fetch submodules");
-          return;
-        }
-
-        setSubModules(subModulesResponse.data);
-
-        const progressResponse = await fetchData(
-          "progressTrack/getModuleSubmoduleProgress",
-          "POST",
-          { moduleID: moduleId },
-          {
-            "Content-Type": "application/json",
-            "auth-token": userToken,
-          }
-        );
-
-        if (progressResponse?.success) {
-          setProgressData(progressResponse.data);
-        }
-
-        const viewsResponse = await fetchData("lms/submodule-views", "GET");
-        if (viewsResponse?.success) {
-          setSubModuleViews(viewsResponse.data);
-        }
-
-        const initialExpandedState = {};
-        subModulesResponse.data.forEach((subModule) => {
-          initialExpandedState[subModule.SubModuleID] = false;
-        });
-        setExpandedDescriptions(initialExpandedState);
-
-        if (!moduleName) {
-          const currentModule = subModulesResponse.data[0]?.ModuleName;
-          if (currentModule) {
-            setModuleName(currentModule);
-            if (!searchParams.get("moduleName")) {
-              navigate(`?moduleName=${encodeURIComponent(currentModule)}`, {
-                replace: true,
-              });
-            }
-          }
-        }
-      } catch (error) {
-        setError("An error occurred while fetching data");
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchAllData();
   }, [
@@ -364,13 +381,13 @@ const SubModuleCard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-teal-400 mb-3 select-none">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600 mb-3 select-none">
               {moduleName}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-lg sm:text-xl font-light select-none">
               Explore the learning modules under this section
             </p>
-            <div className="h-1 w-24 mx-auto mt-3 rounded-full bg-gradient-to-r from-blue-500 to-teal-400"></div>
+            <div className="h-1 w-24 mx-auto mt-3 rounded-full bg-gradient-to-r from-blue-500 to-green-500"></div>
           </motion.div>
         )}
 
@@ -383,6 +400,12 @@ const SubModuleCard = () => {
           {subModules.length > 0 ? (
             subModules.map((subModule) => {
               const isExpanded = expandedDescriptions[subModule.SubModuleID];
+              const subModuleView = subModuleViews.find(
+                (v) => v.subModuleID === subModule.SubModuleID
+              );
+              const totalTimeSpent = subModuleView?.totalTimeSpent || 0;
+              const totalViews = subModuleView?.totalViews || 0;
+              const progressPercentage = getProgressPercentage(totalTimeSpent);
 
               return (
                 <motion.div
@@ -390,7 +413,7 @@ const SubModuleCard = () => {
                   layout
                   variants={cardVariants}
                   whileHover="hover"
-                  className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg cursor-pointer flex flex-col overflow-hidden border border-transparent hover:border-gradient-to-r hover:from-blue-400 hover:via-teal-300 hover:to-blue-500 transition-all duration-300`}
+                  className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg cursor-pointer flex flex-col overflow-hidden border border-white/40 hover:shadow-2xl transition-all duration-300 group backdrop-blur-lg bg-white/60"
                   onClick={() => handleSubModuleClick(subModule)}
                   role="button"
                   tabIndex={0}
@@ -401,27 +424,47 @@ const SubModuleCard = () => {
                     }
                   }}
                 >
-                  <div className="h-48 sm:h-44 md:h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden rounded-t-xl">
+                  {/* Image Section with Overlays */}
+                  <div className="h-48 sm:h-44 md:h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden relative">
                     {renderSubModuleImage(subModule)}
-                  </div>
+                    {/* Progress Bar Overlay */}
+                    {totalTimeSpent > 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-1000 ease-out"
+                          style={{ width: `${progressPercentage}%` }}
+                        ></div>
+                      </div>
+                    )}
+                   </div>
 
+                  {/* Content Section */}
                   <div className="p-6 flex flex-col flex-grow">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 break-words hover:text-blue-600 dark:hover:text-teal-400 transition-colors duration-200 select-text">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 break-words hover:text-blue-600 dark:hover:text-green-400 transition-colors duration-200 select-text group-hover:text-blue-700">
                       {subModule.SubModuleName}
                     </h3>
-                    <p className="text-sm text-gray-500 mb-2 flex items-center gap-2">
-                      <FaEye className="text-gray-400 text-base" />
-                      <span>
-                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                          {subModuleViews.find(
-                            (v) => v.subModuleID === subModule.SubModuleID
-                          )?.totalViews || 0}
-                        </span>{" "}
-                        views
-                      </span>
-                    </p>
+
+                    {/* Stats Row */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1.5">
+                          <FaEye className="text-blue-400" />
+                          <span className="font-medium">{totalViews}</span>
+                          <span>views</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1.5">
+                          <FaClock className="text-green-400" />
+                          <span className="font-medium">
+                            {formatTime(totalTimeSpent)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Description */}
                     <motion.div
-                      className="relative overflow-hidden text-gray-700 dark:text-gray-300 text-base mb-3 select-text"
+                      className="relative overflow-hidden text-gray-700 dark:text-gray-300 text-base mb-4 select-text"
                       initial={false}
                       animate={isExpanded ? "expanded" : "collapsed"}
                       variants={descriptionVariants}
@@ -432,7 +475,7 @@ const SubModuleCard = () => {
                         }`}
                         aria-live="polite"
                       >
-                        {subModule.SubModuleDescription}
+                        {subModule.SubModuleDescription || "No description available."}
                       </p>
 
                       {subModule.SubModuleDescription &&
@@ -447,19 +490,22 @@ const SubModuleCard = () => {
                               ? "Collapse description"
                               : "Expand description"
                           }
-                          className="absolute bottom-0 right-0 bg-gradient-to-t from-white dark:from-gray-900 via-white/50 dark:via-gray-900/70 p-1 rounded-full backdrop-blur-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                          className="text-blue-500 hover:text-blue-700 mt-2 text-sm flex items-center group/button"
                         >
-                          {isExpanded ? <FaAngleUp /> : <FaAngleDown />}
+                          {isExpanded ? (
+                            <>
+                              <FaAngleUp className="mr-1 group-hover/button:-translate-y-0.5 transition-transform" /> 
+                              Show Less
+                            </>
+                          ) : (
+                            <>
+                              <FaAngleDown className="mr-1 group-hover/button:translate-y-0.5 transition-transform" /> 
+                              Read More
+                            </>
+                          )}
                         </button>
                       ) : null}
                     </motion.div>
-
-                    <div className="mt-auto pt-2">
-                      <ProgressBar
-                        subModuleID={subModule.SubModuleID}
-                        progressData={progressData}
-                      />
-                    </div>
                   </div>
                 </motion.div>
               );
