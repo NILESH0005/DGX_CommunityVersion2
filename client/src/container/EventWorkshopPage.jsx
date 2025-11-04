@@ -298,7 +298,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
 
       const viewData = {
         ProcessName: "Event",
-        reference: eventId, // Event ID goes into reference
+        reference: eventId,
       };
 
       const response = await fetchData(
@@ -319,7 +319,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
             "First-time event view recorded successfully:",
             response.data
           );
-          // Refresh view count after recording a new view
           await fetchEventViewCounts(eventId);
         }
       } else {

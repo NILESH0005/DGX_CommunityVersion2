@@ -367,13 +367,13 @@ const PublicBlogModal = ({
 
   const [blogs, setBlogs] = useState([]);
 
-const fetchBlogs = async () => {
-  const result = await fetchData("blog/allBlogs", "GET");
-  if (result.success) {
-    const uniqueBlogs = processBlogs(result.data);
-    setBlogs(uniqueBlogs);
-  }
-};
+  const fetchBlogs = async () => {
+    const result = await fetchData("blog/allBlogs", "GET");
+    if (result.success) {
+      const uniqueBlogs = processBlogs(result.data);
+      setBlogs(uniqueBlogs);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -608,6 +608,61 @@ const fetchBlogs = async () => {
                     Repost
                   </motion.button>
                 )}
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const blogUrl = `${window.location.origin}/blog/${BlogID}`;
+
+                    // Check if Web Share API is supported
+                    if (navigator.share) {
+                      navigator
+                        .share({
+                          title: title || "Check out this blog!",
+                          text: content
+                            ? content
+                                .replace(/<[^>]+>/g, "")
+                                .substring(0, 100) + "..."
+                            : "Interesting blog post",
+                          url: blogUrl,
+                        })
+                        .then(() => console.log("Share successful"))
+                        .catch((error) => {
+                          // User canceled share or error occurred
+                          if (error.name !== "AbortError") {
+                            console.error("Share failed:", error);
+                          }
+                        });
+                    } else {
+                      // Fallback to clipboard
+                      navigator.clipboard.writeText(blogUrl);
+                      Swal.fire({
+                        title: "Copied!",
+                        text: "Blog link copied to clipboard",
+                        icon: "success",
+                        timer: 1500,
+                        showConfirmButton: false,
+                      });
+                    }
+                  }}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                    />
+                  </svg>
+                  Share
+                </motion.button>
               </motion.div>
             </div>
           </div>

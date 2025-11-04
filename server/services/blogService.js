@@ -292,6 +292,59 @@ export const getBlogService = async (userEmail) => {
   };
 };
 
+export const getBlogByIdService = async (blogId) => {
+  try {
+    const blog = await db.CommunityBlog.findOne({
+      where: {
+        BlogID: blogId,
+        delStatus: { [Op.or]: [0, null] },
+      },
+      include: [
+        {
+          model: db.User,
+          as: "User",
+          attributes: ["UserID", "Name"],
+        },
+        {
+          model: db.CommunityBlog,
+          as: "reposts",
+          required: false,
+          where: { delStatus: { [Op.or]: [0, null] } },
+          include: [
+            {
+              model: db.User,
+              as: "RepostUser",
+              attributes: ["UserID", "Name"],
+            },
+          ],
+        },
+      ],
+    });
+
+    if (!blog) {
+      return {
+        success: false,
+        status: 404,
+        message: "Blog not found",
+      };
+    }
+
+    return {
+      success: true,
+      status: 200,
+      data: blog,
+      message: "Blog fetched successfully",
+    };
+  } catch (error) {
+    console.error("Error in getBlogByIdService:", error);
+    return {
+      success: false,
+      status: 500,
+      message: "Internal server error",
+    };
+  }
+};
+
 export const getUserBlogsService = async (userEmail) => {
   try {
     // Step 1: Find user by EmailId
@@ -610,86 +663,6 @@ export const updateBlogService = async (blogId, user, data) => {
   };
 };
 
-// export const handleBlogLikeAction = async (user, postData) => {
-//   try {
-//     const blogId = postData.reference;
-//     if (!blogId) throw new Error("Invalid blog reference");
-
-//     // Check if an interaction already exists for this user & blog
-//     let interaction = await ContentInteraction.findOne({
-//       where: {
-//         ProcessName: 'Blog',
-//         UserID: user.UserID,
-//         reference: blogId,
-//         delStatus: 0
-//       },
-//     });
-
-//     const currentDate = new Date();
-//     const intendedLikeStatus = postData.likes === 1 ? 1 : 0;
-
-//     if (interaction) {
-//       // Update existing interaction - only update if like status is changing
-//       if (interaction.Likes !== intendedLikeStatus) {
-//         const updateData = {
-//           Likes: intendedLikeStatus,
-//           LikeStatus: 0, // Always set to 0 as per requirement
-//           AuthLstEdt: user.Name,
-//           editOnDt: currentDate, // Only update when there's a change
-//         };
-
-//         await ContentInteraction.update(updateData, {
-//           where: { id: interaction.id },
-//         });
-//       }
-
-//       return {
-//         success: true,
-//         data: {
-//           liked: intendedLikeStatus === 1,
-//           interactionId: interaction.id,
-//         },
-//         message:
-//           intendedLikeStatus === 1
-//             ? "Blog liked successfully"
-//             : "Blog unliked successfully",
-//       };
-//     }
-
-//     // Create new interaction if it doesn't exist
-//     const newInteraction = await ContentInteraction.create({
-//       ProcessName: 'Blog',
-//       UserID: user.UserID,
-//       reference: blogId,
-//       Likes: intendedLikeStatus,
-//       LikeStatus: 0, // Always 0 for like operations
-//       Rating: null, // null for like operations
-//       RatingStatus: null, // null for like operations
-//       AuthAdd: user.Name,
-//       AuthDel: null,
-//       AuthLstEdt: null, // No edit on creation
-//       delOnDt: null,
-//       AddOnDt: currentDate,
-//       editOnDt: null, // null on initial creation
-//       delStatus: 0
-//     });
-
-//     return {
-//       success: true,
-//       data: {
-//         liked: intendedLikeStatus === 1,
-//         interactionId: newInteraction.id,
-//       },
-//       message:
-//         intendedLikeStatus === 1
-//           ? "Blog liked successfully"
-//           : "Blog unliked successfully",
-//     };
-//   } catch (error) {
-//     console.error("Blog Like Error:", error);
-//     throw error;
-//   }
-// };
 export const handleBlogLikeAction = async (user, postData) => {
   try {
     const blogId = postData.reference;

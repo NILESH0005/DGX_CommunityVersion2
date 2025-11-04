@@ -14,6 +14,7 @@ import {
   getBlogStatsController,
   updateUserProfileBlog,
   softDeleteBlog,
+  getBlogById,
 } from "../controllers/blog.js";
 
 const router = express.Router();
@@ -39,5 +40,6 @@ router.get(
   getUserBlogInteractionController
 );
 router.get("/stats/:blogId", getBlogStatsController);
+router.get("/getBlogById/:blogId", getBlogById);
 
 export default router;
