@@ -115,25 +115,6 @@ const FileUploadModal = ({
                                             <p className="mt-1 text-sm text-red-600">{errors.fileName}</p>
                                         )}
                                     </div>
-
-                                    {/* Time Input Field */}
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-medium text-DGXgray mb-1 flex items-center gap-2">
-                                            <Clock className="w-4 h-4" />
-                                            Estimated Reading/Viewing Time (minutes)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            value={estimatedTime}
-                                            onChange={(e) => handleTimeChange(parseInt(e.target.value) || 0)}
-                                            className="w-32 px-3 py-2 border border-DGXgray/30 rounded-lg focus:ring-DGXgreen focus:border-DGXgreen"
-                                            placeholder="e.g., 15"
-                                        />
-                                        <p className="text-xs text-DGXgray mt-1">
-                                            Set the estimated time needed to read/watch this material
-                                        </p>
-                                    </div>
                                 </>
                             )}
 

@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   FileText,
   UploadCloud,
   Trash2,
-  Image as ImageIcon,
   Link as LinkIcon,
 } from "lucide-react";
 import Swal from "sweetalert2";
@@ -12,37 +11,38 @@ import AddUnitForm from "./AddUnitForm";
 import UnitDetails from "./UnitDetails";
 import FilesTable from "./FilesTable";
 import FileUploadModal from "./FileUploadModal";
-import LinkUploadModal from "./LinkUploadModal"; // We'll create this next
+import LinkUploadModal from "./LinkUploadModal";
 
 const SubModuleDetails = ({
   subModule,
   onAddUnit,
   onRemoveUnit,
   onUploadFile,
-  onUploadLink, // We'll need to add this function
+  onUploadLink,
+  onRemoveFile,
   errors,
   setErrors,
 }) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showLinkModal, setShowLinkModal] = useState(false); // New state for link modal
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [currentUnit, setCurrentUnit] = useState(null);
   const [uploadedFile, setUploadedFile] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [unitFiles, setUnitFiles] = useState(() => {
+    const initialFiles = {};
+    subModule.units.forEach((unit) => {
+      initialFiles[unit.id] = unit.files || [];
+    });
+    return initialFiles;
+  });
 
   const showImagePreview = (imageUrl) => {
-    setImagePreview(imageUrl);
     Swal.fire({
       imageUrl: imageUrl,
       imageAlt: "Preview",
       showConfirmButton: false,
       background: "transparent",
-      backdrop: `
-                rgba(0,0,0,0.8)
-                url("/images/zoom-in-cursor.png")
-                center
-                no-repeat
-            `,
+      backdrop: `rgba(0,0,0,0.8)`,
       width: "80%",
       padding: "0",
       showCloseButton: true,
@@ -89,6 +89,22 @@ const SubModuleDetails = ({
       );
 
       if (success) {
+        const newFile = {
+          id: Date.now().toString(),
+          fileName: customFileName,
+          fileType: file.type,
+          fileSize: file.size,
+          uploadDate: new Date().toISOString(),
+          estimatedTime: estimatedTime || "0 min",
+          fileUrl: URL.createObjectURL(file),
+          isNew: true,
+        };
+
+        setUnitFiles((prev) => ({
+          ...prev,
+          [currentUnit.id]: [...(prev[currentUnit.id] || []), newFile],
+        }));
+
         Swal.fire({
           title: "Success!",
           text: "File uploaded successfully",
@@ -109,9 +125,7 @@ const SubModuleDetails = ({
     } catch (error) {
       Swal.fire({
         title: "Upload Failed",
-        text: error.message.includes("Failed to fetch")
-          ? "Network error: Could not connect to server"
-          : error.message,
+        text: error.message,
         icon: "error",
         confirmButtonText: "OK",
         customClass: {
@@ -123,11 +137,15 @@ const SubModuleDetails = ({
     }
   };
 
-  // Add this function to your SubModuleDetails component
-  const handleLinkSubmit = async (url, linkName, description, estimatedTime) => {
+  const handleLinkSubmit = async (
+    url,
+    linkName,
+    description,
+    estimatedTime
+  ) => {
     if (!url || !linkName) {
       setErrors({
-        link: !url ? 'Please enter a URL' : 'Please enter a link name'
+        link: !url ? "Please enter a URL" : "Please enter a link name",
       });
       return;
     }
@@ -136,6 +154,8 @@ const SubModuleDetails = ({
 
     try {
       const success = await onUploadLink(
+        subModule.id,
+        currentUnit.id,
         url,
         linkName,
         description,
@@ -143,6 +163,23 @@ const SubModuleDetails = ({
       );
 
       if (success) {
+        const newLink = {
+          id: Date.now().toString(),
+          fileName: linkName,
+          fileType: "link",
+          fileSize: 0,
+          uploadDate: new Date().toISOString(),
+          estimatedTime: estimatedTime || "0 min",
+          fileUrl: url,
+          description: description,
+          isNew: true,
+        };
+
+        setUnitFiles((prev) => ({
+          ...prev,
+          [currentUnit.id]: [...(prev[currentUnit.id] || []), newLink],
+        }));
+
         Swal.fire({
           title: "Success!",
           text: "Link added successfully",
@@ -151,9 +188,7 @@ const SubModuleDetails = ({
           customClass: {
             confirmButton: "bg-DGXgreen hover:bg-[#68a600]",
           },
-        }).then(() => {
-          setShowLinkModal(false);
-        });
+        }).then(() => setShowLinkModal(false));
       } else {
         throw new Error("Failed to add link");
       }
@@ -172,35 +207,54 @@ const SubModuleDetails = ({
     }
   };
 
+  const handleRemoveFile = async (unitId, fileId) => {
+    try {
+      if (onRemoveFile) await onRemoveFile(unitId, fileId);
+
+      setUnitFiles((prev) => ({
+        ...prev,
+        [unitId]: (prev[unitId] || []).filter((file) => file.id !== fileId),
+      }));
+    } catch (error) {
+      Swal.fire({
+        title: "Remove Failed",
+        text: "Failed to remove file",
+        icon: "error",
+        confirmButtonText: "OK",
+        customClass: {
+          confirmButton: "bg-DGXgreen hover:bg-[#68a600]",
+        },
+      });
+    }
+  };
+
+  const getFilesForUnit = (unitId) => {
+    return unitFiles[unitId] || [];
+  };
+
   return (
     <>
-      {/* Unit Details */}
       <UnitDetails subModule={subModule} onImageClick={showImagePreview} />
 
-      {/* Add Unit Form */}
-      <AddUnitForm
-        onAddUnit={onAddUnit}
-        errors={errors}
-        setErrors={setErrors}
-      />
+      <AddUnitForm onAddUnit={onAddUnit} errors={errors} setErrors={setErrors} />
 
-      {/* Units List */}
       {subModule.units.length > 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="bg-DGXwhite rounded-xl shadow-sm border border-DGXgray/20 overflow-hidden"
         >
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-DGXblue flex items-center gap-2">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-2 sm:gap-0">
+              <h3 className="text-lg sm:text-xl font-bold text-DGXblue flex items-center gap-2">
                 <FileText className="w-5 h-5 text-DGXgreen" />
                 Units ({subModule.units.length})
               </h3>
-              <div className="text-sm text-DGXgray">
+              <div className="text-xs sm:text-sm text-DGXgray text-center sm:text-right">
                 Click on a unit to manage content
               </div>
             </div>
+
             <div className="space-y-4">
               {subModule.units.map((unit, index) => (
                 <motion.div
@@ -211,9 +265,9 @@ const SubModuleDetails = ({
                   whileHover={{ scale: 1.005 }}
                   className="bg-DGXwhite rounded-lg border border-DGXgray/20 p-4 hover:border-DGXgreen/50 transition-colors"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium text-lg text-DGXblue">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-base sm:text-lg text-DGXblue">
                         {unit.UnitName}
                       </h4>
                       {unit.UnitDescription && (
@@ -222,24 +276,23 @@ const SubModuleDetails = ({
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      {/* Upload File Button */}
+
+                    <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleOpenUploadModal(unit)}
-                        className="p-2 rounded-lg bg-DGXgreen hover:bg-[#68a600] text-DGXwhite flex items-center gap-1 text-sm"
+                        className="px-3 py-2 rounded-lg bg-DGXgreen hover:bg-[#68a600] text-white text-xs sm:text-sm flex items-center gap-1"
                       >
                         <UploadCloud className="w-4 h-4" />
                         Upload File
                       </motion.button>
 
-                      {/* Upload Link Button */}
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleOpenLinkModal(unit)}
-                        className="p-2 rounded-lg bg-DGXblue hover:bg-blue-700 text-DGXwhite flex items-center gap-1 text-sm"
+                        className="px-3 py-2 rounded-lg bg-DGXblue hover:bg-blue-700 text-white text-xs sm:text-sm flex items-center gap-1"
                       >
                         <LinkIcon className="w-4 h-4" />
                         Add Link
@@ -252,17 +305,23 @@ const SubModuleDetails = ({
                           e.stopPropagation();
                           onRemoveUnit(subModule.id, unit.id);
                         }}
-                        className="p-2 rounded-lg border border-DGXgray/30 hover:bg-red-50 text-red-600 flex items-center gap-1 text-sm"
+                        className="px-3 py-2 rounded-lg border border-DGXgray/30 hover:bg-red-50 text-red-600 text-xs sm:text-sm flex items-center gap-1"
                       >
                         <Trash2 className="w-4 h-4" />
                         Remove
                       </motion.button>
                     </div>
                   </div>
-                  <FilesTable
-                    files={unit.files}
-                    onImageClick={showImagePreview}
-                  />
+
+                  <div className="mt-4 overflow-x-auto">
+                    <FilesTable
+                      files={getFilesForUnit(unit.id)}
+                      onImageClick={showImagePreview}
+                      onRemoveFile={(fileId) =>
+                        handleRemoveFile(unit.id, fileId)
+                      }
+                    />
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -272,11 +331,13 @@ const SubModuleDetails = ({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center py-12 bg-DGXgray/5 rounded-xl border border-dashed border-DGXgray/30"
+          className="flex flex-col items-center justify-center py-12 bg-DGXgray/5 rounded-xl border border-dashed border-DGXgray/30 text-center"
         >
           <FileText className="w-12 h-12 text-DGXgray mb-4" />
           <p className="text-DGXgray">No units added yet</p>
-          <p className="text-sm text-DGXgray mt-1">Add your first unit above</p>
+          <p className="text-sm text-DGXgray mt-1">
+            Add your first unit above
+          </p>
         </motion.div>
       )}
 
@@ -299,7 +360,7 @@ const SubModuleDetails = ({
         show={showLinkModal}
         onClose={() => setShowLinkModal(false)}
         unitName={currentUnit?.UnitName}
-        onSubmit={handleLinkSubmit} // Use the new handler
+        onSubmit={handleLinkSubmit}
         isSubmitting={isSubmitting}
       />
     </>

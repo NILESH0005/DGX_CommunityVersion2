@@ -1,9 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { motion } from 'framer-motion';
-import { File, Image, Download, Eye, AlertCircle, Link as LinkIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    File, 
+    Image, 
+    Download, 
+    Eye, 
+    AlertCircle, 
+    Link as LinkIcon, 
+    ChevronDown,
+    ChevronUp,
+    Smartphone
+} from 'lucide-react';
 
 const FilesTable = ({ files = [], onImageClick }) => {
+    const [expandedFile, setExpandedFile] = useState(null);
+
+    const toggleFileExpansion = (fileId) => {
+        setExpandedFile(expandedFile === fileId ? null : fileId);
+    };
+
     if (!files || files.length === 0) {
         return (
             <motion.div
@@ -18,12 +34,164 @@ const FilesTable = ({ files = [], onImageClick }) => {
         );
     }
 
-    return (
+    // Mobile Card View Component
+    const MobileFileCard = ({ file, index }) => {
+        const isLink = file.FileType === 'link' || file.FileType === 'text/uri-list' || file.isLink;
+        const fileName = file.FilesName || file.originalName || 'Untitled';
+        const filePath = file.FilePath || file.filePath;
+        const fileType = file.FileType || file.fileType || 'application/octet-stream';
+        const isImage = fileType.startsWith('image/');
+        const uploadDate = file.AddOnDt || file.uploadedAt;
+        const fileSize = Math.round((file.size || 0) / 1024);
+        const isExpanded = expandedFile === file.id;
+
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
+                whileHover={{ backgroundColor: 'rgba(118, 185, 0, 0.05)' }}
+                className="bg-DGXwhite rounded-xl border border-DGXgray/20 shadow-sm p-4 mb-3 transition-colors duration-150"
+            >
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 h-12 w-12 flex items-center justify-center rounded-lg bg-DGXgray/10 mt-1">
+                            {isLink ? (
+                                <LinkIcon className="w-6 h-6 text-DGXblue" />
+                            ) : isImage ? (
+                                <Image className="w-6 h-6 text-DGXgreen" />
+                            ) : (
+                                <File className="w-6 h-6 text-DGXblue" />
+                            )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <h3 className="text-sm font-semibold text-DGXblack truncate">
+                                {fileName}
+                            </h3>
+                            <div className="flex items-center space-x-2 mt-1">
+                                <span className="text-xs text-DGXblue bg-DGXgray/10 px-2 py-1 rounded-full capitalize">
+                                    {isLink ? 'Link' : fileType.split('/')[1] || fileType}
+                                </span>
+                                {!isLink && (
+                                    <span className="text-xs text-DGXgray">
+                                        {fileSize} KB
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => toggleFileExpansion(file.id)}
+                        className="flex-shrink-0 ml-2 p-2 text-DGXgray hover:text-DGXblue transition-colors"
+                    >
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </motion.button>
+                </div>
+
+                {/* Expanded Content */}
+                <AnimatePresence>
+                    {isExpanded && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="mt-4 pt-4 border-t border-DGXgray/20"
+                        >
+                            {/* File Details */}
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-DGXgray">Upload Date:</span>
+                                    <span className="text-sm text-DGXblue font-medium">
+                                        {uploadDate ? new Date(uploadDate).toLocaleDateString() : 'N/A'}
+                                    </span>
+                                </div>
+                                
+                                {isLink && (
+                                    <div className="flex flex-col space-y-2">
+                                        <span className="text-sm text-DGXgray">URL:</span>
+                                        <a
+                                            href={filePath}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-DGXblue hover:underline break-all truncate"
+                                            title={filePath}
+                                        >
+                                            {filePath}
+                                        </a>
+                                    </div>
+                                )}
+
+                                {/* Actions */}
+                                <div className="flex space-x-2 pt-2">
+                                    {isLink ? (
+                                        <motion.a
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            href={filePath}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 flex items-center justify-center p-3 rounded-xl text-DGXwhite bg-DGXgreen hover:bg-[#68a600] transition-colors space-x-2"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                            <span className="text-sm font-medium">Open Link</span>
+                                        </motion.a>
+                                    ) : (
+                                        <>
+                                            {filePath && isImage && onImageClick ? (
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => onImageClick(filePath)}
+                                                    className="flex-1 flex items-center justify-center p-3 rounded-xl text-DGXwhite bg-DGXgreen hover:bg-[#68a600] transition-colors space-x-2"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                    <span className="text-sm font-medium">View</span>
+                                                </motion.button>
+                                            ) : filePath && !isImage ? (
+                                                <>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => window.open(filePath, '_blank')}
+                                                        className="flex-1 flex items-center justify-center p-3 rounded-xl text-DGXwhite bg-DGXgreen hover:bg-[#68a600] transition-colors space-x-2"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                        <span className="text-sm font-medium">View</span>
+                                                    </motion.button>
+                                                    <motion.a
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        href={filePath}
+                                                        download={fileName}
+                                                        className="flex-1 flex items-center justify-center p-3 rounded-xl border border-DGXgray/30 hover:bg-DGXgray/10 text-DGXblue transition-colors space-x-2"
+                                                    >
+                                                        <Download className="w-4 h-4" />
+                                                        <span className="text-sm font-medium">Download</span>
+                                                    </motion.a>
+                                                </>
+                                            ) : null}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+        );
+    };
+
+    // Desktop Table View
+    const DesktopTableView = () => (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
-            className="mt-6 w-full"
+            className="mt-6 w-full hidden lg:block"
         >
             <div className="overflow-hidden rounded-xl border border-DGXgray/20 shadow-sm">
                 <table className="min-w-full divide-y divide-DGXgray/20">
@@ -164,6 +332,40 @@ const FilesTable = ({ files = [], onImageClick }) => {
                 </table>
             </div>
         </motion.div>
+    );
+
+    // Mobile Grid View
+    const MobileGridView = () => (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="mt-6 lg:hidden"
+        >
+            <div className="space-y-3">
+                {files.map((file, index) => (
+                    <MobileFileCard key={file.id || uuidv4()} file={file} index={index} />
+                ))}
+            </div>
+        </motion.div>
+    );
+
+    return (
+        <div className="w-full">
+            {/* Responsive Indicator (optional - can remove) */}
+            <div className="lg:hidden flex items-center justify-center mb-4">
+                <div className="flex items-center space-x-2 text-xs text-DGXgray bg-DGXgray/10 px-3 py-1 rounded-full">
+                    <Smartphone className="w-3 h-3" />
+                    <span>Mobile View</span>
+                </div>
+            </div>
+
+            {/* Desktop Table */}
+            <DesktopTableView />
+            
+            {/* Mobile Cards */}
+            <MobileGridView />
+        </div>
     );
 };
 
