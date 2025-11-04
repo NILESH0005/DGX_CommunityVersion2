@@ -147,6 +147,30 @@ const EventDetailsPage = ({ events = [] }) => {
     }
   }, [event]);
 
+  const fallbackCopyToClipboard = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand("copy");
+      if (successful) {
+        toast.success("Event link copied to clipboard!");
+      } else {
+        toast.info("Please copy the URL manually: " + text);
+      }
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      toast.info("Please copy the URL manually: " + text);
+    }
+
+    document.body.removeChild(textArea);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
@@ -395,12 +419,14 @@ const EventDetailsPage = ({ events = [] }) => {
                 >
                   Add to Calendar
                 </button>
-
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    const eventUrl = window.location.href;
+
+                    // Check if Web Share API is supported
                     if (navigator.share) {
-                      navigator
-                        .share({
+                      try {
+                        await navigator.share({
                           title: event.EventTitle,
                           text: event.EventDescription
                             ? event.EventDescription.replace(
@@ -408,12 +434,31 @@ const EventDetailsPage = ({ events = [] }) => {
                                 ""
                               ).substring(0, 100)
                             : "Check out this event!",
-                          url: window.location.href,
-                        })
-                        .catch(console.error);
+                          url: eventUrl,
+                        });
+                      } catch (error) {
+                        // Only log if it's not an abort error (user cancelled)
+                        if (error.name !== "AbortError") {
+                          console.error("Error sharing:", error);
+                        }
+                      }
+                    }
+                    // Check if clipboard API is available
+                    else if (
+                      navigator.clipboard &&
+                      navigator.clipboard.writeText
+                    ) {
+                      try {
+                        await navigator.clipboard.writeText(eventUrl);
+                        toast.success("Event link copied to clipboard!");
+                      } catch (clipboardError) {
+                        console.error("Clipboard failed:", clipboardError);
+                        // Fallback for older browsers
+                        fallbackCopyToClipboard(eventUrl);
+                      }
                     } else {
-                      navigator.clipboard.writeText(window.location.href);
-                      toast.success("Event link copied to clipboard!");
+                      // Final fallback
+                      fallbackCopyToClipboard(eventUrl);
                     }
                   }}
                   className="border border-DGXblue text-DGXblue px-6 py-3 rounded-lg hover:bg-DGXblue hover:text-white transition font-medium"

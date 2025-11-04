@@ -375,6 +375,46 @@ const PublicBlogModal = ({
     }
   };
 
+  const fallbackCopyToClipboardBlog = (text) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand("copy");
+      if (successful) {
+        Swal.fire({
+          title: "Copied!",
+          text: "Blog link copied to clipboard",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        Swal.fire({
+          title: "Copy Manually",
+          html: `Please copy this URL:<br><code class="bg-gray-100 p-1 rounded">${text}</code>`,
+          icon: "info",
+          confirmButtonText: "OK",
+        });
+      }
+    } catch (err) {
+      console.error("Fallback copy failed:", err);
+      Swal.fire({
+        title: "Copy Manually",
+        html: `Please copy this URL:<br><code class="bg-gray-100 p-1 rounded">${text}</code>`,
+        icon: "info",
+        confirmButtonText: "OK",
+      });
+    }
+
+    document.body.removeChild(textArea);
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -582,18 +622,6 @@ const PublicBlogModal = ({
                   </>
                 )}
 
-                <motion.button
-                  whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={closeModal}
-                  className="bg-DGXblue hover:bg-DGXgreen text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
-                >
-                  Close
-                </motion.button>
-
                 {canRepost && Status === "Approved" && (
                   <motion.button
                     whileHover={{
@@ -608,17 +636,16 @@ const PublicBlogModal = ({
                     Repost
                   </motion.button>
                 )}
-
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => {
+                  onClick={async () => {
                     const blogUrl = `${window.location.origin}/blog/${BlogID}`;
 
                     // Check if Web Share API is supported
                     if (navigator.share) {
-                      navigator
-                        .share({
+                      try {
+                        await navigator.share({
                           title: title || "Check out this blog!",
                           text: content
                             ? content
@@ -626,24 +653,36 @@ const PublicBlogModal = ({
                                 .substring(0, 100) + "..."
                             : "Interesting blog post",
                           url: blogUrl,
-                        })
-                        .then(() => console.log("Share successful"))
-                        .catch((error) => {
-                          // User canceled share or error occurred
-                          if (error.name !== "AbortError") {
-                            console.error("Share failed:", error);
-                          }
                         });
+                      } catch (error) {
+                        // Only log if it's not an abort error (user cancelled)
+                        if (error.name !== "AbortError") {
+                          console.error("Share failed:", error);
+                        }
+                      }
+                    }
+                    // Check if clipboard API is available
+                    else if (
+                      navigator.clipboard &&
+                      navigator.clipboard.writeText
+                    ) {
+                      try {
+                        await navigator.clipboard.writeText(blogUrl);
+                        Swal.fire({
+                          title: "Copied!",
+                          text: "Blog link copied to clipboard",
+                          icon: "success",
+                          timer: 1500,
+                          showConfirmButton: false,
+                        });
+                      } catch (clipboardError) {
+                        console.error("Clipboard failed:", clipboardError);
+                        // Fallback for older browsers
+                        fallbackCopyToClipboardBlog(blogUrl);
+                      }
                     } else {
-                      // Fallback to clipboard
-                      navigator.clipboard.writeText(blogUrl);
-                      Swal.fire({
-                        title: "Copied!",
-                        text: "Blog link copied to clipboard",
-                        icon: "success",
-                        timer: 1500,
-                        showConfirmButton: false,
-                      });
+                      // Final fallback
+                      fallbackCopyToClipboardBlog(blogUrl);
                     }
                   }}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2"
@@ -662,6 +701,18 @@ const PublicBlogModal = ({
                     />
                   </svg>
                   Share
+                </motion.button>
+
+                <motion.button
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={closeModal}
+                  className="bg-DGXblue hover:bg-DGXgreen text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
+                >
+                  Close
                 </motion.button>
               </motion.div>
             </div>
