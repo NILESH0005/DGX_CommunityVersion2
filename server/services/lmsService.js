@@ -1,12 +1,13 @@
 // services/lmsService.js
 import db from "../models/index.js"; // central sequelize instance with models
-
+import { Op, Sequelize } from "sequelize";
 const {
   LMSModulesDetails,
   LMSSubModulesDetails,
   LMSUnitsDetails,
   LMSFilesDetails,
   Group_Master,
+  LMSUserProgress,
   User,
   ContentInteraction,
 } = db;
@@ -235,7 +236,6 @@ export const checkModuleExists = async (moduleName) => {
 };
 
 export class LMSViewsService {
-  
   static async getSubModuleViews() {
     try {
       const subModules = await LMSSubModulesDetails.findAll({
@@ -244,9 +244,9 @@ export class LMSViewsService {
         raw: true,
       });
 
-      // For each submodule, count views from Content_Interaction
       const results = await Promise.all(
         subModules.map(async (sub) => {
+          // Count total views
           const totalViews = await ContentInteraction.count({
             where: {
               ProcessName: "LMS",
@@ -256,12 +256,46 @@ export class LMSViewsService {
             },
           });
 
+          const units = await LMSUnitsDetails.findAll({
+            where: { SubModuleID: sub.SubModuleID, delStatus: 0 },
+            attributes: ["UnitID"],
+            raw: true,
+          });
+
+          const unitIDs = units.map((u) => u.UnitID);
+
+          let totalTimeSpent = 0;
+          if (unitIDs.length > 0) {
+            const files = await LMSFilesDetails.findAll({
+              where: { UnitID: unitIDs, delStatus: 0 },
+              attributes: ["FileID"],
+              raw: true,
+            });
+
+            const fileIDs = files.map((f) => f.FileID);
+
+            if (fileIDs.length > 0) {
+              const timeResult = await LMSUserProgress.findAll({
+                where: { FileID: fileIDs },
+                attributes: [
+                  [
+                    Sequelize.fn("SUM", Sequelize.col("TimeSpentSeconds")),
+                    "totalTime",
+                  ],
+                ],
+                raw: true,
+              });
+
+              totalTimeSpent = timeResult[0].totalTime || 0;
+            }
+          }
+
           return {
             subModuleID: sub.SubModuleID,
             subModuleName: sub.SubModuleName,
             moduleID: sub.ModuleID,
             totalViews,
-            
+            totalTimeSpent,
           };
         })
       );
@@ -273,9 +307,95 @@ export class LMSViewsService {
     }
   }
 
+  // static async getSubModuleViews() {
+  //   try {
+  //     const subModules = await LMSSubModulesDetails.findAll({
+  //       where: { delStatus: 0 },
+  //       attributes: ["SubModuleID", "SubModuleName", "ModuleID"],
+  //       raw: true,
+  //     });
+
+  //     // For each submodule, count views from Content_Interaction
+  //     const results = await Promise.all(
+  //       subModules.map(async (sub) => {
+  //         const totalViews = await ContentInteraction.count({
+  //           where: {
+  //             ProcessName: "LMS",
+  //             reference: sub.SubModuleID,
+  //             delStatus: 0,
+  //             View: 1,
+  //           },
+  //         });
+
+  //         return {
+  //           subModuleID: sub.SubModuleID,
+  //           subModuleName: sub.SubModuleName,
+  //           moduleID: sub.ModuleID,
+  //           totalViews,
+
+  //         };
+  //       })
+  //     );
+  //     return results;
+  //   } catch (error) {
+  //     console.error("Error in getSubModuleViews:", error);
+  //     throw new Error(error.message);
+  //   }
+  // }
+
   /**
    * Module-wise total views (unique users)
    */
+  // static async getModuleViews() {
+  //   try {
+  //     const modules = await LMSModulesDetails.findAll({
+  //       where: { delStatus: 0 },
+  //       attributes: ["ModuleID", "ModuleName"],
+  //       raw: true,
+  //     });
+
+  //     const results = await Promise.all(
+  //       modules.map(async (module) => {
+  //         // Find all submodules under this module
+  //         const subModules = await LMSSubModulesDetails.findAll({
+  //           where: { ModuleID: module.ModuleID, delStatus: 0 },
+  //           attributes: ["SubModuleID"],
+  //           raw: true,
+  //         });
+
+  //         const subModuleIDs = subModules.map((s) => s.SubModuleID);
+
+  //         if (subModuleIDs.length === 0) return { ...module, totalViews: 0 };
+
+  //         // Count unique UserIDs across all submodules (distinct users)
+  //         const [results] = await ContentInteraction.sequelize.query(
+  //           `
+  //           SELECT COUNT(DISTINCT UserID) AS uniqueUsers
+  //           FROM Content_Interaction
+  //           WHERE ProcessName = 'LMS'
+  //           AND delStatus = 0
+  //           AND View = 1
+  //           AND reference IN (:subModuleIDs)
+  //         `,
+  //           { replacements: { subModuleIDs } }
+  //         );
+
+  //         const totalViews = results?.[0]?.uniqueUsers || 0;
+
+  //         return {
+  //           moduleID: module.ModuleID,
+  //           moduleName: module.ModuleName,
+  //           totalViews,
+  //         };
+  //       })
+  //     );
+
+  //     return results;
+  //   } catch (error) {
+  //     console.error("Error in getModuleViews:", error);
+  //     throw new Error(error.message);
+  //   }
+  // }
   static async getModuleViews() {
     try {
       const modules = await LMSModulesDetails.findAll({
@@ -295,27 +415,65 @@ export class LMSViewsService {
 
           const subModuleIDs = subModules.map((s) => s.SubModuleID);
 
-          if (subModuleIDs.length === 0) return { ...module, totalViews: 0 };
+          if (subModuleIDs.length === 0)
+            return { ...module, totalViews: 0, totalTimeSpent: 0 };
 
           // Count unique UserIDs across all submodules (distinct users)
-          const [results] = await ContentInteraction.sequelize.query(
+          const [viewsResult] = await ContentInteraction.sequelize.query(
             `
-            SELECT COUNT(DISTINCT UserID) AS uniqueUsers
-            FROM Content_Interaction
-            WHERE ProcessName = 'LMS'
-            AND delStatus = 0
-            AND View = 1
-            AND reference IN (:subModuleIDs)
-          `,
+          SELECT COUNT(DISTINCT UserID) AS uniqueUsers
+          FROM Content_Interaction
+          WHERE ProcessName = 'LMS'
+          AND delStatus = 0
+          AND View = 1
+          AND reference IN (:subModuleIDs)
+        `,
             { replacements: { subModuleIDs } }
           );
 
-          const totalViews = results?.[0]?.uniqueUsers || 0;
+          const totalViews = viewsResult?.[0]?.uniqueUsers || 0;
+
+          // Get all units of the submodules
+          const units = await LMSUnitsDetails.findAll({
+            where: { SubModuleID: subModuleIDs, delStatus: 0 },
+            attributes: ["UnitID"],
+            raw: true,
+          });
+
+          const unitIDs = units.map((u) => u.UnitID);
+
+          let totalTimeSpent = 0;
+          if (unitIDs.length > 0) {
+            // Get all files of the units
+            const files = await LMSFilesDetails.findAll({
+              where: { UnitID: unitIDs, delStatus: 0 },
+              attributes: ["FileID"],
+              raw: true,
+            });
+
+            const fileIDs = files.map((f) => f.FileID);
+
+            if (fileIDs.length > 0) {
+              const timeResult = await LMSUserProgress.findAll({
+                where: { FileID: fileIDs },
+                attributes: [
+                  [
+                    Sequelize.fn("SUM", Sequelize.col("TimeSpentSeconds")),
+                    "totalTime",
+                  ],
+                ],
+                raw: true,
+              });
+
+              totalTimeSpent = timeResult[0].totalTime || 0;
+            }
+          }
 
           return {
             moduleID: module.ModuleID,
             moduleName: module.ModuleName,
             totalViews,
+            totalTimeSpent, // <-- include total time here
           };
         })
       );

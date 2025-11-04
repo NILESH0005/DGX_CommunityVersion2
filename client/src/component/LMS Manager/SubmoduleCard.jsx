@@ -8,7 +8,13 @@ import {
 import ApiContext from "../../context/ApiContext";
 import ByteArrayImage from "../../utils/ByteArrayImage";
 import ProgressBar from "./ProgressBar";
-import { FaAngleDown, FaAngleUp, FaArrowLeft, FaEye } from "react-icons/fa";
+import {
+  FaAngleDown,
+  FaAngleUp,
+  FaArrowLeft,
+  FaClock,
+  FaEye,
+} from "react-icons/fa";
 import images from "../../../public/images";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -204,6 +210,15 @@ const SubModuleCard = () => {
         />
       </div>
     );
+  };
+  const formatTime = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    const padded = (num) => String(num).padStart(2, "0");
+
+    return `${padded(hrs)}:${padded(mins)}:${padded(secs)}`;
   };
 
   useEffect(() => {
@@ -418,6 +433,30 @@ const SubModuleCard = () => {
                           )?.totalViews || 0}
                         </span>{" "}
                         views
+                      </span>
+
+                      {/* <span className="flex items-center gap-1">
+                        <FaClock className="text-gray-400 text-base" />
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          {formatTime(
+                            subModuleViews.find(
+                              (v) => v.subModuleID === subModule.SubModuleID
+                            )?.totalTimeSpent || 0
+                          )}
+                        </span>
+                      </span> */}
+                      <span
+                        className="flex items-center gap-1"
+                        title="Total time spent by all users on this submodule"
+                      >
+                        <FaClock className="text-gray-400 text-base" />
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          {formatTime(
+                            subModuleViews.find(
+                              (v) => v.subModuleID === subModule.SubModuleID
+                            )?.totalTimeSpent || 0
+                          )}
+                        </span>
                       </span>
                     </p>
                     <motion.div

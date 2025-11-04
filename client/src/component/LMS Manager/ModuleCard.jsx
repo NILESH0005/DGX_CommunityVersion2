@@ -69,7 +69,6 @@ const ModuleCard = () => {
         const modulesData = modulesResponse.data || [];
         const viewsData = viewsResponse?.data || [];
 
-        // Merge views into module data
         const mergedModules = modulesData.map((module) => {
           const viewEntry = viewsData.find(
             (v) => v.moduleID === module.ModuleID
@@ -77,6 +76,7 @@ const ModuleCard = () => {
           return {
             ...module,
             totalViews: viewEntry ? viewEntry.totalViews : 0,
+            totalTimeSpent: viewEntry ? Number(viewEntry.totalTimeSpent) : 0, 
           };
         });
 
@@ -102,6 +102,18 @@ const ModuleCard = () => {
 
     fetchModulesAndViews();
   }, [fetchData]);
+
+  const formatTime = (totalSeconds) => {
+    if (!totalSeconds) return "00:00:00";
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const pad = (num) => String(num).padStart(2, "0");
+
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
 
   const handleModuleClick = (moduleId, moduleName) => {
     if (!userToken) {
@@ -231,6 +243,12 @@ const ModuleCard = () => {
                     {module.totalViews}
                   </span>
                   <span>views</span>
+                </p>
+                <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">
+                  <span className="font-medium text-gray-700">
+                    {formatTime(module.totalTimeSpent)}
+                  </span>
+                  <span>time spent</span>
                 </p>
                 <p
                   className={`text-gray-600 text-base mb-4 hover:text-gray-800 transition-colors duration-200 break-words ${

@@ -134,7 +134,7 @@ const EventDetailsModal = ({ event, isOpen, onClose }) => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                Event Details
+                Event Detailss
               </motion.h2>
               <motion.button
                 onClick={onClose}
@@ -320,7 +320,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
             response.data
           );
           // Refresh view count after recording a new view
-          await fetchEventViewCount(eventId);
+          await fetchEventViewCounts(eventId);
         }
       } else {
         console.error("Error recording event view:", response?.message);
@@ -350,9 +350,10 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       });
       return;
     }
+
+    // Record view and navigate to event page
     recordEventView(event.EventID);
-    setSelectedEvent(event);
-    setIsModalOpen(true);
+    navigate(`/event/${event.EventID}`);
   };
 
   const fetchEventViewCounts = async () => {
@@ -409,9 +410,10 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       });
       return;
     }
+
+    // Record view and navigate to event page
     recordEventView(event.EventID);
-    setSelectedEvent(event);
-    setIsModalOpen(true);
+    navigate(`/event/${event.EventID}`);
   };
 
   const handleCloseModal = () => {
