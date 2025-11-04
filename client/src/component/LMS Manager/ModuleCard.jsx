@@ -5,6 +5,7 @@ import ByteArrayImage from "../../utils/ByteArrayImage";
 import { FaAngleDown, FaAngleUp, FaEye } from "react-icons/fa";
 import Swal from "sweetalert2";
 import images from "../../../public/images";
+
 const ModuleCard = () => {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,46 +13,7 @@ const ModuleCard = () => {
   const navigate = useNavigate();
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
 
-  useEffect(() => {
-    const fetchModules = async () => {
-      try {
-        setLoading(true);
-        const response = await fetchData("dropdown/getModules", "GET");
-
-        if (!response) {
-          throw new Error("No response from server");
-        }
-
-        if (response?.success) {
-          setModules(response.data);
-          const initialExpandedState = {};
-          response.data.forEach((module) => {
-            initialExpandedState[module.ModuleID] = false;
-          });
-          setExpandedDescriptions(initialExpandedState);
-        } else {
-          console.error("API Error:", response.message);
-          Swal.fire({
-            title: "Error",
-            text: response.message || "Failed to load modules",
-            icon: "error",
-          });
-        }
-      } catch (error) {
-        console.error("Fetch Error:", error);
-        Swal.fire({
-          title: "Connection Error",
-          text: "Could not connect to server",
-          icon: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchModules();
-  }, [fetchData]);
-
+  // Fetch Modules & Views
   useEffect(() => {
     const fetchModulesAndViews = async () => {
       try {
@@ -69,7 +31,7 @@ const ModuleCard = () => {
         const modulesData = modulesResponse.data || [];
         const viewsData = viewsResponse?.data || [];
 
-        // Merge views into module data
+        // Merge views with modules
         const mergedModules = modulesData.map((module) => {
           const viewEntry = viewsData.find(
             (v) => v.moduleID === module.ModuleID
@@ -82,7 +44,7 @@ const ModuleCard = () => {
 
         setModules(mergedModules);
 
-        // Set expanded state for each module
+        // Set initial expand states
         const initialExpandedState = {};
         mergedModules.forEach(
           (m) => (initialExpandedState[m.ModuleID] = false)
@@ -112,7 +74,7 @@ const ModuleCard = () => {
         showCancelButton: true,
         confirmButtonText: "Go to Login",
         cancelButtonText: "Cancel",
-        confirmButtonColor: "#3085d6",
+        confirmButtonColor: "#4f46e5",
         cancelButtonColor: "#d33",
       }).then((result) => {
         if (result.isConfirmed) {
@@ -139,10 +101,8 @@ const ModuleCard = () => {
     }));
   };
 
-  const isDescriptionClamped = (description) => {
-    if (!description) return false;
-    return description.length > 100;
-  };
+  const isDescriptionClamped = (description) =>
+    description && description.length > 100;
 
   const renderModuleImage = (module) => {
     if (module.ModuleImageUrl) {
@@ -150,120 +110,119 @@ const ModuleCard = () => {
         <img
           src={module.ModuleImageUrl}
           alt={module.ModuleName}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = images.Noimage;
-            e.target.className = "w-full h-full object-contain bg-gray-200 p-4";
+            e.target.className =
+              "w-full h-full object-contain bg-gray-200 p-4";
           }}
         />
       );
     }
-
     if (module.ModuleImage) {
       return (
         <ByteArrayImage
           byteArray={module.ModuleImage.data}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
         />
       );
     }
-
-    // Fallback to no image - using the imported Noimage
     return (
-      <div className="flex items-center justify-center h-full bg-gray-200">
+      <div className="flex items-center justify-center h-full bg-gradient-to-br from-indigo-100 to-purple-100">
         <img
           src={images.Noimage}
           alt="No Image Available"
-          className="w-3/4 h-3/4 object-contain opacity-70"
+          className="w-2/3 h-2/3 object-contain opacity-70"
         />
       </div>
     );
   };
 
+  // =========================
+  // Loading Skeleton
+  // =========================
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg shadow-md overflow-hidden"
-              >
-                <div className="h-48 bg-gray-200 animate-pulse"></div>
-                <div className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4 animate-pulse"></div>
-                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-3 animate-pulse"></div>
-                  <div className="h-16 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="mt-4 h-10 bg-gray-200 rounded animate-pulse"></div>
-                </div>
+      <div className="min-h-[60vh] p-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="backdrop-blur-lg bg-white/60 border border-white/40 rounded-3xl overflow-hidden shadow-lg animate-pulse"
+            >
+              <div className="h-48 bg-gradient-to-r from-indigo-100 to-purple-100"></div>
+              <div className="p-6 space-y-4">
+                <div className="h-6 bg-white/70 rounded w-3/4"></div>
+                <div className="h-4 bg-white/70 rounded w-1/4"></div>
+                <div className="h-16 bg-white/70 rounded"></div>
+                <div className="h-10 bg-white/70 rounded"></div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
+  // =========================
+  // Render Actual Modules
+  // =========================
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {modules.map((module) => (
-            <div
-              key={module.ModuleID}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
-              onClick={() =>
-                handleModuleClick(module.ModuleID, module.ModuleName)
-              }
-            >
-              <div className="h-48 bg-gray-100 overflow-hidden">
-                {renderModuleImage(module)}
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-3 hover:text-blue-600 transition-colors duration-200 break-words">
-                  {module.ModuleName}
-                </h3>
-                <p className="text-sm text-gray-500 mb-2 flex items-center gap-1">
-                  <FaEye className="text-gray-400" />
-                  <span className="font-medium text-gray-700">
-                    {module.totalViews}
-                  </span>
-                  <span>views</span>
-                </p>
-                <p
-                  className={`text-gray-600 text-base mb-4 hover:text-gray-800 transition-colors duration-200 break-words ${
-                    expandedDescriptions[module.ModuleID]
-                      ? "overflow-y-auto max-h-32"
-                      : "line-clamp-2"
-                  }`}
-                >
-                  {module.ModuleDescription || "No description available"}
-                </p>
+    <div className="min-h-[60vh] p-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {modules.map((module) => (
+          <div
+            key={module.ModuleID}
+            onClick={() =>
+              handleModuleClick(module.ModuleID, module.ModuleName)
+            }
+            className="backdrop-blur-lg bg-white/60 border border-white/40 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+          >
+            {/* Module Image */}
+            <div className="h-48 overflow-hidden">{renderModuleImage(module)}</div>
 
-                {isDescriptionClamped(module.ModuleDescription) && (
-                  <button
-                    onClick={(e) => toggleDescription(module.ModuleID, e)}
-                    className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm flex items-center self-start"
-                  >
-                    {expandedDescriptions[module.ModuleID] ? (
-                      <>
-                        <FaAngleUp className="mr-1" />
-                        Show Less
-                      </>
-                    ) : (
-                      <>
-                        <FaAngleDown className="mr-1" />
-                        Read More
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
+            {/* Content */}
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-indigo-900 mb-2 hover:text-indigo-600 transition-colors duration-300 break-words">
+                {module.ModuleName}
+              </h3>
+
+              <p className="text-sm text-gray-600 mb-3 flex items-center gap-1">
+                <FaEye className="text-indigo-400" />
+                <span className="font-medium">{module.totalViews}</span>
+                <span>views</span>
+              </p>
+
+              <p
+                className={`text-gray-700 text-base leading-relaxed ${
+                  expandedDescriptions[module.ModuleID]
+                    ? "overflow-y-auto max-h-32"
+                    : "line-clamp-2"
+                }`}
+              >
+                {module.ModuleDescription || "No description available."}
+              </p>
+
+              {isDescriptionClamped(module.ModuleDescription) && (
+                <button
+                  onClick={(e) => toggleDescription(module.ModuleID, e)}
+                  className="text-indigo-500 hover:text-indigo-700 mt-2 text-sm flex items-center"
+                >
+                  {expandedDescriptions[module.ModuleID] ? (
+                    <>
+                      <FaAngleUp className="mr-1" /> Show Less
+                    </>
+                  ) : (
+                    <>
+                      <FaAngleDown className="mr-1" /> Read More
+                    </>
+                  )}
+                </button>
+              )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );
