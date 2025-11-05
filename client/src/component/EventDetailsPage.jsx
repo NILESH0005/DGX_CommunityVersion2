@@ -15,7 +15,7 @@ import moment from "moment";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const EventDetailsPage = ({ events = [] }) => {
+const EventDetailsPage = ({ events = [events] }) => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { fetchData, userToken } = useContext(ApiContext);
@@ -31,11 +31,26 @@ const EventDetailsPage = ({ events = [] }) => {
 
       console.log("Fetching details for event ID:", eventId);
 
-      // Try multiple possible endpoints
+      if (events && events.length > 0) {
+        const foundEvent = events.find((e) => e.EventID == eventId);
+        if (foundEvent) {
+          console.log("Event found in props:", foundEvent);
+          setEvent(foundEvent);
+          setLoading(false);
+
+          // Record view if user is logged in
+          if (userToken) {
+            await recordEventView(eventId);
+          }
+          return;
+        }
+      }
+
+      console.log("Event not found in props, fetching from API...");
+
       const endpoints = [
         `eventandworkshop/getEventById/${eventId}`,
-        `eventandworkshop/event/${eventId}`,
-        `eventandworkshop/getEvent/${eventId}`,
+       
       ];
 
       let response = null;
@@ -63,12 +78,10 @@ const EventDetailsPage = ({ events = [] }) => {
       }
 
       if (response?.success) {
-        // Handle different possible response structures
         const eventData = response.data || response.event || response.result;
 
         if (eventData) {
           setEvent(eventData);
-          // Record view if user is logged in
           if (userToken) {
             await recordEventView(eventId);
           }
@@ -207,6 +220,9 @@ const EventDetailsPage = ({ events = [] }) => {
       toast.info("Registration link not available");
     }
   };
+  useEffect(() => {
+    fetchEventDetails();
+  }, [eventId, events]);
 
   useEffect(() => {
     if (event) {
@@ -504,15 +520,12 @@ const EventDetailsPage = ({ events = [] }) => {
                           url: eventUrl,
                         });
                       } catch (error) {
-                        // Only log if it's not an abort error (user cancelled)
                         if (error.name !== "AbortError") {
                           console.error("Error sharing:", error);
-                          // Fallback to clipboard
                           await safeCopyToClipboard(eventUrl);
                         }
                       }
                     } else {
-                      // Use clipboard directly
                       await safeCopyToClipboard(eventUrl);
                     }
                   }}

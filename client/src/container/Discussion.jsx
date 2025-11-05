@@ -66,7 +66,6 @@ const Discussion = () => {
       const stats = await fetchDiscussionStats(fetchData);
       setDiscussionStats(stats);
 
-      // Update discussions with real-time stats
       setDemoDiscussions((prevDiscussions) =>
         prevDiscussions.map((discussion) => ({
           ...discussion,
@@ -275,7 +274,7 @@ const Discussion = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [communityHighlights, setCommunityHighlights] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
-  const [bannerFilePath, setBannerFilePath] = useState(""); // To save in DB
+  const [bannerFilePath, setBannerFilePath] = useState(""); 
   const [userReposts, setUserReposts] = useState(new Set());
 
   const getCommunityHighlights = (discussions) => {
@@ -463,11 +462,6 @@ const Discussion = () => {
       plainText === "<p></p>" ||
       content === "<p><br></p>" ||
       content === "<p></p>";
-
-    // if (isEmpty) {
-    //   setErrors((prev) => ({ ...prev, content: "Content is required" }));
-    //   return false;
-    // }
 
     if (plainText.length > 5000) {
       setErrors((prev) => ({
