@@ -54,7 +54,7 @@ const AddUserBlog = (props) => {
     );
 
     // Construct the full URL
-    const fullUrl = `${fixedBaseUrl}/${cleanPath}`;
+    const fullUrl = `${fixedBaseUrl}${cleanPath}`;
 
     console.log("Constructed image URL:", fullUrl);
     return fullUrl;

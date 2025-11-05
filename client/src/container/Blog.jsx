@@ -243,7 +243,7 @@ const BlogPage = () => {
     const cleanPath = imagePath.replace(/^\/+/, "");
 
     // Construct the full URL
-    const fullUrl = `${baseUploadsUrl}/${cleanPath}`;
+    const fullUrl = `${baseUploadsUrl}${cleanPath}`;
 
     console.log("Constructed image URL:", fullUrl);
     return fullUrl;
