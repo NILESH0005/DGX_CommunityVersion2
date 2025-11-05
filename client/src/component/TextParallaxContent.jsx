@@ -5,7 +5,6 @@ import moment from "moment";
 import ApiContext from "../context/ApiContext";
 import { FaHeart, FaUser, FaCalendarAlt } from "react-icons/fa";
 
-
 const TextParallaxContent = () => {
   const [homeData, setHomeData] = useState({
     events: [],
@@ -169,15 +168,21 @@ const TextParallaxContent = () => {
           </div>
         ) : (
           // Fallback when no featured event
-          <div className="relative h-[50vh] w-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center">
+          <div className="relative h-[30vh] w-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center">
+                       {" "}
             <div className="text-center text-DGXwhite z-20">
+                           {" "}
               <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                Welcome to Our Community
+                                Welcome to Our Community              {" "}
               </h1>
+                           {" "}
               <p className="text-xl opacity-90">
-                Discover amazing events, blogs, and discussions
+                                Discover amazing events, blogs, and discussions
+                             {" "}
               </p>
+                         {" "}
             </div>
+                     {" "}
           </div>
         )}
       </div>
