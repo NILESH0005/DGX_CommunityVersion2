@@ -23,28 +23,16 @@ const SignIn = () => {
     const { id, value } = event.target;
     if (id === "username") {
       setUserID(value);
-      // Clear error when user types
-      if (errors.email) {
-        setErrors({ ...errors, email: "" });
-      }
+      if (errors.email) setErrors({ ...errors, email: "" });
     }
     if (id === "password") {
       setPassword(value);
-      // Clear error when user types
-      if (errors.password) {
-        setErrors({ ...errors, password: "" });
-      }
+      if (errors.password) setErrors({ ...errors, password: "" });
     }
-    // Clear message when user starts typing
-    if (message.text) {
-      setMessage({ type: "", text: "" });
-    }
+    if (message.text) setMessage({ type: "", text: "" });
   };
 
-  const validateEmail = (email) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const validateForm = () => {
     const newErrors = { email: "", password: "" };
@@ -69,40 +57,29 @@ const SignIn = () => {
 
   const showMessage = (type, text) => {
     setMessage({ type, text });
-    // Auto-clear message after 3 seconds
-    setTimeout(() => {
-      setMessage({ type: "", text: "" });
-    }, 3000);
+    setTimeout(() => setMessage({ type: "", text: "" }), 3000);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
+
     const endpoint = "user/login";
     const method = "POST";
-    const body = {
-      email: userID,
-      password: password,
-    };
+    const body = { email: userID, password };
+
     setLoading(true);
     try {
       const data = await fetchData(endpoint, method, body);
-      console.log("login response", data);
       if (!data.success) {
         setLoading(false);
         showMessage("error", data.message);
       } else {
         logIn(data.data.authtoken);
         setLoading(false);
-        if (data.data.flag === 0) {
-          navigate("/ChangePassword");
-        } else if (data.data.isAdmin) {
-          navigate("/AdminDashboard");
-        } else {
-          navigate("/");
-        }
+        if (data.data.flag === 0) navigate("/ChangePassword");
+        else if (data.data.isAdmin) navigate("/AdminDashboard");
+        else navigate("/");
       }
     } catch (error) {
       setLoading(false);
@@ -115,10 +92,7 @@ const SignIn = () => {
   };
 
   useEffect(() => {
-    // Redirect if already logged in
-    if (userToken) {
-      navigate("/");
-    }
+    if (userToken) navigate("/");
   }, [userToken, navigate]);
 
   if (loading) return <LoadPage />;
@@ -131,11 +105,11 @@ const SignIn = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col lg:flex-row items-center justify-center bg-DGXblue rounded-2xl overflow-hidden shadow-xl"
+            className="grid grid-cols-1 lg:grid-cols-2 bg-DGXblue rounded-2xl overflow-hidden shadow-xl min-h-[600px]"
           >
             {/* Left Section - Visual */}
             <motion.div
-              className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-DGXgreen to-DGXblue p-8 md:p-12"
+              className="hidden lg:flex bg-gradient-to-br from-DGXgreen to-DGXblue p-8 md:p-12 h-full"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.8 }}
@@ -162,6 +136,7 @@ const SignIn = () => {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.8, type: "spring" }}
+                  className="flex justify-center"
                 >
                   <img
                     src={images.secure}
@@ -173,7 +148,7 @@ const SignIn = () => {
             </motion.div>
 
             {/* Right Section - Form */}
-            <div className="w-full lg:w-1/2 p-6 sm:p-8 md:p-10 bg-white">
+            <div className="bg-white flex items-center justify-center h-full p-6 sm:p-8 md:p-10">
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

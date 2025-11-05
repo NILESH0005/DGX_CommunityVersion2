@@ -213,136 +213,141 @@ const EventForm = (props) => {
     }
   };
 
-const handleSubmit = async () => {
-  // Validate all fields
-  const errors = {};
-  if (!newEvent.title) errors.title = "Event title is required.";
-  if (!newEvent.start) errors.start = "Start date is required.";
-  if (!newEvent.end) errors.end = "End date is required.";
-  if (!newEvent.categoryId || newEvent.categoryId === "Select one")
-    errors.categoryId = "Please select a category.";
-  if (!newEvent.companyCategoryId || newEvent.companyCategoryId === "Select one")
-    errors.companyCategoryId = "Please select a company category.";
-  if (!newEvent.venue) errors.venue = "Venue is required.";
-  if (!newEvent.description) errors.description = "Description is required.";
-  if (!newEvent.host) errors.host = "Host is required.";
-  if (!newEvent.registerLink)
-    errors.registerLink = "Register link is required.";
-  if (!newEvent.poster) errors.poster = "Poster is required.";
+  const handleSubmit = async () => {
+    // Validate all fields
+    const errors = {};
+    if (!newEvent.title) errors.title = "Event title is required.";
+    if (!newEvent.start) errors.start = "Start date is required.";
+    if (!newEvent.end) errors.end = "End date is required.";
+    if (!newEvent.categoryId || newEvent.categoryId === "Select one")
+      errors.categoryId = "Please select a category.";
+    if (
+      !newEvent.companyCategoryId ||
+      newEvent.companyCategoryId === "Select one"
+    )
+      errors.companyCategoryId = "Please select a company category.";
+    if (!newEvent.venue) errors.venue = "Venue is required.";
+    if (!newEvent.description) errors.description = "Description is required.";
+    if (!newEvent.host) errors.host = "Host is required.";
+    if (!newEvent.registerLink)
+      errors.registerLink = "Register link is required.";
+    if (!newEvent.poster) errors.poster = "Poster is required.";
 
-  if (Object.keys(errors).length > 0) {
-    setErrors(errors);
-    const firstErrorField = Object.keys(errors)[0];
-    const refMap = {
-      title: titleRef,
-      start: startRef,
-      end: endRef,
-      categoryId: categoryRef,
-      companyCategoryId: companyCategoryRef,
-      venue: venueRef,
-      host: hostRef,
-      description: descriptionRef,
-      registerLink: registerLinkRef,
-    };
-    const element = refMap[firstErrorField]?.current;
-    if (element) {
-      element.focus();
-      element.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-    return;
-  }
-
-  const endpoint = "eventandworkshop/addEvent";
-  const method = "POST";
-  const headers = {
-    "Content-Type": "application/json",
-    "auth-token": userToken,
-  };
-
-  // Explicitly check admin status
-  const isAdmin = user.isAdmin === "1";
-  const eventStatus = isAdmin ? "Approved" : "Pending";
-
-  const requestBody = {
-    userID: user.UserID,
-    userName: user.Name,
-    title: newEvent.title,
-    start: newEvent.start,
-    end: newEvent.end,
-    category: newEvent.categoryId,
-    companyCategory: newEvent.companyCategoryId,
-    venue: newEvent.venue,
-    host: newEvent.host,
-    registerLink: newEvent.registerLink,
-    poster: newEvent.poster,
-    description: newEvent.description,
-    Status: eventStatus, // Make sure this matches your backend's expected field name
-  };
-
-  try {
-    const response = await fetchData(endpoint, method, requestBody, headers);
-
-    if (response.success) {
-      const categoryName = dropdownData.categoryOptions.find(
-        (item) => item.idCode === newEvent.categoryId
-      )?.ddValue || newEvent.categoryId;
-
-      const companyCategoryName = dropdownData.companyCategoryOptions.find(
-        (item) => item.idCode === newEvent.companyCategoryId
-      )?.ddValue || newEvent.companyCategoryId;
-
-      const addedEvent = {
-        EventID: response.data.eventId,
-        EventTitle: newEvent.title,
-        StartDate: newEvent.start,
-        EndDate: newEvent.end,
-        Category: categoryName,
-        CategoryId: newEvent.categoryId,
-        CompanyCategory: companyCategoryName,
-        Venue: newEvent.venue,
-        Host: newEvent.host,
-        RegistrationLink: newEvent.registerLink,
-        EventImage: newEvent.poster,
-        EventDescription: newEvent.description,
-        UserName: user.Name,
-        Status: eventStatus, // Using the same status here
-        start: new Date(newEvent.start),
-        end: new Date(newEvent.end),
+    if (Object.keys(errors).length > 0) {
+      setErrors(errors);
+      const firstErrorField = Object.keys(errors)[0];
+      const refMap = {
+        title: titleRef,
+        start: startRef,
+        end: endRef,
+        categoryId: categoryRef,
+        companyCategoryId: companyCategoryRef,
+        venue: venueRef,
+        host: hostRef,
+        description: descriptionRef,
+        registerLink: registerLinkRef,
       };
-
-      if (typeof props.setEvents === "function") {
-        props.setEvents((prevEvents) => [addedEvent, ...prevEvents]);
+      const element = refMap[firstErrorField]?.current;
+      if (element) {
+        element.focus();
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
       }
+      return;
+    }
 
-      Swal.fire({
-        title: isAdmin ? "Event Approved" : "Event Submitted",
-        text: isAdmin
-          ? "The event has been added and approved."
-          : "Your event has been submitted for admin approval.",
-        icon: "success",
-        confirmButtonText: "OK",
-      });
+    const endpoint = "eventandworkshop/addEvent";
+    const method = "POST";
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
+    };
 
-      resetForm();
-      setIsModalOpen(false);
-    } else {
+    // Explicitly check admin status
+    const isAdmin = user.isAdmin === "1";
+    const eventStatus = isAdmin ? "Approved" : "Pending";
+
+    const requestBody = {
+      userID: user.UserID,
+      userName: user.Name,
+      title: newEvent.title,
+      start: newEvent.start,
+      end: newEvent.end,
+      category: newEvent.categoryId,
+      companyCategory: newEvent.companyCategoryId,
+      venue: newEvent.venue,
+      host: newEvent.host,
+      registerLink: newEvent.registerLink,
+      poster: newEvent.poster,
+      description: newEvent.description,
+      Status: eventStatus, // Make sure this matches your backend's expected field name
+    };
+
+    try {
+      const response = await fetchData(endpoint, method, requestBody, headers);
+
+      if (response.success) {
+        const categoryName =
+          dropdownData.categoryOptions.find(
+            (item) => item.idCode === newEvent.categoryId
+          )?.ddValue || newEvent.categoryId;
+
+        const companyCategoryName =
+          dropdownData.companyCategoryOptions.find(
+            (item) => item.idCode === newEvent.companyCategoryId
+          )?.ddValue || newEvent.companyCategoryId;
+
+        const addedEvent = {
+          EventID: response.data.eventId,
+          EventTitle: newEvent.title,
+          StartDate: newEvent.start,
+          EndDate: newEvent.end,
+          Category: categoryName,
+          CategoryId: newEvent.categoryId,
+          CompanyCategory: companyCategoryName,
+          Venue: newEvent.venue,
+          Host: newEvent.host,
+          RegistrationLink: newEvent.registerLink,
+          EventImage: newEvent.poster,
+          EventDescription: newEvent.description,
+          UserName: user.Name,
+          Status: eventStatus, // Using the same status here
+          start: new Date(newEvent.start),
+          end: new Date(newEvent.end),
+        };
+
+        if (typeof props.setEvents === "function") {
+          props.setEvents((prevEvents) => [addedEvent, ...prevEvents]);
+        }
+
+        Swal.fire({
+          title: isAdmin ? "Event Approved" : "Event Submitted",
+          text: isAdmin
+            ? "The event has been added and approved."
+            : "Your event has been submitted for admin approval.",
+          icon: "success",
+          confirmButtonText: "OK",
+        });
+
+        resetForm();
+        setIsModalOpen(false);
+      } else {
+        Swal.fire({
+          title: "Error!",
+          text: response.message || "Failed to add event",
+          icon: "error",
+          confirmButtonText: "OK",
+        });
+      }
+    } catch (error) {
+      console.error("Error adding event:", error);
       Swal.fire({
         title: "Error!",
-        text: response.message || "Failed to add event",
+        text: "An error occurred while adding the event",
         icon: "error",
         confirmButtonText: "OK",
       });
     }
-  } catch (error) {
-    console.error("Error adding event:", error);
-    Swal.fire({
-      title: "Error!",
-      text: "An error occurred while adding the event",
-      icon: "error",
-      confirmButtonText: "OK",
-    });
-  }
-};
+  };
 
   const handleCancel = () => {
     Swal.fire({
@@ -719,46 +724,50 @@ const handleSubmit = async () => {
                 errors.description ? "border-red-500" : "border-gray-300"
               }`}
             >
-              <ReactQuill
-                value={newEvent.description}
-                onChange={handleDescriptionChange}
-                className="h-48"
-                style={{
-                  fontSize: calculateFontSize(newEvent.description.length),
-                }}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
-                modules={{
-                  toolbar: [
-                    ["bold", "italic", "underline", "strike"],
-                    [{ list: "ordered" }, { list: "bullet" }],
-                    [{ indent: "-1" }, { indent: "+1" }],
-                    [{ header: [1, 2, 3, 4, 5, 6, false] }],
-                    [{ color: [] }, { background: [] }],
-                    [{ font: [] }],
-                    [{ align: [] }],
-                    ["clean"],
-                  ],
-                }}
-                formats={[
-                  "header",
-                  "font",
-                  "size",
-                  "bold",
-                  "italic",
-                  "underline",
-                  "strike",
-                  "blockquote",
-                  "list",
-                  "bullet",
-                  "indent",
-                  "link",
-                  "image",
-                  "color",
-                  "background",
-                  "align",
-                ]}
-              />
+              <div className="relative">
+                <div className="quill-container">
+                  <ReactQuill
+                    value={newEvent.description}
+                    onChange={handleDescriptionChange}
+                    className="custom-quill h-48"
+                    style={{
+                      fontSize: calculateFontSize(newEvent.description.length),
+                    }}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    modules={{
+                      toolbar: [
+                        ["bold", "italic", "underline", "strike"],
+                        [{ list: "ordered" }, { list: "bullet" }],
+                        [{ indent: "-1" }, { indent: "+1" }],
+                        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+                        [{ color: [] }, { background: [] }],
+                        [{ font: [] }],
+                        [{ align: [] }],
+                        ["clean"],
+                      ],
+                    }}
+                    formats={[
+                      "header",
+                      "font",
+                      "size",
+                      "bold",
+                      "italic",
+                      "underline",
+                      "strike",
+                      "blockquote",
+                      "list",
+                      "bullet",
+                      "indent",
+                      "link",
+                      "image",
+                      "color",
+                      "background",
+                      "align",
+                    ]}
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex justify-between items-center mt-2">
               {isFocused && errors.description && (

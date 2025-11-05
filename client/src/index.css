@@ -95,3 +95,21 @@
 .jodit-container jodit jodit_theme_default jodit-wysiwyg_mode {
   display: none;
 }
+
+
+.quill-container {
+  position: relative;
+}
+
+.quill-container .ql-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10; /* keep it above text area */
+  background: white; /* prevent overlap transparency */
+  border-bottom: 1px solid #e5e7eb; /* optional subtle border */
+}
+
+.custom-quill .ql-container {
+  height: 12rem; /* adjust for your scroll area */
+  overflow-y: auto;
+}

@@ -386,7 +386,7 @@ const UnitsWithFiles = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-3">
             No Submodule Selected
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-4">
             Please select a submodule from the menu to view its units and files.
           </p>
         </div>
@@ -419,7 +419,7 @@ const UnitsWithFiles = () => {
             isSidebarCollapsed ? "w-20" : "w-80"
           } bg-white border-r border-gray-200 p-4 transition-all duration-300 hidden md:block shadow-lg`}
         >
-          <div className="h-8 bg-gray-200 rounded-lg w-3/4 mb-6 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 rounded-lg w-3/4 mb-4 animate-pulse"></div>
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
@@ -428,7 +428,7 @@ const UnitsWithFiles = () => {
           ))}
         </div>
         <div className="flex-1 p-6 w-full">
-          <div className="h-8 bg-gray-200 rounded-lg w-1/2 mb-6 animate-pulse"></div>
+          <div className="h-8 bg-gray-200 rounded-lg w-1/2 mb-4 animate-pulse"></div>
           <div className="h-full bg-gray-200 rounded-2xl animate-pulse"></div>
         </div>
       </div>
@@ -443,7 +443,7 @@ const UnitsWithFiles = () => {
             <FiX className="w-8 h-8 text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
@@ -888,7 +888,7 @@ const UnitsWithFiles = () => {
         }`}
       >
         {/* Content Header */}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-3 mb-2">
@@ -931,7 +931,7 @@ const UnitsWithFiles = () => {
         {/* Content Area */}
         {selectedQuiz ? (
           <div className="flex-1 overflow-auto">
-            <div className="mb-6">
+            <div className="mb-4">
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-800 break-words mb-2">
                   {selectedQuiz.QuizName}
@@ -974,8 +974,8 @@ const UnitsWithFiles = () => {
           </div>
         ) : selectedFile ? (
           <>
-            <div className="mb-6">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+            <div className="mb-4">
+              <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200">
                 <h2 className="text-xl md:text-2xl font-semibold text-gray-800 break-words mb-2">
                   {removeFileExtension(selectedFile.FilesName)}
                 </h2>
@@ -992,7 +992,7 @@ const UnitsWithFiles = () => {
             !selectedFile.FilePath.includes("youtu.be") ? (
               <div className="flex flex-col items-center justify-center h-full bg-white rounded-2xl shadow-sm border border-gray-200 p-8 min-h-[400px]">
                 <div className="max-w-md w-full text-center">
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
                       <FiExternalLink className="w-10 h-10 text-blue-600" />
                     </div>
@@ -1000,7 +1000,7 @@ const UnitsWithFiles = () => {
                   <h3 className="text-xl font-bold text-gray-800 mb-4 break-words">
                     {selectedFile.FilesName || "External Content Link"}
                   </h3>
-                  <p className="mb-6 text-gray-600 text-sm md:text-base leading-relaxed">
+                  <p className="mb-4 text-gray-600 text-sm md:text-base leading-relaxed">
                     {selectedFile.Description ||
                       "This content is hosted externally. Click the button below to view it in a new tab."}
                   </p>
@@ -1066,7 +1066,7 @@ const UnitsWithFiles = () => {
               <h2 className="text-xl font-bold text-gray-800 mb-3">
                 Select Content to Begin
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-4">
                 Choose a file from the sidebar to start learning. Your progress
                 will be automatically saved.
               </p>
