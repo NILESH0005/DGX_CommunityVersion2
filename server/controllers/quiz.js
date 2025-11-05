@@ -16,7 +16,9 @@ import {
   getQuizQuestionsService,
   getQuizzesByRefIdService,
   getQuizzesService,
+  getUserByEmailService,
   getUserQuizCategoryService,
+  getUserQuizHistoryService,
   submitQuizService,
   unmapQuestionService,
   updateQuestionService,
@@ -563,130 +565,45 @@ export const getLeaderboardRanking = async (req, res) => {
 };
 
 export const getUserQuizHistory = async (req, res) => {
-  let success = false;
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage = "Data is not in the right format";
     console.error(warningMessage, errors.array());
     logWarning(warningMessage);
-    return res
-      .status(400)
-      .json({ success, data: errors.array(), message: warningMessage });
+    return res.status(400).json({
+      success: false,
+      data: errors.array(),
+      message: warningMessage,
+    });
   }
 
   try {
-    const userEmail = req.user.id; // Assuming this contains the email from JWT
+    const userEmail = req.user.id;
     console.log("User email from token:", userEmail);
 
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        const errorMessage = "Failed to connect to database";
-        logError(err);
-        return res
-          .status(500)
-          .json({ success: false, data: err, message: errorMessage });
-      }
+    const user = await getUserByEmailService(userEmail);
 
-      try {
-        // First get the user ID from email
-        const userIdQuery =
-          "SELECT UserID FROM Community_User WHERE EmailId = ? AND ISNULL(delStatus, 0) = 0";
-        const userResult = await queryAsync(conn, userIdQuery, [userEmail]);
+    if (!user) {
+      const errorMessage = "User not found";
+      logError(errorMessage);
+      return res.status(404).json({
+        success: false,
+        message: errorMessage,
+      });
+    }
 
-        if (!userResult || userResult.length === 0) {
-          const errorMessage = "User not found";
-          logError(errorMessage);
-          closeConnection();
-          return res
-            .status(404)
-            .json({ success: false, message: errorMessage });
-        }
+    const userId = user.UserID;
+    console.log("Found user ID:", userId);
 
-        const userId = userResult[0].UserID;
-        console.log("Found user ID:", userId);
+    const result = await getUserQuizHistoryService(userId);
 
-        // Main query to get latest quiz attempts with scores
-        const query = `
-          WITH LatestAttempts AS (
-              SELECT 
-                  quizID,
-                  MAX(noOfAttempts) AS maxAttempt
-              FROM 
-                  quiz_score
-              WHERE 
-                  userID = ?
-              GROUP BY 
-                  quizID
-          ),
-          LatestAttemptDetails AS (
-              SELECT 
-                  qs.quizID,
-                  qs.noOfAttempts,
-                  qd.QuizName,
-                  gm.group_name,
-                  SUM(qs.ObtainedMarks) AS totalObtained,
-                  MAX(qs.totalMarks) AS totalPossible,
-                  MAX(qs.AddOnDt) AS latestAttemptDate
-              FROM 
-                  quiz_score qs
-              JOIN 
-                  LatestAttempts la ON qs.quizID = la.quizID AND qs.noOfAttempts = la.maxAttempt
-              LEFT JOIN 
-                  QuizDetails qd ON qs.quizID = qd.QuizID
-              LEFT JOIN 
-                  GroupMaster gm ON qs.quizID = gm.group_id
-              WHERE 
-                  qs.userID = ?
-              GROUP BY 
-                  qs.quizID, qs.noOfAttempts, qd.QuizName, gm.group_name
-          )
-          SELECT 
-              quizID,
-              latestAttemptDate,
-              QuizName,
-              noOfAttempts AS attemptNumber,
-              group_name,
-              totalObtained,
-              totalPossible,
-              CASE 
-                  WHEN totalPossible > 0 THEN ROUND((totalObtained / totalPossible) * 100, 2)
-                  ELSE 0 
-              END AS percentageScore
-          FROM 
-              LatestAttemptDetails
-          ORDER BY 
-              latestAttemptDate DESC`;
+    if (result.response.success) {
+      logInfo("Quiz history fetched successfully");
+    }
 
-        const quizHistory = await queryAsync(conn, query, [userId, userId]);
-
-        // Filter out any invalid records (though your query structure should prevent this)
-        const validHistory = quizHistory.filter(
-          (quiz) =>
-            quiz.quizID !== null &&
-            quiz.QuizName !== null &&
-            quiz.latestAttemptDate !== null
-        );
-
-        success = true;
-        closeConnection();
-        const infoMessage = "Quiz history fetched successfully";
-        logInfo(infoMessage);
-        return res.status(200).json({
-          success,
-          data: { quizHistory: validHistory },
-          message: infoMessage,
-        });
-      } catch (queryErr) {
-        logError(queryErr);
-        closeConnection();
-        return res.status(500).json({
-          success: false,
-          data: queryErr,
-          message: "Something went wrong please try again",
-        });
-      }
-    });
+    return res.status(result.status).json(result.response);
   } catch (error) {
+    console.error("Controller Error (getUserQuizHistory):", error);
     logError(error);
     return res.status(500).json({
       success: false,
@@ -698,12 +615,11 @@ export const getUserQuizHistory = async (req, res) => {
 
 /*----------------LMS quiz-----------------------* */
 
-// In your backend API
 export const getQuizzesByRefId = async (req, res) => {
   try {
     const { refId } = req.body;
 
-    const result = await getQuizzesByRefIdService (refId);
+    const result = await getQuizzesByRefIdService(refId);
 
     if (!result.success) {
       return res.status(result.status || 500).json({

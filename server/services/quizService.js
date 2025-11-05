@@ -1322,3 +1322,107 @@ export const getQuizzesByRefIdService = async (refId) => {
     return { success: false, status: 500, message: "Failed to fetch quizzes" };
   }
 };
+
+export const getUserQuizHistoryService = async (userId) => {
+  try {
+    const query = `
+      WITH LatestAttempts AS (
+          SELECT 
+              quizID,
+              MAX(noOfAttempts) AS maxAttempt
+          FROM 
+              Quiz_Score
+          WHERE 
+              userID = ?
+          GROUP BY 
+              quizID
+      ),
+      LatestAttemptDetails AS (
+          SELECT 
+              qs.quizID,
+              qs.noOfAttempts,
+              qd.QuizName,
+              gm.group_name,
+              SUM(qs.ObtainedMarks) AS totalObtained,
+              MAX(qs.totalMarks) AS totalPossible,
+              MAX(qs.AddOnDt) AS latestAttemptDate
+          FROM 
+              quiz_score qs
+          JOIN 
+              LatestAttempts la ON qs.quizID = la.quizID AND qs.noOfAttempts = la.maxAttempt
+          LEFT JOIN 
+              QuizDetails qd ON qs.quizID = qd.QuizID
+          LEFT JOIN 
+              GroupMaster gm ON qs.quizID = gm.group_id
+          WHERE 
+              qs.userID = ?
+          GROUP BY 
+              qs.quizID, qs.noOfAttempts, qd.QuizName, gm.group_name
+      )
+      SELECT 
+          quizID,
+          latestAttemptDate,
+          QuizName,
+          noOfAttempts AS attemptNumber,
+          group_name,
+          totalObtained,
+          totalPossible,
+          CASE 
+              WHEN totalPossible > 0 THEN ROUND((totalObtained / totalPossible) * 100, 2)
+              ELSE 0 
+          END AS percentageScore
+      FROM 
+          LatestAttemptDetails
+      ORDER BY 
+          latestAttemptDate DESC`;
+
+    const quizHistory = await db.sequelize.query(query, {
+      replacements: [userId, userId],
+      type: db.sequelize.QueryTypes.SELECT,
+    });
+
+    // Filter out any invalid records
+    const validHistory = quizHistory.filter(
+      (quiz) =>
+        quiz.quizID !== null &&
+        quiz.QuizName !== null &&
+        quiz.latestAttemptDate !== null
+    );
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: { quizHistory: validHistory },
+        message: "Quiz history fetched successfully",
+      },
+    };
+  } catch (error) {
+    console.error("Service Error (getUserQuizHistory):", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: error,
+        message: "Something went wrong while fetching quiz history",
+      },
+    };
+  }
+};
+
+export const getUserByEmailService = async (email) => {
+  try {
+    const user = await db.User.findOne({
+      where: {
+        EmailId: email,
+        delStatus: { [Op.or]: [0, null] },
+      },
+      attributes: ["UserID"],
+    });
+
+    return user;
+  } catch (error) {
+    console.error("Service Error (getUserByEmail):", error);
+    throw error;
+  }
+};

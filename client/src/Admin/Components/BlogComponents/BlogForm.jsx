@@ -93,17 +93,39 @@ const BlogForm = (props) => {
     }
 
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-    const cleanFilePath = filePath.replace(/^\/+/, "");
-    const newImageUrl = `${baseUploadsUrl}/${cleanFilePath}`;
 
-    console.log("Setting blog image to:", newImageUrl);
+    // Extract only the relative path without the base URL and IP address
+    let relativePath = filePath;
 
-    setImagePreview(newImageUrl);
-    setSelectedImage(newImageUrl);
+    // Remove the base uploads URL if it exists in the filePath
+    if (filePath.includes(baseUploadsUrl)) {
+      relativePath = filePath.replace(baseUploadsUrl, "").replace(/^\/+/, "");
+    }
+
+    // Also handle case where full URL with IP is provided
+    if (filePath.includes("http://") || filePath.includes("https://")) {
+      // Extract path after the domain
+      const url = new URL(filePath);
+      relativePath = url.pathname.replace(/^\/+/, "");
+
+      // Remove the base uploads folder from path if it's included
+      if (relativePath.startsWith("uploads/")) {
+        relativePath = relativePath.replace("uploads/", "");
+      }
+    }
+
+    console.log("Original filePath:", filePath);
+    console.log("Relative path to save:", relativePath);
+
+    // For preview, you can still use the full URL
+    setImagePreview(filePath);
+
+    // But store only the relative path for backend
+    setSelectedImage(relativePath);
     setIsImageEditing(false);
     setErrors((prev) => ({ ...prev, image: null }));
   };
-
+  
   const handleCancelImageEdit = () => {
     setIsImageEditing(false);
   };
