@@ -18,29 +18,44 @@ const AddUserBlog = (props) => {
   const [blogs, setBlogs] = useState([]);
   const [editingBlog, setEditingBlog] = useState(null);
 
-  // Function to get image URL with fallbacks (same as EditSubModule)
-  const getBlogImageUrl = (blog) => {
-    // Priority 1: If image URL exists directly
-    if (blog.image && typeof blog.image === "string") {
-      return blog.image;
+  // SINGLE unified helper function for getting image URLs
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) {
+      console.log("No image path provided, using fallback");
+      return images.Noimage;
     }
 
-    // Priority 2: If image path exists, construct URL
-    if (blog.image) {
-      const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-      const cleanPath = blog.image.replace(/^\/+/, "");
-      return `${baseUploadsUrl}/${cleanPath}`;
+    // If it's already a base64 image, return it directly
+    if (imagePath.startsWith('data:image/')) {
+      console.log("Base64 image detected");
+      return imagePath;
     }
 
-    // Priority 3: If image data exists (byte array)
-    if (blog.imageData?.data) {
-      return `data:${blog.imageData.contentType || "image/jpeg"};base64,${
-        blog.imageData.data
-      }`;
+    // If it's already a full URL, use it directly
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      console.log("Full URL detected:", imagePath);
+      return imagePath;
     }
 
-    // Fallback: No image
-    return null;
+    // If it's a relative path, construct the full URL
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+    
+    if (!baseUploadsUrl) {
+      console.error("VITE_API_UPLOADSURL environment variable is not set");
+      return images.Noimage;
+    }
+
+    console.log("Base uploads URL:", baseUploadsUrl);
+    console.log("Original image path:", imagePath);
+
+    // Remove any leading slashes from the path
+    const cleanPath = imagePath.replace(/^\/+/, '');
+    
+    // Construct the full URL
+    const fullUrl = `${baseUploadsUrl}/${cleanPath}`;
+    
+    console.log("Constructed image URL:", fullUrl);
+    return fullUrl;
   };
 
   const stripHtmlTags = (html) => {
@@ -172,32 +187,32 @@ const AddUserBlog = (props) => {
     fetchBlogs();
   }, [fetchData, user?.UserID, userToken]);
 
+  // Debug effect to check image URLs
+  useEffect(() => {
+    if (blogs.length > 0) {
+      console.log("=== BLOG IMAGE DEBUG ===");
+      blogs.forEach((blog, index) => {
+        if (blog.image) {
+          const imageUrl = getImageUrl(blog.image);
+          console.log(`Blog ${index} (ID: ${blog.BlogID}):`, {
+            title: blog.title,
+            originalImage: blog.image,
+            constructedUrl: imageUrl,
+            type: blog.image.startsWith('data:image/') ? 'base64' : 
+                  blog.image.startsWith('http') ? 'full-url' : 'relative-path'
+          });
+        } else {
+          console.log(`Blog ${index} (ID: ${blog.BlogID}): No image`);
+        }
+      });
+      console.log("=== END DEBUG ===");
+    }
+  }, [blogs]);
+
   if (loading) {
     return <LoadPage />;
   }
 
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return images.Noimage;
-
-    // If it's already a full URL, use it directly
-    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-      return imagePath;
-    }
-
-    // If it's a relative path, construct the full URL
-    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-
-    // Remove any leading slashes from the path
-    const cleanPath = imagePath.replace(/^\/+/, "");
-
-    // Check if the path already includes the base URL
-    if (cleanPath.startsWith("uploads/")) {
-      return `${baseUploadsUrl}/${cleanPath}`;
-    }
-
-    // For paths that are already relative but don't have 'uploads/'
-    return `${baseUploadsUrl}/${cleanPath}`;
-  };
   return (
     <div className="p-6 min-h-screen bg-gray-50">
       <div className="flex justify-center mb-8">
@@ -228,7 +243,7 @@ const AddUserBlog = (props) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {blogs.length > 0 ? (
             blogs.map((blog) => {
-              const imageUrl = getBlogImageUrl(blog);
+              const imageUrl = getImageUrl(blog.image);
 
               return (
                 <div
@@ -264,16 +279,20 @@ const AddUserBlog = (props) => {
                     </div>
                   )}
 
-                  {/* Image Section - Updated with proper fallbacks */}
+                  {/* Image Section - Using the unified helper function */}
                   <div className="w-full h-48 bg-gray-100 overflow-hidden">
                     {blog.image ? (
                       <img
-                        src={getImageUrl(blog.image)}
+                        src={imageUrl}
                         alt={blog.title || "Blog Image"}
                         className="w-full h-full object-cover"
                         onError={(e) => {
+                          console.error(`Failed to load image: ${imageUrl}`);
                           e.target.onerror = null;
                           e.target.src = images.Noimage;
+                        }}
+                        onLoad={() => {
+                          console.log(`Successfully loaded image: ${imageUrl}`);
                         }}
                       />
                     ) : (
@@ -285,7 +304,7 @@ const AddUserBlog = (props) => {
                     )}
                   </div>
 
-                  {/* Rest of the content remains the same */}
+                  {/* Content Section */}
                   <div className="p-4 flex flex-col flex-grow">
                     <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
                       {blog.title || "Untitled"}
@@ -402,6 +421,19 @@ const AddUserBlog = (props) => {
           }}
         />
       )}
+
+      {/* Debug component - remove in production */}
+      {/* {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg z-50 max-w-sm">
+          <h3 className="font-bold mb-2">Image Debug</h3>
+          {blogs.slice(0, 2).map((blog) => (
+            <div key={blog.BlogID} className="text-xs mb-1">
+              <div><strong>{blog.title}</strong></div>
+              <div>URL: {getImageUrl(blog.image)}</div>
+            </div>
+          ))}
+        </div>
+      )} */}
     </div>
   );
 };
