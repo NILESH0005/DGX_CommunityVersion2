@@ -7,6 +7,7 @@ import {
   getEventService,
   updateEventService,
   EventViewService,
+  getEventByIdService,
 } from "../services/eventService.js";
 import User from "../models/User.js";
 
@@ -112,6 +113,45 @@ export const updateEvent = async (req, res) => {
       success: false,
       data: {},
       message: "Something went wrong, please try again",
+    });
+  }
+};
+
+export const getEventById = async (req, res) => {
+  let success = false;
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({
+      success,
+      message: "Event ID is required",
+    });
+  }
+
+  try {
+    const event = await getEventByIdService(id);
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      });
+    }
+
+    logInfo(`Event ${id} fetched successfully`);
+
+    success = true;
+    return res.status(200).json({
+      success,
+      data: event,
+      message: "Event fetched successfully",
+    });
+  } catch (error) {
+    logError(error.message || "Unknown error", error.stack);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Something went wrong, please try again",
     });
   }
 };

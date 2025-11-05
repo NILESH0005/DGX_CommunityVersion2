@@ -136,7 +136,6 @@ export const getEventService = async (userId) => {
       ...eventObj,
       EventType: eventObj.EventTypeRef?.ddValue || eventObj.EventType,
       Category: eventObj.CategoryRef?.ddValue || eventObj.Category,
-      // Remove the nested objects if you don't need them
       EventTypeRef: undefined,
       CategoryRef: undefined,
     };
@@ -271,6 +270,46 @@ export const updateEventService = async (eventId, user, payload) => {
   }
 };
 
+// Add this to your event service
+export const getEventByIdService = async (eventId) => {
+  const event = await CommunityEvents.findOne({
+    where: {
+      EventID: eventId,
+      delStatus: 0,
+    },
+    include: [
+      {
+        model: MasterTable,
+        as: "EventTypeRef",
+        attributes: ["ddValue"],
+        where: { ddCategory: "eventType", delStatus: 0 },
+        required: false,
+      },
+      {
+        model: MasterTable,
+        as: "CategoryRef",
+        attributes: ["ddValue"],
+        where: { ddCategory: "eventHost", delStatus: 0 },
+        required: false,
+      },
+    ],
+  });
+
+  if (!event) {
+    return null;
+  }
+
+  const eventObj = event.toJSON ? event.toJSON() : event;
+
+  return {
+    ...eventObj,
+    EventType: eventObj.EventTypeRef?.ddValue || eventObj.EventType,
+    Category: eventObj.CategoryRef?.ddValue || eventObj.Category,
+    EventTypeRef: undefined,
+    CategoryRef: undefined,
+  };
+};
+
 export const EventViewService = {
   /**
    * Fetch total views for each event
@@ -284,7 +323,6 @@ export const EventViewService = {
         raw: true,
       });
 
-      // Count views for each event
       const results = await Promise.all(
         events.map(async (event) => {
           const totalViews = await ContentInteraction.count({

@@ -66,7 +66,6 @@ const Discussion = () => {
       const stats = await fetchDiscussionStats(fetchData);
       setDiscussionStats(stats);
 
-      // Update discussions with real-time stats
       setDemoDiscussions((prevDiscussions) =>
         prevDiscussions.map((discussion) => ({
           ...discussion,
@@ -275,7 +274,7 @@ const Discussion = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [communityHighlights, setCommunityHighlights] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
-  const [bannerFilePath, setBannerFilePath] = useState(""); // To save in DB
+  const [bannerFilePath, setBannerFilePath] = useState(""); 
   const [userReposts, setUserReposts] = useState(new Set());
 
   const getCommunityHighlights = (discussions) => {
@@ -456,17 +455,22 @@ const Discussion = () => {
   };
 
   const validateContent = () => {
-    if (!content.trim() || content === "<p><br></p>") {
-      setErrors((prev) => ({ ...prev, content: "Content is required" }));
-      return false;
-    }
-    if (content.length > 5000) {
+    const plainText = content.replace(/<[^>]*>/g, "").trim();
+    const isEmpty =
+      !plainText ||
+      plainText === "<p><br></p>" ||
+      plainText === "<p></p>" ||
+      content === "<p><br></p>" ||
+      content === "<p></p>";
+
+    if (plainText.length > 5000) {
       setErrors((prev) => ({
         ...prev,
         content: "Content must be less than 5000 characters",
       }));
       return false;
     }
+
     setErrors((prev) => ({ ...prev, content: "" }));
     return true;
   };
@@ -720,9 +724,6 @@ const Discussion = () => {
       });
     }
   };
-
-  const toggleNav = () => setIsNavOpen(!isNavOpen);
-  const handleLike = () => setLikeCount(likeCount + 1);
 
   const handleComment = (discussion) => {
     openModal(discussion);

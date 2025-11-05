@@ -2,13 +2,15 @@ import React, { useState, useContext, useEffect, useRef } from "react";
 import JoditEditor from "jodit-react";
 import ApiContext from "../../../context/ApiContext";
 import Swal from "sweetalert2";
-import { compressImage } from "../../../utils/compressImage.js";
+import FileUploader from "../../../container/FileUploader"; // Import FileUploader
 import { checkToxicityWithReasonAndFlag } from "../../../utils/toxicityDetection.js";
 
 const BlogForm = (props) => {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null); // New state for image preview
+  const [isImageEditing, setIsImageEditing] = useState(false); // New state for image edit mode
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [isCheckingToxicity, setIsCheckingToxicity] = useState(false);
@@ -17,32 +19,11 @@ const BlogForm = (props) => {
   const [allowRepost, setAllowRepost] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [existingImage, setExistingImage] = useState(null);
 
   const editor = useRef(null);
   const { fetchData, userToken, user } = useContext(ApiContext);
 
-  // Initialize form with editing blog data
-  useEffect(() => {
-    if (props.editingBlog) {
-      setIsEditing(true);
-      setTitle(props.editingBlog.title || "");
-      setCategory(
-        props.editingBlog.category || props.editingBlog.Category || ""
-      );
-      setContent(props.editingBlog.content || "");
-      setAllowRepost(props.editingBlog.allowRepost || false);
-      setIsDraft(
-        props.editingBlog.isDraft || props.editingBlog.Status === "Draft"
-      );
-      setExistingImage(props.editingBlog.image || null);
-      setSelectedImage(null); // Reset selected image for new uploads
-    } else {
-      setIsEditing(false);
-      resetForm();
-    }
-  }, [props.editingBlog]);
-
+  // ✅ ADD THIS BACK - Fetch categories from API
   useEffect(() => {
     const fetchCategories = async () => {
       const endpoint = `dropdown/getDropdownValues?category=blogCategory`;
@@ -70,7 +51,92 @@ const BlogForm = (props) => {
     fetchCategories();
   }, [fetchData, userToken]);
 
-  // Toxicity validation function for blog content
+  // Initialize form with editing blog data
+  useEffect(() => {
+    if (props.editingBlog) {
+      setIsEditing(true);
+      setTitle(props.editingBlog.title || "");
+      setCategory(
+        props.editingBlog.category || props.editingBlog.Category || ""
+      );
+      setContent(props.editingBlog.content || "");
+      setAllowRepost(props.editingBlog.allowRepost || false);
+      setIsDraft(
+        props.editingBlog.isDraft || props.editingBlog.Status === "Draft"
+      );
+
+      // Set image preview based on existing image
+      if (props.editingBlog.image) {
+        setImagePreview(props.editingBlog.image);
+        setSelectedImage(props.editingBlog.image);
+      }
+    } else {
+      setIsEditing(false);
+      resetForm();
+    }
+  }, [props.editingBlog]);
+
+  // Handle image upload from FileUploader
+  const handleImageUpload = (uploadResult) => {
+    if (!uploadResult || typeof uploadResult !== "object") {
+      console.error("Invalid upload result:", uploadResult);
+      setErrors((prev) => ({ ...prev, image: "Failed to upload image" }));
+      return;
+    }
+
+    const { filePath } = uploadResult;
+
+    if (typeof filePath !== "string") {
+      console.error("Invalid filePath:", filePath);
+      setErrors((prev) => ({ ...prev, image: "Invalid image path" }));
+      return;
+    }
+
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+
+    // Extract only the relative path without the base URL and IP address
+    let relativePath = filePath;
+
+    // Remove the base uploads URL if it exists in the filePath
+    if (filePath.includes(baseUploadsUrl)) {
+      relativePath = filePath.replace(baseUploadsUrl, "").replace(/^\/+/, "");
+    }
+
+    // Also handle case where full URL with IP is provided
+    if (filePath.includes("http://") || filePath.includes("https://")) {
+      // Extract path after the domain
+      const url = new URL(filePath);
+      relativePath = url.pathname.replace(/^\/+/, "");
+
+      // Remove the base uploads folder from path if it's included
+      if (relativePath.startsWith("uploads/")) {
+        relativePath = relativePath.replace("uploads/", "");
+      }
+    }
+
+    console.log("Original filePath:", filePath);
+    console.log("Relative path to save:", relativePath);
+
+    // For preview, you can still use the full URL
+    setImagePreview(filePath);
+
+    // But store only the relative path for backend
+    setSelectedImage(relativePath);
+    setIsImageEditing(false);
+    setErrors((prev) => ({ ...prev, image: null }));
+  };
+  
+  const handleCancelImageEdit = () => {
+    setIsImageEditing(false);
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsImageEditing(false);
+  };
+
+  // Rest of your existing functions remain the same...
   const validateBlogToxicity = async () => {
     if (isDraft) return true;
 
@@ -112,57 +178,17 @@ const BlogForm = (props) => {
     }
   };
 
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-
-    if (file) {
-      const allowedFormats = ["image/jpeg", "image/png", "image/svg+xml"];
-      const maxSize = 200 * 1024;
-
-      if (!allowedFormats.includes(file.type)) {
-        setErrors((prev) => ({
-          ...prev,
-          image: "Only JPEG, PNG, and SVG files are allowed.",
-        }));
-        return;
-      }
-      if (file.size > maxSize) {
-        setErrors((prev) => ({
-          ...prev,
-          image: "Image size should be less than 200KB.",
-        }));
-        return;
-      }
-
-      try {
-        const compressedFile = await compressImage(file);
-        setSelectedImage(compressedFile);
-        setErrors((prev) => ({ ...prev, image: null }));
-      } catch (error) {
-        Swal.fire("Error", "Failed to compress image.", "error");
-      }
-    }
-  };
-
   const validateForm = () => {
     const errors = {};
 
-    // For published posts, validate all fields
     if (!isDraft) {
       if (!title.trim()) errors.title = "Blog title is required.";
       if (!category) errors.category = "Please select a category.";
       if (!content.trim() || content === "<p></p>")
         errors.content = "Blog content is required.";
-      if (!selectedImage && !existingImage)
-        errors.image = "Please upload an image.";
+      if (!selectedImage) errors.image = "Please upload an image.";
     } else {
-      // For drafts, only validate that there's some content
-      if (
-        !title.trim() &&
-        !content.trim() &&
-        !selectedImage &&
-        !existingImage
-      ) {
+      if (!title.trim() && !content.trim() && !selectedImage) {
         errors.general = "Draft must contain at least some content.";
       }
     }
@@ -229,18 +255,14 @@ const BlogForm = (props) => {
       }
     }
 
-    const finalImage = selectedImage || existingImage;
-
-    // Always POST request
-    const endpoint = "blog/blogpost"; // even for updating
+    const endpoint = "blog/blogpost";
     const method = "POST";
 
-    // Include BlogID if editing so backend knows to update
     const body = {
       BlogID: isEditing ? props.editingBlog.BlogID : undefined,
       title,
       content,
-      image: finalImage,
+      image: selectedImage, // This will now be the URL from FileUploader
       category,
       Status: blogStatus,
       UserName: user.Name,
@@ -267,7 +289,7 @@ const BlogForm = (props) => {
             title,
             content,
             category,
-            image: finalImage,
+            image: selectedImage,
             Status: blogStatus,
             UserID: user.UserID,
             UserName: user.Name,
@@ -293,11 +315,12 @@ const BlogForm = (props) => {
     setTitle("");
     setCategory("");
     setSelectedImage(null);
-    setExistingImage(null);
+    setImagePreview(null);
     setContent("");
     setErrors({});
     setAllowRepost(false);
     setIsDraft(false);
+    setIsImageEditing(false);
   };
 
   const handleCancel = () => {
@@ -306,11 +329,6 @@ const BlogForm = (props) => {
     } else {
       resetForm();
     }
-  };
-
-  const removeImage = () => {
-    setSelectedImage(null);
-    setExistingImage(null);
   };
 
   return (
@@ -328,7 +346,75 @@ const BlogForm = (props) => {
           </p>
         )}
       </div>
+      <div className="mb-4 relative">
+        <label className="block text-sm font-medium mb-2">Blog Image</label>
+        <div className="text-xs text-gray-500 mb-2">
+          Max size: 500KB | Formats: .jpeg, .png{" "}
+          {isDraft && "| Optional for draft"}
+        </div>
+        {isImageEditing ? (
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+            <FileUploader
+              moduleName="Blog"
+              folderName="blog-images"
+              onUploadComplete={handleImageUpload}
+              accept="image/*"
+              maxSize={500 * 1024}
+              label="Upload Blog Image"
+            />
+            <div className="flex gap-2 flex-wrap justify-center mt-2">
+              <button
+                type="button"
+                onClick={handleCancelImageEdit}
+                className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 text-xs transition-colors duration-200 flex items-center"
+              >
+                Cancel Upload
+              </button>
+            </div>
+          </div>
+        ) : imagePreview ? (
+          <div className="relative">
+            <img
+              src={imagePreview}
+              alt="Blog preview"
+              className="w-full max-w-xs h-48 object-cover rounded-lg border"
+            />
+            <div className="flex gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => setIsImageEditing(true)}
+                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs transition-colors duration-200"
+              >
+                Change Image
+              </button>
+              <button
+                type="button"
+                onClick={removeImage}
+                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs transition-colors duration-200"
+              >
+                Remove Image
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center p-6 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+            <p className="text-gray-500 mb-3">No image selected</p>
+            <button
+              type="button"
+              onClick={() => setIsImageEditing(true)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors duration-200"
+            >
+              Upload Image
+            </button>
+          </div>
+        )}
 
+        {errors.image && (
+          <p className="text-red-500 text-sm mt-1">{errors.image}</p>
+        )}
+      </div>
+
+      {/* Rest of your form fields remain the same */}
       <div className="mb-4">
         <label className="block mb-2 font-medium">Blog Title</label>
         <input
@@ -395,47 +481,6 @@ const BlogForm = (props) => {
         <label htmlFor="allowRepost" className="text-sm font-medium">
           Allow others to repost my blog
         </label>
-      </div>
-
-      <div className="mb-4 relative pt-10">
-        <label className="block text-sm font-medium mb-2">Upload Image</label>
-        <div className="text-xs text-gray-500 mb-2">
-          Max size: 200KB | Formats: .jpeg, .png{" "}
-          {isDraft && "| Optional for draft"}
-        </div>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="border w-full p-2 rounded"
-        />
-
-        {/* Show existing or selected image */}
-        {(existingImage || selectedImage) && (
-          <div className="mt-3">
-            <p className="text-sm text-green-600 mb-2">
-              {selectedImage ? "New image selected" : "Current image"}
-            </p>
-            <div className="flex items-center gap-3">
-              <img
-                src={selectedImage || existingImage}
-                alt="Blog"
-                className="h-20 w-20 object-cover rounded border"
-              />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="text-red-500 text-sm hover:text-red-700"
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        )}
-
-        {errors.image && (
-          <p className="text-red-500 text-sm mt-1">{errors.image}</p>
-        )}
       </div>
 
       {errors.general && (

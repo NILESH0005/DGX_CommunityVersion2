@@ -86,7 +86,7 @@ const CommunityHighlights = () => {
         className="w-full max-w-6xl mb-10 text-center md:text-left"
       >
         <h1 className="text-4xl sm:text-6xl py-4 md:text-7xl font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 text-transparent bg-clip-text animate-pulse drop-shadow-lg">
-          Community Highlights
+          Community Highlightsss
         </h1>
         <p className="mt-4 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto md:mx-0">
           Explore the best parts of our platform — curated just for you!

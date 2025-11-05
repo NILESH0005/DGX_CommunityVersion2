@@ -36,19 +36,23 @@ const UserQuiz = () => {
         };
 
         const result = await fetchData(endpoint, method, {}, headers);
+        console.log("API Response:", result); // Debug log
 
         if (result.success && result.data && result.data.quizHistory) {
           const transformedData = result.data.quizHistory.map(quiz => ({
             id: `quiz-${quiz.quizID}`,
             date: quiz.latestAttemptDate,
-            score: quiz.percentageScore,
+            score: parseFloat(quiz.percentageScore), // Convert string to number
             category: quiz.group_name || 'General',
             isCompleted: true,
             title: quiz.QuizName,
             attempts: quiz.attemptNumber,
-            timeSpent: Math.floor(Math.random() * 20) + 5,
+            totalObtained: parseFloat(quiz.totalObtained),
+            totalPossible: parseFloat(quiz.totalPossible),
+            percentageScore: parseFloat(quiz.percentageScore),
           }));
 
+          console.log("Transformed Data:", transformedData); // Debug log
           setQuizData(transformedData);
           setFilteredData(transformedData);
           setAnimate(true);
@@ -83,8 +87,8 @@ const UserQuiz = () => {
     }
 
     result = result.filter(quiz =>
-      quiz.score >= filters.scoreRange[0] &&
-      quiz.score <= filters.scoreRange[1]
+      quiz.percentageScore >= filters.scoreRange[0] &&
+      quiz.percentageScore <= filters.scoreRange[1]
     );
 
     if (searchTerm) {
@@ -98,16 +102,22 @@ const UserQuiz = () => {
   }, [filters, quizData, searchTerm]);
 
   const getScoreClass = (score) => {
-    if (score >= 90) return 'bg-green-200 text-green-800';
-    if (score >= 70) return 'bg-blue-200 text-blue-800';
-    return 'bg-red-200 text-red-800';
+    if (score >= 90) return 'bg-green-100 text-green-800 border border-green-300';
+    if (score >= 70) return 'bg-blue-100 text-blue-800 border border-blue-300';
+    if (score >= 50) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
+    return 'bg-red-100 text-red-800 border border-red-300';
   };
 
   const getStatusClass = (isCompleted) => {
-    return isCompleted ? 'bg-green-200 text-green-800' : 'bg-yellow-200 text-yellow-800';
+    return isCompleted ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-yellow-100 text-yellow-800 border border-yellow-300';
   };
 
   const categories = [...new Set(quizData.map(q => q.category))];
+
+  // Add debug logging to see what's happening
+  console.log("Quiz Data:", quizData);
+  console.log("Filtered Data:", filteredData);
+  console.log("Loading:", loading);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -176,24 +186,38 @@ const UserQuiz = () => {
                   <thead className="sticky top-0 z-10">
                     <tr className="bg-DGXblue text-white">
                       <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm w-8 sm:w-12">#</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[100px] sm:min-w-[150px]">Quiz Name</th>
+                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[120px] sm:min-w-[180px]">Quiz Name</th>
                       <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[120px]">Category</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[60px] sm:min-w-[100px]">Attempts</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[120px] sm:min-w-[180px]">Attempt Date</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[120px]">Status</th>
+                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[60px] sm:min-w-[80px]">Attempts</th>
+                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[100px] sm:min-w-[150px]">Attempt Date</th>
+                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">Score</th>
+                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">Marks</th>
+                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredData.slice(0, 10).map((quiz, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
+                    {filteredData.map((quiz, index) => (
+                      <tr key={quiz.id} className="hover:bg-gray-50">
                         <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm w-8 sm:w-12">{index + 1}</td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[100px] sm:min-w-[150px]">{quiz.title}</td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[120px]">{quiz.category}</td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[60px] sm:min-w-[100px]">{quiz.attempts}</td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[120px] sm:min-w-[180px]">
-                          {moment.utc(quiz.date).format("MMM D, YYYY")}
+                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[120px] sm:min-w-[180px] font-medium">
+                          {quiz.title}
                         </td>
-                        <td className={`p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[120px] ${getStatusClass(quiz.isCompleted)}`}>
+                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[120px]">
+                          {quiz.category}
+                        </td>
+                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[60px] sm:min-w-[80px]">
+                          {quiz.attempts}
+                        </td>
+                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[100px] sm:min-w-[150px]">
+                          {moment.utc(quiz.date).format("MMM D, YYYY h:mm A")}
+                        </td>
+                        <td className={`p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px] ${getScoreClass(quiz.percentageScore)}`}>
+                          {quiz.percentageScore.toFixed(1)}%
+                        </td>
+                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">
+                          {quiz.totalObtained}/{quiz.totalPossible}
+                        </td>
+                        <td className={`p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px] ${getStatusClass(quiz.isCompleted)}`}>
                           {quiz.isCompleted ? 'Completed' : 'Incomplete'}
                         </td>
                       </tr>
@@ -203,13 +227,30 @@ const UserQuiz = () => {
               </div>
             </div>
           ) : (
-            <p className="text-center text-gray-500 py-4 text-sm sm:text-base">
-              {searchTerm || filters.category !== 'all' || filters.dateRange !== 'all'
-                ? "No quizzes match your search/filters"
-                : "No quiz attempts found"}
-            </p>
+            <div className="text-center py-8">
+              <p className="text-gray-500 text-sm sm:text-base mb-4">
+                {searchTerm || filters.category !== 'all' || filters.dateRange !== 'all'
+                  ? "No quizzes match your search/filters"
+                  : "No quiz attempts found"}
+              </p>
+              {quizData.length === 0 && (
+                <p className="text-xs text-gray-400">
+                  You haven't attempted any quizzes yet.
+                </p>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Debug Info - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+            <h3 className="font-bold mb-2">Debug Info:</h3>
+            <p>Total Quiz Data: {quizData.length}</p>
+            <p>Filtered Data: {filteredData.length}</p>
+            <p>Loading: {loading.toString()}</p>
+          </div>
+        )}
       </div>
     </div>
   );

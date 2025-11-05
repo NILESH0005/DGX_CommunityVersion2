@@ -234,7 +234,7 @@ const CommunitySidebar = ({
                         {updatedTopic.RepostID && (
                           <div className="flex items-center gap-1">
                             <FiRepeat className="w-3 h-3" />
-                            <span>{updatedTopic.repostCount || 0}</span>
+                            <span>{updatedTopic.viewCount || 0}</span>
                           </div>
                         )}
                       </div>
