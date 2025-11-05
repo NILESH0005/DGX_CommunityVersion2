@@ -182,6 +182,30 @@ const BlogPage = () => {
     setMounted(true);
   }, []);
 
+  // Helper function to get proper image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return Noimage;
+
+    // If it's already a full URL, use it directly
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+
+    // If it's a relative path, construct the full URL
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+
+    // Remove any leading slashes from the path
+    const cleanPath = imagePath.replace(/^\/+/, "");
+
+    // Check if the path already includes the base URL
+    if (cleanPath.startsWith("uploads/")) {
+      return `${baseUploadsUrl}/${cleanPath}`;
+    }
+
+    // For paths that are already relative but don't have 'uploads/'
+    return `${baseUploadsUrl}/${cleanPath}`;
+  };
+
   const fetchCategories = async () => {
     try {
       const endpoint = "dropdown/getDropdownValues?category=blogCategory";
@@ -391,7 +415,7 @@ const BlogPage = () => {
         <div className="relative h-48 w-full overflow-hidden">
           <motion.img
             className="w-full h-full object-cover transition-transform duration-500"
-            src={image || fallbackImage}
+            src={getImageUrl(image)} // Use the helper function here
             alt={title}
             onError={(e) => {
               console.log("Image failed to load, using fallback");
@@ -444,7 +468,7 @@ const BlogPage = () => {
           )}
         </div>
 
-        {/* Main Content */}
+        {/* Rest of the BlogCard content remains the same */}
         <div className="p-5 flex-grow flex flex-col">
           {/* Date and Read Time */}
           <div className="flex items-center text-xs text-gray-500 mb-3">
