@@ -18,28 +18,24 @@ const AddUserBlog = (props) => {
   const [blogs, setBlogs] = useState([]);
   const [editingBlog, setEditingBlog] = useState(null);
 
-  // SINGLE unified helper function for getting image URLs
   const getImageUrl = (imagePath) => {
     if (!imagePath) {
       console.log("No image path provided, using fallback");
       return images.Noimage;
     }
-
-    // If it's already a base64 image, return it directly
-    if (imagePath.startsWith('data:image/')) {
+    if (imagePath.startsWith("data:image/")) {
       console.log("Base64 image detected");
       return imagePath;
     }
-
-    // If it's already a full URL, use it directly
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
       console.log("Full URL detected:", imagePath);
-      return imagePath;
+      return imagePath
+        .replace("http://", "http://")
+        .replace("https://", "https://");
     }
 
-    // If it's a relative path, construct the full URL
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-    
+
     if (!baseUploadsUrl) {
       console.error("VITE_API_UPLOADSURL environment variable is not set");
       return images.Noimage;
@@ -49,11 +45,17 @@ const AddUserBlog = (props) => {
     console.log("Original image path:", imagePath);
 
     // Remove any leading slashes from the path
-    const cleanPath = imagePath.replace(/^\/+/, '');
-    
+    const cleanPath = imagePath.replace(/^\/+/, "");
+
+    // Fix the base URL if it has double colons
+    const fixedBaseUrl = baseUploadsUrl.replace(
+      /(https?:\/\/[^:]+):(\/)/,
+      "$1$2"
+    );
+
     // Construct the full URL
-    const fullUrl = `${baseUploadsUrl}/${cleanPath}`;
-    
+    const fullUrl = `${fixedBaseUrl}/${cleanPath}`;
+
     console.log("Constructed image URL:", fullUrl);
     return fullUrl;
   };
@@ -198,8 +200,11 @@ const AddUserBlog = (props) => {
             title: blog.title,
             originalImage: blog.image,
             constructedUrl: imageUrl,
-            type: blog.image.startsWith('data:image/') ? 'base64' : 
-                  blog.image.startsWith('http') ? 'full-url' : 'relative-path'
+            type: blog.image.startsWith("data:image/")
+              ? "base64"
+              : blog.image.startsWith("http")
+              ? "full-url"
+              : "relative-path",
           });
         } else {
           console.log(`Blog ${index} (ID: ${blog.BlogID}): No image`);
@@ -421,19 +426,6 @@ const AddUserBlog = (props) => {
           }}
         />
       )}
-
-      {/* Debug component - remove in production */}
-      {/* {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg z-50 max-w-sm">
-          <h3 className="font-bold mb-2">Image Debug</h3>
-          {blogs.slice(0, 2).map((blog) => (
-            <div key={blog.BlogID} className="text-xs mb-1">
-              <div><strong>{blog.title}</strong></div>
-              <div>URL: {getImageUrl(blog.image)}</div>
-            </div>
-          ))}
-        </div>
-      )} */}
     </div>
   );
 };
