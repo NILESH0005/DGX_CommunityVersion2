@@ -64,7 +64,6 @@ const BlogForm = (props) => {
       setIsDraft(
         props.editingBlog.isDraft || props.editingBlog.Status === "Draft"
       );
-
       // Set image preview based on existing image
       if (props.editingBlog.image) {
         setImagePreview(props.editingBlog.image);
@@ -83,25 +82,19 @@ const BlogForm = (props) => {
       setErrors((prev) => ({ ...prev, image: "Failed to upload image" }));
       return;
     }
-
     const { filePath } = uploadResult;
-
     if (typeof filePath !== "string") {
       console.error("Invalid filePath:", filePath);
       setErrors((prev) => ({ ...prev, image: "Invalid image path" }));
       return;
     }
-
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-
     // Extract only the relative path without the base URL and IP address
     let relativePath = filePath;
-
     // Remove the base uploads URL if it exists in the filePath
     if (filePath.includes(baseUploadsUrl)) {
       relativePath = filePath.replace(baseUploadsUrl, "").replace(/^\/+/, "");
     }
-
     // Also handle case where full URL with IP is provided
     if (filePath.includes("http://") || filePath.includes("https://")) {
       // Extract path after the domain
@@ -125,7 +118,7 @@ const BlogForm = (props) => {
     setIsImageEditing(false);
     setErrors((prev) => ({ ...prev, image: null }));
   };
-  
+
   const handleCancelImageEdit = () => {
     setIsImageEditing(false);
   };
