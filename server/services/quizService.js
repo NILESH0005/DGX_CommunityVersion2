@@ -351,7 +351,7 @@ export const createQuestionService = async (payload, userEmail) => {
 export const getQuestionsService = async () => {
   try {
     const query = `
-      SELECT 
+     SELECT 
         q.id AS question_id,
         q.question_text,
         gm.group_name,
@@ -365,12 +365,12 @@ export const getQuestionsService = async () => {
         q.Ques_level,
         q.question_type,
         q.AddOnDt
-      FROM giindiadgx_community.questions q
-      LEFT JOIN giindiadgx_community.groupmaster gm ON gm.group_id = q.group_id
-      LEFT JOIN giindiadgx_community.tblddreference td ON td.idCode = q.Ques_level
-      LEFT JOIN giindiadgx_community.questionoptions qo ON qo.question_id = q.id AND (qo.delStatus = 0 OR qo.delStatus IS NULL)
-      LEFT JOIN giindiadgx_community.quizmapping qm ON qm.QuestionsID = q.id AND (qm.delStatus = 0 OR qm.delStatus IS NULL)
-      LEFT JOIN giindiadgx_community.quizdetails qd ON qd.QuizID = qm.quizId
+      FROM giindiadgx_community.Questions q
+      LEFT JOIN giindiadgx_community.GroupMaster gm ON gm.group_id = q.group_id
+      LEFT JOIN giindiadgx_community.tblDDReference td ON td.idCode = q.Ques_level
+      LEFT JOIN giindiadgx_community.QuestionOptions qo ON qo.question_id = q.id AND (qo.delStatus = 0 OR qo.delStatus IS NULL)
+      LEFT JOIN giindiadgx_community.QuizMapping qm ON qm.QuestionsID = q.id AND (qm.delStatus = 0 OR qm.delStatus IS NULL)
+      LEFT JOIN giindiadgx_community.QuizDetails qd ON qd.QuizID = qm.quizId
       WHERE q.delStatus = 0
     `;
 
