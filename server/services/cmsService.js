@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import db from "../models/index.js"; // adjust path based on your setup
 const {
   CMSContent,
@@ -382,15 +382,12 @@ export const getHomePageContentService = async () => {
 
 export const getLogoutHomePageContentService = async () => {
   try {
-    // Fetch all data in parallel for better performance
+    // Fetch all data in parallel
     const [featuredBlogs, recentDiscussions, upcomingEvents, featuredModules] =
       await Promise.allSettled([
-        // Featured Blogs (approved and not deleted)
+        // Featured Blogs
         CommunityBlog.findAll({
-          where: {
-            delStatus: 0,
-            Status: "Approved",
-          },
+          where: { delStatus: 0, Status: "Approved" },
           attributes: [
             "BlogID",
             "title",
@@ -405,10 +402,10 @@ export const getLogoutHomePageContentService = async () => {
           limit: 3,
         }).catch((error) => {
           console.error("Error fetching featured blogs:", error);
-          return []; // Return empty array on error
+          return [];
         }),
 
-        // Recent Discussions (not deleted)
+        // Recent Discussions with total likes
         CommunityDiscussion.findAll({
           where: {
             delStatus: 0,
@@ -420,11 +417,23 @@ export const getLogoutHomePageContentService = async () => {
             "Title",
             "Content",
             "Image",
-            "Likes",
             "Tag",
             "Visibility",
             "AddOnDt",
             "AuthAdd",
+            // TotalLikes count
+            [
+              Sequelize.literal(`(
+            SELECT COUNT(*)
+            FROM Content_Interaction AS ci
+            WHERE 
+              ci.ProcessName = 'Discussion'
+              AND ci.reference = CommunityDiscussion.DiscussionID
+              AND ci.Likes = 1
+              AND ci.delStatus = 0
+          )`),
+              "Likes",
+            ],
           ],
           order: [["AddOnDt", "DESC"]],
           limit: 3,
@@ -432,14 +441,13 @@ export const getLogoutHomePageContentService = async () => {
           console.error("Error fetching recent discussions:", error);
           return [];
         }),
-        // Upcoming Events (approved, not deleted, and future dates)
+
+        // Upcoming Events
         CommunityEvents.findAll({
           where: {
             delStatus: 0,
             Status: "Approved",
-            StartDate: {
-              [Op.gte]: new Date(),
-            },
+            StartDate: { [Op.gte]: new Date() },
           },
           attributes: [
             "EventID",
@@ -460,11 +468,9 @@ export const getLogoutHomePageContentService = async () => {
           return [];
         }),
 
-        // Featured Modules (not deleted)
+        // Featured Modules
         LMSModulesDetails.findAll({
-          where: {
-            delStatus: 0,
-          },
+          where: { delStatus: 0 },
           attributes: [
             "ModuleID",
             "ModuleName",
@@ -482,7 +488,7 @@ export const getLogoutHomePageContentService = async () => {
         }),
       ]);
 
-    // Extract values from Promise.allSettled results
+    // Extract results
     const featuredBlogsResult =
       featuredBlogs.status === "fulfilled" ? featuredBlogs.value : [];
     const recentDiscussionsResult =
@@ -492,13 +498,12 @@ export const getLogoutHomePageContentService = async () => {
     const featuredModulesResult =
       featuredModules.status === "fulfilled" ? featuredModules.value : [];
 
-    // Format dates and handle null values
-    const formatData = (data) => {
-      return data.map((item) => {
+    // Format dates and plain objects
+    const formatData = (data) =>
+      data.map((item) => {
         const itemData = item.get ? item.get({ plain: true }) : item;
         return {
           ...itemData,
-          // Format dates to ISO string for consistency
           ...(itemData.publishedDate && {
             publishedDate: new Date(itemData.publishedDate).toISOString(),
           }),
@@ -513,10 +518,10 @@ export const getLogoutHomePageContentService = async () => {
           }),
         };
       });
-    };
 
     return {
       success: true,
+      message: "Logout homepage content fetched successfully",
       data: {
         featuredBlogs: formatData(featuredBlogsResult),
         recentDiscussions: formatData(recentDiscussionsResult),
@@ -530,7 +535,6 @@ export const getLogoutHomePageContentService = async () => {
           fetchedAt: new Date().toISOString(),
         },
       },
-      message: "Logout homepage content fetched successfully",
     };
   } catch (error) {
     console.error("Error in getLogoutHomePageContentService:", error);
