@@ -17,7 +17,7 @@ const UserQuiz = () => {
   const [filters, setFilters] = useState({
     dateRange: 'all',
     category: 'all',
-    scoreRange: [0, 100],
+    scoreRange: [0, 200], // Changed from [0, 100] to [0, 200] to accommodate scores > 100%
   });
   const [loading, setLoading] = useState(true);
   const [animate, setAnimate] = useState(false);
@@ -42,7 +42,7 @@ const UserQuiz = () => {
           const transformedData = result.data.quizHistory.map(quiz => ({
             id: `quiz-${quiz.quizID}`,
             date: quiz.latestAttemptDate,
-            score: parseFloat(quiz.percentageScore), // Convert string to number
+            score: parseFloat(quiz.percentageScore),
             category: quiz.group_name || 'General',
             isCompleted: true,
             title: quiz.QuizName,
@@ -86,9 +86,13 @@ const UserQuiz = () => {
       result = result.filter(quiz => quiz.category === filters.category);
     }
 
+    // Fixed: Check if scoreRange exists and use appropriate values
+    const minScore = filters.scoreRange ? filters.scoreRange[0] : 0;
+    const maxScore = filters.scoreRange ? filters.scoreRange[1] : 200;
+    
     result = result.filter(quiz =>
-      quiz.percentageScore >= filters.scoreRange[0] &&
-      quiz.percentageScore <= filters.scoreRange[1]
+      quiz.percentageScore >= minScore &&
+      quiz.percentageScore <= maxScore
     );
 
     if (searchTerm) {
@@ -98,6 +102,7 @@ const UserQuiz = () => {
       );
     }
 
+    console.log("Filtering result:", result.length); // Debug log
     setFilteredData(result);
   }, [filters, quizData, searchTerm]);
 
@@ -113,11 +118,6 @@ const UserQuiz = () => {
   };
 
   const categories = [...new Set(quizData.map(q => q.category))];
-
-  // Add debug logging to see what's happening
-  console.log("Quiz Data:", quizData);
-  console.log("Filtered Data:", filteredData);
-  console.log("Loading:", loading);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
@@ -180,51 +180,49 @@ const UserQuiz = () => {
               <div className="animate-spin rounded-full h-8 sm:h-12 w-8 sm:w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : filteredData.length > 0 ? (
-            <div className="overflow-hidden rounded-lg border border-gray-300">
-              <div className="overflow-auto" style={{ maxHeight: "600px" }}>
-                <table className="w-full">
-                  <thead className="sticky top-0 z-10">
-                    <tr className="bg-DGXblue text-white">
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm w-8 sm:w-12">#</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[120px] sm:min-w-[180px]">Quiz Name</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[120px]">Category</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[60px] sm:min-w-[80px]">Attempts</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[100px] sm:min-w-[150px]">Attempt Date</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">Score</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">Marks</th>
-                      <th className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">Status</th>
+            <div className="overflow-x-auto bg-white rounded-lg border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quiz Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempt Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marks</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredData.map((quiz, index) => (
+                    <tr key={quiz.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {quiz.title}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {quiz.category}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {quiz.attempts}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {moment.utc(quiz.date).format("MMM D, YYYY h:mm A")}
+                      </td>
+                      <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${getScoreClass(quiz.percentageScore)} rounded`}>
+                        {quiz.percentageScore.toFixed(1)}%
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {quiz.totalObtained}/{quiz.totalPossible}
+                      </td>
+                      <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium ${getStatusClass(quiz.isCompleted)} rounded`}>
+                        {quiz.isCompleted ? 'Completed' : 'Incomplete'}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filteredData.map((quiz, index) => (
-                      <tr key={quiz.id} className="hover:bg-gray-50">
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm w-8 sm:w-12">{index + 1}</td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[120px] sm:min-w-[180px] font-medium">
-                          {quiz.title}
-                        </td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[120px]">
-                          {quiz.category}
-                        </td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[60px] sm:min-w-[80px]">
-                          {quiz.attempts}
-                        </td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[100px] sm:min-w-[150px]">
-                          {moment.utc(quiz.date).format("MMM D, YYYY h:mm A")}
-                        </td>
-                        <td className={`p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px] ${getScoreClass(quiz.percentageScore)}`}>
-                          {quiz.percentageScore.toFixed(1)}%
-                        </td>
-                        <td className="p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px]">
-                          {quiz.totalObtained}/{quiz.totalPossible}
-                        </td>
-                        <td className={`p-1 sm:p-2 border text-center text-xs sm:text-sm min-w-[80px] sm:min-w-[100px] ${getStatusClass(quiz.isCompleted)}`}>
-                          {quiz.isCompleted ? 'Completed' : 'Incomplete'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="text-center py-8">
@@ -243,14 +241,19 @@ const UserQuiz = () => {
         </div>
 
         {/* Debug Info - Remove in production */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* {process.env.NODE_ENV === 'development' && (
           <div className="mt-4 p-4 bg-gray-100 rounded-lg">
             <h3 className="font-bold mb-2">Debug Info:</h3>
             <p>Total Quiz Data: {quizData.length}</p>
             <p>Filtered Data: {filteredData.length}</p>
             <p>Loading: {loading.toString()}</p>
+            <p>Score Range: {filters.scoreRange ? filters.scoreRange.join(' - ') : 'N/A'}</p>
+            <div className="mt-2">
+              <h4 className="font-semibold">First Quiz Data:</h4>
+              <pre className="text-xs">{JSON.stringify(quizData[0], null, 2)}</pre>
+            </div>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );

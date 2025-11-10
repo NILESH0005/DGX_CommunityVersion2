@@ -64,10 +64,12 @@ const BlogForm = (props) => {
       setIsDraft(
         props.editingBlog.isDraft || props.editingBlog.Status === "Draft"
       );
-      // Set image preview based on existing image
+
+      // Set image preview based on existing image - USE HELPER FUNCTION
       if (props.editingBlog.image) {
-        setImagePreview(props.editingBlog.image);
-        setSelectedImage(props.editingBlog.image);
+        const previewUrl = getImageUrl(props.editingBlog.image);
+        setImagePreview(previewUrl);
+        setSelectedImage(props.editingBlog.image); // Store the original path
       }
     } else {
       setIsEditing(false);
@@ -75,7 +77,30 @@ const BlogForm = (props) => {
     }
   }, [props.editingBlog]);
 
-  // Handle image upload from FileUploader
+  // Helper function to get proper image URL for display
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+
+    // If it's already a full URL, use it directly
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      return imagePath;
+    }
+
+    // If it's a relative path, construct the full URL
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+
+    // Remove any leading slashes from the path
+    const cleanPath = imagePath.replace(/^\/+/, "");
+
+    // Check if the path already includes the base URL
+    if (cleanPath.startsWith("uploads/")) {
+      return `${baseUploadsUrl}/${cleanPath}`;
+    }
+
+    // For paths that are already relative but don't have 'uploads/'
+    return `${baseUploadsUrl}/${cleanPath}`;
+  };
+
   const handleImageUpload = (uploadResult) => {
     if (!uploadResult || typeof uploadResult !== "object") {
       console.error("Invalid upload result:", uploadResult);
@@ -110,8 +135,9 @@ const BlogForm = (props) => {
     console.log("Original filePath:", filePath);
     console.log("Relative path to save:", relativePath);
 
-    // For preview, you can still use the full URL
-    setImagePreview(filePath);
+    // For preview, use the helper function to ensure proper URL
+    const previewUrl = getImageUrl(filePath) || filePath;
+    setImagePreview(previewUrl);
 
     // But store only the relative path for backend
     setSelectedImage(relativePath);
@@ -371,6 +397,11 @@ const BlogForm = (props) => {
               src={imagePreview}
               alt="Blog preview"
               className="w-full max-w-xs h-48 object-cover rounded-lg border"
+              onError={(e) => {
+                console.error("Failed to load image:", imagePreview);
+                e.target.src =
+                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='14' fill='%239ca3af'%3EImage not available%3C/text%3E%3C/svg%3E";
+              }}
             />
             <div className="flex gap-2 mt-2">
               <button

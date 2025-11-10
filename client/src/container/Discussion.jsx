@@ -546,12 +546,9 @@ const Discussion = () => {
 
           return {
             ...discussion,
-            // Use stats data if available, otherwise fall back to existing data
             likeCount: stats.TotalLikes || discussion.likeCount || 0,
             commentCount: stats.TotalComments || discussion.commentCount || 0,
             viewCount: stats.TotalViews || discussion.viewCount || 0,
-
-            // ... rest of your existing mapping
           };
         });
 
@@ -742,15 +739,6 @@ const Discussion = () => {
 
   const handleTagInputChange = (e) => setTagInput(e.target.value);
 
-  const handleTagInputKeyPress = (e) => {
-    if (e.key === "Enter" && tagInput.trim() !== "") {
-      e.preventDefault();
-      setTags([...tags, tagInput.trim()]);
-      setTagInput("");
-      setErrors({ ...errors, tags: "" });
-    }
-  };
-
   const removeTag = (tagToRemove) => {
     const newTags = tags.filter((tag) => tag !== tagToRemove);
     setTags(newTags);
@@ -759,26 +747,7 @@ const Discussion = () => {
     }
   };
 
-  const handleImageChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file) {
-        const compressedFile = await compressImage(file);
-        setSelectedImage(compressedFile);
-      }
-    }
-  };
-
   const handleLinkInputChange = (e) => setLinkInput(e.target.value);
-
-  const handleLinkInputKeyPress = (e) => {
-    if (e.key === "Enter" && linkInput.trim() !== "") {
-      e.preventDefault();
-      setLinks([...links, linkInput.trim()]);
-      setLinkInput("");
-      setErrors({ ...errors, links: "" });
-    }
-  };
 
   const removeLink = (linkToRemove) => {
     const newLinks = links.filter((link) => link !== linkToRemove);
@@ -791,7 +760,6 @@ const Discussion = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate all form fields first
     const isTitleValid = validateTitle();
     const isContentValid = validateContent();
     const isTagsValid = validateTags();
@@ -813,14 +781,11 @@ const Discussion = () => {
       });
       return;
     }
-
-    // Check for toxicity before submitting
     const isContentAppropriate = await validateToxicity();
     if (!isContentAppropriate) {
-      return; // Stop submission if content is inappropriate
+      return; 
     }
 
-    // If we get here, content is safe to submit
     const endpoint = "discussion/discussionpost";
     const method = "POST";
     const body = {
@@ -866,8 +831,6 @@ const Discussion = () => {
             popup: "animated bounceIn",
           },
         });
-
-        // Refresh the discussions
         if (userToken && user) {
           await fetchDiscussionData(user.EmailId);
         } else {

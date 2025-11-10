@@ -57,7 +57,7 @@ export const getUserProfileService = async (userId) => {
     let blogStats = {};
 
     if (blogIDs.length > 0) {
-      // Fetch Likes and Avg Rating
+      // Fetch Likes, Avg Rating, and Views
       const blogInteractions = await ContentInteraction.findAll({
         where: {
           ProcessName: "blog",
@@ -68,12 +68,13 @@ export const getUserProfileService = async (userId) => {
           "reference",
           [fn("SUM", col("Likes")), "LikesCount"],
           [fn("AVG", col("Rating")), "AvgRating"],
+          [fn("SUM", col("View")), "ViewCount"], // 👈 Added view count aggregation
         ],
         group: ["reference"],
         raw: true,
       });
 
-      // Count Reposts for each blog
+      // Count Reposts
       const blogReposts = await CommunityBlog.findAll({
         where: {
           RepostID: { [Op.in]: blogIDs },
@@ -84,19 +85,18 @@ export const getUserProfileService = async (userId) => {
         raw: true,
       });
 
-      // Combine stats and safely parse AvgRating to Number
+      // Combine all stats
       blogStats = blogIDs.reduce((acc, id) => {
         const stats = blogInteractions.find((i) => i.reference === id) || {};
         const reposts =
           blogReposts.find((r) => r.RepostID === id)?.RepostCount || 0;
 
-        // Safely handle AvgRating which may be string or null
+        // Parse AvgRating safely
         const rawAvg = stats.AvgRating;
         let avgRating = 0;
         if (rawAvg !== undefined && rawAvg !== null) {
           const num = Number(rawAvg);
           if (Number.isFinite(num)) {
-            // round to 1 decimal place
             avgRating = parseFloat(num.toFixed(1));
           }
         }
@@ -105,6 +105,7 @@ export const getUserProfileService = async (userId) => {
           LikesCount: stats.LikesCount || 0,
           AvgRating: avgRating,
           RepostCount: reposts,
+          ViewCount: stats.ViewCount || 0, // 👈 Add ViewCount in final object
         };
         return acc;
       }, {});
@@ -115,9 +116,10 @@ export const getUserProfileService = async (userId) => {
       LikesCount: blogStats[b.BlogID]?.LikesCount || 0,
       Rating: blogStats[b.BlogID]?.AvgRating || 0,
       RepostCount: blogStats[b.BlogID]?.RepostCount || 0,
+      ViewCount: blogStats[b.BlogID]?.ViewCount || 0, // 👈 Added here too
     }));
 
-    // Step 3: Fetch Discussions (unchanged logic)
+    // Step 3: Fetch Discussions
     const discussions = await CommunityDiscussion.findAll({
       where: {
         UserID: userId,
@@ -155,6 +157,7 @@ export const getUserProfileService = async (userId) => {
     let discussionStats = {};
 
     if (discussionIDs.length > 0) {
+      // Fetch Likes, Comments, and Views
       const discussionInteractions = await ContentInteraction.findAll({
         where: {
           ProcessName: "discussion",
@@ -165,6 +168,7 @@ export const getUserProfileService = async (userId) => {
           "reference",
           [fn("SUM", col("Likes")), "LikesCount"],
           [fn("SUM", col("Rating")), "CommentsCount"],
+          [fn("SUM", col("View")), "ViewCount"], // 👈 Added view count aggregation
         ],
         group: ["reference"],
         raw: true,
@@ -194,22 +198,17 @@ export const getUserProfileService = async (userId) => {
       });
 
       discussionStats = discussionIDs.reduce((acc, id) => {
-        const likes =
-          discussionInteractions.find((i) => i.reference === id)?.LikesCount ||
-          0;
-        const rating =
-          discussionInteractions.find((i) => i.reference === id)
-            ?.CommentsCount || 0;
+        const stats = discussionInteractions.find((i) => i.reference === id) || {};
         const commentCount =
           discussionComments.find((c) => c.Reference === id)?.CommentCount || 0;
         const reposts =
           discussionReposts.find((r) => r.RepostID === id)?.RepostCount || 0;
 
         acc[id] = {
-          LikesCount: likes,
+          LikesCount: stats.LikesCount || 0,
           CommentsCount: commentCount,
-          Rating: rating,
           RepostCount: reposts,
+          ViewCount: stats.ViewCount || 0, // 👈 Added view count
         };
         return acc;
       }, {});
@@ -221,6 +220,7 @@ export const getUserProfileService = async (userId) => {
       LikesCount: discussionStats[d.DiscussionID]?.LikesCount || 0,
       CommentsCount: discussionStats[d.DiscussionID]?.CommentsCount || 0,
       RepostCount: discussionStats[d.DiscussionID]?.RepostCount || 0,
+      ViewCount: discussionStats[d.DiscussionID]?.ViewCount || 0, // 👈 Added here too
     }));
 
     // Step 4: Return Final Data
@@ -245,6 +245,7 @@ export const getUserProfileService = async (userId) => {
     throw error;
   }
 };
+
 
 
 

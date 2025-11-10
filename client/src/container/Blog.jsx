@@ -182,6 +182,73 @@ const BlogPage = () => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    // Debug: Check what URLs are being generated
+    if (blogs.length > 0) {
+      blogs.forEach((blog, index) => {
+        if (blog.image) {
+          const imageUrl = getImageUrl(blog.image);
+          console.log(`Blog ${index} (${blog.BlogID}):`, {
+            originalPath: blog.image,
+            constructedUrl: imageUrl,
+            type: blog.image.startsWith("data:image/")
+              ? "base64"
+              : blog.image.startsWith("http")
+              ? "full-url"
+              : "relative-path",
+          });
+
+          // Test if the image loads
+          const img = new Image();
+          img.onload = () =>
+            console.log(`✅ Image ${blog.BlogID} loaded successfully`);
+          img.onerror = () =>
+            console.error(`❌ Image ${blog.BlogID} failed to load:`, imageUrl);
+          img.src = imageUrl;
+        }
+      });
+    }
+  }, [blogs]);
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) {
+      console.log("No image path provided, using fallback");
+      return Noimage;
+    }
+
+    // If it's already a base64 image, return it directly
+    if (imagePath.startsWith("data:image/")) {
+      console.log("Base64 image detected");
+      return imagePath;
+    }
+
+    // If it's already a full URL, use it directly
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      console.log("Full URL detected:", imagePath);
+      return imagePath;
+    }
+
+    // If it's a relative path, construct the full URL
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+
+    if (!baseUploadsUrl) {
+      console.error("VITE_API_UPLOADSURL environment variable is not set");
+      return Noimage;
+    }
+
+    console.log("Base uploads URL:", baseUploadsUrl);
+    console.log("Original image path:", imagePath);
+
+    // Remove any leading slashes from the path
+    const cleanPath = imagePath.replace(/^\/+/, "");
+
+    // Construct the full URL
+    const fullUrl = `${baseUploadsUrl}/${cleanPath}`;
+
+    console.log("Constructed image URL:", fullUrl);
+    return fullUrl;
+  };
+
   const fetchCategories = async () => {
     try {
       const endpoint = "dropdown/getDropdownValues?category=blogCategory";
@@ -335,6 +402,8 @@ const BlogPage = () => {
     } = blog;
 
     const fallbackImage = Noimage;
+    const [imageError, setImageError] = useState(false);
+    const [currentImageSrc, setCurrentImageSrc] = useState("");
 
     const [blogStats, setBlogStats] = useState({
       totalLikes: 0,
@@ -345,6 +414,26 @@ const BlogPage = () => {
 
     const isAccordionOpen = expandedAccordions[BlogID];
     const hasReposts = reposts && reposts.length > 0;
+
+    useEffect(() => {
+      if (blog.image) {
+        const src = getImageUrl(blog.image);
+        setCurrentImageSrc(src);
+        setImageError(false);
+
+        // Pre-load the image to check if it's valid
+        const img = new Image();
+        img.onload = () => {
+          console.log(`✅ Image pre-loaded: ${src}`);
+          setImageError(false);
+        };
+        img.onerror = () => {
+          console.error(`❌ Image failed to pre-load: ${src}`);
+          setImageError(true);
+        };
+        img.src = src;
+      }
+    }, [blog.image]);
 
     useEffect(() => {
       const fetchBlogStats = async () => {
@@ -389,21 +478,29 @@ const BlogPage = () => {
       >
         {/* Cover Image */}
         <div className="relative h-48 w-full overflow-hidden">
-          <motion.img
-            className="w-full h-full object-cover transition-transform duration-500"
-            src={image || fallbackImage}
-            alt={title}
-            onError={(e) => {
-              console.log("Image failed to load, using fallback");
-              e.target.src = fallbackImage;
-              e.target.onerror = null; // Prevent infinite loop
-            }}
-            initial={{ scale: 1 }}
-            whileHover={{ scale: 1.1 }}
-            transition={{ duration: 0.3 }}
-          />
-
-          {/* Category Badge */}
+          {currentImageSrc && !imageError ? (
+            <motion.img
+              className="w-full h-full object-cover transition-transform duration-500"
+              src={currentImageSrc}
+              alt={title}
+              onError={(e) => {
+                console.error("Image failed to load in DOM:", currentImageSrc);
+                setImageError(true);
+                e.target.src = fallbackImage;
+              }}
+              initial={{ scale: 1 }}
+              whileHover={{ scale: 1.1 }}
+              transition={{ duration: 0.3 }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <img
+                src={fallbackImage}
+                alt="Fallback"
+                className="max-h-20 max-w-20 opacity-50"
+              />
+            </div>
+          )}
           {Category && (
             <motion.span
               className="absolute top-3 left-3 bg-white text-DGXblue px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
@@ -444,7 +541,7 @@ const BlogPage = () => {
           )}
         </div>
 
-        {/* Main Content */}
+        {/* Rest of the BlogCard content remains the same */}
         <div className="p-5 flex-grow flex flex-col">
           {/* Date and Read Time */}
           <div className="flex items-center text-xs text-gray-500 mb-3">
