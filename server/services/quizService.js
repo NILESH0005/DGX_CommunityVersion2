@@ -576,29 +576,29 @@ export const getQuestionsByGroupAndLevelService = async (
 
     // Step 2: Get Questions with Joins
     const questions = await sequelize.query(
-      ` SELECT  
-      q.id AS question_id,  
-      q.question_text, 
-      q.Ques_level AS level, 
-      q.group_id, 
-      qm.quizGroupID AS mapped_quiz_id,
-      qm.totalMarks, 
-      qm.negativeMarks, 
-      qd.NegativeMarking,
-      ddr.ddValue AS question_level,
-      qo.option_text,
-      qo.is_correct,
-      qd.QuizName AS quiz_name 
-    FROM giindiadgx_community.Questions q
-    LEFT JOIN giindiadgx_community.QuizMapping qm ON q.id = qm.QuestionsID
-    LEFT JOIN giindiadgx_community.QuizDetails qd ON qm.quizGroupID = qd.QuizID 
-    LEFT JOIN giindiadgx_community.tblDDReference ddr ON q.Ques_level = ddr.idCode
-    LEFT JOIN giindiadgx_community.QuestionOptions qo ON q.id = qo.question_id
-    WHERE COALESCE(q.delStatus, 0) = 0
-      AND q.group_id = @group_id
-      AND q.Ques_level = @level_id`,
+      `SELECT  
+        q.id AS question_id,  
+        q.question_text, 
+        q.Ques_level AS level, 
+        q.group_id, 
+        qm.quizGroupID AS mapped_quiz_id,
+        qm.totalMarks, 
+        qm.negativeMarks, 
+        qd.NegativeMarking,
+        ddr.ddValue AS question_level,
+        qo.option_text,
+        qo.is_correct,
+        qd.QuizName AS quiz_name 
+      FROM giindiadgx_community.Questions q
+      LEFT JOIN giindiadgx_community.QuizMapping qm ON q.id = qm.QuestionsID
+      LEFT JOIN giindiadgx_community.QuizDetails qd ON qm.quizGroupID = qd.QuizID 
+      LEFT JOIN giindiadgx_community.tblDDReference ddr ON q.Ques_level = ddr.idCode
+      LEFT JOIN giindiadgx_community.QuestionOptions qo ON q.id = qo.question_id
+      WHERE COALESCE(q.delStatus, 0) = 0
+        AND q.group_id = :group_id
+        AND q.Ques_level = :level_id`,
       {
-        replacements: { group_id, level_id },
+        replacements: { group_id, level_id }, // <-- pass replacements here
         type: sequelize.QueryTypes.SELECT,
       }
     );
