@@ -1,6 +1,7 @@
 import { upload } from "../config/multerConfig.js";
 import {
   checkModuleExists,
+  getAllActiveFilesService,
   LMSService,
   LMSViewsService,
 } from "../services/lmsService.js";
@@ -225,7 +226,7 @@ export const checkModuleExist = async (req, res) => {
   }
 };
 
-export const getSubModuleViews  = async (req, res) => {
+export const getSubModuleViews = async (req, res) => {
   try {
     const result = await LMSViewsService.getSubModuleViews();
     res.status(200).json({ success: true, data: result });
@@ -242,5 +243,29 @@ export const getModuleViews = async (req, res) => {
   } catch (error) {
     console.error("Error fetching module views:", error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getAllActiveFiles = async (req, res) => {
+  try {
+    const result = await getAllActiveFilesService();
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error("Controller Error (getAllActiveFiles):", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching files",
+    });
   }
 };

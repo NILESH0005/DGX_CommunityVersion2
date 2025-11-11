@@ -1,6 +1,7 @@
 // services/lmsService.js
-import db from "../models/index.js"; // central sequelize instance with models
 import { Op, Sequelize } from "sequelize";
+import db, { sequelize } from "../models/index.js";
+
 const {
   LMSModulesDetails,
   LMSSubModulesDetails,
@@ -485,3 +486,47 @@ export class LMSViewsService {
     }
   }
 }
+
+export const getAllActiveFilesService = async () => {
+  try {
+    const query = `
+      SELECT 
+        f.FileID,
+        f.FilesName,
+        f.FilePath,
+        f.FileType,
+        f.UnitID,
+        f.Description,
+        f.SortingOrder,
+        f.EstimatedTime,
+        f.Percentage,
+        u.UnitName,
+        sm.SubModuleName,
+        m.ModuleName
+      FROM FilesDetails f
+      INNER JOIN UnitsDetails u ON f.UnitID = u.UnitID
+      INNER JOIN SubModulesDetails sm ON u.SubModuleID = sm.SubModuleID
+      INNER JOIN ModuleDetails m ON sm.ModuleID = m.ModuleID
+      WHERE 
+        f.delStatus = 0
+        AND u.delStatus = 0
+        AND sm.delStatus = 0
+        AND m.delStatus = 0
+      ORDER BY 
+        m.ModuleID, sm.SubModuleID, u.UnitID, f.SortingOrder;
+    `;
+
+    const [results] = await sequelize.query(query);
+
+    return {
+      success: true,
+      data: results,
+    };
+  } catch (error) {
+    console.error("Service Error (getAllActiveFiles):", error);
+    return {
+      success: false,
+      message: "Database query failed while fetching active files",
+    };
+  }
+};
