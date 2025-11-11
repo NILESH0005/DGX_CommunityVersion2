@@ -10,6 +10,7 @@ import Home from "./Components/Home";
 import QuizPanel from "./Components/Quiz/QuizPanel";
 import QuestionBank from "./Components/Quiz/QuestionBank";
 import QuizMapping from "./Components/Quiz/QuizMapping";
+import Dashboard from "./Components/Dashboard"; 
 import {
   FaUsers,
   FaComments,
@@ -35,7 +36,7 @@ import LearningMaterialList from "./Components/LMS/LearningMaterialList";
 import ModuleBuilder from "./Components/LMS/ModuleBuilder/ModuleBuilder";
 
 const AdminDashboard = (props) => {
-  const [activeComp, setActiveComp] = useState("users");
+  const [activeComp, setActiveComp] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -107,6 +108,8 @@ const AdminDashboard = (props) => {
         return <GuidelineManager />;
       case "Home":
         return <Home />;
+      case "Dashboard":
+        return <Dashboard />;
       case "contact":
         return <Contact />;
       case "select_module":

@@ -3,8 +3,11 @@ import {
   checkModuleExists,
   getAllActiveFilesService,
   LMSService,
+  getFileByIdService,
   LMSViewsService,
 } from "../services/lmsService.js";
+import fs from "fs";
+import path from "path";
 
 export class LMS {
   static upload = upload;
@@ -266,6 +269,102 @@ export const getAllActiveFiles = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal server error while fetching files",
+    });
+  }
+};
+
+export const getFileById = async (req, res) => {
+  try {
+    const { FileID } = req.body;
+
+    if (!FileID) {
+      return res.status(400).json({
+        success: false,
+        message: "FileID is required in the request body",
+      });
+    }
+
+    const result = await getFileByIdService(FileID);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error("Controller Error (getFileById):", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching file details",
+    });
+  }
+};
+
+export const downloadFileById = async (req, res) => {
+  try {
+    const { FileID } = req.params;
+
+    if (!FileID) {
+      return res.status(400).json({
+        success: false,
+        message: "FileID is required in the URL parameter",
+      });
+    }
+
+    // Get file info from DB with same hierarchy check
+    const result = await getFileByIdService(FileID);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    const fileData = result.data;
+
+    // Handle external links
+    if (fileData.FileType === "link" || fileData.FilePath?.startsWith("http")) {
+      return res.redirect(fileData.FilePath);
+    }
+
+    // Resolve local file path
+    const filePath = path.resolve(
+      process.cwd(),
+      fileData.FilePath.replace(/^\//, "")
+    );
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: "File not found on the server",
+      });
+    }
+
+    // Set correct headers for browser download/view
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${fileData.FilesName}"`
+    );
+    res.setHeader(
+      "Content-Type",
+      fileData.FileType || "application/octet-stream"
+    );
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error("Controller Error (downloadFileById):", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while downloading file",
     });
   }
 };

@@ -530,3 +530,57 @@ export const getAllActiveFilesService = async () => {
     };
   }
 };
+
+export const getFileByIdService = async (FileID) => {
+  try {
+    const query = `
+      SELECT 
+        f.FileID,
+        f.FilesName,
+        f.FilePath,
+        f.FileType,
+        f.UnitID,
+        f.Description,
+        f.SortingOrder,
+        f.EstimatedTime,
+        f.Percentage,
+        f.AddOnDt,
+        u.UnitName,
+        sm.SubModuleName,
+        m.ModuleName
+      FROM FilesDetails f
+      INNER JOIN UnitsDetails u ON f.UnitID = u.UnitID
+      INNER JOIN SubModulesDetails sm ON u.SubModuleID = sm.SubModuleID
+      INNER JOIN ModuleDetails m ON sm.ModuleID = m.ModuleID
+      WHERE 
+        f.FileID = :FileID
+        AND f.delStatus = 0
+        AND u.delStatus = 0
+        AND sm.delStatus = 0
+        AND m.delStatus = 0
+      LIMIT 1;
+    `;
+
+    const [results] = await sequelize.query(query, {
+      replacements: { FileID },
+    });
+
+    if (!results || results.length === 0) {
+      return {
+        success: false,
+        message: "File not found or is marked as deleted",
+      };
+    }
+
+    return {
+      success: true,
+      data: results[0],
+    };
+  } catch (error) {
+    console.error("Service Error (getFileById):", error);
+    return {
+      success: false,
+      message: "Database query failed while fetching file details",
+    };
+  }
+};
