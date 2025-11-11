@@ -8,8 +8,9 @@ import ApiContext from "../context/ApiContext";
 import { FiRepeat } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { PiHandsClappingLight, PiHandsClappingFill } from "react-icons/pi";
-import RatingStars from "./RatingStars"; // Adjust the import path as needed
+import RatingStars from "./RatingStars";
 import Noimage from "../assets/No_Image_Available.jpg";
+
 const PublicBlogModal = ({
   blog,
   closeModal,
@@ -33,6 +34,69 @@ const PublicBlogModal = ({
   const [averageRating, setAverageRating] = useState(blog?.averageRating || 0);
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
+
+  // Add the same image handling logic as BlogPage
+  const [currentImageSrc, setCurrentImageSrc] = useState("");
+  const [imageError, setImageError] = useState(false);
+
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) {
+      console.log("No image path provided, using fallback");
+      return Noimage;
+    }
+
+    // If it's already a base64 image, return it directly
+    if (imagePath.startsWith("data:image/")) {
+      console.log("Base64 image detected");
+      return imagePath;
+    }
+
+    // If it's already a full URL, use it directly
+    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+      console.log("Full URL detected:", imagePath);
+      return imagePath;
+    }
+
+    // If it's a relative path, construct the full URL
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+
+    if (!baseUploadsUrl) {
+      console.error("VITE_API_UPLOADSURL environment variable is not set");
+      return Noimage;
+    }
+
+    console.log("Base uploads URL:", baseUploadsUrl);
+    console.log("Original image path:", imagePath);
+
+    // Remove any leading slashes from the path
+    const cleanPath = imagePath.replace(/^\/+/, "");
+
+    // Construct the full URL
+    const fullUrl = `${baseUploadsUrl}/${cleanPath}`;
+
+    console.log("Constructed image URL:", fullUrl);
+    return fullUrl;
+  };
+
+  useEffect(() => {
+    if (image) {
+      const src = getImageUrl(image);
+      setCurrentImageSrc(src);
+      setImageError(false);
+
+      // Pre-load the image to check if it's valid
+      const img = new Image();
+      img.onload = () => {
+        console.log(`✅ Modal Image pre-loaded: ${src}`);
+        setImageError(false);
+      };
+      img.onerror = () => {
+        console.error(`❌ Modal Image failed to pre-load: ${src}`);
+        setImageError(true);
+      };
+      img.src = src;
+    }
+  }, [image]);
 
   const getBaseUrl = () => {
     return import.meta.env.VITE_CLIENT_BASE_URL || window.location.origin;
@@ -176,7 +240,7 @@ const PublicBlogModal = ({
     }
 
     try {
-      const endpoint = "blog/likeBlogController"; // your like API
+      const endpoint = "blog/likeBlogController";
       const method = "POST";
       const headers = {
         "Content-Type": "application/json",
@@ -185,7 +249,7 @@ const PublicBlogModal = ({
 
       const body = {
         reference: BlogID,
-        likes: isLiked ? 0 : 1, // if already liked, we want to unlike
+        likes: isLiked ? 0 : 1,
       };
 
       const result = await fetchData(endpoint, method, body, headers);
@@ -195,12 +259,11 @@ const PublicBlogModal = ({
         fetchUserInteraction();
         fetchBlogStats();
 
-        // update UI based on server response
         setIsLiked(result.data.liked);
         setLikeCount((prev) => (result.data.liked ? prev + 1 : prev - 1));
 
         if (refreshBlogs) {
-          refreshBlogs(); // optional: refresh list if needed
+          refreshBlogs();
         }
       } else {
         Swal.fire("Error", result.message, "error");
@@ -211,7 +274,6 @@ const PublicBlogModal = ({
   };
 
   // Handle Rating function
-  // Handle Rating function - UPDATED
   const handleRate = async (rating) => {
     if (!userToken) {
       Swal.fire({
@@ -228,7 +290,7 @@ const PublicBlogModal = ({
     }
 
     try {
-      const endpoint = `blog/rate/${BlogID}`; // Changed endpoint
+      const endpoint = `blog/rate/${BlogID}`;
       const method = "POST";
       const headers = {
         "Content-Type": "application/json",
@@ -244,7 +306,6 @@ const PublicBlogModal = ({
         fetchUserInteraction();
         fetchBlogStats();
 
-        // Optional: If you want to show success message
         Swal.fire({
           title: "Success!",
           text: `You rated this blog ${rating} stars!`,
@@ -280,7 +341,6 @@ const PublicBlogModal = ({
     }
   }, [blog]);
 
-  // Your existing functions
   const updateBlogStatus = async (blogId, Status, remark = "") => {
     const endpoint = `blog/updateBlog/${blogId}`;
     const method = "POST";
@@ -419,78 +479,6 @@ const PublicBlogModal = ({
   const alreadyReposted = blog?.RepostUserID === user?.UserID;
   const canRepost = blog?.allowRepost && !isMyBlog && !alreadyReposted;
 
-  const processBlogs = (blogs) => {
-    const blogMap = {};
-
-    blogs.forEach((b) => {
-      const originalId = b.repostId || b.BlogID; // use original BlogID if not a repost
-      const existing = blogMap[originalId];
-
-      if (!existing) {
-        blogMap[originalId] = b;
-      } else {
-        // if there’s already one, compare by date and keep latest repost
-        const existingDate = new Date(existing.published_date);
-        const newDate = new Date(b.published_date);
-        if (newDate > existingDate) {
-          blogMap[originalId] = b;
-        }
-      }
-    });
-
-    return Object.values(blogMap);
-  };
-
-  const [blogs, setBlogs] = useState([]);
-
-  const fetchBlogs = async () => {
-    const result = await fetchData("blog/allBlogs", "GET");
-    if (result.success) {
-      const uniqueBlogs = processBlogs(result.data);
-      setBlogs(uniqueBlogs);
-    }
-  };
-
-  const fallbackCopyToClipboardBlog = (text) => {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-      const successful = document.execCommand("copy");
-      if (successful) {
-        Swal.fire({
-          title: "Copied!",
-          text: "Blog link copied to clipboard",
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } else {
-        Swal.fire({
-          title: "Copy Manually",
-          html: `Please copy this URL:<br><code class="bg-gray-100 p-1 rounded">${text}</code>`,
-          icon: "info",
-          confirmButtonText: "OK",
-        });
-      }
-    } catch (err) {
-      console.error("Fallback copy failed:", err);
-      Swal.fire({
-        title: "Copy Manually",
-        html: `Please copy this URL:<br><code class="bg-gray-100 p-1 rounded">${text}</code>`,
-        icon: "info",
-        confirmButtonText: "OK",
-      });
-    }
-
-    document.body.removeChild(textArea);
-  };
-
   return (
     <AnimatePresence>
       <motion.div
@@ -517,14 +505,32 @@ const PublicBlogModal = ({
 
           <div className="flex flex-col items-center h-full">
             <div className="w-full mb-8 relative">
-              <motion.img
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className="w-full h-[600px] object-cover rounded-none"
-                src={image || Noimage}
-                alt={title}
-              />
+              {/* Updated Image Section with same logic as BlogPage */}
+              <div className="relative h-[600px] w-full overflow-hidden">
+                {currentImageSrc && !imageError ? (
+                  <motion.img
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="w-full h-full object-cover"
+                    src={currentImageSrc}
+                    alt={title}
+                    onError={(e) => {
+                      console.error("Modal Image failed to load in DOM:", currentImageSrc);
+                      setImageError(true);
+                      e.target.src = Noimage;
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <img
+                      src={Noimage}
+                      alt="Fallback"
+                      className="max-h-40 max-w-40 opacity-50"
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* Rating display badge */}
               <motion.div
@@ -718,7 +724,6 @@ const PublicBlogModal = ({
                   onClick={async () => {
                     const blogUrl = getBlogUrl();
 
-                    // Check if Web Share API is supported
                     if (navigator.share) {
                       try {
                         await navigator.share({
@@ -731,15 +736,12 @@ const PublicBlogModal = ({
                           url: blogUrl,
                         });
                       } catch (error) {
-                        // Only log if it's not an abort error (user cancelled)
                         if (error.name !== "AbortError") {
                           console.error("Share failed:", error);
-                          // Fallback to clipboard
                           await safeCopyToClipboard(blogUrl);
                         }
                       }
                     } else {
-                      // Use clipboard directly
                       await safeCopyToClipboard(blogUrl);
                     }
                   }}

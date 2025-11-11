@@ -63,6 +63,8 @@ const ParticleBackground = () => {
 
 // Fixed RepostCard Component for horizontal scrollable users
 const RepostCard = ({ reposts = [] }) => {
+
+  console.log("ccccccccccccccccc", reposts)
   if (!reposts || reposts.length === 0) return null;
 
   // Sort reposts by AddOnDt descending (latest first)
@@ -92,8 +94,8 @@ const RepostCard = ({ reposts = [] }) => {
             >
               {/* User Avatar */}
               <div className="w-12 h-12 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-sm font-bold mb-2 shadow-sm">
-                {repost.AuthAdd
-                  ? repost.AuthAdd.split(" ")
+                {repost.RepostUser.Name
+                  ? repost.RepostUser.Name.split(" ")
                       .map((n) => n[0])
                       .join("")
                       .toUpperCase()
@@ -102,7 +104,7 @@ const RepostCard = ({ reposts = [] }) => {
 
               {/* User Name */}
               <div className="text-xs font-medium text-gray-900 truncate max-w-[70px]">
-                {repost.AuthAdd || "Unknown User"}
+                {repost.RepostUser.Name || "Unknown User"}
               </div>
 
               {/* Repost Date */}
@@ -399,6 +401,7 @@ const BlogPage = () => {
       readTime,
       reposts = [],
       BlogID,
+      User,
     } = blog;
 
     const fallbackImage = Noimage;
@@ -414,6 +417,19 @@ const BlogPage = () => {
 
     const isAccordionOpen = expandedAccordions[BlogID];
     const hasReposts = reposts && reposts.length > 0;
+    const userName = User?.Name;
+
+    const getAuthorInitials = (name) => {
+      if (!name) return "U";
+      return (
+        name
+          .split(" ")
+          .map((n) => n[0])
+          .slice(0, 2)
+          .join("")
+          .toUpperCase() || "U"
+      );
+    };
 
     useEffect(() => {
       if (blog.image) {
@@ -453,18 +469,6 @@ const BlogPage = () => {
 
       fetchBlogStats();
     }, [BlogID]);
-
-    const getAuthorInitials = (name) => {
-      if (!name) return "U";
-      return (
-        name
-          .split(" ")
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase() || "U"
-      );
-    };
 
     return (
       <motion.div
@@ -602,11 +606,11 @@ const BlogPage = () => {
               whileHover={{ rotate: 360 }}
               transition={{ duration: 0.5 }}
             >
-              {getAuthorInitials(AuthAdd || "Unknown Author")}
+              {getAuthorInitials(userName)}
             </motion.div>
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-900">
-                {AuthAdd || "Unknown Author"}
+                {userName || "Unknown Author"}
               </span>
             </div>
           </div>

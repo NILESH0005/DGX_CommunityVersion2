@@ -155,7 +155,7 @@ export const createDiscussionPost = async (userId, postData) => {
       allowRepost: allowRepost,
       RepostID: repostId,
       RepostUserID: repostUserId,
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AddOnDt: new Date(),
       delStatus: 0,
     });
@@ -230,7 +230,7 @@ const handleLikeAction = async (user, postData) => {
       const updateResult = await CommunityDiscussion.update(
         {
           Likes: likeStatus,
-          AuthLstEdt: user.Name,
+          AuthLstEdt: user.UserID,
           editOnDt: new Date(),
         },
         {
@@ -279,7 +279,7 @@ const handleLikeAction = async (user, postData) => {
         allowRepost: false,
         RepostID: null,
         RepostUserID: null,
-        AuthAdd: user.Name,
+        AuthAdd: user.UserID,
         AddOnDt: new Date(),
         delStatus: 0,
       });
@@ -650,7 +650,7 @@ export const updateDiscussionService = async (userId, payload) => {
       Tag: tags || null,
       ResourceUrl: url || null,
       Visibility: visibilityId,
-      AuthLstEdt: actualUser.Name,
+      AuthLstEdt: actualUser.UserID,
       editOnDt: new Date(),
     },
     {
@@ -673,6 +673,9 @@ export const deleteDiscussionService = async (userId, discussionId) => {
   if (!discussionId) {
     throw new Error("Discussion ID is required");
   }
+  const user = await User.findOne({
+    where: { EmailId: userId, delStatus: 0 },
+  });
 
   // 🔹 Check if discussion exists
   const discussion = await CommunityDiscussion.findOne({
@@ -691,7 +694,7 @@ export const deleteDiscussionService = async (userId, discussionId) => {
     {
       delStatus: 1,
       delOnDt: new Date(),
-      AuthDel: userId, // save who deleted it
+      AuthDel: user.UserID, // save who deleted it
     },
     {
       where: {
@@ -715,6 +718,115 @@ export const deleteDiscussionService = async (userId, discussionId) => {
     AuthDel: deletedDiscussion.AuthDel,
     delOnDt: deletedDiscussion.delOnDt,
     delStatus: deletedDiscussion.delStatus,
+  };
+};
+
+export const deleteUserCommentService = async (userId, commentId) => {
+  if (!commentId) {
+    throw new Error("Comment ID is required");
+  }
+
+  console.log("🔍 Debug - User ID from token:", userId, "Type:", typeof userId);
+  console.log("🔍 Debug - Comment ID:", commentId, "Type:", typeof commentId);
+
+  const requestingUser = await User.findOne({
+    where: {
+      UserID: userId,
+      delStatus: 0,
+    },
+    attributes: ["UserID", "isAdmin", "Name"],
+  });
+
+  console.log("requesting User is ", requestingUser);
+
+  if (!requestingUser) {
+    throw new Error("User not found.");
+  }
+
+  console.log("🔍 Debug - Requesting user isAdmin:", requestingUser.isAdmin);
+
+  const comment = await CommunityDiscussion.findOne({
+    where: {
+      DiscussionID: commentId,
+      [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+    },
+    include: [
+      {
+        model: User,
+        as: "User",
+        attributes: ["UserID", "Name", "EmailId", "isAdmin"],
+      },
+    ],
+    attributes: [
+      "DiscussionID",
+      "UserID",
+      "Comment",
+      "reference",
+      "Title",
+      "Content",
+    ],
+  });
+
+  console.log("🔍 Debug - Found comment:", JSON.stringify(comment, null, 2));
+
+  if (!comment) {
+    throw new Error("Comment not found or already deleted.");
+  }
+
+  console.log(
+    "🔍 Debug - Comment UserID:",
+    comment.UserID,
+    "Type:",
+    typeof comment.UserID
+  );
+
+  const isOwner = String(comment.UserID) === String(userId);
+  const isAdmin = requestingUser.isAdmin === 1;
+
+  console.log("🔍 Debug - isOwner:", isOwner, "isAdmin:", isAdmin);
+
+  if (!isOwner && !isAdmin) {
+    console.log("❌ Ownership check failed - User is neither owner nor admin");
+    throw new Error("You can only delete your own comments.");
+  }
+
+  console.log("✅ Ownership/Admin check passed");
+
+  // Build the where condition dynamically based on user role
+  let whereCondition = {
+    DiscussionID: commentId,
+    [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+  };
+
+  // If user is NOT admin, add UserID restriction (only can delete their own)
+  if (!isAdmin) {
+    whereCondition.UserID = userId;
+  }
+  // If user IS admin, no UserID restriction (can delete any comment)
+
+  console.log("🔍 Debug - Where condition for update:", whereCondition);
+
+  const [rowsUpdated] = await CommunityDiscussion.update(
+    {
+      delStatus: 1,
+      delOnDt: new Date(),
+      AuthDel: requestingUser.UserID,
+    },
+    {
+      where: whereCondition,
+    }
+  );
+
+  console.log("🔍 Debug - Rows updated:", rowsUpdated);
+
+  if (rowsUpdated === 0) {
+    throw new Error("Failed to delete the comment. No rows were updated.");
+  }
+
+  return {
+    commentId: commentId,
+    message: "Comment deleted successfully",
+    deletedBy: isAdmin ? "admin" : "owner",
   };
 };
 
@@ -781,7 +893,7 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
         {
           Likes: finalLikeStatus,
           LikeStatus: 0,
-          AuthLstEdt: userName,
+          AuthLstEdt: userId,
           editOnDt: currentDate,
         },
         {
@@ -811,7 +923,7 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
       LikeStatus: 0,
       Rating: null,
       RatingStatus: null,
-      AuthAdd: userName,
+      AuthAdd: userId,
       AuthDel: null,
       AuthLstEdt: null,
       delOnDt: null,

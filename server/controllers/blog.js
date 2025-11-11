@@ -425,12 +425,37 @@ export const updateUserProfileBlog = async (req, res) => {
   try {
     const blogId = req.params.id;
     const blogData = req.body;
-    const userEmail = req.user.id;
+    const userEmail = req.user.id; // This is the email from JWT
 
-    const result = await userEditBlogPost(blogId, userEmail, blogData);
+    console.log("🔄 Update Blog - User Email:", userEmail, "BlogID:", blogId);
+
+    // Step 1: Find user by email to get UserID
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: 0,
+      },
+      attributes: ["UserID", "Name", "isAdmin"],
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    console.log("🔍 Found User:", {
+      UserID: user.UserID,
+      Name: user.Name,
+      isAdmin: user.isAdmin,
+    });
+
+    // Step 2: Pass the numeric UserID to the service
+    const result = await userEditBlogPost(blogId, user.UserID, blogData);
     return res.status(result.status).json(result.response);
   } catch (err) {
-    logError("Unexpected Error in updateBlog controller:", err);
+    console.error("Unexpected Error in updateBlog controller:", err);
     return res.status(500).json({
       success: false,
       message: "Unexpected error occurred",
@@ -576,11 +601,14 @@ export const likeBlogController = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({
+    const userInstance = await User.findOne({
       where: { EmailId: userEmail, delStatus: 0 },
     });
 
-    if (!user) throw new Error("User not found");
+    if (!userInstance) throw new Error("User not found");
+
+    // Convert Sequelize instance to plain object
+    const user = userInstance.get({ plain: true });
 
     const result = await handleBlogLikeAction(user, postData);
 
@@ -702,8 +730,16 @@ export const getBlogStatsController = async (req, res) => {
 export const softDeleteBlog = async (req, res) => {
   try {
     const blogId = req.params.blogId;
+    const userId = req.user?.uniqueId; // ✅ comes from fetchUser middleware
 
-    const deletedBlog = await softDeleteBlogService(blogId);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: user not found",
+      });
+    }
+
+    const deletedBlog = await softDeleteBlogService(blogId, userId);
 
     return res.json({
       success: true,

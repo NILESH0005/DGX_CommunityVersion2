@@ -213,7 +213,7 @@ const BlogTable = ({ blogs, userToken }) => {
                       <td className="p-2 border text-center w-12">{index + 1}</td>
                       <td className="p-2 border text-center min-w-[150px]">{blog.title}</td>
                       <td className="p-2 border text-center min-w-[120px]">{blog.category}</td>
-                      <td className="p-2 border text-center min-w-[150px]">{blog.UserName}</td>
+                      <td className="p-2 border text-center min-w-[150px]">{blog.User.Name}</td>
                       <td className="p-2 border text-center min-w-[180px]">
                         {moment.utc(blog.AddOnDt).format("MMMM D, YYYY ")}
                       </td>

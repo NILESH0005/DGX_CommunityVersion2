@@ -5,15 +5,12 @@ import { logInfo, logWarning, logError } from "../helper/index.js";
 import { Op } from "sequelize";
 import UserLmsProgress from "../models/UserLmsProgress.js";
 
-
 const User = db.User;
 const ModuleDetails = db.LMSModulesDetails;
 const SubModulesDetails = db.LMSSubModulesDetails;
-const LMSFilesDetails = db.LMSFilesDetails
-const LMSUserProgress = db.LMSUserProgress
-const LMSUnitsDetails = db.LMSUnitsDetails
-
-
+const LMSFilesDetails = db.LMSFilesDetails;
+const LMSUserProgress = db.LMSUserProgress;
+const LMSUnitsDetails = db.LMSUnitsDetails;
 
 export const updateModuleService = async (userEmail, moduleId, payload) => {
   try {
@@ -53,13 +50,24 @@ export const updateModuleService = async (userEmail, moduleId, payload) => {
     }
 
     // Handle old image cleanup
-    if (payload.ModuleImagePath && existingModule.ModuleImagePath !== payload.ModuleImagePath) {
-      if (existingModule.ModuleImagePath) {  // Add this guard
-        const oldImagePath = path.join(process.cwd(), existingModule.ModuleImagePath);
+    if (
+      payload.ModuleImagePath &&
+      existingModule.ModuleImagePath !== payload.ModuleImagePath
+    ) {
+      if (existingModule.ModuleImagePath) {
+        // Add this guard
+        const oldImagePath = path.join(
+          process.cwd(),
+          existingModule.ModuleImagePath
+        );
 
         if (fs.existsSync(oldImagePath)) {
-          const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
-          if (!fs.existsSync(deletedFolder)) fs.mkdirSync(deletedFolder, { recursive: true });
+          const deletedFolder = path.join(
+            process.cwd(),
+            "uploads/deleted-files"
+          );
+          if (!fs.existsSync(deletedFolder))
+            fs.mkdirSync(deletedFolder, { recursive: true });
 
           const oldFileName = path.basename(existingModule.ModuleImagePath);
           const newTrashPath = path.join(deletedFolder, oldFileName);
@@ -77,9 +85,10 @@ export const updateModuleService = async (userEmail, moduleId, payload) => {
     await existingModule.update({
       ModuleName: payload.ModuleName,
       ModuleDescription: payload.ModuleDescription,
-      AuthLstEdt: user.Name,
+      AuthLstEdt: user.UserID,
       editOnDt: new Date(),
-      ModuleImagePath: payload.ModuleImagePath ?? existingModule.ModuleImagePath,
+      ModuleImagePath:
+        payload.ModuleImagePath ?? existingModule.ModuleImagePath,
       SortingOrder: payload.SortingOrder ?? existingModule.SortingOrder,
     });
 
@@ -95,7 +104,7 @@ export const updateModuleService = async (userEmail, moduleId, payload) => {
     };
   } catch (error) {
     logError("Module update failed", error);
-    console.error("Detailed Error:", error);  // Add this line for debug visibility
+    console.error("Detailed Error:", error); // Add this line for debug visibility
 
     return {
       status: 500,
@@ -150,7 +159,11 @@ export const updateModuleOrderService = async (modules) => {
   }
 };
 
-export const updateSubModuleService = async (userEmail, subModuleId, payload) => {
+export const updateSubModuleService = async (
+  userEmail,
+  subModuleId,
+  payload
+) => {
   try {
     const user = await User.findOne({
       where: {
@@ -168,13 +181,17 @@ export const updateSubModuleService = async (userEmail, subModuleId, payload) =>
     }
 
     const subModule = await SubModulesDetails.findOne({
-      where: { SubModuleID: subModuleId, delStatus: 0 }
+      where: { SubModuleID: subModuleId, delStatus: 0 },
     });
 
     if (!subModule) {
       return {
         status: 404,
-        response: { success: false, data: {}, message: "SubModule not found or already deleted" },
+        response: {
+          success: false,
+          data: {},
+          message: "SubModule not found or already deleted",
+        },
       };
     }
 
@@ -183,11 +200,15 @@ export const updateSubModuleService = async (userEmail, subModuleId, payload) =>
       typeof subModule.SubModuleImagePath === "string" &&
       subModule.SubModuleImagePath !== payload.SubModuleImagePath
     ) {
-      const oldImagePath = path.join(process.cwd(), subModule.SubModuleImagePath);
+      const oldImagePath = path.join(
+        process.cwd(),
+        subModule.SubModuleImagePath
+      );
 
       if (fs.existsSync(oldImagePath)) {
         const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
-        if (!fs.existsSync(deletedFolder)) fs.mkdirSync(deletedFolder, { recursive: true });
+        if (!fs.existsSync(deletedFolder))
+          fs.mkdirSync(deletedFolder, { recursive: true });
 
         const oldFileName = path.basename(subModule.SubModuleImagePath);
         const newTrashPath = path.join(deletedFolder, oldFileName);
@@ -203,24 +224,36 @@ export const updateSubModuleService = async (userEmail, subModuleId, payload) =>
 
     await subModule.update({
       SubModuleName: payload.SubModuleName,
-      SubModuleDescription: payload.SubModuleDescription === "" ? null : payload.SubModuleDescription,
-      SubModuleImagePath: payload.SubModuleImagePath ?? subModule.SubModuleImagePath,
+      SubModuleDescription:
+        payload.SubModuleDescription === ""
+          ? null
+          : payload.SubModuleDescription,
+      SubModuleImagePath:
+        payload.SubModuleImagePath ?? subModule.SubModuleImagePath,
       SortingOrder: payload.SortingOrder ?? subModule.SortingOrder,
-      AuthLstEdt: user.Name,
-      editOnDt: new Date()
+      AuthLstEdt: user.UserID,
+      editOnDt: new Date(),
     });
 
     logInfo("SubModule updated successfully");
 
     return {
       status: 200,
-      response: { success: true, data: subModule, message: "SubModule updated successfully" },
+      response: {
+        success: true,
+        data: subModule,
+        message: "SubModule updated successfully",
+      },
     };
   } catch (error) {
     logError("SubModule update failed", error);
     return {
       status: 500,
-      response: { success: false, data: error, message: "Something went wrong during submodule update" },
+      response: {
+        success: false,
+        data: error,
+        message: "Something went wrong during submodule update",
+      },
     };
   }
 };
@@ -262,8 +295,14 @@ export const deleteModuleService = async (userEmail, moduleId) => {
     }
 
     // 🔹 Step 3: Move image to deleted-files folder (if exists)
-    if (existingModule.ModuleImagePath && typeof existingModule.ModuleImagePath === "string") {
-      const originalPath = path.join(process.cwd(), existingModule.ModuleImagePath);
+    if (
+      existingModule.ModuleImagePath &&
+      typeof existingModule.ModuleImagePath === "string"
+    ) {
+      const originalPath = path.join(
+        process.cwd(),
+        existingModule.ModuleImagePath
+      );
 
       if (fs.existsSync(originalPath)) {
         const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
@@ -287,7 +326,7 @@ export const deleteModuleService = async (userEmail, moduleId) => {
     await existingModule.update({
       delStatus: 1,
       delOnDt: new Date(),
-      AddDel: user.Name, // ✅ store deleted user name here
+      AddDel: user.UserID, // ✅ store deleted user name here
     });
 
     logInfo(`Module ID ${moduleId} soft deleted by ${user.Name}`);
@@ -323,7 +362,7 @@ export const deleteModuleService = async (userEmail, moduleId) => {
 export const deleteSubModuleService = async (subModuleId, adminId) => {
   try {
     const existingSubModule = await SubModulesDetails.findOne({
-      where: { SubModuleID: subModuleId, delStatus: 0 }
+      where: { SubModuleID: subModuleId, delStatus: 0 },
     });
 
     if (!existingSubModule) {
@@ -331,13 +370,19 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
         status: 404,
         response: {
           success: false,
-          message: "Sub-module not found or already deleted"
-        }
+          message: "Sub-module not found or already deleted",
+        },
       };
     }
 
-    if (existingSubModule.SubModuleImagePath && typeof existingSubModule.SubModuleImagePath === "string") {
-      const originalPath = path.join(process.cwd(), existingSubModule.SubModuleImagePath);
+    if (
+      existingSubModule.SubModuleImagePath &&
+      typeof existingSubModule.SubModuleImagePath === "string"
+    ) {
+      const originalPath = path.join(
+        process.cwd(),
+        existingSubModule.SubModuleImagePath
+      );
 
       if (fs.existsSync(originalPath)) {
         const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
@@ -371,8 +416,8 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
           deletedAt: existingSubModule.delOnDt,
           deletedBy: adminId,
         },
-        message: "Sub-module soft-deleted & image moved to trash"
-      }
+        message: "Sub-module soft-deleted & image moved to trash",
+      },
     };
   } catch (error) {
     logError("Sub-module deletion failed", error);
@@ -381,8 +426,8 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
       response: {
         success: false,
         data: { message: error.message, stack: error.stack },
-        message: "Something went wrong during sub-module deletion"
-      }
+        message: "Something went wrong during sub-module deletion",
+      },
     };
   }
 };
@@ -394,10 +439,15 @@ export const updateFileService = async (userId, fileId, updateData) => {
       where: {
         [Op.or]: [
           { UserID: !isNaN(Number(userId)) ? Number(userId) : null },
-          { EmailId: typeof userId === "string" && userId.includes("@") ? userId : null }
+          {
+            EmailId:
+              typeof userId === "string" && userId.includes("@")
+                ? userId
+                : null,
+          },
         ],
-        delStatus: { [Op.or]: [0, null] }
-      }
+        delStatus: { [Op.or]: [0, null] },
+      },
     });
 
     if (!user) {
@@ -405,7 +455,7 @@ export const updateFileService = async (userId, fileId, updateData) => {
       return {
         success: false,
         data: {},
-        message: "User not found - please login first"
+        message: "User not found - please login first",
       };
     }
 
@@ -413,8 +463,8 @@ export const updateFileService = async (userId, fileId, updateData) => {
     const file = await LMSFilesDetails.findOne({
       where: {
         FileID: fileId,
-        delStatus: { [Op.or]: [0, null] }
-      }
+        delStatus: { [Op.or]: [0, null] },
+      },
     });
 
     if (!file) {
@@ -422,7 +472,7 @@ export const updateFileService = async (userId, fileId, updateData) => {
       return {
         success: false,
         data: {},
-        message: "File not found or already deleted"
+        message: "File not found or already deleted",
       };
     }
 
@@ -431,8 +481,8 @@ export const updateFileService = async (userId, fileId, updateData) => {
       FilesName: updateData.fileName ?? file.FilesName,
       Description: updateData.description ?? file.Description,
       EstimatedTime: updateData.estimatedTime ?? file.EstimatedTime,
-      AuthLstEdt: user.Name,
-      editOnDt: new Date()
+      AuthLstEdt: user.UserID,
+      editOnDt: new Date(),
     };
 
     // Add link update if file type is link
@@ -448,7 +498,7 @@ export const updateFileService = async (userId, fileId, updateData) => {
     return {
       success: true,
       data: file,
-      message: "File updated successfully"
+      message: "File updated successfully",
     };
   } catch (error) {
     logError("File update failed", error);
@@ -459,7 +509,7 @@ export const updateFileService = async (userId, fileId, updateData) => {
       data: error,
       message: error.message.includes("Conversion failed")
         ? "Invalid data type in database operation"
-        : "Something went wrong please try again"
+        : "Something went wrong please try again",
     };
   }
 };
@@ -482,7 +532,7 @@ export const recordFileViewService = async (userEmail, FileID) => {
     const progress = await LMSUserProgress.create({
       UserID: user.UserID,
       FileID,
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AddOnDt: new Date(),
       StartTime: new Date(),
       delStatus: 0,
@@ -491,7 +541,7 @@ export const recordFileViewService = async (userEmail, FileID) => {
     return {
       success: true,
       message: "File view recorded successfully",
-      progressId: progress.ProgressID,  // Important! Return ProgressID
+      progressId: progress.ProgressID, // Important! Return ProgressID
     };
   } catch (error) {
     console.error("Error in recordFileViewService:", error);
@@ -505,7 +555,11 @@ export const recordFileViewService = async (userEmail, FileID) => {
 
 export const updateFileViewEndTimeService = async (userEmail, FileID) => {
   if (!FileID || !userEmail) {
-    return { success: false, status: 400, message: "FileID and userEmail are required" };
+    return {
+      success: false,
+      status: 400,
+      message: "FileID and userEmail are required",
+    };
   }
 
   try {
@@ -624,7 +678,7 @@ export const addSubmoduleService = async ({
         SubModuleImagePath: imagePath,
         SubModuleDescription,
         ModuleID,
-        AuthAdd: user.Name,
+        AuthAdd: user.UserID,
         AddOnDt: new Date(),
         delStatus: 0,
       },
@@ -664,16 +718,18 @@ export const addSubmoduleService = async ({
   }
 };
 
-export const addUnitService = async ({ UnitName, UnitDescription, SubModuleID, userId }) => {
+export const addUnitService = async ({
+  UnitName,
+  UnitDescription,
+  SubModuleID,
+  userId,
+}) => {
   const t = await db.sequelize.transaction();
   try {
     // Find user by ID or email
     const user = await db.User.findOne({
       where: {
-        [Op.or]: [
-          { UserID: userId },
-          { EmailId: userId },
-        ],
+        [Op.or]: [{ UserID: userId }, { EmailId: userId }],
         delStatus: 0,
       },
     });
@@ -688,7 +744,7 @@ export const addUnitService = async ({ UnitName, UnitDescription, SubModuleID, u
         UnitName,
         UnitDescription: UnitDescription || null,
         SubModuleID,
-        AuthAdd: user.Name,
+        AuthAdd: user.UserID,
         AddOnDt: new Date(),
         delStatus: 0,
       },
@@ -739,7 +795,10 @@ export const deleteUnitService = async (userEmail, unitId) => {
     }
 
     // Step 3: Optional - move any attached files to trash folder
-    if (existingUnit.UnitFilePath && typeof existingUnit.UnitFilePath === "string") {
+    if (
+      existingUnit.UnitFilePath &&
+      typeof existingUnit.UnitFilePath === "string"
+    ) {
       const originalPath = path.join(process.cwd(), existingUnit.UnitFilePath);
 
       if (fs.existsSync(originalPath)) {
@@ -760,11 +819,11 @@ export const deleteUnitService = async (userEmail, unitId) => {
       }
     }
 
-    // Step 4: Perform soft delete
+    console.log("Found user:", user?.toJSON());
     await existingUnit.update({
       delStatus: 1,
       delOnDt: new Date(),
-      AuthDel: user.Name,
+      AuthDel: user.UserID,
     });
 
     logInfo(`Unit ID ${unitId} soft deleted by ${user.Name}`);
@@ -858,7 +917,7 @@ export const deleteFileService = async (userEmail, fileId) => {
     await existingFile.update({
       delStatus: 1,
       delOnDt: new Date(),
-      AddDel: user.Name,
+      AddDel: user.UserID,
     });
 
     // 🔹 Step 5: Count remaining active files in this unit
@@ -907,12 +966,3 @@ export const deleteFileService = async (userEmail, fileId) => {
     };
   }
 };
-
-
-
-
-
-
-
-
-

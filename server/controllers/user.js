@@ -54,7 +54,6 @@ export const databaseUserVerification = async (req, res) => {
 };
 
 export const registration = async (req, res) => {
-  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const warningMessage =
@@ -66,8 +65,8 @@ export const registration = async (req, res) => {
   }
 
   try {
-    const result = await UserService.registerUser(req.body);
-    console.log(result);
+    const userInfo = req.user || {}; // Example: { id: 'nilesh.thakur@giindia.com', isAdmin: 1, uniqueId: 1 }
+    const result = await UserService.registerUser(req.body, userInfo);
     return res.status(200).json(result);
   } catch (error) {
     console.error("Registration error:", error.message, error.stack);
@@ -257,7 +256,7 @@ export const resetPassword = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
   const { userId } = req.body;
-  const adminName = req.user?.id;
+  const adminName = req.user?.uniqueId;
 
   try {
     const result = await deleteUserService(userId, adminName);
@@ -288,7 +287,7 @@ export const addUser = async (req, res) => {
   }
 
   try {
-    const result = await UserService.addUserService(req.body);
+    const result = await UserService.addUserService(req.body, req.user);
 
     if (!result.success) {
       logWarning(result.message);

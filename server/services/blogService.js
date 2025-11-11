@@ -124,7 +124,7 @@ export const createBlogPost = async (userEmail, blogData) => {
       // If admin user and not draft, auto approve
       if (user.isAdmin === 1) {
         status = "Approved";
-        approvedBy = user.Name;
+        approvedBy = user.UserID;
         approvedOn = new Date();
       }
     }
@@ -181,7 +181,7 @@ export const createBlogPost = async (userEmail, blogData) => {
       image: blogData.image ?? null,
       Category: blogData.category ?? null,
       publishedDate: blogData.isDraft ? null : new Date(), // Only set published date for non-drafts
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AddOnDt: new Date(),
       delStatus: 0,
       Status: status,
@@ -265,6 +265,13 @@ export const getBlogService = async (userEmail) => {
           }),
     },
     order: [["AddOnDt", "DESC"]],
+    include: [
+      {
+        model: User,
+        required: false,
+        attributes: ["Name"],
+      },
+    ],
     attributes: [
       "BlogID",
       "title",
@@ -577,6 +584,7 @@ export const getPublicBlogsService = async () => {
 };
 
 export const updateBlogService = async (blogId, user, data) => {
+  console.log("shit happened", user);
   const { CommunityBlog } = db;
 
   // Check blog existence
@@ -606,9 +614,9 @@ export const updateBlogService = async (blogId, user, data) => {
       }
       updateData = {
         Status: "Approved",
-        ApprovedBy: user.id,
+        ApprovedBy: user.uniqueId,
         ApprovedOn: now,
-        AuthLstEdt: user.id,
+        AuthLstEdt: user.uniqueId,
         editOnDt: now,
       };
       break;
@@ -624,7 +632,7 @@ export const updateBlogService = async (blogId, user, data) => {
       updateData = {
         Status: "Rejected",
         AdminRemark: data.remark || "",
-        AuthLstEdt: user.id,
+        AuthLstEdt: user.uniqueId,
         editOnDt: now,
       };
       break;
@@ -632,7 +640,7 @@ export const updateBlogService = async (blogId, user, data) => {
     case "delete":
       updateData = {
         delStatus: 1,
-        AuthLstEdt: user.id,
+        AuthLstEdt: user.uniqueId,
         delOnDt: now,
       };
       break;
@@ -645,7 +653,7 @@ export const updateBlogService = async (blogId, user, data) => {
         publishedDate: data.publishedDate,
         Category: data.category,
         image: data.image,
-        AuthLstEdt: user.id,
+        AuthLstEdt: user.uniqueId,
         editOnDt: now,
       };
       break;
@@ -664,6 +672,7 @@ export const updateBlogService = async (blogId, user, data) => {
 };
 
 export const handleBlogLikeAction = async (user, postData) => {
+  console.log("user at blog like ", user);
   try {
     const blogId = postData.reference;
     if (!blogId) throw new Error("Invalid blog reference");
@@ -684,7 +693,7 @@ export const handleBlogLikeAction = async (user, postData) => {
     if (interaction) {
       // Update existing interaction - only update if like status is changing
       const updateData = {
-        AuthLstEdt: user.Name,
+        AuthLstEdt: user.UserID, // <-- Use numeric ID here too
         editOnDt: currentDate,
       };
 
@@ -711,21 +720,20 @@ export const handleBlogLikeAction = async (user, postData) => {
       };
     }
 
-    // Create new interaction if it doesn't exist
     const newInteraction = await ContentInteraction.create({
       ProcessName: "Blog",
       UserID: user.UserID,
       reference: blogId,
       Likes: intendedLikeStatus,
-      LikeStatus: 0, // Always 0 for like operations
-      Rating: null, // null for like operations
-      RatingStatus: null, // null for like operations
-      AuthAdd: user.Name,
+      LikeStatus: 0,
+      Rating: null,
+      RatingStatus: null,
+      AuthAdd: user.UserID, // <-- Use numeric ID
       AuthDel: null,
-      AuthLstEdt: null, // No edit on creation
+      AuthLstEdt: null,
       delOnDt: null,
       AddOnDt: currentDate,
-      editOnDt: null, // null on initial creation
+      editOnDt: null,
       delStatus: 0,
     });
 
@@ -771,7 +779,7 @@ export const handleBlogRateAction = async (user, postData) => {
       const updateData = {
         Rating: ratingValue,
         RatingStatus: 0,
-        AuthLstEdt: user.Name,
+        AuthLstEdt: user.UserID,
         editOnDt: currentDate,
       };
 
@@ -798,7 +806,7 @@ export const handleBlogRateAction = async (user, postData) => {
       LikeStatus: 0,
       Rating: ratingValue,
       RatingStatus: 0,
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AuthDel: null,
       AuthLstEdt: null,
       delOnDt: null,
@@ -843,7 +851,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
 
     if (interaction) {
       const updateData = {
-        AuthLstEdt: user.Name,
+        AuthLstEdt: user.UserID,
         editOnDt: currentDate,
       };
 
@@ -880,7 +888,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
       LikeStatus: 0,
       Rating: ratingValue,
       RatingStatus: ratingValue ? 0 : null,
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AuthDel: null,
       AuthLstEdt: null,
       delOnDt: null,
@@ -1004,11 +1012,54 @@ export const getBlogStatsService = async (blogId) => {
 
 export const userEditBlogPost = async (blogId, userId, blogData) => {
   try {
-    const blog = await Community_Blog.findOne({
-      where: { BlogID: blogId, UserID: userId },
+    console.log(
+      "🔍 Service - BlogID:",
+      blogId,
+      "UserID:",
+      userId,
+      "Type:",
+      typeof userId
+    );
+
+    // Validate inputs
+    if (!blogId || !userId) {
+      console.log("❌ Missing required parameters:", { blogId, userId });
+      return {
+        status: 400,
+        response: {
+          success: false,
+          message: "Blog ID and User ID are required",
+        },
+      };
+    }
+
+    const numericBlogId = parseInt(blogId);
+    const numericUserId = parseInt(userId);
+
+    if (isNaN(numericBlogId) || isNaN(numericUserId)) {
+      console.log("❌ Invalid IDs:", { numericBlogId, numericUserId });
+      return {
+        status: 400,
+        response: {
+          success: false,
+          message: "Invalid Blog ID or User ID",
+        },
+      };
+    }
+
+    console.log("🔍 Validated IDs:", { numericBlogId, numericUserId });
+
+    const blog = await CommunityBlog.findOne({
+      where: {
+        BlogID: numericBlogId,
+        UserID: numericUserId,
+      },
     });
 
+    console.log("🔍 Service - Found blog:", blog ? "Yes" : "No");
+
     if (!blog) {
+      console.log("❌ Blog not found or user not authorized");
       return {
         status: 404,
         response: {
@@ -1029,11 +1080,15 @@ export const userEditBlogPost = async (blogId, userId, blogData) => {
       Status: blogData.Status,
       ApprovedBy: blogData.ApprovedBy || blog.ApprovedBy,
       ApprovedOn: blogData.ApprovedOn || blog.ApprovedOn,
-      editOnDt: new Date(), // mark edited date
-      AuthLstEdt: userId.toString(), // or user email/name if needed
+      editOnDt: new Date(),
+      AuthLstEdt: userId.toString(),
     };
 
+    console.log("🔄 Updating blog with fields:", updatedFields);
+
     await blog.update(updatedFields);
+
+    console.log("✅ Blog updated successfully");
 
     return {
       status: 200,
@@ -1044,21 +1099,25 @@ export const userEditBlogPost = async (blogId, userId, blogData) => {
       },
     };
   } catch (err) {
-    console.error("Error updating blog:", err);
+    console.error("❌ Error updating blog:", err);
     return {
       status: 500,
-      response: { success: false, message: "Unexpected error occurred" },
+      response: {
+        success: false,
+        message: "Unexpected error occurred",
+        error: err.message,
+      },
     };
   }
 };
 
-export const softDeleteBlogService = async (blogId) => {
+export const softDeleteBlogService = async (blogId, userId) => {
   if (!blogId) {
     throw new Error("Blog ID required");
   }
 
-  // Use the instantiated model
   const blog = await CommunityBlog.findOne({ where: { BlogID: blogId } });
+
   if (!blog) {
     throw new Error("Blog not found");
   }
@@ -1066,6 +1125,7 @@ export const softDeleteBlogService = async (blogId) => {
   await blog.update({
     delStatus: 1,
     delOnDt: new Date(),
+    AuthDel: userId.toString(), // ✅ store who deleted it
   });
 
   return blog;

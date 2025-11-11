@@ -257,7 +257,7 @@ const Discussions = () => {
                         {discussion.Title}
                       </td>
                       <td className="p-2 border text-center min-w-[120px]">
-                        {discussion.UserName || "Unknown"}
+                        {discussion.User.Name || "Unknown"}
                       </td>
                       <td className="p-2 border text-center min-w-[200px]">
                         {stripHtmlTags((discussion.Content || "").substring(0, 50))}...

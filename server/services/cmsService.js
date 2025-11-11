@@ -32,7 +32,7 @@ export const addParallaxTextService = async (
       ComponentName: componentName,
       ComponentIdName: componentIdName,
       Content: content,
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AddOnDt: new Date(),
       delStatus: 0,
     });
@@ -104,7 +104,7 @@ export const deleteParallaxTextService = async (userEmail, idCode) => {
       {
         delStatus: 1,
         delOnDt: new Date(),
-        AuthDel: user.Name,
+        AuthDel: user.UserID,
         isActive: 0,
       },
       { where: { idCode } }
@@ -113,7 +113,7 @@ export const deleteParallaxTextService = async (userEmail, idCode) => {
     return {
       success: true,
       message: "Deleted successfully",
-      data: { idCode, AuthDel: user.Name },
+      data: { idCode, AuthDel: user.UserID },
     };
   } catch (error) {
     console.error("Error in deleteParallaxTextService:", error);
@@ -151,7 +151,7 @@ export const addContentSectionService = async (
       Title: title,
       Content: text,
       Image: image,
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AddOnDt: new Date(),
       delStatus: 0,
     });
@@ -276,7 +276,7 @@ export const updateContentSectionService = async (
         Image,
         ComponentName,
         ComponentIdName,
-        AuthLstEdt: user.Name,
+        AuthLstEdt: user.UserID,
         editOnDt: new Date(),
       },
       { where: { idCode: Number(id) } }

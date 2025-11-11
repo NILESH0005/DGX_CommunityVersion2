@@ -159,7 +159,7 @@ export const deleteModule = async (req, res) => {
 
 export const deleteSubModule = async (req, res) => {
   const { subModuleId } = req.body;
-  const adminId = req.user?.id;
+  const adminId = req.user?.uniqueId;
 
   if (!subModuleId || isNaN(subModuleId)) {
     return res.status(400).json({
@@ -217,7 +217,7 @@ export const addSubmodule = async (req, res) => {
     const SubModuleImage = req.file;
 
     // ✅ Ensure compatibility: user might have either UserID or id
-    const userId = req.user?.UserID || req.user?.id;
+    const userId = req.user?.uniqueId ;
 
     if (!userId) {
       return res.status(401).json({

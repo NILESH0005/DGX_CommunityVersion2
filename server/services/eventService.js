@@ -1,5 +1,5 @@
-import db from "../models/index.js";
-import { Op } from "sequelize"; // ✅ direct import
+import db, { sequelize } from "../models/index.js";
+import { Op } from "sequelize";
 import moment from "moment-timezone";
 import { fn, col } from "sequelize"; // ✅ ADD THIS LINE
 
@@ -95,7 +95,7 @@ export const addEventService = async (decodedUser, payload) => {
     RegistrationLink: registerLink,
     EventImage: poster,
     EventDescription: description,
-    AuthAdd: user.Name,
+    AuthAdd: user.UserID,
     AddOnDt: new Date(),
     delStatus: 0,
     Status: status,
@@ -109,37 +109,27 @@ export const addEventService = async (decodedUser, payload) => {
 };
 
 export const getEventService = async (userId) => {
-  const events = await CommunityEvents.findAll({
-    where: { delStatus: 0 },
-    include: [
-      {
-        model: MasterTable,
-        as: "EventTypeRef",
-        attributes: ["ddValue"],
-        where: { ddCategory: "eventType", delStatus: 0 },
-        required: false,
-      },
-      {
-        model: MasterTable,
-        as: "CategoryRef",
-        attributes: ["ddValue"],
-        where: { ddCategory: "eventHost", delStatus: 0 },
-        required: false,
-      },
-    ],
-    order: [["AddOnDt", "DESC"]],
-  });
-
-  const transformedEvents = events.map((event) => {
-    const eventObj = event.toJSON ? event.toJSON() : event;
-    return {
-      ...eventObj,
-      EventType: eventObj.EventTypeRef?.ddValue || eventObj.EventType,
-      Category: eventObj.CategoryRef?.ddValue || eventObj.Category,
-      EventTypeRef: undefined,
-      CategoryRef: undefined,
-    };
-  });
+  const [events] = await sequelize.query(`
+     SELECT 
+      ce.*,
+      mt1.ddValue as EventType,
+      mt2.ddValue as Category,
+      u.Name as UserName
+    FROM giindiadgx_community.community_events ce
+    LEFT JOIN giindiadgx_community.tblddreference mt1 
+      ON ce.EventType = mt1.idCode 
+      AND mt1.ddCategory = 'eventType' 
+      AND mt1.delStatus = 0
+    LEFT JOIN giindiadgx_community.tblddreference mt2 
+      ON ce.Category = mt2.idCode 
+      AND mt2.ddCategory = 'eventHost' 
+      AND mt2.delStatus = 0
+    LEFT JOIN giindiadgx_community.community_user u 
+      ON ce.UserID = u.UserID 
+      AND u.delStatus = 0
+    WHERE ce.delStatus = 0
+    ORDER BY ce.AddOnDt DESC
+  `);
 
   console.log("Query conditions:", { delStatus: 0, UserID: userId });
 
@@ -147,8 +137,7 @@ export const getEventService = async (userId) => {
     where: { delStatus: 0, UserID: userId },
   });
 
-  // Return transformedEvents instead of events
-  return { events: transformedEvents, totalCount };
+  return { events, totalCount };
 };
 
 export const updateEventService = async (eventId, user, payload) => {
@@ -202,7 +191,7 @@ export const updateEventService = async (eventId, user, payload) => {
         }
         updateData = {
           Status: "Approved",
-          AuthLstEdt: user.id,
+          AuthLstEdt: user.uniqueId,
           editOnDt: new Date(),
         };
         break;
@@ -218,7 +207,7 @@ export const updateEventService = async (eventId, user, payload) => {
         updateData = {
           Status: "Rejected",
           AdminRemark: remark || "",
-          AuthLstEdt: user.id,
+          AuthLstEdt: user.uniqueId,
           editOnDt: new Date(),
         };
         break;
@@ -226,7 +215,7 @@ export const updateEventService = async (eventId, user, payload) => {
       case "delete":
         updateData = {
           delStatus: 1,
-          AuthLstEdt: user.id,
+          AuthLstEdt: user.uniqueId,
           editOnDt: new Date(),
         };
         break;
@@ -244,7 +233,7 @@ export const updateEventService = async (eventId, user, payload) => {
           RegistrationLink: registerLink,
           EventImage: poster,
           EventDescription: description,
-          AuthLstEdt: user.id,
+          AuthLstEdt: user.uniqueId,
           editOnDt: new Date(),
         };
         break;

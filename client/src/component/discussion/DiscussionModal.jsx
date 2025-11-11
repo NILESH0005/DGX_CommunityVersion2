@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from "react";
 import { AiFillLike, AiOutlineLike } from "react-icons/ai";
+import { FaTrashAlt } from "react-icons/fa";
 import ApiContext from "../../context/ApiContext.jsx";
 import images from "../../../public/images.js";
 import Swal from "sweetalert2";
@@ -23,6 +24,7 @@ const DiscussionModal = ({
   discussion,
   setDemoDiscussion,
   updateCommentCount,
+  refreshDiscussions,
 }) => {
   const navigate = useNavigate();
   const { fetchData, userToken, user } = useContext(ApiContext);
@@ -61,7 +63,7 @@ const DiscussionModal = ({
   // Toxicity validation function for comments and replies
   const validateCommentToxicity = async (text) => {
     setIsCheckingToxicity(true);
-    
+
     try {
       const result = await checkToxicityWithReasonAndFlag(text);
       console.log("Comment toxicity result:", result);
@@ -101,6 +103,64 @@ const DiscussionModal = ({
       handleProfileRedirect(userId, navigate);
     } else {
       console.error("Invalid User ID:", userId);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "OK",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        // Use the new user-specific endpoint
+        const endpoint = "discussion/deleteUserComment";
+        const method = "POST";
+        const headers = {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        };
+        const body = { commentId };
+
+        const response = await fetchData(endpoint, method, body, headers);
+
+        if (response && response.success) {
+          Swal.fire({
+            icon: "success",
+            title: "Deleted!",
+            text: "The comment has been deleted.",
+          });
+
+          // Remove the comment from local state
+          const updatedComments = comments.filter(
+            (comment) => comment.DiscussionID !== commentId
+          );
+          setComments(updatedComments);
+
+          // Update comment count
+          if (updateCommentCount) {
+            updateCommentCount(
+              discussion.DiscussionID,
+              updatedComments.length,
+              updatedComments
+            );
+          }
+        } else {
+          throw new Error(response.message || "Failed to delete the comment.");
+        }
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: `Failed to delete the comment: ${error.message}`,
+        });
+      }
     }
   };
 
@@ -251,7 +311,7 @@ const DiscussionModal = ({
       reference: parentId,
       comment: replyText,
     };
-    
+
     setLoading(true);
     try {
       const data = await fetchData(endpoint, method, body, headers);
@@ -332,13 +392,13 @@ const DiscussionModal = ({
 
     const handleReply = async () => {
       if (!replyText.trim()) return;
-      
+
       // Check for toxicity before posting reply
       const isContentAppropriate = await validateCommentToxicity(replyText);
       if (!isContentAppropriate) {
         return; // Stop if content is inappropriate
       }
-      
+
       await handleAddReply(comment.DiscussionID, replyText);
       setIsReplying(false);
       setReplyText("");
@@ -370,12 +430,28 @@ const DiscussionModal = ({
                     {formatDate(comment.timestamp)}
                   </span>
                 </div>
-                <button
-                  onClick={() => setIsReplying(!isReplying)}
-                  className="text-gray-500 hover:text-DGXblue"
-                >
-                  <FaReply size={12} />
-                </button>
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setIsReplying(!isReplying)}
+                    className="text-gray-500 hover:text-DGXblue transition-colors"
+                    title="Reply"
+                  >
+                    <FaReply size={13} />
+                  </button>
+                  {(user?.UserID === comment.UserID || user?.isAdmin === 1) && (
+                    <button
+                      onClick={() => handleDeleteComment(comment.DiscussionID)}
+                      className="text-gray-500 hover:text-red-500 transition-colors"
+                      title={
+                        user?.isAdmin === 1 && user?.UserID !== comment.UserID
+                          ? "Delete as Admin"
+                          : "Delete"
+                      }
+                    >
+                      <FaTrashAlt size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="mt-1 text-gray-700 text-xs sm:text-sm">
                 {comment.Comment}
@@ -416,7 +492,11 @@ const DiscussionModal = ({
                         className="bg-DGXgreen hover:bg-DGXblue text-white text-xs sm:text-sm font-medium py-1 px-2 sm:px-3 rounded-lg transition-colors"
                         disabled={loading || isCheckingToxicity}
                       >
-                        {isCheckingToxicity ? "Checking..." : loading ? "Posting..." : "Reply"}
+                        {isCheckingToxicity
+                          ? "Checking..."
+                          : loading
+                          ? "Posting..."
+                          : "Reply"}
                       </button>
                     </div>
                   </div>
@@ -612,7 +692,11 @@ const DiscussionModal = ({
                         disabled={loading || isCheckingToxicity}
                         className="bg-DGXgreen hover:bg-DGXblue text-white text-xs sm:text-sm font-medium py-1 px-2 sm:py-2 sm:px-4 rounded-lg transition-colors"
                       >
-                        {isCheckingToxicity ? "Checking..." : loading ? "Posting..." : "Post Comment"}
+                        {isCheckingToxicity
+                          ? "Checking..."
+                          : loading
+                          ? "Posting..."
+                          : "Post Comment"}
                       </button>
                     </div>
                   </div>

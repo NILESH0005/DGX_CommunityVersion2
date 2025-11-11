@@ -57,11 +57,12 @@ export const discussionPost = async (req, res) => {
     };
 
     // Enhanced debugging
-    console.log('=== CONTROLLER DEBUG ===');
-    console.log('Full request body:', JSON.stringify(req.body, null, 2));
-    console.log('Processed postData:', JSON.stringify(postData, null, 2));
+    console.log("=== CONTROLLER DEBUG ===");
+    console.log("Full request body:", JSON.stringify(req.body, null, 2));
+    console.log("Processed postData:", JSON.stringify(postData, null, 2));
 
-    const isPureLikeAction = postData.reference &&
+    const isPureLikeAction =
+      postData.reference &&
       (postData.likes === 1 || postData.likes === 0) &&
       !postData.title &&
       !postData.content &&
@@ -70,10 +71,13 @@ export const discussionPost = async (req, res) => {
       !postData.image &&
       !postData.url;
 
-    console.log('Is Pure Like Action:', isPureLikeAction);
-    console.log('========================');
+    console.log("Is Pure Like Action:", isPureLikeAction);
+    console.log("========================");
 
-    const result = await DiscussionService.createDiscussionPost(userId, postData);
+    const result = await DiscussionService.createDiscussionPost(
+      userId,
+      postData
+    );
 
     return res.status(200).json(result);
   } catch (error) {
@@ -130,7 +134,6 @@ export const getDiscussion = async (req, res) => {
     });
   }
 };
-
 
 export const updateDiscussion = async (req, res) => {
   let success = false;
@@ -192,6 +195,31 @@ export const deleteDiscussion = async (req, res) => {
   }
 };
 
+export const deleteUserComment = async (req, res) => {
+  let success = false;
+  const { commentId } = req.body;
+  const userId = req.user?.uniqueId;
+
+  try {
+    const result = await DiscussionService.deleteUserCommentService(
+      userId,
+      commentId
+    );
+
+    success = true;
+    return res.status(200).json({
+      success,
+      data: result,
+      message: "Comment deleted successfully.",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Error deleting comment.",
+    });
+  }
+};
+
 export const discussionLike = async (req, res) => {
   try {
     const userEmail = req.user?.id; // Email from middleware
@@ -208,7 +236,10 @@ export const discussionLike = async (req, res) => {
     }
 
     // Directly pass the email to service - service will handle user fetching
-    const result = await DiscussionService.handleDiscussionLikeAction(userEmail, postData);
+    const result = await DiscussionService.handleDiscussionLikeAction(
+      userEmail,
+      postData
+    );
 
     return res.status(200).json(result);
   } catch (err) {
@@ -220,7 +251,6 @@ export const discussionLike = async (req, res) => {
   }
 };
 
-
 export const getDiscussionLikes = async (req, res) => {
   try {
     const { discussionIds } = req.body;
@@ -229,21 +259,27 @@ export const getDiscussionLikes = async (req, res) => {
     console.log("Get Discussion Likes - Discussion IDs:", discussionIds);
     console.log("Get Discussion Likes - User email:", userEmail);
 
-    if (!discussionIds || !Array.isArray(discussionIds) || discussionIds.length === 0) {
+    if (
+      !discussionIds ||
+      !Array.isArray(discussionIds) ||
+      discussionIds.length === 0
+    ) {
       return res.status(400).json({
         success: false,
         message: "Discussion IDs array is required",
       });
     }
 
-    const likesInfo = await DiscussionService.getDiscussionLikesInfoRaw(discussionIds, userEmail);
+    const likesInfo = await DiscussionService.getDiscussionLikesInfoRaw(
+      discussionIds,
+      userEmail
+    );
 
     return res.status(200).json({
       success: true,
       data: likesInfo,
-      message: "Discussion likes information retrieved successfully"
+      message: "Discussion likes information retrieved successfully",
     });
-
   } catch (err) {
     console.error("Get Discussion Likes Controller Error:", err);
     return res.status(500).json({
@@ -269,14 +305,16 @@ export const getSingleDiscussionLikeInfo = async (req, res) => {
       });
     }
 
-    const likesInfo = await DiscussionService.getSingleDiscussionLikes(discussionId, userEmail);
+    const likesInfo = await DiscussionService.getSingleDiscussionLikes(
+      discussionId,
+      userEmail
+    );
 
     return res.status(200).json({
       success: true,
       data: likesInfo,
-      message: "Discussion like information retrieved successfully"
+      message: "Discussion like information retrieved successfully",
     });
-
   } catch (err) {
     console.error("Get Single Discussion Like Controller Error:", err);
     return res.status(500).json({

@@ -166,7 +166,7 @@ export const deleteQuestion = async (req, res) => {
   }
 
   const { id } = req.body;
-  const adminName = req.user?.id; // from fetchUser middleware
+  const adminName = req.user?.uniqueId; // from fetchUser middleware
 
   try {
     const result = await deleteQuestionService(id, adminName);
@@ -500,7 +500,7 @@ export const updateQuiz = async (req, res) => {
 
 export const unmapQuestion = async (req, res) => {
   const { mappingIds } = req.body;
-  const adminName = req.user?.id; // from JWT
+  const adminName = req.user?.uniqueId; 
 
   try {
     const idsToUnmap = Array.isArray(mappingIds) ? mappingIds : [mappingIds];
@@ -530,7 +530,7 @@ export const updateQuestion = async (req, res) => {
   }
 
   try {
-    const result = await updateQuestionService(req.body, req.user.email);
+    const result = await updateQuestionService(req.body, req.user.uniqueId);
     return res.status(200).json(result);
   } catch (error) {
     console.error("Update Question Error:", error);

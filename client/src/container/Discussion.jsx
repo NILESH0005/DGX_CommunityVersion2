@@ -274,7 +274,7 @@ const Discussion = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [communityHighlights, setCommunityHighlights] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
-  const [bannerFilePath, setBannerFilePath] = useState(""); 
+  const [bannerFilePath, setBannerFilePath] = useState("");
   const [userReposts, setUserReposts] = useState(new Set());
 
   const getCommunityHighlights = (discussions) => {
@@ -783,7 +783,7 @@ const Discussion = () => {
     }
     const isContentAppropriate = await validateToxicity();
     if (!isContentAppropriate) {
-      return; 
+      return;
     }
 
     const endpoint = "discussion/discussionpost";
@@ -1021,6 +1021,14 @@ const Discussion = () => {
     setModalIsOpen(false);
   };
 
+  const refreshDiscussions = async () => {
+    if (userToken && user) {
+      await fetchDiscussionData(user.EmailId);
+    } else {
+      await fetchDiscussionData(null);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-white">
       <ToastContainer
@@ -1036,7 +1044,8 @@ const Discussion = () => {
           discussions={discussions}
           setDemoDiscussion={setDemoDiscussions}
           updateCommentCount={updateDiscussionCommentCount}
-          updateLikeCount={updateDiscussionLikeCount} // Add this new prop
+          updateLikeCount={updateDiscussionLikeCount}
+          refreshDiscussions={refreshDiscussions} // Add this prop
         />
       )}
       <div className="flex-1 flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4 overflow-hidden">

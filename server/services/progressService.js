@@ -185,7 +185,7 @@ export class ViewService {
         SubModuleID: viewData.SubModuleID || null,
         ViewStatus: 0,
         View: 1,
-        AuthAdd: userName,
+        AuthAdd: userId,
         AddOnDt: currentDate,
         delStatus: 0,
       });

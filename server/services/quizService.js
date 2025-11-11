@@ -26,9 +26,8 @@ export const createQuizService = async (userEmail, quizData) => {
     throw new Error("User not found, please login first.");
   }
 
-  const authAdd = user.Name;
+  const authAdd = user.UserID;
 
-  // Destructure with defaults
   let {
     category = null,
     name = null,
@@ -40,7 +39,7 @@ export const createQuizService = async (userEmail, quizData) => {
     startTime,
     endDate,
     endTime,
-    type = null, // not in table, ignoring
+    type = null,
     quizVisibility = "Public",
     quizImage = null,
     refId = 0,
@@ -242,7 +241,7 @@ export const deleteQuizService = async (quizId, userEmail) => {
   // 3. Update quiz (soft delete)
   quiz.delStatus = 1;
   quiz.delOnDt = new Date();
-  quiz.AuthDel = user.Name;
+  quiz.AuthDel = user.UserID;
 
   await quiz.save();
 
@@ -273,7 +272,7 @@ export const createQuestionService = async (payload, userEmail) => {
     throw new Error("User not found, please login first.");
   }
 
-  const authAdd = user.Name; // 👈 store Name instead of Email
+  const authAdd = user.UserID; // 👈 store Name instead of Email
 
   // ✅ Validation
   if (
@@ -365,12 +364,12 @@ export const getQuestionsService = async () => {
         q.Ques_level,
         q.question_type,
         q.AddOnDt
-      FROM giindiadgx_community.questions q
-      LEFT JOIN giindiadgx_community.groupmaster gm ON gm.group_id = q.group_id
-      LEFT JOIN giindiadgx_community.tblddreference td ON td.idCode = q.Ques_level
-      LEFT JOIN giindiadgx_community.questionoptions qo ON qo.question_id = q.id AND (qo.delStatus = 0 OR qo.delStatus IS NULL)
-      LEFT JOIN giindiadgx_community.quizmapping qm ON qm.QuestionsID = q.id AND (qm.delStatus = 0 OR qm.delStatus IS NULL)
-      LEFT JOIN giindiadgx_community.quizdetails qd ON qd.QuizID = qm.quizId
+      FROM giindiadgx_community.Questions q
+      LEFT JOIN giindiadgx_community.GroupMaster gm ON gm.group_id = q.group_id
+      LEFT JOIN giindiadgx_community.tblDDReference td ON td.idCode = q.Ques_level
+      LEFT JOIN giindiadgx_community.QuestionOptions qo ON qo.question_id = q.id AND (qo.delStatus = 0 OR qo.delStatus IS NULL)
+      LEFT JOIN giindiadgx_community.QuizMapping qm ON qm.QuestionsID = q.id AND (qm.delStatus = 0 OR qm.delStatus IS NULL)
+      LEFT JOIN giindiadgx_community.QuizDetails qd ON qd.QuizID = qm.quizId
       WHERE q.delStatus = 0
     `;
 
@@ -556,7 +555,7 @@ export const getQuestionsByGroupAndLevelService = async (
     // Step 1: Get Level Info
     const [levelResult] = await sequelize.query(
       `SELECT ddValue 
-       FROM \`tblddreference\` 
+       FROM giindiadgx_community.tblDDReference 
        WHERE idCode = :level_id AND ddCategory = 'questionLevel'`,
       {
         replacements: { level_id },
@@ -576,29 +575,29 @@ export const getQuestionsByGroupAndLevelService = async (
 
     // Step 2: Get Questions with Joins
     const questions = await sequelize.query(
-      ` SELECT  
-      q.id AS question_id,  
-      q.question_text, 
-      q.Ques_level AS level, 
-      q.group_id, 
-      qm.quizGroupID AS mapped_quiz_id,
-      qm.totalMarks, 
-      qm.negativeMarks, 
-      qd.NegativeMarking,
-      ddr.ddValue AS question_level,
-      qo.option_text,
-      qo.is_correct,
-      qd.QuizName AS quiz_name 
-    FROM giindiadgx_community.questions q
-    LEFT JOIN giindiadgx_community.quizmapping qm ON q.id = qm.QuestionsID
-    LEFT JOIN giindiadgx_community.quizdetails qd ON qm.quizGroupID = qd.QuizID 
-    LEFT JOIN giindiadgx_community.tblddreference ddr ON q.Ques_level = ddr.idCode
-    LEFT JOIN giindiadgx_community.questionoptions qo ON q.id = qo.question_id
-    WHERE COALESCE(q.delStatus, 0) = 0
-      AND q.group_id = :group_id
-      AND q.Ques_level = :level_id`,
+      `SELECT  
+        q.id AS question_id,  
+        q.question_text, 
+        q.Ques_level AS level, 
+        q.group_id, 
+        qm.quizGroupID AS mapped_quiz_id,
+        qm.totalMarks, 
+        qm.negativeMarks, 
+        qd.NegativeMarking,
+        ddr.ddValue AS question_level,
+        qo.option_text,
+        qo.is_correct,
+        qd.QuizName AS quiz_name 
+      FROM giindiadgx_community.Questions q
+      LEFT JOIN giindiadgx_community.QuizMapping qm ON q.id = qm.QuestionsID
+      LEFT JOIN giindiadgx_community.QuizDetails qd ON qm.quizGroupID = qd.QuizID 
+      LEFT JOIN giindiadgx_community.tblDDReference ddr ON q.Ques_level = ddr.idCode
+      LEFT JOIN giindiadgx_community.QuestionOptions qo ON q.id = qo.question_id
+      WHERE COALESCE(q.delStatus, 0) = 0
+        AND q.group_id = :group_id
+        AND q.Ques_level = :level_id`,
       {
-        replacements: { group_id, level_id },
+        replacements: { group_id, level_id }, // <-- pass replacements here
         type: sequelize.QueryTypes.SELECT,
       }
     );
@@ -654,7 +653,7 @@ export const createQuizQuestionMappingService = async (userEmail, mappings) => {
       negativeMarks: parseFloat(mapping.negativeMarks) || 0,
       totalMarks: parseFloat(mapping.totalMarks) || 1,
       Ques_level: parseInt(mapping.Ques_level) || 0,
-      AuthAdd: user.Name,
+      AuthAdd: user.UserID,
       AddOnDt: new Date(),
       delStatus: 0,
       UserID: user.UserID, // keep track of who added
@@ -881,7 +880,7 @@ export const updateQuizService = async (quizData, userEmail) => {
     quiz.StartDateAndTime = StartDateAndTime;
     quiz.EndDateTime = EndDateTime;
     quiz.QuizVisibility = QuizVisibility;
-    quiz.AuthLstEdt = user.Name; // user’s name instead of email
+    quiz.AuthLstEdt = user.UserID; // user’s name instead of email
     quiz.editOnDt = new Date();
 
     await quiz.save();
@@ -954,7 +953,7 @@ export const unmapQuestionService = async (mappingIds, adminName) => {
   }
 };
 
-export const updateQuestionService = async (payload, userEmail) => {
+export const updateQuestionService = async (payload, userId) => {
   const {
     id,
     question_text,
@@ -963,12 +962,22 @@ export const updateQuestionService = async (payload, userEmail) => {
     image,
     question_type,
     options,
-    AuthLstEdt,
   } = payload;
 
   let transaction;
   try {
     transaction = await sequelize.transaction();
+
+    // ✅ Validate user exists and is active
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [{ UserID: userId }, { id: userId }],
+        [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+      },
+      transaction,
+    });
+
+    if (!user) throw new Error("User not found or inactive");
 
     // ✅ Validate Question exists
     const question = await QuizQuestions.findOne({
@@ -1007,7 +1016,7 @@ export const updateQuestionService = async (payload, userEmail) => {
         group_id,
         image: image || null,
         question_type,
-        AuthLstEdt: AuthLstEdt || userEmail || "Unknown",
+        AuthLstEdt: user.UserID, // ⬅️ store user ID, not email
         editOnDt: new Date(),
       },
       { transaction }
@@ -1044,7 +1053,7 @@ export const updateQuestionService = async (payload, userEmail) => {
           option_text: option.option_text.trim(),
           is_correct: option.is_correct ? 1 : 0,
           image: option.image || null,
-          AuthLstEdt: AuthLstEdt || userEmail || "Unknown",
+          AuthLstEdt: user.UserID, // ✅ user ID
           editOnDt: new Date(),
         },
         { where: { id: option.id, question_id: id }, transaction }
@@ -1059,8 +1068,8 @@ export const updateQuestionService = async (payload, userEmail) => {
           option_text: option.option_text.trim(),
           is_correct: option.is_correct ? 1 : 0,
           image: option.image || null,
-          AuthAdd: AuthLstEdt || userEmail || "Unknown",
-          AuthLstEdt: AuthLstEdt || userEmail || "Unknown",
+          AuthAdd: user.UserID, // ✅ user ID
+          AuthLstEdt: user.UserID,
           AddOnDt: new Date(),
         },
         { transaction }
@@ -1072,8 +1081,8 @@ export const updateQuestionService = async (payload, userEmail) => {
       await QuizQuestionOptions.update(
         {
           delStatus: 1,
-          AuthDel: AuthLstEdt || userEmail || "Unknown",
-          AuthLstEdt: AuthLstEdt || userEmail || "Unknown",
+          AuthDel: user.UserID, // ✅ user ID
+          AuthLstEdt: user.UserID,
           delOnDt: new Date(),
         },
         { where: { id: optionsToDelete }, transaction }
@@ -1087,6 +1096,7 @@ export const updateQuestionService = async (payload, userEmail) => {
       message: "Question updated successfully",
       data: {
         questionId: id,
+        updatedBy: user.Name,
         optionsUpdated: optionsToUpdate.length,
         optionsAdded: newOptions.length,
         optionsDeleted: optionsToDelete.length,
@@ -1177,7 +1187,7 @@ export const submitQuizService = async (userId, { quizId, answers }) => {
             answerID: optionId,
             correctAns: isCorrect,
             marks: questionMarks,
-            AuthAdd: user.Name,
+            AuthAdd: user.UserID,
             AddOnDt: new Date(),
             delStatus: 0,
             ObtainedMarks: isFullyCorrect ? questionMarks : -negativeMarks,

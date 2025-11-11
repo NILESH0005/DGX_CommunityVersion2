@@ -160,7 +160,6 @@ const AdminUsers = () => {
         });
 
         await fetchUsers();
-
         setShowAddUserModal(false);
         setNewUser({
           Name: '',

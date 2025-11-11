@@ -409,7 +409,7 @@ const EventTable = (props) => {
                         {event.EventTitle}
                       </td>
                       <td className="p-2 border text-center">
-                        {event.AuthAdd}
+                        {event.UserName}
                       </td>
                       <td className="p-2 border text-center">
                         {formatDateTime(event.StartDate)}

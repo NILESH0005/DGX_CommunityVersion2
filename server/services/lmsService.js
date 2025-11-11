@@ -27,7 +27,7 @@ export class LMSService {
         throw new Error("User not found, please login first.");
       }
 
-      const cleanUserName = user.Name; // ✅ use Name (not email)
+      const cleanUserName = user.UserID; // ✅ use Name (not email)
       const userId = user.UserID;
 
       // === Save Module ===
@@ -71,7 +71,7 @@ export class LMSService {
               : null,
             SubModuleDescription: sub.SubModuleDescription || null,
             ModuleID: module.ModuleID,
-            AuthAdd: cleanUserName, // ✅ using Name
+            AuthAdd: cleanUserName,
             AddOnDt: new Date(),
             delStatus: 0,
           },
@@ -130,11 +130,23 @@ export class LMSService {
     });
   }
 
-  // Save file or link for unit
-  static async saveFileOrLink(unitId, userName, data) {
+  static async saveFileOrLink(unitId, userId, data) {
+    console.log("userId:", userId);
+
     return await db.sequelize.transaction(async (t) => {
-      // Count existing files
-      const count = await LMSFilesDetails.count({
+      // ✅ Step 1: Find the user by ID (ensure valid)
+      const user = await db.User.findOne({
+        where: {
+          [Op.or]: [{ UserID: userId }, { id: userId }],
+          [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+        },
+        transaction: t,
+      });
+
+      if (!user) throw new Error("User not found");
+
+      // ✅ Step 2: Count existing files
+      const count = await db.LMSFilesDetails.count({
         where: { UnitID: unitId, delStatus: 0 },
         transaction: t,
       });
@@ -142,19 +154,19 @@ export class LMSService {
       const total = count + 1;
       const equalPercentage = (100 / total).toFixed(2);
 
-      // Update existing files with new percentage
-      await LMSFilesDetails.update(
+      // ✅ Step 3: Update existing files with new percentage
+      await db.LMSFilesDetails.update(
         { Percentage: equalPercentage },
         { where: { UnitID: unitId, delStatus: 0 }, transaction: t }
       );
 
-      // Insert new file or link
+      // ✅ Step 4: Create new file or link
       const fileData = {
         FilesName: data.FilesName,
         FilePath: data.FilePath,
         FileType: data.FileType,
         UnitID: unitId,
-        AuthAdd: userName,
+        AuthAdd: user.UserID, // <-- user ID saved here instead of name
         AddOnDt: new Date(),
         delStatus: 0,
         Percentage: equalPercentage,
@@ -162,30 +174,40 @@ export class LMSService {
         EstimatedTime: data.EstimatedTime || 0,
       };
 
-      const newFile = await LMSFilesDetails.create(fileData, {
+      const newFile = await db.LMSFilesDetails.create(fileData, {
         transaction: t,
       });
+
       return newFile;
     });
   }
 
-  // Upload updated file + recalc percentage
   static async uploadUpdatedFile(
     unitId,
-    userName,
+    userId,
     file,
     description,
     sortingOrder,
     estimatedTime
   ) {
     return await db.sequelize.transaction(async (t) => {
-      await LMSFilesDetails.create(
+      const user = await db.User.findOne({
+        where: {
+          [Op.or]: [{ UserID: userId }, { id: userId }],
+          [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+        },
+        transaction: t,
+      });
+
+      if (!user) throw new Error("User not found");
+
+      await db.LMSFilesDetails.create(
         {
           FilesName: file.originalname,
           FilePath: `/uploads/${file.filename}`,
           FileType: file.mimetype,
           UnitID: unitId,
-          AuthAdd: userName,
+          AuthAdd: user.UserID, // store user ID instead of name
           AddOnDt: new Date(),
           delStatus: 0,
           Description: description || null,
@@ -195,20 +217,26 @@ export class LMSService {
         { transaction: t }
       );
 
-      // Fetch all files in this unit
-      const allFiles = await LMSFilesDetails.findAll({
+      // ✅ Step 3: Fetch all active files for the unit
+      const allFiles = await db.LMSFilesDetails.findAll({
         where: { UnitID: unitId, delStatus: 0 },
         transaction: t,
       });
 
+      // ✅ Step 4: Distribute equal percentage
       const percentage = (100 / allFiles.length).toFixed(2);
 
-      // Update percentage for all
       for (const f of allFiles) {
         await f.update({ Percentage: percentage }, { transaction: t });
       }
 
-      return { unitId, percentage, totalFiles: allFiles.length };
+      // ✅ Step 5: Return useful info
+      return {
+        unitId,
+        percentage,
+        totalFiles: allFiles.length,
+        addedBy: user.Name,
+      };
     });
   }
 }

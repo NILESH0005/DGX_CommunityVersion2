@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useState, useContext } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import Home from "./container/Home.jsx";
 import Navbar from "./component/Navbar.jsx";
 import VerifyEmail from "./component/VerifyEmail.jsx";
@@ -118,16 +118,25 @@ import UserDetails from "../src/container/UserDetails.jsx";
 import BlogForm from "./Admin/Components/BlogComponents/BlogForm.jsx";
 import EventDetailsPage from "./component/EventDetailsPage.jsx";
 import PublicBlogPage from "./component/PublicBlogPage.jsx";
-// Use CDN to load the worker (best option with Vite)
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
+const ProtectedLayout = () => {
+  const { userToken } = useContext(ApiContext);
+  return userToken ? <Outlet /> : <Navigate to="/SignInn" replace />;
+};
+
+const PublicOnlyLayout = () => {
+  const { userToken } = useContext(ApiContext);
+  return !userToken ? <Outlet /> : <Navigate to="/" replace />;
+};
 
 function App() {
   const [blogs, setBlogs] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [totalEventsCount, setTotalEventsCount] = useState(0); // Add this state
+  const [totalEventsCount, setTotalEventsCount] = useState(0); 
 
-  const { user, userToken, fetchData, setUserToken } = useContext(ApiContext);
+  const { userToken, fetchData } = useContext(ApiContext);
 
   const fetchEventData = async () => {
     try {
@@ -144,9 +153,7 @@ function App() {
       const eventData = await fetchData(endpoint, method, {}, headers);
       console.log("Full API response:", eventData);
 
-      // Check different possible response structures
       if (eventData && eventData.success) {
-        // Try different possible data properties
         const eventsData =
           eventData.data || eventData.events || eventData.result || [];
         console.log("Events data extracted:", eventsData);
@@ -167,13 +174,12 @@ function App() {
   };
 
   useEffect(() => {
-    // Only fetch events if we have a user token
     if (userToken) {
       fetchEventData();
     } else {
       console.log("No user token, skipping events fetch");
     }
-  }, [userToken]); // Run when userToken changes
+  }, [userToken]); 
 
   return (
     <>
@@ -192,16 +198,15 @@ function App() {
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
             <Route path="/ChangePassword" element={<ChangePassword />} />
             <Route path="/userprofile/profile/:id" element={<UserDetails />} />
-            {/* User Profile  */}
             <Route
               path="/UserProfile"
               element={
                 <UserProfile
                   blogs={blogs}
                   setBlogs={setBlogs}
-                  events={events} // ← PASSING EVENTS DATA
-                  setEvents={setEvents} // ← PASSING SETTER FUNCTION
-                  totalEventsCount={totalEventsCount} // Add this prop
+                  events={events} 
+                  setEvents={setEvents} 
+                  totalEventsCount={totalEventsCount} 
                 />
               }
             />
@@ -210,7 +215,9 @@ function App() {
             <Route path="/ContactUs" element={<ContactUs />} />
             <Route path="/Blog" element={<Blog />} />
             <Route path="/BlogForm" element={<BlogForm />} />
-            <Route path="/blog/:blogId" element={<PublicBlogPage />} />
+            <Route element={<ProtectedLayout />}>
+              <Route path="/blog/:blogId" element={<PublicBlogPage />} />
+            </Route>
             {/* <Route path='/DiscussionModal' element={<DiscussionModal />} /> */}
             <Route path="/ResetPassword" element={<ResetPassword />} />
             <Route
@@ -245,8 +252,6 @@ function App() {
             {/* <Route path='/PostCode' element={<PostCode />} /> */}
             <Route path="/CreateICSFile" element={<CreateICSFile />} />
             <Route path="/AddUserEvent" element={<AddUserEvent />} />
-
-            {/* //add path for dynamic  homepage */}
             <Route path="/ParallaxSection" element={<ParallaxSection />} />
             <Route path="/ContentSection" element={<ContentSection />} />
             <Route path="/NewsSection" element={<NewsSection />} />
@@ -270,7 +275,6 @@ function App() {
             <Route path="/CreateQuiz" element={<CreateQuiz />} />
             <Route path="/QuestionBank" element={<QuestionBank />} />
             {/*-----------ADMIN----------- */}
-
             <Route
               path="/AdminDashboard"
               element={

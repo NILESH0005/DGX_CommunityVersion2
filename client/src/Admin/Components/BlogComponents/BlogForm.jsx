@@ -280,14 +280,24 @@ const BlogForm = (props) => {
       }
     }
 
-    const endpoint = "blog/blogpost";
-    const method = "POST";
+    // ✅ FIX: Use different endpoints for create vs update
+    let endpoint, method;
+
+    if (isEditing) {
+      // Use update endpoint for editing
+      endpoint = `blog/updateUserProfileBlog/${props.editingBlog.BlogID}`;
+      method = "POST";
+    } else {
+      // Use create endpoint for new blogs
+      endpoint = "blog/blogpost";
+      method = "POST";
+    }
 
     const body = {
-      BlogID: isEditing ? props.editingBlog.BlogID : undefined,
+      // For both create and update
       title,
       content,
-      image: selectedImage, // This will now be the URL from FileUploader
+      image: selectedImage,
       category,
       Status: blogStatus,
       UserName: user.Name,
@@ -295,7 +305,16 @@ const BlogForm = (props) => {
       isDraft: isDraft,
       ApprovedBy: approvedBy,
       ApprovedOn: approvedOn,
+      // Only include BlogID for update if needed by your backend
+      ...(isEditing && { BlogID: props.editingBlog.BlogID }),
     };
+
+    console.log("🔄 API Call:", {
+      endpoint,
+      method,
+      isEditing,
+      blogId: props.editingBlog?.BlogID,
+    });
 
     try {
       const data = await fetchData(endpoint, method, body, headers);

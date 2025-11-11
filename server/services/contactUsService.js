@@ -21,7 +21,7 @@ export const updateContactDetailsService = async (userEmail, data) => {
     throw new Error("User not found. Please login again.");
   }
 
-  const userName = user.Name;
+  const userName = user.UserID;
 
   // Soft delete old record
   await ContactUs.update(

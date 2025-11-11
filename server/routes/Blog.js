@@ -25,11 +25,7 @@ router.get("/getBlog", fetchUser, getBlog);
 router.get("/getPublicBlogs", getPublicBlogs);
 router.get("/getUserBlogs", fetchUser, getUserBlogs);
 router.post("/updateBlog/:blogId", fetchUser, updateBlog);
-router.post(
-  "/updateBlogupdateUserProfileBlog/:blogId",
-  fetchUser,
-  updateUserProfileBlog
-);
+router.post("/updateUserProfileBlog/:id", fetchUser, updateUserProfileBlog);
 router.post("/likeBlogController", fetchUser, likeBlogController);
 router.post("/rate/:blogId", fetchUser, rateBlogController);
 router.post("/deleteBlog/:blogId", fetchUser, softDeleteBlog);
