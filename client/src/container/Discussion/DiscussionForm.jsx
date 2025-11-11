@@ -1,458 +1,502 @@
-import { useState, useEffect, useRef, useContext } from "react";
-import { FaSearch, FaComment, FaWindowClose, FaTrophy } from "react-icons/fa";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import ApiContext from "../context/ApiContext.jsx";
-import DiscussionModal from "../component/discussion/DiscussionModal.jsx";
-import { compressImage } from "../utils/compressImage.js";
-import { AiFillLike, AiOutlineLike, AiOutlineComment } from "react-icons/ai";
-import { useCallback } from "react";
-import Skeleton from "react-loading-skeleton";
-import "react-loading-skeleton/dist/skeleton.css";
+import { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
-
-const [discussions, setDiscussions] = useState([]);
-const [filteredDiscussions, setFilteredDiscussions] = useState([]);
-const [selectedDiscussion, setSelectedDiscussion] = useState(null);
-const [isLoading, setIsLoading] = useState(true);
-const [loading, setLoading] = useState(false);
-const [searchQuery, setSearchQuery] = useState("");
-const [searchScope, setSearchScope] = useState("all");
-const [isFormOpen, setIsFormOpen] = useState(false);
-const [modalIsOpen, setModalIsOpen] = useState(false);
-const [title, setTitle] = useState("");
-const [content, setContent] = useState("");
-const [tags, setTags] = useState([]);
-const [links, setLinks] = useState([]);
-const [selectedImage, setSelectedImage] = useState(null);
-const [privacy, setPrivacy] = useState("private");
-const [errors, setErrors] = useState({
-    title: "",
-    content: "",
-    tags: "",
-    links: "",
-    privacy: "",
-});
-const [communityHighlights, setCommunityHighlights] = useState([]);
-const [topUsers, setTopUsers] = useState([]);
-const handleTagInputChange = (e) => setTagInput(e.target.value);
-const handleLinkInputChange = (e) => setLinkInput(e.target.value);
-const closeModal = () => {
-    resetForm();
-    setModalIsOpen(false);
-    setIsFormOpen(false);
-};
-
-const resetForm = () => {
-    setTitle("");
-    setContent("");
-    setTags([]);
-    setLinks([]);
-    setSelectedImage(null);
-    setTagInput("");
-    setLinkInput("");
-    setPrivacy("private");
-    setErrors({
-        title: "",
-        content: "",
-        tags: "",
-        links: "",
-        privacy: "",
-    });
-};
+import FileUploader from "../../container/FileUploader.jsx";
+import { checkToxicityWithReasonAndFlag } from "../../utils/toxicityDetection.js";
 
 const DiscussionForm = ({
-    title,
-    setTitle,
-    content,
-    setContent,
-    tags,
-    setTags,
-    links,
-    setLinks,
-    selectedImage,
-    setSelectedImage,
-    privacy,
-    setPrivacy,
-    errors,
-    validateTitle,
-    validateContent,
-    validateTags,
-    validateLinks,
-    validatePrivacy,
-    handleSubmit,
-    loading,
-    onClose,
-    handleImageChange,
+  userToken,
+  user,
+  fetchData,
+  fetchDiscussionData,
+  onClose,
 }) => {
-    const [tagInput, setTagInput] = useState("");
-    const [linkInput, setLinkInput] = useState("");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState("");
+  const [links, setLinks] = useState([]);
+  const [linkInput, setLinkInput] = useState("");
+  const [privacy, setPrivacy] = useState("private");
+  const [allowRepost, setAllowRepost] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [bannerFilePath, setBannerFilePath] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false);
+  const [errors, setErrors] = useState({});
 
-    const handleTagInputKeyPress = (e) => {
-        if (e.key === "Enter" && tagInput.trim() !== "") {
-            e.preventDefault();
-            if (tags.length < 5) {
-                setTags([...tags, tagInput.trim()]);
-                setTagInput("");
-            }
-        }
+  const BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
+
+  // --------------------------
+  // Validation functions
+  // --------------------------
+  const validateTitle = () => {
+    if (!title.trim()) {
+      setErrors((prev) => ({ ...prev, title: "Title is required" }));
+      return false;
+    }
+    if (title.length > 100) {
+      setErrors((prev) => ({
+        ...prev,
+        title: "Title must be under 100 characters",
+      }));
+      return false;
+    }
+    setErrors((prev) => ({ ...prev, title: "" }));
+    return true;
+  };
+
+  const validateContent = () => {
+    const text = content.replace(/<[^>]*>/g, "").trim();
+    if (!text) {
+      setErrors((prev) => ({ ...prev, content: "Content cannot be empty" }));
+      return false;
+    }
+    if (text.length > 5000) {
+      setErrors((prev) => ({
+        ...prev,
+        content: "Content must be under 5000 characters",
+      }));
+      return false;
+    }
+    setErrors((prev) => ({ ...prev, content: "" }));
+    return true;
+  };
+
+  const validateTags = () => {
+    if (tags.length === 0) {
+      setErrors((prev) => ({ ...prev, tags: "At least one tag is required" }));
+      return false;
+    }
+    if (tags.length > 5) {
+      setErrors((prev) => ({ ...prev, tags: "Maximum 5 tags allowed" }));
+      return false;
+    }
+    setErrors((prev) => ({ ...prev, tags: "" }));
+    return true;
+  };
+
+  const validateLinks = () => {
+    const urlRegex =
+      /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+    const invalidLinks = links.filter((l) => !urlRegex.test(l));
+    if (invalidLinks.length > 0) {
+      setErrors((prev) => ({
+        ...prev,
+        links: "Invalid URL detected (e.g., https://example.com)",
+      }));
+      return false;
+    }
+    setErrors((prev) => ({ ...prev, links: "" }));
+    return true;
+  };
+
+  const validatePrivacy = () => {
+    if (!privacy) {
+      setErrors((prev) => ({ ...prev, privacy: "Select privacy setting" }));
+      return false;
+    }
+    setErrors((prev) => ({ ...prev, privacy: "" }));
+    return true;
+  };
+
+  // --------------------------
+  // Toxicity Validation
+  // --------------------------
+  const validateToxicity = async () => {
+    setIsCheckingToxicity(true);
+    try {
+      const stripped = content.replace(/<[^>]*>?/gm, "").trim();
+      const text = `${title} ${stripped}`;
+      const result = await checkToxicityWithReasonAndFlag(text);
+      if (result.flag === 0 && result.reasons.length > 0) {
+        await Swal.fire({
+          icon: "warning",
+          title: "Content Moderation Alert",
+          html: `Your content contains potentially inappropriate material:<br/><br/>
+          <strong>Reasons:</strong><br/>
+          ${result.reasons.join("<br/>")}`,
+        });
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error("Toxicity check error", err);
+      const res = await Swal.fire({
+        icon: "warning",
+        title: "Moderation unavailable",
+        text: "Moderation service is down. Post anyway?",
+        showCancelButton: true,
+      });
+      return res.isConfirmed;
+    } finally {
+      setIsCheckingToxicity(false);
+    }
+  };
+
+  // --------------------------
+  // Handlers
+  // --------------------------
+  const handleTagAdd = () => {
+    if (tagInput.trim() && tags.length < 5) {
+      setTags([...tags, tagInput.trim()]);
+      setTagInput("");
+      setErrors((prev) => ({ ...prev, tags: "" }));
+    }
+  };
+
+  const handleLinkAdd = () => {
+    if (!linkInput.trim()) return;
+    let formatted = linkInput.trim();
+    if (!formatted.startsWith("http")) formatted = `https://${formatted}`;
+    const urlRegex =
+      /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
+    if (!urlRegex.test(formatted)) {
+      setErrors((prev) => ({
+        ...prev,
+        links: "Invalid URL format (e.g., https://example.com)",
+      }));
+      return;
+    }
+    setLinks([...links, formatted]);
+    setLinkInput("");
+    setErrors((prev) => ({ ...prev, links: "" }));
+  };
+
+  const handleImageUpload = (result) => {
+    const { filePath } = result;
+    const newImage = `${BASE_URL}/${filePath}`;
+    setSelectedImage(newImage);
+    setBannerFilePath(filePath);
+  };
+
+  // --------------------------
+  // Submit
+  // --------------------------
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // 🚫 NEW ADDITION: Check login before submitting
+    if (!userToken || !user) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "You need to login first to start a new discussion.",
+        confirmButtonText: "OK",
+      });
+      return;
+    }
+
+    const valid =
+      validateTitle() &&
+      validateContent() &&
+      validateTags() &&
+      validateLinks() &&
+      validatePrivacy();
+    if (!valid) {
+      Swal.fire("Validation Error", "Fix errors before submitting", "error");
+      return;
+    }
+    const clean = await validateToxicity();
+    if (!clean) return;
+
+    const body = {
+      title,
+      content,
+      tags: tags.join(","),
+      url: links.join(","),
+      visibility: privacy,
+      bannerImagePath: bannerFilePath,
+      allowRepost,
+    };
+    const headers = {
+      "Content-Type": "application/json",
+      "auth-token": userToken,
     };
 
-    const removeTag = (tagToRemove) => {
-        setTags(tags.filter((tag) => tag !== tagToRemove));
-    };
+    setLoading(true);
+    try {
+      const data = await fetchData(
+        "discussion/discussionpost",
+        "POST",
+        body,
+        headers
+      );
+      if (!data.success) throw new Error(data.message);
 
-    const handleLinkInputKeyPress = (e) => {
-        if (e.key === "Enter" && linkInput.trim() !== "") {
-            e.preventDefault();
-            setLinks([...links, linkInput.trim()]);
-            setLinkInput("");
-        }
-    };
+      await Swal.fire("Success", "Discussion posted successfully!", "success");
+      fetchDiscussionData(user?.EmailId);
+      onClose();
+    } catch (err) {
+      Swal.fire("Error", err.message || "Something went wrong", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const removeLink = (linkToRemove) => {
-        setLinks(links.filter((link) => link !== linkToRemove));
-    };
+  // --------------------------
+  // 🚫 Prevent form rendering if user not logged in
+  // --------------------------
+  useEffect(() => {
+    if (!userToken || !user) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "Please login first to start a discussion.",
+        confirmButtonText: "OK",
+      });
+      onClose && onClose(); // close form if user not logged in
+    }
+  }, [userToken, user]);
 
-    useEffect(() => {
-        const fetchDiscussionData = async (userEmail) => {
-            try {
-                const body = userEmail ? { user: userEmail } : { user: null };
-                const endpoint = "discussion/getdiscussion";
-                const method = "POST";
-                const headers = {
-                    "Content-Type": "application/json",
-                };
+  // --------------------------
+  // Render
+  // --------------------------
+  return (
+    <div className="animate-slide-down mb-6">
+      <div className="bg-white border-2 border-DGXgreen/20 rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-DGXgreen to-DGXblue p-4">
+          <h3 className="text-xl font-bold text-white">
+            Start a New Discussion
+          </h3>
+        </div>
 
-                setLoading(true);
-                const result = await fetchData(endpoint, method, body, headers);
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Title */}
+          <div>
+            <label className="font-semibold text-gray-700">Title *</label>
+            <input
+              type="text"
+              className={`w-full border-2 rounded-xl p-3 focus:ring-DGXgreen ${
+                errors.title ? "border-red-500" : "border-gray-300"
+              }`}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={validateTitle}
+              maxLength={100}
+              placeholder="Enter your discussion title"
+            />
+            {errors.title && (
+              <p className="text-red-500 text-sm">{errors.title}</p>
+            )}
+          </div>
 
-                if (result?.data?.updatedDiscussions) {
-                    setDemoDiscussions(result.data.updatedDiscussions);
-                    setFilteredDiscussions(result.data.updatedDiscussions);
-                    const highlights = getCommunityHighlights(
-                        result.data.updatedDiscussions
-                    );
-                    setCommunityHighlights(highlights);
-                    const users = getTopUsersByDiscussions(result.data.updatedDiscussions);
-                    setTopUsers(users);
+          {/* Content */}
+          <div>
+            <label className="font-semibold text-gray-700">Content *</label>
+            <ReactQuill
+              value={content}
+              onChange={setContent}
+              onBlur={validateContent}
+              theme="snow"
+              modules={{
+                toolbar: [
+                  [{ header: [1, 2, 3, false] }],
+                  ["bold", "italic", "underline"],
+                  [{ list: "ordered" }, { list: "bullet" }],
+                  ["link"],
+                ],
+              }}
+            />
+            {errors.content && (
+              <p className="text-red-500 text-sm">{errors.content}</p>
+            )}
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="font-semibold text-gray-700">Tags *</label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                className="flex-1 border-2 border-gray-300 rounded-xl p-3"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), handleTagAdd())
                 }
-                setLoading(false);
-            } catch (error) {
-                setLoading(false);
-                // console.error("Error fetching discussions:", error);
-            }
-        };
+                placeholder="Press Enter to add tag"
+              />
+              <button
+                type="button"
+                onClick={handleTagAdd}
+                className="bg-DGXblue text-white px-5 rounded-xl hover:bg-DGXgreen"
+              >
+                Add
+              </button>
+            </div>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {tags.map((tag, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full text-sm"
+                  >
+                    #{tag}
+                    <button
+                      type="button"
+                      className="ml-2"
+                      onClick={() => setTags(tags.filter((t) => t !== tag))}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            {errors.tags && (
+              <p className="text-red-500 text-sm">{errors.tags}</p>
+            )}
+          </div>
 
-        if (userToken && user) {
-            fetchDiscussionData(user.EmailId);
-        } else {
-            fetchDiscussionData(null);
-        }
-    }, [user, userToken, fetchData]);
+          {/* Links */}
+          <div>
+            <label className="font-semibold text-gray-700">
+              Reference Links
+            </label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="text"
+                className="flex-1 border-2 border-gray-300 rounded-xl p-3"
+                value={linkInput}
+                onChange={(e) => setLinkInput(e.target.value)}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), handleLinkAdd())
+                }
+                placeholder="Add URL and press Enter"
+              />
+              <button
+                type="button"
+                onClick={handleLinkAdd}
+                className="bg-DGXblue text-white px-5 rounded-xl hover:bg-DGXgreen"
+              >
+                Add
+              </button>
+            </div>
+            {links.length > 0 && (
+              <ul className="mt-2 list-disc pl-6 text-sm text-blue-600">
+                {links.map((l, i) => (
+                  <li key={i}>
+                    <a href={l} target="_blank" rel="noopener noreferrer">
+                      {l}
+                    </a>{" "}
+                    <button
+                      type="button"
+                      onClick={() => setLinks(links.filter((x) => x !== l))}
+                      className="text-red-500 ml-2"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {errors.links && (
+              <p className="text-red-500 text-sm">{errors.links}</p>
+            )}
+          </div>
 
-    
-    return (
-        <form
-            onSubmit={handleSubmit}
-            className="border border-gray-300 rounded-lg p-4"
-        >
-            <h3 className="text-lg font-bold mb-4">
-                Start a New Discussion
-            </h3>
-
-            <div className="mb-4">
-                <label
-                    className="block text-gray-700 font-bold mb-2"
-                    htmlFor="title"
-                >
-                    Title <span className="text-red-500">*</span>
-                </label>
+          {/* Repost */}
+          <div>
+            <label className="font-semibold text-gray-700">
+              Allow Reposting *
+            </label>
+            <div className="flex gap-4 mt-2">
+              <label className="flex items-center gap-2">
                 <input
-                    id="title"
-                    type="text"
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.title ? "border-red-500" : ""
-                        }`}
-                    value={title}
-                    onChange={(e) => {
-                        setTitle(e.target.value);
-                        if (errors.title) validateTitle();
-                    }}
-                    onBlur={validateTitle}
-                    required
-                    maxLength={100}
+                  type="radio"
+                  checked={allowRepost}
+                  onChange={() => setAllowRepost(true)}
                 />
-                <div className="flex justify-between">
-                    {errors.title && (
-                        <p className="text-red-500 text-xs italic">
-                            {errors.title}
-                        </p>
-                    )}
-                    <span className="text-xs text-gray-500 ml-auto">
-                        {title.length}/100 characters
-                    </span>
-                </div>
-            </div>
-
-            <div className="mb-4">
-                <label
-                    className="block text-gray-700 font-bold mb-2"
-                    htmlFor="content"
-                >
-                    Content <span className="text-red-500">*</span>
-                </label>
-                <ReactQuill
-                    id="content"
-                    theme="snow"
-                    value={content}
-                    onChange={(value) => {
-                        setContent(value);
-                        if (errors.content) validateContent();
-                    }}
-                    onBlur={validateContent}
-                    className={`border rounded-lg ${errors.content ? "border-red-500" : ""
-                        }`}
-                    modules={{
-                        toolbar: [
-                            [{ header: [1, 2, 3, false] }],
-                            ["bold", "italic", "underline", "strike"],
-                            ["blockquote", "code-block"],
-                            [{ list: "ordered" }, { list: "bullet" }],
-                            ["link", "formula"],
-                            ["clean"],
-                        ],
-                    }}
-                />
-                <div className="flex justify-between">
-                    {errors.content && (
-                        <p className="text-red-500 text-xs italic">
-                            {errors.content}
-                        </p>
-                    )}
-                    <span className="text-xs text-gray-500 ml-auto">
-                        {content.replace(/<[^>]*>/g, "").length}/5000 characters
-                    </span>
-                </div>
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-gray-700 font-bold mb-2">
-                    Tags <span className="text-red-500">*</span>
-                </label>
+                <span>Yes</span>
+              </label>
+              <label className="flex items-center gap-2">
                 <input
-                    type="text"
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.tags ? "border-red-500" : ""
-                        }`}
-                    value={tagInput}
-                    onChange={handleTagInputChange}
-                    onKeyPress={(e) => {
-                        if (e.key === "Enter" && tagInput.trim() !== "") {
-                            e.preventDefault();
-                            if (tags.length < 5) {
-                                setTags([...tags, tagInput.trim()]);
-                                setTagInput("");
-                                setErrors({ ...errors, tags: "" });
-                            } else {
-                                setErrors({
-                                    ...errors,
-                                    tags: "Maximum 5 tags allowed",
-                                });
-                            }
-                        }
-                    }}
-                    onBlur={validateTags}
-                    placeholder="Press Enter to add a tag (max 5)"
+                  type="radio"
+                  checked={!allowRepost}
+                  onChange={() => setAllowRepost(false)}
                 />
-                <div className="flex justify-between">
-                    {errors.tags && (
-                        <p className="text-red-500 text-xs italic">
-                            {errors.tags}
-                        </p>
-                    )}
-                    <span className="text-xs text-gray-500 ml-auto">
-                        {tags.length}/5 tags
-                    </span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                    {tags.map((tag, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center bg-DGXgreen text-white rounded-full px-3 py-1"
-                        >
-                            <span>{tag}</span>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    removeTag(tag);
-                                    validateTags();
-                                }}
-                                className="ml-2 text-white hover:text-red-200"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    ))}
-                </div>
+                <span>No</span>
+              </label>
             </div>
+          </div>
 
-            <div className="mb-4">
-                <label className="block text-gray-700 font-bold mb-2">
-                    Links <span className="text-red-500">*</span>
-                </label>
-                <input
-                    type="text"
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.links ? "border-red-500" : ""
-                        }`}
-                    value={linkInput}
-                    onChange={handleLinkInputChange}
-                    onKeyPress={(e) => {
-                        if (e.key === "Enter" && linkInput.trim() !== "") {
-                            e.preventDefault();
-                            const urlRegex =
-                                /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-                            if (urlRegex.test(linkInput.trim())) {
-                                setLinks([...links, linkInput.trim()]);
-                                setLinkInput("");
-                                setErrors({ ...errors, links: "" });
-                            } else {
-                                setErrors({
-                                    ...errors,
-                                    links: "Please enter a valid URL",
-                                });
-                            }
-                        }
-                    }}
-                    onBlur={validateLinks}
-                    placeholder="Press Enter to add a valid URL (e.g., https://example.com)"
+          {/* Image Upload */}
+          <div>
+            <label className="font-semibold text-gray-700">Banner Image</label>
+            <FileUploader
+              moduleName="Discussion"
+              folderName="discussion-banners"
+              onUploadComplete={handleImageUpload}
+              accept="image/*"
+              maxSize={200 * 1024}
+              label="Upload Image"
+            />
+            {selectedImage && (
+              <div className="mt-2">
+                <img
+                  src={selectedImage}
+                  alt="banner"
+                  className="w-32 h-20 object-cover rounded-md"
                 />
-                {errors.links && (
-                    <p className="text-red-500 text-xs italic">
-                        {errors.links}
-                    </p>
-                )}
-                <div className="mt-2 flex flex-wrap gap-2">
-                    {links.map((link, index) => (
-                        <div
-                            key={index}
-                            className="flex items-center bg-DGXblue text-white rounded-full px-3 py-1"
-                        >
-                            <span className="truncate max-w-xs">{link}</span>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    removeLink(link);
-                                    validateLinks();
-                                }}
-                                className="ml-2 text-white hover:text-red-200"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-gray-700 font-bold mb-2">
-                    Image
-                </label>
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                />
-                {selectedImage && (
-                    <div className="mt-2">
-                        <img
-                            src={selectedImage}
-                            alt="Selected"
-                            className="max-h-40"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setSelectedImage(null)}
-                            className="mt-2 text-red-500 text-sm"
-                        >
-                            Remove Image
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            <div className="mb-4">
-                <label className="block text-gray-700 font-bold mb-2">
-                    Privacy <span className="text-red-500">*</span>
-                </label>
-                <select
-                    value={privacy}
-                    onChange={(e) => {
-                        setPrivacy(e.target.value);
-                        setErrors({ ...errors, privacy: "" });
-                    }}
-                    onBlur={validatePrivacy}
-                    className={`w-full px-3 py-2 border rounded-lg ${errors.privacy ? "border-red-500" : ""
-                        }`}
-                >
-                    <option value="">Select privacy</option>
-                    <option value="private">Private</option>
-                    <option value="public">Public</option>
-                </select>
-                {errors.privacy && (
-                    <p className="text-red-500 text-xs italic">
-                        {errors.privacy}
-                    </p>
-                )}
-            </div>
-
-            <div className="flex justify-end space-x-2">
                 <button
-                    type="button"
-                    className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300"
-                    onClick={closeModal}
+                  type="button"
+                  onClick={() => {
+                    setSelectedImage(null);
+                    setBannerFilePath("");
+                  }}
+                  className="text-red-500 ml-2 text-sm"
                 >
-                    Close
+                  Remove
                 </button>
-                <button
-                    type="submit"
-                    className="bg-DGXgreen text-white py-2 px-4 rounded-lg hover:bg-DGXblue disabled:opacity-50"
-                    disabled={
-                        loading || Object.values(errors).some((error) => error)
-                    }
-                >
-                    {loading ? (
-                        <span className="flex items-center">
-                            <svg
-                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                            >
-                                <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                ></circle>
-                                <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                            </svg>
-                            Posting...
-                        </span>
-                    ) : (
-                        "Submit"
-                    )}
-                </button>
-            </div>
+              </div>
+            )}
+          </div>
+
+          {/* Privacy */}
+          <div>
+            <label className="font-semibold text-gray-700">Privacy *</label>
+            <select
+              value={privacy}
+              onChange={(e) => setPrivacy(e.target.value)}
+              onBlur={validatePrivacy}
+              className="w-full border-2 border-gray-300 rounded-xl p-3 mt-1"
+            >
+              <option value="">Select privacy</option>
+              <option value="private">🔒 Private</option>
+              <option value="public">🌍 Public</option>
+            </select>
+            {errors.privacy && (
+              <p className="text-red-500 text-sm">{errors.privacy}</p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 border border-gray-300 rounded-xl"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading || isCheckingToxicity}
+              className="px-8 py-3 bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-xl"
+            >
+              {isCheckingToxicity
+                ? "Checking..."
+                : loading
+                ? "Posting..."
+                : "Publish Discussion"}
+            </button>
+          </div>
         </form>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default DiscussionForm;

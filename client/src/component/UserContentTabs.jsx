@@ -5,6 +5,9 @@ import AddUserBlog from "./AddUserBlog.jsx";
 import UserQuiz from "./UserQuiz.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import moment from "moment";
+import { AiFillLike } from "react-icons/ai";
+import { FaComment } from "react-icons/fa";
+import { FiRepeat, FiXCircle, FiCheckCircle } from "react-icons/fi";
 
 const UserContentTabs = ({
   activeTab,
@@ -88,25 +91,44 @@ const UserContentTabs = ({
 
                     {/* Engagement Metrics */}
                     <div className="flex items-center justify-between mb-3 text-xs text-gray-600">
+                      {/* Left Section: Likes & Comments */}
                       <div className="flex items-center gap-4">
+                        {/* Likes */}
                         <div className="flex items-center gap-1">
+                          <AiFillLike className="text-DGXblue w-4 h-4" />
                           <span className="font-semibold">
                             {discussion.likeCount || 0}
                           </span>
-                          <span>Likes</span>
                         </div>
+
+                        {/* Comments */}
                         <div className="flex items-center gap-1">
+                          <FaComment className="text-DGXgreen w-4 h-4" />
                           <span className="font-semibold">
                             {discussion.commentCount || 0}
                           </span>
-                          <span>Comments</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
+
+                      {/* Right Section: Repost */}
+                      <div className="relative group flex items-center gap-1">
+                        {/* Dynamic Icon */}
+                        {discussion.allowRepost ? (
+                          <FiRepeat className="text-DGXblue w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+                        ) : (
+                          <FiXCircle className="text-red-400 w-4 h-4" />
+                        )}
+
                         <span className="font-semibold">
                           {discussion.repostCount || 0}
                         </span>
-                        <span>Reposts</span>
+
+                        {/* Tooltip on hover */}
+                        <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                          {discussion.allowRepost
+                            ? "Repost Allowed"
+                            : "Repost Not Allowed"}
+                        </div>
                       </div>
                     </div>
 

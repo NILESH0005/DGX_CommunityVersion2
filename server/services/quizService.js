@@ -350,7 +350,7 @@ export const createQuestionService = async (payload, userEmail) => {
 export const getQuestionsService = async () => {
   try {
     const query = `
-      SELECT 
+     SELECT 
         q.id AS question_id,
         q.question_text,
         gm.group_name,

@@ -273,7 +273,6 @@ const PublicBlogModal = ({
     }
   };
 
-  // Handle Rating function
   const handleRate = async (rating) => {
     if (!userToken) {
       Swal.fire({
@@ -325,7 +324,6 @@ const PublicBlogModal = ({
     }
   };
 
-  // Initialize states from blog data
   useEffect(() => {
     if (blog?.userLiked) {
       setIsLiked(true);
@@ -492,7 +490,7 @@ const PublicBlogModal = ({
           animate={{ scale: 1, y: 0 }}
           exit={{ scale: 0.95, y: 20 }}
           transition={{ type: "spring", damping: 20 }}
-          className="bg-white p-6 rounded-xl w-full max-w-4xl max-h-[90vh] relative overflow-y-auto shadow-2xl"
+          className="bg-white p-6 rounded-xl w-full max-w-8xl max-h-[90vh] relative overflow-y-auto shadow-2xl"
         >
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -597,13 +595,50 @@ const PublicBlogModal = ({
                 <p className="text-gray-500 text-sm">{published_date}</p>
               </motion.div>
 
+              {/* ---- BLOG CONTENT (render Jodit HTML) ---- */}
+              {/* Key changes:
+                  - Use .blog-content wrapper and CSS below to make sure Jodit output
+                    (alignments, lists, tables) renders correctly.
+                  - We avoid forcing a global text-justify that would override Jodit's alignment.
+              */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-justify text-gray-700 leading-relaxed space-y-4 prose max-w-none"
-                dangerouslySetInnerHTML={{ __html: content }}
-              />
+                className="mb-6"
+              >
+                <div
+                  className="blog-content text-gray-700 leading-relaxed space-y-4 max-w-none overflow-x-auto"
+                  // render raw html from Jodit
+                  dangerouslySetInnerHTML={{ __html: content }}
+                />
+              </motion.div>
+
+              {/* Styling to ensure lists/tables/alignments show as expected */}
+              <style>{`
+                /* blog-content specific styles so they don't accidentally affect rest of app */
+                .blog-content { word-break: break-word; }
+                .blog-content img { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; }
+                .blog-content figure { margin: 0; }
+                .blog-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
+                .blog-content table th,
+                .blog-content table td { border: 1px solid #e5e7eb; padding: 0.5rem; text-align: left; vertical-align: top; }
+                .blog-content thead th { background: #f9fafb; font-weight: 600; }
+                .blog-content ul, .blog-content ol { padding-left: 1.25rem; margin: 0.5rem 0; }
+                .blog-content ul { list-style-type: disc; }
+                .blog-content ol { list-style-type: decimal; }
+                /* Honor inline align attributes and inline styles for text-align (center/left/right) */
+                .blog-content [align="center"], .blog-content .align-center { text-align: center; }
+                .blog-content [align="right"], .blog-content .align-right { text-align: right; }
+                .blog-content [align="left"], .blog-content .align-left { text-align: left; }
+                /* Force inline style text-align to apply (important when other utilities exist) */
+                .blog-content [style*="text-align"] { text-align: inherit !important; }
+                /* small helpers for code blocks */
+                .blog-content pre { white-space: pre-wrap; word-break: break-word; padding: 0.75rem; background: #11182710; border-radius: 0.5rem; overflow: auto; }
+                .blog-content code { background: #F3F4F6; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
+                /* ensure long words don't break the layout */
+                .blog-content * { max-width: 100%; box-sizing: border-box; }
+              `}</style>
 
               {/* Rating Section */}
               <motion.div
@@ -762,7 +797,7 @@ const PublicBlogModal = ({
                   </svg>
                   Share
                 </motion.button>
-                
+
                 <motion.button
                   whileHover={{
                     scale: 1.05,

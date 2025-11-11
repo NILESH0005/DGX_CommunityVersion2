@@ -10,7 +10,7 @@ import ForgotPassword from "./component/ForgotPassword";
 import ChangePassword from "./component/ChangePassword.jsx";
 import UserProfile from "./component/UserProfile.jsx";
 
-import Discussion from "./container/Discussion.jsx";
+import Discussion from "./container/Discussion/Discussion.jsx";
 import Blog from "./container/Blog.jsx";
 import ContactUs from "./container/ContactUs.jsx";
 import Notfound from "./component/Notfound.jsx";
