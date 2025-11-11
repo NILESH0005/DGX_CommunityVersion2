@@ -589,11 +589,11 @@ export const getQuestionsByGroupAndLevelService = async (
       qo.option_text,
       qo.is_correct,
       qd.QuizName AS quiz_name 
-    FROM giindiadgx_community.questions q
-    LEFT JOIN giindiadgx_community.quizmapping qm ON q.id = qm.QuestionsID
-    LEFT JOIN giindiadgx_community.quizdetails qd ON qm.quizGroupID = qd.QuizID 
-    LEFT JOIN giindiadgx_community.tblddreference ddr ON q.Ques_level = ddr.idCode
-    LEFT JOIN giindiadgx_community.questionoptions qo ON q.id = qo.question_id
+    FROM giindiadgx_community.Questions q
+    LEFT JOIN giindiadgx_community.QuizMapping qm ON q.id = qm.QuestionsID
+    LEFT JOIN giindiadgx_community.QuizDetails qd ON qm.quizGroupID = qd.QuizID 
+    LEFT JOIN giindiadgx_community.tblDDReference ddr ON q.Ques_level = ddr.idCode
+    LEFT JOIN giindiadgx_community.QuestionOptions qo ON q.id = qo.question_id
     WHERE COALESCE(q.delStatus, 0) = 0
       AND q.group_id = :group_id
       AND q.Ques_level = :level_id`,
