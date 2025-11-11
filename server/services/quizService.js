@@ -595,8 +595,8 @@ export const getQuestionsByGroupAndLevelService = async (
     LEFT JOIN giindiadgx_community.tblDDReference ddr ON q.Ques_level = ddr.idCode
     LEFT JOIN giindiadgx_community.QuestionOptions qo ON q.id = qo.question_id
     WHERE COALESCE(q.delStatus, 0) = 0
-      AND q.group_id = :group_id
-      AND q.Ques_level = :level_id`,
+      AND q.group_id = group_id
+      AND q.Ques_level = level_id`,
       {
         replacements: { group_id, level_id },
         type: sequelize.QueryTypes.SELECT,
