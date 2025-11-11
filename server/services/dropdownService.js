@@ -503,7 +503,7 @@ export const getDiscussionStatsService = async () => {
           where: {
             ProcessName: "Discussion",
             reference: discussion.DiscussionID,
-            LikeStatus: 1,
+            Likes: 1,
             delStatus: 0,
           },
         });

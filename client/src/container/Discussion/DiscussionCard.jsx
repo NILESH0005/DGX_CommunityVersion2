@@ -18,6 +18,8 @@ const DiscussionCard = ({
   navigate,
   fetchData,
   user,
+  updateLikeCount,       // <--- add
+  updateCommentCount,    // optional if you need it
 }) => {
   const [likeCount, setLikeCount] = useState(discussion.likeCount || 0);
   const [userLike, setUserLike] = useState(discussion.userLike || 0);
@@ -32,46 +34,53 @@ const DiscussionCard = ({
   // LIKE HANDLER
   // ---------------------------
   const handleLike = async (e) => {
-    e.stopPropagation();
-    if (!userToken) {
-      Swal.fire({
-        icon: "warning",
-        title: "Login Required",
-        text: "Please log in to like this discussion.",
-        confirmButtonText: "Login",
-      }).then((res) => {
-        if (res.isConfirmed) navigate("/SignInn");
-      });
-      return;
-    }
+  e.stopPropagation();
 
-    const newLikeState = userLike === 1 ? 0 : 1;
-    const newCount =
-      newLikeState === 1 ? likeCount + 1 : Math.max(0, likeCount - 1);
+  if (!userToken) {
+    Swal.fire({
+      icon: "warning",
+      title: "Login Required",
+      text: "Please log in to like this discussion.",
+      confirmButtonText: "Login",
+    }).then((res) => {
+      if (res.isConfirmed) navigate("/SignInn");
+    });
+    return;
+  }
 
-    setUserLike(newLikeState);
-    setLikeCount(newCount);
+  const prevLike = userLike;
+  const prevCount = likeCount;
 
-    try {
-      const endpoint = "discussion/like";
-      const method = "POST";
-      const headers = {
-        "Content-Type": "application/json",
-        "auth-token": userToken,
-      };
-      const body = {
-        reference: discussion.DiscussionID,
-        likes: newLikeState,
-      };
-      const res = await fetchData(endpoint, method, body, headers);
-      if (!res.success) throw new Error(res.message);
-    } catch (err) {
-      console.error(err);
-      setUserLike(userLike === 1 ? 0 : 1);
-      setLikeCount(likeCount);
-      Swal.fire("Error", "Failed to update like. Try again.", "error");
-    }
-  };
+  const newLikeState = userLike === 1 ? 0 : 1;
+  const newCount =
+    newLikeState === 1 ? likeCount + 1 : Math.max(0, likeCount - 1);
+
+  // 🔥 Optimistic UI update
+  setUserLike(newLikeState);
+  setLikeCount(newCount);
+
+  // 🔥 Update parent immediately
+  if (typeof updateLikeCount === "function") {
+    updateLikeCount(discussion.DiscussionID, newCount, newLikeState);
+  }
+
+  try {
+    const endpoint = "discussion/like";
+    const res = await fetchData(endpoint, "POST",
+      { reference: discussion.DiscussionID, likes: newLikeState },
+      { "Content-Type": "application/json", "auth-token": userToken }
+    );
+
+    if (!res.success) throw new Error(res.message);
+  } catch (err) {
+    console.error("Like Error:", err);
+    setUserLike(prevLike);
+    setLikeCount(prevCount);
+    Swal.fire("Error", "Failed to update like. Try again.", "error");
+  }
+};
+
+
 
   // ---------------------------
   // REPOST HANDLER
@@ -265,7 +274,10 @@ const DiscussionCard = ({
       <div className="flex flex-wrap items-center justify-between pt-4 border-t border-gray-100 gap-4">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           {/* Like */}
-          <button onClick={handleLike} className="flex items-center gap-2 group">
+          <button
+            onClick={handleLike}
+            className="flex items-center gap-2 group"
+          >
             <div
               className={`p-2 rounded-full transition-all ${
                 userLike === 1

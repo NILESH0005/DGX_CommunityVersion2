@@ -37,6 +37,46 @@ const Discussion = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const currentUserId = user?.uniqueId || user?.UserID;
+  const handleUpdateCommentCount = (
+    discussionId,
+    newCommentCount,
+    updatedComments
+  ) => {
+    setDemoDiscussions((prevDiscussions) =>
+      prevDiscussions.map((d) =>
+        d.DiscussionID === discussionId
+          ? { ...d, commentCount: newCommentCount, comment: updatedComments }
+          : d
+      )
+    );
+
+    // Also update filtered discussions if shown
+    setFilteredDiscussions((prevDiscussions) =>
+      prevDiscussions.map((d) =>
+        d.DiscussionID === discussionId
+          ? { ...d, commentCount: newCommentCount, comment: updatedComments }
+          : d
+      )
+    );
+  };
+  // ✅ Like Count Update Handler
+  const handleUpdateLikeCount = (discussionId, newLikeCount, userLikeState) => {
+    setDemoDiscussions((prev) =>
+      prev.map((d) =>
+        d.DiscussionID === discussionId
+          ? { ...d, likeCount: newLikeCount, userLike: userLikeState }
+          : d
+      )
+    );
+
+    setFilteredDiscussions((prev) =>
+      prev.map((d) =>
+        d.DiscussionID === discussionId
+          ? { ...d, likeCount: newLikeCount, userLike: userLikeState }
+          : d
+      )
+    );
+  };
 
   // ===== Fetch Data =====
   const fetchDiscussionData = async (userEmail) => {
@@ -70,10 +110,50 @@ const Discussion = () => {
     }
   };
 
+  const getTopUsersByDiscussions = (discussions) => {
+    const userMap = {};
+
+    discussions.forEach((discussion) => {
+      const userID =
+        discussion.UserID || discussion.userId || discussion.AuthorID;
+      const userName =
+        discussion.UserName ||
+        discussion.userName ||
+        discussion.AuthorName ||
+        "Anonymous";
+
+      if (userID) {
+        if (!userMap[userID]) {
+          userMap[userID] = { userID, userName, count: 1 };
+        } else {
+          userMap[userID].count += 1;
+        }
+      }
+    });
+
+    return Object.values(userMap)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  };
+
   useEffect(() => {
-    if (userToken && user) fetchDiscussionData(user.EmailId);
-    else fetchDiscussionData(null);
+    const initFetch = async () => {
+      if (userToken && user) {
+        await fetchDiscussionData(user.EmailId);
+      } else {
+        await fetchDiscussionData(null);
+      }
+    };
+
+    initFetch();
   }, [user, userToken]);
+
+  useEffect(() => {
+    if (demoDiscussions.length > 0) {
+      const topUsersList = getTopUsersByDiscussions(demoDiscussions);
+      setTopUsers(topUsersList);
+    }
+  }, [demoDiscussions]);
 
   // ===== Helpers =====
   const openModal = (discussion) => {
@@ -94,18 +174,18 @@ const Discussion = () => {
           isOpen={modalIsOpen}
           onRequestClose={closeModal}
           discussion={selectedDiscussion}
-          updateStats={() => fetchDiscussionData(user?.EmailId)}
+          updateCommentCount={handleUpdateCommentCount}
         />
       )}
 
       <div className="flex-1 flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4 overflow-hidden">
         {/* LEFT - Top Contributors */}
-        <aside className="hidden lg:block lg:w-1/4 px-4 space-y-8">
+        <aside className="hidden lg:block lg:w-1/6 px-4 space-y-8">
           <TopContributors topUsers={topUsers} />
         </aside>
 
         {/* CENTER - Discussion List and Form */}
-        <section className="w-full lg:w-2/4 px-4 flex flex-col overflow-y-scroll h-[80vh]">
+        <section className="w-full lg:w-5/6 px-4 flex flex-col overflow-y-scroll h-[80vh]">
           <SearchBar
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -113,9 +193,9 @@ const Discussion = () => {
             setSearchScope={setSearchScope}
             demoDiscussions={demoDiscussions}
             setFilteredDiscussions={setFilteredDiscussions}
-            userToken={userToken} 
-            navigate={navigate} 
-            setIsFormOpen={setIsFormOpen} 
+            userToken={userToken}
+            navigate={navigate}
+            setIsFormOpen={setIsFormOpen}
           />
 
           {isFormOpen && (
@@ -136,6 +216,8 @@ const Discussion = () => {
               navigate={navigate}
               fetchData={fetchData}
               user={user}
+              updateLikeCount={handleUpdateLikeCount} // <--- add this
+              updateCommentCount={handleUpdateCommentCount} // <--- add this
             />
           ) : (
             <EmptyState
@@ -152,23 +234,15 @@ const Discussion = () => {
         {/* RIGHT - Community Highlights */}
         <aside className="hidden lg:block lg:w-1/4 px-4 space-y-8">
           <CommunityHighlights
-            localHighlights={demoDiscussions.slice(0, 5)} // or pass your communityHighlights
-            getUpdatedDiscussion={(id) =>
-              demoDiscussions.find((d) => d.DiscussionID === id)
-            }
-            getDiscussionWithStats={(discussion) => ({
-              ...discussion,
-              likeCount:
-                discussionStats[discussion.DiscussionID]?.TotalLikes ||
-                discussion.likeCount ||
-                0,
-              commentCount:
-                discussionStats[discussion.DiscussionID]?.TotalComments ||
-                discussion.commentCount ||
-                0,
-            })}
+            key={demoDiscussions.length} // 🔥 forces re-render when discussions change
+            localHighlights={[...demoDiscussions] // pass full updated array
+              .sort(
+                (a, b) =>
+                  b.likeCount + b.commentCount - (a.likeCount + a.commentCount)
+              )
+              .slice(0, 5)} // top 5 trending
             openModal={openModal}
-            handleSidebarLike={() => {}}
+            handleSidebarLike={handleUpdateLikeCount}
             statsLoading={statsLoading}
           />
         </aside>

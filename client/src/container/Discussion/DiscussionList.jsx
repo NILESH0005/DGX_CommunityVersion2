@@ -9,6 +9,8 @@ const DiscussionList = ({
   navigate,
   fetchData,
   user,
+  updateLikeCount, // <--- accept prop
+  updateCommentCount, // <--- accept prop
 }) => {
   if (!discussions.length) {
     return (
@@ -49,8 +51,21 @@ const DiscussionList = ({
               !e.target.closest("a") &&
               !e.target.classList.contains("prevent-modal")
             ) {
+              const viewedKey = `viewed_${user?.UserID}_${discussion.DiscussionID}`;
+
+              // Prevent double counting views per user
+              if (!localStorage.getItem(viewedKey)) {
+                localStorage.setItem(viewedKey, "true");
+
+                // Optimistically update count
+                discussion.viewCount = (discussion.viewCount || 0) + 1;
+
+                // Send view record to backend
+                await recordDiscussionView(discussion.DiscussionID);
+              }
+
+              // Always open modal
               openModal(discussion);
-              await recordDiscussionView(discussion.DiscussionID);
             }
           }}
         >
@@ -64,6 +79,8 @@ const DiscussionList = ({
             navigate={navigate}
             fetchData={fetchData}
             user={user}
+            updateLikeCount={updateLikeCount} // <--- forward
+            updateCommentCount={updateCommentCount} // <--- forward
           />
         </div>
       ))}
