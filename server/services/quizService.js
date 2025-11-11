@@ -556,7 +556,7 @@ export const getQuestionsByGroupAndLevelService = async (
     // Step 1: Get Level Info
     const [levelResult] = await sequelize.query(
       `SELECT ddValue 
-       FROM \`tblddreference\` 
+       FROM giindiadgx_community.tblDDReference 
        WHERE idCode = :level_id AND ddCategory = 'questionLevel'`,
       {
         replacements: { level_id },
