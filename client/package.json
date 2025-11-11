@@ -105,6 +105,7 @@
     "react-toastify": "^10.0.5",
     "react-tooltip": "^5.28.0",
     "react-use": "^17.6.0",
+    "recharts": "^3.4.1",
     "rehype-highlight": "^7.0.2",
     "slick-carousel": "^1.8.1",
     "sweetalert": "^2.1.2",
