@@ -34,18 +34,7 @@ const LearningPath = () => {
           onClick={() => setIsChatOpen(true)}
           className="mt-4 md:mt-0 md:w-1/3 flex flex-col md:flex-row justify-center items-center cursor-pointer hover:scale-105 transition-transform text-center md:text-left"
           title="Click to chat with assistant"
-        >
-          {/* Model */}
-          <div className="w-[120px] h-[120px] flex justify-center items-center">
-            <HeroModel />
-          </div>
-
-          {/* Text beside model */}
-          <div className="md:ml-3 mt-2 md:mt-0">
-            <h3 className="text-lg font-semibold text-indigo-700">Chatbot</h3>
-            <p className="text-gray-600 text-sm">Click to ask a question</p>
-          </div>
-        </div>
+        ></div>
       </header>
 
       {/* Main Content */}
@@ -88,9 +77,18 @@ const LearningPath = () => {
       {/* Floating Help Icon (optional second trigger) */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 transition-all duration-300 focus:outline-none"
+        className="fixed bottom-6 right-6  "
       >
-        <FiHelpCircle className="text-2xl" />
+        {/* Model */}
+        <div className="w-[120px] h-[120px] flex justify-center items-center">
+          <HeroModel />
+        </div>
+
+        {/* Text beside model */}
+        {/* <div className="md:ml-3 mt-2 md:mt-0">
+          <h3 className="text-lg font-semibold text-indigo-700">Chatbot</h3>
+          <p className="text-gray-600 text-sm">Click to ask a question</p>
+        </div> */}
       </button>
 
       {/* Chat Modal*/}
