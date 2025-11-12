@@ -10,6 +10,7 @@ import Home from "./Components/Home";
 import QuizPanel from "./Components/Quiz/QuizPanel";
 import QuestionBank from "./Components/Quiz/QuestionBank";
 import QuizMapping from "./Components/Quiz/QuizMapping";
+import Dashboard from "./Components/Dashboard"; 
 import {
   FaUsers,
   FaComments,
@@ -35,7 +36,7 @@ import LearningMaterialList from "./Components/LMS/LearningMaterialList";
 import ModuleBuilder from "./Components/LMS/ModuleBuilder/ModuleBuilder";
 
 const AdminDashboard = (props) => {
-  const [activeComp, setActiveComp] = useState("users");
+  const [activeComp, setActiveComp] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -107,6 +108,8 @@ const AdminDashboard = (props) => {
         return <GuidelineManager />;
       case "Home":
         return <Home />;
+      case "Dashboard":
+        return <Dashboard />;
       case "contact":
         return <Contact />;
       case "select_module":
@@ -129,18 +132,18 @@ const AdminDashboard = (props) => {
     open: {
       opacity: 1,
       height: "auto",
-      transition: { type: "spring", damping: 20, stiffness: 300 }
+      transition: { type: "spring", damping: 20, stiffness: 300 },
     },
     closed: {
       opacity: 0,
       height: 0,
-      transition: { duration: 0.3 }
-    }
+      transition: { duration: 0.3 },
+    },
   };
 
   const sidebarVariants = {
     open: { x: 0 },
-    closed: { x: "-100%" }
+    closed: { x: "-100%" },
   };
 
   return (
@@ -176,6 +179,19 @@ const AdminDashboard = (props) => {
       >
         <nav className="overflow-y-auto h-full w-full md:w-64 pt-16 z-10 fixed md:static bg-black">
           <ul>
+            {/* Admin Dashboard */}
+            <li>
+              <div
+                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                  activeComp === "Dashboard" ? "bg-gray-700 text-yellow-300" : ""
+                }`}
+                onClick={() => handleMenuItemClick("Dashboard")}
+              >
+                <FaHome className="mr-4" />
+                Dashboard
+              </div>
+            </li>
+
             {/* Home */}
             <li>
               <div
@@ -188,7 +204,7 @@ const AdminDashboard = (props) => {
                 Home
               </div>
             </li>
-            
+
             {/* Users */}
             <li>
               <div
@@ -201,7 +217,7 @@ const AdminDashboard = (props) => {
                 Users
               </div>
             </li>
-            
+
             {/* LMS Section */}
             <li>
               <div
@@ -220,7 +236,7 @@ const AdminDashboard = (props) => {
                   <FaAngleDown className="ml-auto" />
                 )}
               </div>
-              
+
               <AnimatePresence>
                 {openDropdown === "lms" && (
                   <motion.ul
@@ -260,12 +276,14 @@ const AdminDashboard = (props) => {
                 )}
               </AnimatePresence>
             </li>
-            
+
             {/* Quiz Section */}
             <li>
               <div
                 className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  ["quizpanel", "quiz_bank", "quiz_mapping"].includes(activeComp)
+                  ["quizpanel", "quiz_bank", "quiz_mapping"].includes(
+                    activeComp
+                  )
                     ? "bg-gray-700 text-yellow-300"
                     : ""
                 }`}
@@ -279,7 +297,7 @@ const AdminDashboard = (props) => {
                   <FaAngleDown className="ml-auto" />
                 )}
               </div>
-              
+
               <AnimatePresence>
                 {openDropdown === "quiz" && (
                   <motion.ul
@@ -332,7 +350,7 @@ const AdminDashboard = (props) => {
                 )}
               </AnimatePresence>
             </li>
-            
+
             {/* Discussions */}
             <li>
               <div
@@ -347,7 +365,7 @@ const AdminDashboard = (props) => {
                 Discussions
               </div>
             </li>
-            
+
             {/* Blogs */}
             <li>
               <div
@@ -362,7 +380,7 @@ const AdminDashboard = (props) => {
                 Blogs
               </div>
             </li>
-            
+
             {/* Events */}
             <li>
               <div
@@ -375,7 +393,7 @@ const AdminDashboard = (props) => {
                 Events
               </div>
             </li>
-            
+
             {/* ContactUs */}
             <li>
               <div

@@ -2,8 +2,8 @@ import { upload } from "../config/multerConfig.js";
 import {
   checkModuleExists,
   getAllActiveFilesService,
-  getFileByIdService,
   LMSService,
+  getFileByIdService,
   LMSViewsService,
 } from "../services/lmsService.js";
 import fs from "fs";
