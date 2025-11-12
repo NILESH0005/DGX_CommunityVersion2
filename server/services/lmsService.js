@@ -546,23 +546,25 @@ export const getAllActiveFilesService = async () => {
 
     const [results] = await sequelize.query(query);
 
-    // 🔥 Append full endpoint to FilePath
-    const BASE_URL = process.env.BASE_URL || "http://localhost:5000"; // change to your domain
+    // Use server environment variable
+    const BASE_URL = process.env.API_BASE_URL || "http://localhost:5000";
+    const UPLOADS_URL = process.env.API_UPLOADS_URL || BASE_URL;
 
     const updatedResults = results.map((file) => {
       // If it's an external link, leave as is
       if (file.FileType === "link" || file.FilePath?.startsWith("http")) {
-        return file;
+        return {
+          ...file,
+          FileURL: file.FilePath,
+        };
       }
 
-      // Normalize path (ensure leading slash)
-      const normalizedPath = file.FilePath.startsWith("/")
-        ? file.FilePath
-        : `/${file.FilePath}`;
-
+      // For local files, create the proper download URL
+      // Use the download endpoint instead of direct file path
       return {
         ...file,
-        FileURL: `${BASE_URL}${normalizedPath}`, // <-- Add full endpoint
+        FileURL: `${BASE_URL}/lms/download/${file.FileID}`, // Use download endpoint
+        DirectFileURL: `${UPLOADS_URL}/${file.FilePath}`, // Direct file access (if files are served statically)
       };
     });
 
@@ -579,7 +581,7 @@ export const getAllActiveFilesService = async () => {
   }
 };
 
-export const getFileByIdService = async () => {
+export const getFileByIdService = async (FileID) => {
   try {
     const query = `
       SELECT 
@@ -600,34 +602,35 @@ export const getFileByIdService = async () => {
       INNER JOIN SubModulesDetails sm ON u.SubModuleID = sm.SubModuleID
       INNER JOIN ModuleDetails m ON sm.ModuleID = m.ModuleID
       WHERE 
-        f.delStatus = 0
+        f.FileID = ?
+        AND f.delStatus = 0
         AND u.delStatus = 0
         AND sm.delStatus = 0
         AND m.delStatus = 0
-      ORDER BY 
-        m.ModuleID, sm.SubModuleID, u.UnitID, f.SortingOrder;
     `;
 
-    const [results] = await sequelize.query(query);
-
-    const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
-
-    const updatedResults = results.map((file) => {
-      if (file.FileType === "link" || file.FilePath?.startsWith("http")) {
-        return { ...file, FileURL: file.FilePath }; // external links
-      }
-      return {
-        ...file,
-        FileURL: `${BASE_URL}/lms/download/${file.FileID}` // direct download
-      };
+    const [results] = await sequelize.query(query, {
+      replacements: [FileID],
     });
 
-    return { success: true, data: updatedResults };
+    if (results.length === 0) {
+      return {
+        success: false,
+        message: "File not found or inactive",
+      };
+    }
+
+    const file = results[0];
+
+    return {
+      success: true,
+      data: file,
+    };
   } catch (error) {
-    console.error("Service Error (getAllActiveFiles):", error);
+    console.error("Service Error (getFileByIdService):", error);
     return {
       success: false,
-      message: "Database query failed while fetching active files",
+      message: "Database query failed while fetching file details",
     };
   }
 };
