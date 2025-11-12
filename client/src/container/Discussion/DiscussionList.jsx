@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import DiscussionCard from "./DiscussionCard.jsx";
-import { FiEye } from "react-icons/fi";
 
 const DiscussionList = ({
   discussions = [],
@@ -9,18 +8,36 @@ const DiscussionList = ({
   navigate,
   fetchData,
   user,
-  updateLikeCount, // <--- accept prop
-  updateCommentCount, // <--- accept prop
+  updateLikeCount,
+  updateCommentCount,
 }) => {
-  if (!discussions.length) {
-    return (
-      <div className="text-center text-gray-500 mt-8">
-        No discussions available.
-      </div>
-    );
-  }
+  // Local state copy to allow updates
+  const [discussionList, setDiscussionList] = useState(discussions);
 
-  // Handles recording a view whenever a discussion is opened
+  // If parent provides new discussions, sync them
+  useEffect(() => {
+    setDiscussionList(discussions);
+  }, [discussions]);
+
+  // ✅ Update repost list locally
+  const updateRepostList = (discussionId, newRepost) => {
+    setDiscussionList((prevList) =>
+      prevList.map((d) =>
+        d.DiscussionID === discussionId
+          ? {
+              ...d,
+              reposts: d.reposts
+                ? [...d.reposts, newRepost]
+                : [newRepost],
+            }
+          : d
+      )
+    );
+  };
+
+  // ---------------------------
+  // Record discussion view
+  // ---------------------------
   const recordDiscussionView = async (discussionID) => {
     if (!userToken) return;
     const endpoint = "progressTrack/recordView";
@@ -40,9 +57,20 @@ const DiscussionList = ({
     }
   };
 
+  // ---------------------------
+  // Render Section
+  // ---------------------------
+  if (!discussionList.length) {
+    return (
+      <div className="text-center text-gray-500 mt-8">
+        No discussions available.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {discussions.map((discussion) => (
+      {discussionList.map((discussion) => (
         <div
           key={discussion.DiscussionID}
           onClick={async (e) => {
@@ -53,18 +81,12 @@ const DiscussionList = ({
             ) {
               const viewedKey = `viewed_${user?.UserID}_${discussion.DiscussionID}`;
 
-              // Prevent double counting views per user
               if (!localStorage.getItem(viewedKey)) {
                 localStorage.setItem(viewedKey, "true");
-
-                // Optimistically update count
                 discussion.viewCount = (discussion.viewCount || 0) + 1;
-
-                // Send view record to backend
                 await recordDiscussionView(discussion.DiscussionID);
               }
 
-              // Always open modal
               openModal(discussion);
             }
           }}
@@ -79,8 +101,9 @@ const DiscussionList = ({
             navigate={navigate}
             fetchData={fetchData}
             user={user}
-            updateLikeCount={updateLikeCount} // <--- forward
-            updateCommentCount={updateCommentCount} // <--- forward
+            updateLikeCount={updateLikeCount}
+            updateCommentCount={updateCommentCount}
+            updateRepostList={updateRepostList} // ✅ pass new prop
           />
         </div>
       ))}
