@@ -149,17 +149,11 @@ const DiscussionCard = ({
     }
   };
 
-  // ---------------------------
-  // COMMENT HANDLER
-  // ---------------------------
   const handleComment = (e) => {
     e.stopPropagation();
     openModal(discussion);
   };
 
-  // ---------------------------
-  // Tooltip Logic
-  // ---------------------------
   const getTooltipMessage = () => {
     if (loading) return "Reposting...";
     if (reposted) return "Reposted Already";
@@ -167,9 +161,7 @@ const DiscussionCard = ({
     return "Repost Allowed";
   };
 
-  // ---------------------------
-  // RENDER
-  // ---------------------------
+
   return (
     <div className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
       {/* Author Section */}
@@ -178,16 +170,16 @@ const DiscussionCard = ({
           {discussion.User?.ProfilePicture ? (
             <img
               src={discussion.User.ProfilePicture}
-              alt={discussion.UserName}
+              alt={discussion.User.Name}
               className="w-10 h-10 rounded-full border-2 border-white shadow-md"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-DGXgreen to-DGXblue flex items-center justify-center text-white font-semibold text-sm">
-              {discussion.UserName?.charAt(0) || "U"}
+              {discussion.User.Name?.charAt(0) || "U"}
             </div>
           )}
           <div>
-            <p className="font-semibold text-gray-800">{discussion.UserName}</p>
+            <p className="font-semibold text-gray-800">{discussion.User.Name}</p>
             {discussion.RepostID && discussion.originalPost && (
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <FiRepeat className="w-3 h-3" />

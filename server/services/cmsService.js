@@ -468,7 +468,6 @@ export const getLogoutHomePageContentService = async () => {
           return [];
         }),
 
-        // Featured Modules
         LMSModulesDetails.findAll({
           where: { delStatus: 0 },
           attributes: [

@@ -2,6 +2,7 @@ import React from "react";
 import { FaTrophy } from "react-icons/fa";
 
 const TopContributors = ({ topUsers = [] }) => {
+  console.log("toopppp", topUsers)
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
       <div className="bg-gradient-to-r from-DGXblue to-DGXgreen p-4">

@@ -556,7 +556,7 @@ const DiscussionModal = ({
                     userId={discussion.UserID}
                     className="hover:text-DGXblue transition-colors"
                   >
-                    {discussion.UserName || "Unknown author"}
+                    {discussion.User.Name || "Unknown author"}
                   </ProfileLink>
                   <span className="hidden sm:block">•</span>
                   <span>

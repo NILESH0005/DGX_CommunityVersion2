@@ -10,6 +10,7 @@ const CommunityHighlights = ({
   handleSidebarLike,
   statsLoading = false,
 }) => {
+  console.log("dsjhbf kjsjfb ksjnbf kj", localHighlights)
   return (
     <div className="mb-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
       {/* Header */}
@@ -59,7 +60,7 @@ const CommunityHighlights = ({
                   )}
                   <div>
                     <p className="text-sm font-semibold text-gray-800">
-                      {topic.UserName}
+                      {topic.User.Name}
                     </p>
                     <p className="text-xs text-gray-500">
                       {statsLoading ? (

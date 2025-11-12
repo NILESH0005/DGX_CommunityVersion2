@@ -552,7 +552,6 @@ export const getQuestionsByGroupAndLevelService = async (
   level_id
 ) => {
   try {
-    // Step 1: Get Level Info
     const [levelResult] = await sequelize.query(
       `SELECT ddValue 
        FROM giindiadgx_community.tblDDReference 

@@ -117,10 +117,7 @@ const Discussion = () => {
       const userID =
         discussion.UserID || discussion.userId || discussion.AuthorID;
       const userName =
-        discussion.UserName ||
-        discussion.userName ||
-        discussion.AuthorName ||
-        "Anonymous";
+        discussion.User.Name;
 
       if (userID) {
         if (!userMap[userID]) {

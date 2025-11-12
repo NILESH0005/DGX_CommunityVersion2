@@ -1,9 +1,13 @@
 import { upload } from "../config/multerConfig.js";
 import {
   checkModuleExists,
+  getAllActiveFilesService,
+  getFileByIdService,
   LMSService,
   LMSViewsService,
 } from "../services/lmsService.js";
+import fs from "fs";
+import path from "path";
 
 export class LMS {
   static upload = upload;
@@ -225,7 +229,7 @@ export const checkModuleExist = async (req, res) => {
   }
 };
 
-export const getSubModuleViews  = async (req, res) => {
+export const getSubModuleViews = async (req, res) => {
   try {
     const result = await LMSViewsService.getSubModuleViews();
     res.status(200).json({ success: true, data: result });
@@ -244,3 +248,102 @@ export const getModuleViews = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getAllActiveFiles = async (req, res) => {
+  try {
+    const result = await getAllActiveFilesService();
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error("Controller Error (getAllActiveFiles):", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching files",
+    });
+  }
+};
+
+export const getFileById = async (req, res) => {
+  try {
+    const { FileID } = req.body;
+
+    if (!FileID) {
+      return res.status(400).json({
+        success: false,
+        message: "FileID is required in the request body",
+      });
+    }
+
+    const result = await getFileByIdService(FileID);
+
+    if (!result.success) {
+      return res.status(404).json({
+        success: false,
+        message: result.message,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+    });
+  } catch (error) {
+    console.error("Controller Error (getFileById):", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching file details",
+    });
+  }
+};
+
+export const downloadFileById = async (req, res) => {
+  try {
+    const { FileID } = req.params;
+
+    if (!FileID) {
+      return res.status(400).json({ success: false, message: "FileID is required" });
+    }
+
+    const result = await getFileByIdService(FileID);
+
+    if (!result.success) {
+      return res.status(404).json({ success: false, message: result.message });
+    }
+
+    const fileData = result.data[0]; // <--- fix: get first item
+
+    if (!fileData.FilePath) {
+      return res.status(404).json({ success: false, message: "File path is missing on server" });
+    }
+
+    // External links
+    if (fileData.FileType === "link" || fileData.FilePath.startsWith("http")) {
+      return res.redirect(fileData.FilePath);
+    }
+
+    const filePath = path.join(process.cwd(), fileData.FilePath.replace(/^\//, ""));
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: "File not found on server" });
+    }
+
+    res.setHeader("Content-Disposition", `attachment; filename="${fileData.FilesName}"`);
+    res.setHeader("Content-Type", fileData.FileType || "application/octet-stream");
+
+    fs.createReadStream(filePath).pipe(res);
+
+  } catch (error) {
+    console.error("Download error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
