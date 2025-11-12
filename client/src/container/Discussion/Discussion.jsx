@@ -10,7 +10,6 @@ import DiscussionList from "./DiscussionList.jsx";
 import DiscussionForm from "./DiscussionForm.jsx";
 import SearchBar from "./SearchBar.jsx";
 import EmptyState from "./EmptyState.jsx";
-import MobileSidebar from "./MobileSidebar.jsx";
 import DiscussionModal from "../../component/discussion/DiscussionModal.jsx";
 import CommunityHighlights from "../../component/discussion/CommunityHighlights.jsx";
 import TopContributors from "../../component/discussion/TopContributors.jsx";
@@ -23,62 +22,54 @@ const Discussion = () => {
   const [demoDiscussions, setDemoDiscussions] = useState([]);
   const [filteredDiscussions, setFilteredDiscussions] = useState([]);
   const [discussionStats, setDiscussionStats] = useState({});
-  const [communityHighlights, setCommunityHighlights] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [statsLoading, setStatsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [selectedDiscussion, setSelectedDiscussion] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchScope, setSearchScope] = useState("all");
-  const [userReposts, setUserReposts] = useState(new Set());
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const currentUserId = user?.uniqueId || user?.UserID;
-  const handleUpdateCommentCount = (
-    discussionId,
-    newCommentCount,
-    updatedComments
-  ) => {
-    setDemoDiscussions((prevDiscussions) =>
-      prevDiscussions.map((d) =>
-        d.DiscussionID === discussionId
-          ? { ...d, commentCount: newCommentCount, comment: updatedComments }
-          : d
-      )
-    );
 
-    // Also update filtered discussions if shown
-    setFilteredDiscussions((prevDiscussions) =>
-      prevDiscussions.map((d) =>
-        d.DiscussionID === discussionId
-          ? { ...d, commentCount: newCommentCount, comment: updatedComments }
-          : d
-      )
-    );
-  };
-  // ✅ Like Count Update Handler
-  const handleUpdateLikeCount = (discussionId, newLikeCount, userLikeState) => {
+  // ===== Update Comment Count =====
+  const handleUpdateCommentCount = (discussionId, newCount, updatedComments) => {
     setDemoDiscussions((prev) =>
       prev.map((d) =>
         d.DiscussionID === discussionId
-          ? { ...d, likeCount: newLikeCount, userLike: userLikeState }
+          ? { ...d, commentCount: newCount, comment: updatedComments }
           : d
       )
     );
-
     setFilteredDiscussions((prev) =>
       prev.map((d) =>
         d.DiscussionID === discussionId
-          ? { ...d, likeCount: newLikeCount, userLike: userLikeState }
+          ? { ...d, commentCount: newCount, comment: updatedComments }
           : d
       )
     );
   };
 
-  // ===== Fetch Data =====
+  // ===== Like Count Update =====
+  const handleUpdateLikeCount = (discussionId, newCount, userLikeState) => {
+    setDemoDiscussions((prev) =>
+      prev.map((d) =>
+        d.DiscussionID === discussionId
+          ? { ...d, likeCount: newCount, userLike: userLikeState }
+          : d
+      )
+    );
+    setFilteredDiscussions((prev) =>
+      prev.map((d) =>
+        d.DiscussionID === discussionId
+          ? { ...d, likeCount: newCount, userLike: userLikeState }
+          : d
+      )
+    );
+  };
+
+  // ✅ Fetch discussions
   const fetchDiscussionData = async (userEmail) => {
     try {
       const endpoint = "discussion/getdiscussion";
@@ -88,8 +79,27 @@ const Discussion = () => {
 
       setLoading(true);
       const result = await fetchData(endpoint, method, body, headers);
-      const discussions = result?.data?.updatedDiscussions || [];
 
+      // 🧹 1. Separate original & reposted discussions
+      const allDiscussions = result?.data?.updatedDiscussions || [];
+      const reposts = allDiscussions.filter((d) => d.RepostID);
+      const discussions = allDiscussions.filter((d) => !d.RepostID);
+
+      // 🔗 2. Merge repost info into their original posts
+      reposts.forEach((r) => {
+        const target = discussions.find(
+          (orig) => orig.DiscussionID === r.RepostID
+        );
+        if (target) {
+          target.reposts = target.reposts || [];
+          target.reposts.push({
+            userId: r.UserID,
+            name: r.User?.Name || "Unknown",
+          });
+        }
+      });
+
+      // 📊 3. Attach stats
       const stats = await fetchDiscussionStats(fetchData);
       setDiscussionStats(stats);
 
@@ -100,6 +110,7 @@ const Discussion = () => {
         viewCount: stats[d.DiscussionID]?.TotalViews || 0,
       }));
 
+      // ✅ 4. Set states
       setDemoDiscussions(discussionsWithStats);
       setFilteredDiscussions(discussionsWithStats);
       setIsLoading(false);
@@ -110,39 +121,27 @@ const Discussion = () => {
     }
   };
 
+  // ===== Top Users =====
   const getTopUsersByDiscussions = (discussions) => {
     const userMap = {};
-
-    discussions.forEach((discussion) => {
-      const userID =
-        discussion.UserID || discussion.userId || discussion.AuthorID;
-      const userName =
-        discussion.User.Name;
-
-      if (userID) {
-        if (!userMap[userID]) {
-          userMap[userID] = { userID, userName, count: 1 };
-        } else {
-          userMap[userID].count += 1;
-        }
-      }
+    discussions.forEach((d) => {
+      const userID = d.UserID || d.userId;
+      const userName = d.User?.Name;
+      if (!userID) return;
+      if (!userMap[userID]) userMap[userID] = { userID, userName, count: 1 };
+      else userMap[userID].count++;
     });
-
     return Object.values(userMap)
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
   };
 
+  // ===== Effects =====
   useEffect(() => {
     const initFetch = async () => {
-      if (userToken && user) {
-        await fetchDiscussionData(user.EmailId);
-      } else {
-        await fetchDiscussionData(null);
-      }
+      await fetchDiscussionData(user?.EmailId || null);
     };
-
-    initFetch();
+    if (userToken !== undefined) initFetch();
   }, [user, userToken]);
 
   useEffect(() => {
@@ -152,15 +151,12 @@ const Discussion = () => {
     }
   }, [demoDiscussions]);
 
-  // ===== Helpers =====
+  // ===== Modal Helpers =====
   const openModal = (discussion) => {
     setSelectedDiscussion(discussion);
     setModalIsOpen(true);
   };
-
-  const closeModal = () => {
-    setModalIsOpen(false);
-  };
+  const closeModal = () => setModalIsOpen(false);
 
   // ===== Render =====
   return (
@@ -181,7 +177,7 @@ const Discussion = () => {
           <TopContributors topUsers={topUsers} />
         </aside>
 
-        {/* CENTER - Discussion List and Form */}
+        {/* CENTER - Discussion List */}
         <section className="w-full lg:w-5/6 px-4 flex flex-col overflow-y-scroll h-[80vh]">
           <SearchBar
             searchQuery={searchQuery}
@@ -213,8 +209,8 @@ const Discussion = () => {
               navigate={navigate}
               fetchData={fetchData}
               user={user}
-              updateLikeCount={handleUpdateLikeCount} // <--- add this
-              updateCommentCount={handleUpdateCommentCount} // <--- add this
+              updateLikeCount={handleUpdateLikeCount}
+              updateCommentCount={handleUpdateCommentCount}
             />
           ) : (
             <EmptyState
@@ -231,16 +227,16 @@ const Discussion = () => {
         {/* RIGHT - Community Highlights */}
         <aside className="hidden lg:block lg:w-1/4 px-4 space-y-8">
           <CommunityHighlights
-            key={demoDiscussions.length} // 🔥 forces re-render when discussions change
-            localHighlights={[...demoDiscussions] // pass full updated array
+            key={demoDiscussions.length}
+            localHighlights={[...demoDiscussions]
               .sort(
                 (a, b) =>
                   b.likeCount + b.commentCount - (a.likeCount + a.commentCount)
               )
-              .slice(0, 5)} // top 5 trending
+              .slice(0, 5)}
             openModal={openModal}
             handleSidebarLike={handleUpdateLikeCount}
-            statsLoading={statsLoading}
+            statsLoading={false}
           />
         </aside>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AiFillLike, AiOutlineLike } from "react-icons/ai";
 import { FaComment } from "react-icons/fa";
 import {
@@ -18,75 +18,78 @@ const DiscussionCard = ({
   navigate,
   fetchData,
   user,
-  updateLikeCount,       // <--- add
-  updateCommentCount,    // optional if you need it
+  updateLikeCount,
+  updateCommentCount,
 }) => {
   const [likeCount, setLikeCount] = useState(discussion.likeCount || 0);
   const [userLike, setUserLike] = useState(discussion.userLike || 0);
   const [loading, setLoading] = useState(false);
-  const [reposted, setReposted] = useState(false);
   const [tooltip, setTooltip] = useState("");
-
-  const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
+  const [reposted, setReposted] = useState(
+    discussion.reposts?.some((r) => r.userId === user?.uniqueId) || false
+  );
   const currentUserId = user?.uniqueId || user?.UserID;
-
+  const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
+  useEffect(() => {
+    const hasReposted =
+      discussion.reposts?.some((r) => r.userId === currentUserId) || false;
+    setReposted(hasReposted);
+  }, [discussion.reposts, currentUserId]);
   // ---------------------------
   // LIKE HANDLER
   // ---------------------------
   const handleLike = async (e) => {
-  e.stopPropagation();
+    e.stopPropagation();
 
-  if (!userToken) {
-    Swal.fire({
-      icon: "warning",
-      title: "Login Required",
-      text: "Please log in to like this discussion.",
-      confirmButtonText: "Login",
-    }).then((res) => {
-      if (res.isConfirmed) navigate("/SignInn");
-    });
-    return;
-  }
+    if (!userToken) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "Please log in to like this discussion.",
+        confirmButtonText: "Login",
+      }).then((res) => {
+        if (res.isConfirmed) navigate("/SignInn");
+      });
+      return;
+    }
 
-  const prevLike = userLike;
-  const prevCount = likeCount;
+    const prevLike = userLike;
+    const prevCount = likeCount;
 
-  const newLikeState = userLike === 1 ? 0 : 1;
-  const newCount =
-    newLikeState === 1 ? likeCount + 1 : Math.max(0, likeCount - 1);
+    const newLikeState = userLike === 1 ? 0 : 1;
+    const newCount =
+      newLikeState === 1 ? likeCount + 1 : Math.max(0, likeCount - 1);
 
-  // 🔥 Optimistic UI update
-  setUserLike(newLikeState);
-  setLikeCount(newCount);
+    setUserLike(newLikeState);
+    setLikeCount(newCount);
 
-  // 🔥 Update parent immediately
-  if (typeof updateLikeCount === "function") {
-    updateLikeCount(discussion.DiscussionID, newCount, newLikeState);
-  }
+    if (typeof updateLikeCount === "function") {
+      updateLikeCount(discussion.DiscussionID, newCount, newLikeState);
+    }
 
-  try {
-    const endpoint = "discussion/like";
-    const res = await fetchData(endpoint, "POST",
-      { reference: discussion.DiscussionID, likes: newLikeState },
-      { "Content-Type": "application/json", "auth-token": userToken }
-    );
+    try {
+      const res = await fetchData(
+        "discussion/like",
+        "POST",
+        { reference: discussion.DiscussionID, likes: newLikeState },
+        { "Content-Type": "application/json", "auth-token": userToken }
+      );
 
-    if (!res.success) throw new Error(res.message);
-  } catch (err) {
-    console.error("Like Error:", err);
-    setUserLike(prevLike);
-    setLikeCount(prevCount);
-    Swal.fire("Error", "Failed to update like. Try again.", "error");
-  }
-};
-
-
+      if (!res.success) throw new Error(res.message);
+    } catch (err) {
+      console.error("Like Error:", err);
+      setUserLike(prevLike);
+      setLikeCount(prevCount);
+      Swal.fire("Error", "Failed to update like. Try again.", "error");
+    }
+  };
 
   // ---------------------------
   // REPOST HANDLER
   // ---------------------------
   const handleRepost = async (e) => {
     e.stopPropagation();
+
     if (!userToken) {
       Swal.fire({
         icon: "warning",
@@ -96,16 +99,22 @@ const DiscussionCard = ({
       });
       return;
     }
-    if (reposted) {
-      Swal.fire("Info", "You’ve already reposted this discussion.", "info");
-      return;
-    }
+
     if (discussion.UserID === currentUserId) {
       Swal.fire("Info", "You cannot repost your own discussion.", "info");
       return;
     }
+
     if (!discussion.allowRepost) {
       Swal.fire("Notice", "Reposting not allowed by the author.", "warning");
+      return;
+    }
+
+    const alreadyReposted =
+      discussion.reposts?.some((r) => r.userId === currentUserId) || false;
+
+    if (alreadyReposted || reposted) {
+      Swal.fire("Info", "You’ve already reposted this discussion.", "info");
       return;
     }
 
@@ -114,16 +123,15 @@ const DiscussionCard = ({
       const body = {
         title: discussion.Title,
         content: discussion.Content,
-        tags: Array.isArray(discussion.Tag)
-          ? discussion.Tag.join(",")
-          : discussion.Tag,
-        url: Array.isArray(discussion.ResourceUrl)
-          ? discussion.ResourceUrl.join(",")
-          : discussion.ResourceUrl,
+        tags:
+          Array.isArray(discussion.Tag) && discussion.Tag.length > 0
+            ? discussion.Tag.join(",")
+            : discussion.Tag,
+        url: discussion.ResourceUrl || null,
         visibility: discussion.VisibilityValue || "public",
         bannerImagePath: discussion.DiscussionImagePath || null,
         allowRepost: discussion.allowRepost,
-        repostId: discussion.DiscussionID,
+        repostId: discussion.DiscussionID, // key for repost
       };
 
       const headers = {
@@ -137,9 +145,18 @@ const DiscussionCard = ({
         body,
         headers
       );
+
       if (!res.success) throw new Error(res.message);
 
+      // ✅ Update repost state locally
+      const updatedReposts = [
+        ...(discussion.reposts || []),
+        { userId: currentUserId, name: user?.Name },
+      ];
+
+      discussion.reposts = updatedReposts;
       setReposted(true);
+
       Swal.fire("Success", "Discussion reposted successfully!", "success");
     } catch (err) {
       console.error(err);
@@ -149,6 +166,9 @@ const DiscussionCard = ({
     }
   };
 
+  // ---------------------------
+  // COMMENT HANDLER
+  // ---------------------------
   const handleComment = (e) => {
     e.stopPropagation();
     openModal(discussion);
@@ -161,7 +181,9 @@ const DiscussionCard = ({
     return "Repost Allowed";
   };
 
-
+  // ---------------------------
+  // COMPONENT UI
+  // ---------------------------
   return (
     <div className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
       {/* Author Section */}
@@ -179,17 +201,42 @@ const DiscussionCard = ({
             </div>
           )}
           <div>
-            <p className="font-semibold text-gray-800">{discussion.User.Name}</p>
-            {discussion.RepostID && discussion.originalPost && (
-              <p className="text-xs text-gray-500 flex items-center gap-1">
+            <p className="font-semibold text-gray-800">
+              {discussion.User.Name}
+            </p>
+
+            {/* Repost List */}
+            {discussion.reposts && discussion.reposts.length > 0 && (
+              <p className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
                 <FiRepeat className="w-3 h-3" />
-                Reposted from {discussion.originalPost.OriginalUserName}
+                Reposted by{" "}
+                {discussion.reposts.length > 3 ? (
+                  <>
+                    {discussion.reposts.slice(0, 2).map((r, i) => (
+                      <span
+                        key={r.userId}
+                        className="font-medium text-gray-700"
+                      >
+                        {r.name}
+                        {i < 1 ? ", " : ""}
+                      </span>
+                    ))}
+                    and {discussion.reposts.length - 2} more
+                  </>
+                ) : (
+                  discussion.reposts.map((r, i) => (
+                    <span key={r.userId} className="font-medium text-gray-700">
+                      {r.name}
+                      {i < discussion.reposts.length - 1 ? ", " : ""}
+                    </span>
+                  ))
+                )}
               </p>
             )}
           </div>
         </div>
 
-        {discussion.RepostID && (
+        {discussion.reposts && discussion.reposts.length > 0 && (
           <span className="flex items-center text-xs bg-gradient-to-r from-DGXblue to-DGXgreen text-white px-3 py-1 rounded-full">
             <FiRepeat className="mr-1" size={12} />
             Repost
@@ -215,7 +262,7 @@ const DiscussionCard = ({
               />
               <span
                 className="text-DGXblue cursor-pointer font-semibold hover:underline inline-flex items-center gap-1 mt-2"
-                onClick={openModal}
+                onClick={() => openModal(discussion)}
               >
                 Continue reading →
               </span>
@@ -311,7 +358,7 @@ const DiscussionCard = ({
             <span className="font-medium">{discussion.viewCount || 0}</span>
           </div>
 
-          {/* Repost Icon + Tooltip */}
+          {/* Repost Button */}
           <div className="relative group">
             <button
               onClick={handleRepost}
@@ -335,7 +382,6 @@ const DiscussionCard = ({
               )}
             </button>
 
-            {/* Tooltip */}
             {tooltip && (
               <div className="absolute -top-9 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded-md whitespace-nowrap shadow-lg z-10">
                 {tooltip}
