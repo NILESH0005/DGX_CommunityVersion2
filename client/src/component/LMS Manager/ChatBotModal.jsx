@@ -1,26 +1,105 @@
-// ChatBotModal.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { FiSend, FiX } from "react-icons/fi";
+import ApiContext from "../../context/ApiContext";
 
 const ChatBotModal = ({ isOpen, onClose }) => {
-  const [messages, setMessages] = useState([
-    { from: "bot", text: "👋 Hi there! How can I help you with your learning modules?" },
-  ]);
-  const [input, setInput] = useState("");
+  const { fetchData } = useContext(ApiContext);
 
-  const handleSend = () => {
+  const [messages, setMessages] = useState([
+    {
+      from: "bot",
+      text: "👋 Hi there! How can I help you with your learning modules?",
+    },
+  ]);
+  const [chatHistory, setChatHistory] = useState([]); // ✅ separate variable
+  const [input, setInput] = useState("");
+  const [pdfIds, setPdfIds] = useState([]);
+  const [user, setUser] = useState(null);
+
+  // Fetch logged-in user info
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const userData = await getUser();
+      setUser(userData);
+    };
+    fetchUserInfo();
+  }, []);
+
+  // Fetch all active PDF IDs (exclude links)
+  useEffect(() => {
+    const fetchPdfIds = async () => {
+      const response = await fetchData("lms/getAllActiveFiles", "GET");
+      if (response?.success) {
+        const ids = response.data
+          .filter((f) => f.FileType !== "link")
+          .map((f) => f.FileID);
+        setPdfIds(ids);
+      }
+    };
+    fetchPdfIds();
+  }, []);
+
+  const handleSend = async () => {
     if (!input.trim()) return;
+
+    // Add user message to chat
     const newMessage = { from: "user", text: input };
     setMessages((prev) => [...prev, newMessage]);
     setInput("");
 
-    // Simulate bot response (replace with API later)
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { from: "bot", text: "🤖 I'm processing your query... (AI reply here)" },
-      ]);
-    }, 600);
+    // Optimistic message
+    const processingMessage = {
+      from: "bot",
+      text: "🤖 I'm processing your query...",
+    };
+    setMessages((prev) => [...prev, processingMessage]);
+
+    // Prepare request body
+    const body = {
+      question: input,
+      pdf_ids: pdfIds.map(String),
+      chat_history: chatHistory || [], // ✅ use saved history from API
+      user_id: user?.UserID?.toString() || "0",
+      organization_id: "GI",
+      platform: "DGX_Community_LMS",
+    };
+
+    console.log("Sending body to /ask endpoint:", body);
+
+    try {
+      const res = await fetch("http://192.168.29.244:8000/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      // ✅ If API sends back chat_history, store it
+      if (data?.chat_history) {
+        setChatHistory(data.chat_history);
+      }
+
+      const botReply = data?.answer || "Sorry, I couldn't fetch a response.";
+
+      // Replace optimistic message with actual bot reply
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.text === processingMessage.text
+            ? { from: "bot", text: botReply }
+            : m
+        )
+      );
+    } catch (error) {
+      console.error("Chat API error:", error);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.text === processingMessage.text
+            ? { from: "bot", text: "❌ Something went wrong. Try again later." }
+            : m
+        )
+      );
+    }
   };
 
   if (!isOpen) return null;
@@ -30,8 +109,13 @@ const ChatBotModal = ({ isOpen, onClose }) => {
       <div className="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl w-[380px] h-[520px] m-6 flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-indigo-700">Learning Assistant</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+          <h2 className="text-lg font-semibold text-indigo-700">
+            Learning Assistant
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-800"
+          >
             <FiX size={20} />
           </button>
         </div>
