@@ -421,17 +421,16 @@ export const getLogoutHomePageContentService = async () => {
             "Visibility",
             "AddOnDt",
             "AuthAdd",
-            // TotalLikes count
             [
               Sequelize.literal(`(
-            SELECT COUNT(*)
-            FROM Content_Interaction AS ci
-            WHERE 
-              ci.ProcessName = 'Discussion'
-              AND ci.reference = CommunityDiscussion.DiscussionID
-              AND ci.Likes = 1
-              AND ci.delStatus = 0
-          )`),
+                SELECT COUNT(*)
+                FROM Content_Interaction AS ci
+                WHERE 
+                  ci.ProcessName = 'Discussion'
+                  AND ci.reference = CommunityDiscussion.DiscussionID
+                  AND ci.Likes = 1
+                  AND ci.delStatus = 0
+              )`),
               "Likes",
             ],
           ],
@@ -460,6 +459,7 @@ export const getLogoutHomePageContentService = async () => {
             "RegistrationLink",
             "EventImage",
             "EventDescription",
+            "AuthAdd",
           ],
           order: [["StartDate", "ASC"]],
           limit: 3,
@@ -497,12 +497,47 @@ export const getLogoutHomePageContentService = async () => {
     const featuredModulesResult =
       featuredModules.status === "fulfilled" ? featuredModules.value : [];
 
-    // Format dates and plain objects
+    // Collect all unique user IDs from AuthAdd fields
+    const userIds = new Set();
+
+    // Extract user IDs from all results
+    [
+      ...featuredBlogsResult,
+      ...recentDiscussionsResult,
+      ...upcomingEventsResult,
+      ...featuredModulesResult,
+    ].forEach((item) => {
+      if (item.AuthAdd) {
+        userIds.add(item.AuthAdd);
+      }
+    });
+
+    // Fetch user names for all collected user IDs
+    const users = await User.findAll({
+      where: {
+        UserID: Array.from(userIds),
+      },
+      attributes: ["UserID", "Name"],
+    }).catch((error) => {
+      console.error("Error fetching users:", error);
+      return [];
+    });
+
+    // Create a mapping of UserID to Name
+    const userMap = users.reduce((map, user) => {
+      map[user.UserID] = user.Name;
+      return map;
+    }, {});
+
+    // Format dates and plain objects, and replace AuthAdd with user name
     const formatData = (data) =>
       data.map((item) => {
         const itemData = item.get ? item.get({ plain: true }) : item;
+        const userName = userMap[itemData.AuthAdd] || itemData.AuthAdd; // Fallback to ID if name not found
+
         return {
           ...itemData,
+          AuthAdd: userName, // Replace ID with name
           ...(itemData.publishedDate && {
             publishedDate: new Date(itemData.publishedDate).toISOString(),
           }),

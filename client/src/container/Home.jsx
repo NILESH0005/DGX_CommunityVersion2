@@ -238,7 +238,6 @@ const Home = () => {
     );
   }
 
-  // SWAPPED: Show authenticated dashboard when NOT logged in (no token)
   if (!userToken) {
     return (
       <div className="min-h-screen overflow-x-hidden bg-gradient-to-b from-black to-blue-500">

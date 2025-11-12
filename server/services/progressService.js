@@ -122,88 +122,157 @@ export class ViewService {
       }
 
       const userId = user.UserID;
-      const userName = user.Name || "Unknown User";
       const currentDate = new Date();
 
-      // Check if any interaction exists for this user & content
-      let interaction = await ContentInteraction.findOne({
-        where: {
-          ProcessName,
-          UserID: userId,
-          reference,
-          delStatus: 0,
-        },
-      });
+      // Use transaction to ensure data consistency
+      const result = await db.sequelize.transaction(async (transaction) => {
+        // Check if view already exists with proper locking to prevent race conditions
+        let interaction = await ContentInteraction.findOne({
+          where: {
+            ProcessName,
+            UserID: userId,
+            reference,
+            delStatus: 0,
+          },
+          transaction,
+          lock: transaction.LOCK.UPDATE, // Lock the row to prevent concurrent inserts
+        });
 
-      if (interaction) {
-        if (!interaction.View) {
-          // Row exists but View is empty → update it
-          interaction.View = 1;
-          interaction.ViewStatus = 0;
-          interaction.AuthLstEdt = userName;
-          interaction.editOnDt = currentDate;
-          await interaction.save();
+        if (interaction) {
+          // If view already exists and View is 1, return early
+          if (interaction.View === 1) {
+            console.log("View already recorded previously, skipping");
+            return {
+              success: true,
+              data: {
+                viewId: interaction.id,
+                viewCount: interaction.View,
+                message: "View was already recorded previously",
+                alreadyViewed: true,
+              },
+            };
+          }
 
-          console.log(
-            "Updated existing interaction with new view:",
-            interaction.id
-          );
+          // If row exists but View is not set, update it
+          if (!interaction.View) {
+            interaction.View = 1;
+            interaction.ViewStatus = 0;
+            interaction.AuthLstEdt = userId.toString();
+            interaction.editOnDt = currentDate;
+            await interaction.save({ transaction });
 
+            console.log(
+              "Updated existing interaction with new view:",
+              interaction.id
+            );
+            return {
+              success: true,
+              data: {
+                viewId: interaction.id,
+                viewCount: interaction.View,
+                message: "View recorded successfully",
+                alreadyViewed: false,
+              },
+            };
+          }
+        }
+
+        // No existing view found - create new one
+        // Double-check with a more specific query to prevent duplicates
+        const existingView = await ContentInteraction.findOne({
+          where: {
+            ProcessName,
+            UserID: userId,
+            reference,
+            delStatus: 0,
+            View: 1,
+          },
+          transaction,
+        });
+
+        if (existingView) {
+          console.log("Duplicate prevention: View already exists");
           return {
             success: true,
             data: {
-              viewId: interaction.id,
-              viewCount: interaction.View,
-              message: "View recorded successfully",
-              alreadyViewed: false,
-            },
-          };
-        } else {
-          // Row exists and View already recorded → do nothing
-          console.log("View already recorded, skipping");
-          return {
-            success: true,
-            data: {
-              viewId: interaction.id,
-              viewCount: interaction.View,
+              viewId: existingView.id,
+              viewCount: existingView.View,
               message: "View was already recorded previously",
               alreadyViewed: true,
             },
           };
         }
-      }
 
-      // No row exists → create new interaction
-      const newInteraction = await ContentInteraction.create({
-        ProcessName,
-        UserID: userId,
-        reference,
-        Likes: null,
-        LikeStatus: null,
-        Rating: null,
-        RatingStatus: null,
-        SubModuleID: viewData.SubModuleID || null,
-        ViewStatus: 0,
-        View: 1,
-        AuthAdd: userId,
-        AddOnDt: currentDate,
-        delStatus: 0,
+        // Create new interaction
+        const newInteraction = await ContentInteraction.create(
+          {
+            ProcessName,
+            UserID: userId,
+            reference,
+            Likes: null,
+            LikeStatus: null,
+            Rating: null,
+            RatingStatus: null,
+            SubModuleID: viewData.SubModuleID || null,
+            ViewStatus: 0,
+            View: 1,
+            AuthAdd: userId.toString(),
+            AddOnDt: currentDate,
+            delStatus: 0,
+          },
+          { transaction }
+        );
+
+        console.log("Created new view record:", newInteraction.id);
+        return {
+          success: true,
+          data: {
+            viewId: newInteraction.id,
+            viewCount: 1,
+            message: "View recorded successfully for the first time",
+            alreadyViewed: false,
+          },
+        };
       });
 
-      console.log("Created new view record:", newInteraction.id);
-
-      return {
-        success: true,
-        data: {
-          viewId: newInteraction.id,
-          viewCount: 1,
-          message: "View recorded successfully for the first time",
-          alreadyViewed: false,
-        },
-      };
-
+      return result;
     } catch (error) {
       console.error("View Service Error:", error);
+
+      // Handle unique constraint violations specifically
+      if (error.name === "SequelizeUniqueConstraintError") {
+        console.log("Unique constraint violation - view already exists");
+        // Try to find the existing record
+        try {
+          const user = await db.User.findOne({
+            where: { EmailId: userEmail, delStatus: 0 },
+            attributes: ["UserID"],
+          });
+
+          const existing = await ContentInteraction.findOne({
+            where: {
+              ProcessName: viewData.ProcessName,
+              UserID: user.UserID,
+              reference: viewData.reference,
+              delStatus: 0,
+              View: 1,
+            },
+          });
+
+          return {
+            success: true,
+            data: {
+              viewId: existing?.id,
+              viewCount: existing?.View || 0,
+              message: "View was already recorded",
+              alreadyViewed: true,
+            },
+          };
+        } catch (fallbackError) {
+          console.error("Fallback error:", fallbackError);
+        }
+      }
+
       throw error;
     }
   }
