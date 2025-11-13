@@ -145,7 +145,7 @@ const Dashboard = () => {
       </div>
 
       {/* ===== 4. Quality vs Quantity ===== */}
-      <div className="bg-white p-6 rounded-xl shadow">
+      {/* <div className="bg-white p-6 rounded-xl shadow">
         <h2 className="text-lg font-semibold mb-3">Quality vs Quantity</h2>
         <ResponsiveContainer width="100%" height={300}>
           <ScatterChart>
@@ -156,7 +156,7 @@ const Dashboard = () => {
             <Scatter data={qualityVsQuantity} fill="#8b5cf6" />
           </ScatterChart>
         </ResponsiveContainer>
-      </div>
+      </div> */}
 
       {/* ===== 5. Badge & Recognition ===== */}
       <div className="bg-white p-6 rounded-xl shadow">

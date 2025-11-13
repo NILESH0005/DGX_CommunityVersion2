@@ -77,18 +77,21 @@ const LearningPath = () => {
       {/* Floating Help Icon (optional second trigger) */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6  "
+        className="fixed bottom-6 right-6 "
       >
+          {/* Text beside model */}
+        {/* <div className="md:ml-3 mt-2 md:mt-0">
+          <h3 className="text-lg font-semibold text-indigo-700">Chatbot</h3>
+          <p className="text-gray-600 text-sm">Click to ask a question</p>
+        </div>  */}
+
+
         {/* Model */}
         <div className="w-[120px] h-[120px] flex justify-center items-center">
           <HeroModel />
         </div>
 
-        {/* Text beside model */}
-        {/* <div className="md:ml-3 mt-2 md:mt-0">
-          <h3 className="text-lg font-semibold text-indigo-700">Chatbot</h3>
-          <p className="text-gray-600 text-sm">Click to ask a question</p>
-        </div> */}
+      
       </button>
 
       {/* Chat Modal*/}
