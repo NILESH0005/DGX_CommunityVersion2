@@ -2,6 +2,8 @@ import React, { useState, useEffect, useContext } from "react";
 import { FiSend, FiX, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 import ApiContext from "../../context/ApiContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const ChatBotModal = ({ isOpen, onClose }) => {
   const { fetchData, userToken, user } = useContext(ApiContext);
@@ -173,7 +175,7 @@ const ChatBotModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
           {messages.map((msg, index) => (
             <div
               key={index}

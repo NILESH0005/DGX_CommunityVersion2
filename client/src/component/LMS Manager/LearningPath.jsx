@@ -17,9 +17,7 @@ const LearningPath = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100 text-gray-900 transition-all duration-500 relative">
-      {/* Header */}
       <header className="backdrop-blur-md bg-white/60 border-b border-white/30 shadow-lg py-1 px-4 md:py-2 md:px-6 flex flex-col md:flex-row justify-between items-center">
-        {/* Left Section: LMS Title */}
         <div className="space-y-2 md:w-2/3 text-center md:text-left">
           <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-700 drop-shadow-sm">
             LMS Platform
@@ -29,7 +27,6 @@ const LearningPath = () => {
           </p>
         </div>
 
-        {/* Right Section: Chatbot Model + Text */}
         <div
           onClick={() => setIsChatOpen(true)}
           className="mt-4 md:mt-0 md:w-1/3 flex flex-col md:flex-row justify-center items-center cursor-pointer hover:scale-105 transition-transform text-center md:text-left"

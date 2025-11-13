@@ -10,7 +10,7 @@ export default (sequelize, DataTypes) => {
         allowNull: false,
       },
       EventTitle: {
-        type: DataTypes.TEXT, // nvarchar(MAX) equivalent
+        type: DataTypes.TEXT, 
         allowNull: true,
       },
       StartDate: {
@@ -26,7 +26,7 @@ export default (sequelize, DataTypes) => {
         allowNull: true,
       },
       Venue: {
-        type: DataTypes.TEXT, // nvarchar(MAX) equivalent
+        type: DataTypes.TEXT, 
         allowNull: true,
       },
       Host: {
