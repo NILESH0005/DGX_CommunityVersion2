@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { FiSend, FiX } from "react-icons/fi";
 import ApiContext from "../../context/ApiContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const ChatBotModal = ({ isOpen, onClose }) => {
   const { fetchData } = useContext(ApiContext);
@@ -11,12 +13,11 @@ const ChatBotModal = ({ isOpen, onClose }) => {
       text: "👋 Hi there! How can I help you with your learning modules?",
     },
   ]);
-  const [chatHistory, setChatHistory] = useState([]); // ✅ separate variable
+  const [chatHistory, setChatHistory] = useState([]);
   const [input, setInput] = useState("");
   const [pdfIds, setPdfIds] = useState([]);
   const [user, setUser] = useState(null);
 
-  // Fetch logged-in user info
   useEffect(() => {
     const fetchUserInfo = async () => {
       const userData = await getUser();
@@ -25,7 +26,6 @@ const ChatBotModal = ({ isOpen, onClose }) => {
     fetchUserInfo();
   }, []);
 
-  // Fetch all active PDF IDs (exclude links)
   useEffect(() => {
     const fetchPdfIds = async () => {
       const response = await fetchData("lms/getAllActiveFiles", "GET");
@@ -40,73 +40,62 @@ const ChatBotModal = ({ isOpen, onClose }) => {
   }, []);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+  if (!input.trim()) return;
 
-    // Add user message to chat
-    const newMessage = { from: "user", text: input };
-    setMessages((prev) => [...prev, newMessage]);
-    setInput("");
+  const newMessage = { from: "user", text: input };
+  setMessages((prev) => [...prev, newMessage]);
+  setInput("");
 
-    // Optimistic message
-    const processingMessage = {
-      from: "bot",
-      text: "🤖 I'm processing your query...",
-    };
-    setMessages((prev) => [...prev, processingMessage]);
+  const processingMessage = { from: "bot", text: "🤖 I'm processing your query..." };
+  setMessages((prev) => [...prev, processingMessage]);
 
-    // Prepare request body
-    const body = {
-      question: input,
-      pdf_ids: pdfIds.map(String),
-      chat_history: chatHistory || [], // ✅ use saved history from API
-      user_id: user?.UserID?.toString() || "0",
-      organization_id: "GI",
-      platform: "DGX_Community_LMS",
-    };
-
-    console.log("Sending body to /ask endpoint:", body);
-
-    try {
-      const res = await fetch("http://192.168.29.244:8000/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const data = await res.json();
-
-      // ✅ If API sends back chat_history, store it
-      if (data?.chat_history) {
-        setChatHistory(data.chat_history);
-      }
-
-      const botReply = data?.answer || "Sorry, I couldn't fetch a response.";
-
-      // Replace optimistic message with actual bot reply
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.text === processingMessage.text
-            ? { from: "bot", text: botReply }
-            : m
-        )
-      );
-    } catch (error) {
-      console.error("Chat API error:", error);
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.text === processingMessage.text
-            ? { from: "bot", text: "❌ Something went wrong. Try again later." }
-            : m
-        )
-      );
-    }
+  const body = {
+    question: input,
+    pdf_ids: pdfIds.map(String),
+    chat_history: chatHistory || [],
+    user_id: user?.UserID?.toString() || "0",
+    organization_id: "GI",
+    platform: "DGX_Community_LMS",
   };
+
+  try {
+    const CHATBOT_API_URL = import.meta.env.VITE_CHATBOT_API_URL;
+    console.log("Chatbot API URL:", CHATBOT_API_URL); // ✅ Optional check
+
+    const res = await fetch(`${CHATBOT_API_URL}/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (data?.chat_history) setChatHistory(data.chat_history);
+
+    const botReply = data?.answer || "Sorry, I couldn't fetch a response.";
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.text === processingMessage.text ? { from: "bot", text: botReply } : m
+      )
+    );
+  } catch (error) {
+    console.error("Chat API error:", error);
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.text === processingMessage.text
+          ? { from: "bot", text: "❌ Something went wrong. Try again later." }
+          : m
+      )
+    );
+  }
+};
+
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 flex items-end justify-end bg-black/20 backdrop-blur-sm z-50">
-      <div className="bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl w-[380px] h-[520px] m-6 flex flex-col">
+      <div className="bg-white/95 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl w-[380px] h-[520px] m-6 flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-indigo-700">
@@ -121,17 +110,59 @@ const ChatBotModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`p-3 rounded-xl text-sm ${
+              className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
                 msg.from === "user"
                   ? "bg-indigo-600 text-white self-end ml-auto max-w-[80%]"
-                  : "bg-gray-100 text-gray-800 max-w-[80%]"
+                  : "bg-gray-50 border border-gray-200 text-gray-800 max-w-[80%]"
               }`}
             >
-              {msg.text}
+              {msg.from === "bot" ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ node, ...props }) => (
+                      <p className="mb-2" {...props} />
+                    ),
+                    strong: ({ node, ...props }) => (
+                      <strong
+                        className="text-indigo-700 font-semibold"
+                        {...props}
+                      />
+                    ),
+                    li: ({ node, ...props }) => (
+                      <li className="list-disc ml-5 mb-1" {...props} />
+                    ),
+                    h3: ({ node, ...props }) => (
+                      <h3
+                        className="text-indigo-700 font-bold text-sm mb-1"
+                        {...props}
+                      />
+                    ),
+                    code: ({ node, ...props }) => (
+                      <code
+                        className="bg-gray-200 text-gray-800 px-1 py-0.5 rounded"
+                        {...props}
+                      />
+                    ),
+                    a: ({ node, ...props }) => (
+                      <a
+                        {...props}
+                        className="text-indigo-600 underline hover:text-indigo-800"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    ),
+                  }}
+                >
+                  {msg.text}
+                </ReactMarkdown>
+              ) : (
+                msg.text
+              )}
             </div>
           ))}
         </div>
