@@ -175,11 +175,11 @@ const DiscussionCard = ({
   };
 
   const getTooltipMessage = () => {
-    if (loading) return "Reposting...";
-    if (reposted) return "Reposted Already";
-    if (!discussion.allowRepost) return "Repost Not Allowed";
-    return "Repost Allowed";
-  };
+  if (loading) return "Reposting...";
+  if (reposted) return "Reposted Already";   
+  if (!discussion.allowRepost) return "Repost Not Allowed";
+  return "Repost Allowed";
+};
 
   // ---------------------------
   // COMPONENT UI
