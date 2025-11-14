@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from "react";
 import { FiSend, FiX, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 import ApiContext from "../../context/ApiContext";
-// import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const ChatBotModal = ({ isOpen, onClose }) => {
