@@ -26,8 +26,16 @@ const userModel = (sequelize, DataTypes) => {
       editOnDt: { type: DataTypes.DATE, allowNull: true },
       delStatus: { type: DataTypes.INTEGER, allowNull: true },
       isAdmin: { type: DataTypes.INTEGER, allowNull: true },
-      ProfilePicture: { type: DataTypes.TEXT("long"), allowNull: true},
+      ProfilePicture: { type: DataTypes.TEXT("long"), allowNull: true },
       UserDescription: { type: DataTypes.TEXT, allowNull: true },
+      LastLoginDtTime: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      LoginCount: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
     },
     {
       tableName: "Community_User",

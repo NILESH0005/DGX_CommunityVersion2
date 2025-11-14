@@ -322,11 +322,12 @@ export const registerUser = async (
   }
 };
 
-export const loginUser = async (email, password) => {
+export const loginUser = async (email, password, ipAddress, deviceInfo) => {
   try {
     const user = await User.findOne({
       where: { EmailId: email, delStatus: 0 },
     });
+
     if (!user) {
       logWarning(`Login failed for ${email} - user not found`);
       return {
@@ -338,6 +339,7 @@ export const loginUser = async (email, password) => {
         },
       };
     }
+
     const isMatch = await bcrypt.compare(password, user.Password);
     if (!isMatch) {
       logWarning(`Login failed for ${email} - invalid password`);
@@ -350,6 +352,28 @@ export const loginUser = async (email, password) => {
         },
       };
     }
+
+    // UPDATE LOGIN TRACKING
+    const now = new Date();
+
+    await User.update(
+      {
+        LastLoginDtTime: now,
+        LoginCount: (user.LoginCount || 0) + 1,
+      },
+      { where: { UserID: user.UserID } }
+    );
+
+    await db.UserLoginLog.create({
+      UserID: user.UserID,
+      LogInDateTime: now,
+      LogOutDateTime: null,
+      IPAddress: ipAddress,
+      DeviceInfo: JSON.stringify(deviceInfo),
+      AddOnDt: now,
+      delStatus: 0,
+    }); 
+
     const payload = {
       user: {
         id: user.EmailId,
@@ -357,10 +381,15 @@ export const loginUser = async (email, password) => {
         uniqueId: user.UserID,
       },
     };
-    const authtoken = jwt.sign(payload, JWT_SECRET, { expiresIn: "12h" });
-    console.log(authtoken);
 
-    logInfo(`User logged in successfully: ${email}`);
+    const authtoken = jwt.sign(payload, JWT_SECRET, { expiresIn: "12h" });
+
+    logInfo(
+      `User logged in successfully: ${email}. Login count: ${
+        (user.LoginCount || 0) + 1
+      }`
+    );
+
     return {
       status: 200,
       response: {
@@ -371,11 +400,13 @@ export const loginUser = async (email, password) => {
           flag: user.FlagPasswordChange,
           isAdmin: user.isAdmin,
           isProfileImage: !!user.ProfilePicture,
+          loginCount: (user.LoginCount || 0) + 1,
+          lastLogin: now,
         },
       },
     };
   } catch (error) {
-    logError(error);
+    logError("LOGIN ERROR:", error);
     return {
       status: 500,
       response: {
@@ -847,7 +878,7 @@ export const addUserService = async (userData, userInfo) => {
     ReferalNumber: referCode,
     Password: hashedPassword,
     FlagPasswordChange: 0,
-    AuthAdd: addedBy, 
+    AuthAdd: addedBy,
     AuthLstEdt: editedBy, // who last edited it (admin id)
     AddOnDt: new Date(),
     delStatus: 0,

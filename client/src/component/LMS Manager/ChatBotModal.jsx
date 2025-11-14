@@ -21,6 +21,7 @@ const ChatBotModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       const userData = await getUser();
+      console.log("usseerrData", userData)
       setUser(userData);
     };
     fetchUserInfo();
