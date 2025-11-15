@@ -113,3 +113,12 @@
   height: 12rem; /* adjust for your scroll area */
   overflow-y: auto;
 }
+
+
+@media (min-width: 768px) {
+    .md\:text-xl {
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+        border-bottom: 1px solid grey;
+    }
+}

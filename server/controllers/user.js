@@ -80,17 +80,33 @@ export const registration = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      data: errors.array(),
-      message: "Validation error",
-    });
-  }
-
   const { email, password } = req.body;
-  const result = await UserService.loginUser(email, password);
+
+  // Clean & reliable IP detection
+  let ipAddress =
+    req.headers["x-forwarded-for"] ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    (req.connection.socket ? req.connection.socket.remoteAddress : null);
+
+  ipAddress = ipAddress?.replace(/^::ffff:/, "") || "UNKNOWN";
+
+  // Clean device info
+  const deviceInfo = {
+    userAgent: req.headers["user-agent"] || "UNKNOWN",
+    platform: req.headers["sec-ch-ua-platform"] || "UNKNOWN",
+    mobile: req.headers["sec-ch-ua-mobile"] || "UNKNOWN",
+  };
+
+  console.log("IP:", ipAddress);
+  console.log("Device:", deviceInfo);
+
+  const result = await UserService.loginUser(
+    email,
+    password,
+    ipAddress,
+    deviceInfo
+  );
   res.status(result.status).json(result.response);
 };
 

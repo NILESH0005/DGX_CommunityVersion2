@@ -31,7 +31,7 @@ const DashboardPage = () => {
 
   return (
     <motion.div
-      className="min-h-screen bg-gray-50 p-6"
+      className="min-h-screen p-6 font-inter"
       initial="hidden"
       animate="visible"
       variants={containerVariants}
@@ -39,13 +39,23 @@ const DashboardPage = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Section */}
         <motion.div className="mb-8" variants={itemVariants}>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">
-            Welcome to your content management dashboard
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Admin Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Welcome to your content management dashboard
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm text-gray-600">System Live</span>
+            </div>
+          </div>
         </motion.div>
 
-        {/* Trending Section at the top */}
+        {/* Trending Section */}
         <motion.div variants={itemVariants}>
           <TrendingSection />
         </motion.div>
@@ -53,22 +63,45 @@ const DashboardPage = () => {
         {/* Main Content Grid */}
         <motion.div
           variants={itemVariants}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
         >
           {/* LEFT SIDE - 2 COLUMNS */}
-          <div className="lg:col-span-2 h-full flex">
-            <ApprovalSection />
+          <div className="lg:col-span-2 space-y-6">
+            <motion.div
+              whileHover={{ y: -1 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full"
+            >
+              <ApprovalSection />
+            </motion.div>
           </div>
 
           {/* RIGHT SIDE - 1 COLUMN */}
-          <div className="h-full flex">
-            <UserInsightsSection />
+          <div className="space-y-6">
+            <motion.div
+              whileHover={{ y: -1 }}
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full"
+            >
+               <TopContentSection />
+            </motion.div>
           </div>
         </motion.div>
 
         {/* Bottom Section - Full width */}
-        <motion.div variants={itemVariants} className="mt-6">
-          <TopContentSection />
+        <motion.div variants={itemVariants}>
+          <motion.div
+            whileHover={{ y: -1 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+          >
+           
+             <UserInsightsSection />
+          </motion.div>
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div variants={itemVariants} className="text-center pt-8 pb-4">
+          <p className="text-gray-400 text-sm">
+            © 2024 Content Management System • v2.4.1
+          </p>
         </motion.div>
       </div>
     </motion.div>

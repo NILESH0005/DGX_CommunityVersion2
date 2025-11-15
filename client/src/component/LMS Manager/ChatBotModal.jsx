@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { FiSend, FiX, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import ReactMarkdown from "react-markdown";
 import ApiContext from "../../context/ApiContext";
+import remarkGfm from "remark-gfm";
 
 const ChatBotModal = ({ isOpen, onClose }) => {
   const { fetchData, userToken, user } = useContext(ApiContext);
@@ -13,27 +14,14 @@ const ChatBotModal = ({ isOpen, onClose }) => {
 
   // Initialize messages based on login status
   useEffect(() => {
-    if (isOpen) {
-      if (userToken && user) {
-        const username = user.Name || user.username || "Learner";
-        setMessages([
-          {
-            from: "bot",
-            text: `👋 **Hi ${username}!** How can I help you with your learning modules?`,
-          },
-        ]);
-      } else {
-        setMessages([
-          {
-            from: "bot",
-            text: "🔒 **Please log in to chat**\n\nYou need to be logged in to use the Learning Assistant. Please log in to get help with your study modules.",
-          },
-        ]);
-      }
-    }
-  }, [isOpen, userToken, user]);
+    const fetchUserInfo = async () => {
+      const userData = await getUser();
+      console.log("usseerrData", userData)
+      setUser(userData);
+    };
+    fetchUserInfo();
+  }, []);
 
-  // Fetch all active PDF IDs (exclude links)
   useEffect(() => {
     const fetchPdfIds = async () => {
       try {

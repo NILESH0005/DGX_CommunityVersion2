@@ -21,9 +21,11 @@ import UserActivityModel from "./UserActivity.js";
 import ContentEngagementModel from "./ContentEngagement.js";
 import ContactUsModel from "../models/Contact_Us.js";
 import ContentInteractionModel from "./Content_Interaction.js";
+import userLoginLogModel from "./Community_User_Login_Log.js";
 
 
 const User = UserModel(sequelize, DataTypes);
+const UserLoginLog = userLoginLogModel(sequelize, DataTypes); 
 const LMSUserProgress = UserLmsProgress(sequelize, DataTypes);
 const CommunityBlog = Community_Blog(sequelize, DataTypes);
 const CommunityDiscussion = Community_Discussion(sequelize, DataTypes);
@@ -48,6 +50,7 @@ const ContentInteraction = ContentInteractionModel(sequelize, DataTypes);
 const db = {
   sequelize,
   User,
+  UserLoginLog,
   CommunityBlog,
   CommunityDiscussion,
   CommunityEvents,
