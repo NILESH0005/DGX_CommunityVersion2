@@ -10,7 +10,7 @@ import Home from "./Components/Home";
 import QuizPanel from "./Components/Quiz/QuizPanel";
 import QuestionBank from "./Components/Quiz/QuestionBank";
 import QuizMapping from "./Components/Quiz/QuizMapping";
-import Dashboard from "./Components/Dashboard"; 
+import Dashboard from "./Components/Dashboard/DashboardPage"; 
 import {
   FaUsers,
   FaComments,
@@ -34,9 +34,10 @@ import {
 import LearningMaterialManager from "./Components/LMS/LearningMaterialManager";
 import LearningMaterialList from "./Components/LMS/LearningMaterialList";
 import ModuleBuilder from "./Components/LMS/ModuleBuilder/ModuleBuilder";
+import DashboardPage from "./Components/Dashboard/DashboardPage";
 
 const AdminDashboard = (props) => {
-  const [activeComp, setActiveComp] = useState("Dashboard");
+  const [activeComp, setActiveComp] = useState("DashboardPage");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -108,8 +109,8 @@ const AdminDashboard = (props) => {
         return <GuidelineManager />;
       case "Home":
         return <Home />;
-      case "Dashboard":
-        return <Dashboard />;
+      case "DashboardPage":
+        return <DashboardPage />;
       case "contact":
         return <Contact />;
       case "select_module":
@@ -183,9 +184,9 @@ const AdminDashboard = (props) => {
             <li>
               <div
                 className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "Dashboard" ? "bg-gray-700 text-yellow-300" : ""
+                  activeComp === "DashboardPage" ? "bg-gray-700 text-yellow-300" : ""
                 }`}
-                onClick={() => handleMenuItemClick("Dashboard")}
+                onClick={() => handleMenuItemClick("DashboardPage")}
               >
                 <FaHome className="mr-4" />
                 Dashboard
