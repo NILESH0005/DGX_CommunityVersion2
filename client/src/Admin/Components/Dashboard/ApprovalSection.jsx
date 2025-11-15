@@ -139,7 +139,7 @@ const ApprovalSection = () => {
 
   return (
     <motion.div
-      className="bg-white rounded-2xl shadow-lg p-6 font-inter w-full h-full flex flex-col"
+      className="bg-white rounded-2xl shadow-lg p-6 font-inter w-full h-full flex flex-col "
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
@@ -236,12 +236,12 @@ const ApprovalSection = () => {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-4 w-full max-w-xs text-center">
             <div className="bg-gray-50 rounded-lg p-3">
-              <div className="text-sm font-semibold text-gray-600">High Priority</div>
+              <div className="text-sm font-semibold text-gray-600">Oldest Pending</div>
               <div className="text-lg font-bold text-gray-800">8</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
-              <div className="text-sm font-semibold text-gray-600">Avg. Wait</div>
-              <div className="text-lg font-bold text-gray-800">2.1d</div>
+              <div className="text-sm font-semibold text-gray-600"> Reviewed Today</div>
+              <div className="text-lg font-bold text-gray-800">6</div>
             </div>
           </div>
         </div>

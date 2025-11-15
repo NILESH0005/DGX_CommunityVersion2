@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 const trendingBlogs = [
   {
     id: 1,
-    title: "The Future of AI in Web Development: A Comprehensive Guide to Modern AI Tools and Frameworks",
+    title:
+      "The Future of AI in Web Development: A Comprehensive Guide to Modern AI Tools and Frameworks",
     author: "Sarah Chen",
     rating: 4.8,
     reposts: 142,
@@ -20,11 +21,13 @@ const trendingBlogs = [
     trendData: [45, 52, 48, 65, 72, 68, 85, 92, 88, 95, 110, 125],
     readTime: "8 min read",
     tags: ["AI", "Web Dev", "Future"],
-    fullDescription: "Explore the cutting-edge advancements in AI and how they're revolutionizing web development. From automated code generation to intelligent user interfaces, discover the tools and frameworks shaping the future of web applications."
+    fullDescription:
+      "Explore the cutting-edge advancements in AI and how they're revolutionizing web development. From automated code generation to intelligent user interfaces, discover the tools and frameworks shaping the future of web applications.",
   },
   {
     id: 2,
-    title: "Mastering React Hooks in 2024: Advanced Patterns and Best Practices for Modern React Development",
+    title:
+      "Mastering React Hooks in 2024: Advanced Patterns and Best Practices for Modern React Development",
     author: "Mike Rodriguez",
     rating: 4.6,
     reposts: 98,
@@ -37,11 +40,13 @@ const trendingBlogs = [
     trendData: [30, 35, 42, 38, 45, 52, 58, 65, 72, 78, 85, 89],
     readTime: "12 min read",
     tags: ["React", "Hooks", "JavaScript"],
-    fullDescription: "Dive deep into React Hooks with advanced patterns, custom hooks, and performance optimization techniques. Learn how to build scalable and maintainable React applications using modern hook-based architecture."
+    fullDescription:
+      "Dive deep into React Hooks with advanced patterns, custom hooks, and performance optimization techniques. Learn how to build scalable and maintainable React applications using modern hook-based architecture.",
   },
   {
     id: 3,
-    title: "Sustainable Web Design Practices: Building Eco-Friendly Digital Experiences for the Modern Web",
+    title:
+      "Sustainable Web Design Practices: Building Eco-Friendly Digital Experiences for the Modern Web",
     author: "Emma Wilson",
     rating: 4.9,
     reposts: 76,
@@ -54,14 +59,16 @@ const trendingBlogs = [
     trendData: [25, 28, 32, 45, 52, 48, 55, 62, 68, 72, 78, 110],
     readTime: "6 min read",
     tags: ["Design", "Sustainability", "UI/UX"],
-    fullDescription: "Discover sustainable web design principles that reduce environmental impact while improving user experience. Learn about performance optimization, green hosting, and eco-conscious design patterns."
+    fullDescription:
+      "Discover sustainable web design principles that reduce environmental impact while improving user experience. Learn about performance optimization, green hosting, and eco-conscious design patterns.",
   },
 ];
 
 const trendingDiscussions = [
   {
     id: 1,
-    title: "Best practices for microservices architecture in large-scale enterprise applications and distributed systems",
+    title:
+      "Best practices for microservices architecture in large-scale enterprise applications and distributed systems",
     creator: "Alex Thompson",
     likes: 324,
     reposts: 87,
@@ -74,11 +81,13 @@ const trendingDiscussions = [
     engagement: 567,
     trendData: [20, 25, 32, 45, 38, 42, 55, 62, 58, 65, 72, 87],
     tags: ["Microservices", "Architecture", "Best Practices"],
-    fullDescription: "Join the discussion on microservices best practices, including service decomposition, communication patterns, and deployment strategies for enterprise-scale applications."
+    fullDescription:
+      "Join the discussion on microservices best practices, including service decomposition, communication patterns, and deployment strategies for enterprise-scale applications.",
   },
   {
     id: 2,
-    title: "How do you handle state management in large React applications with complex data flow and multiple teams?",
+    title:
+      "How do you handle state management in large React applications with complex data flow and multiple teams?",
     creator: "Jessica Lee",
     likes: 287,
     reposts: 64,
@@ -91,11 +100,13 @@ const trendingDiscussions = [
     engagement: 554,
     trendData: [15, 22, 35, 42, 38, 45, 52, 58, 65, 72, 68, 64],
     tags: ["React", "State Management", "Frontend"],
-    fullDescription: "Share your experiences and solutions for managing complex state in large React applications. Discuss Redux, Context API, Zustand, and other state management libraries."
+    fullDescription:
+      "Share your experiences and solutions for managing complex state in large React applications. Discuss Redux, Context API, Zustand, and other state management libraries.",
   },
   {
     id: 3,
-    title: "Database optimization techniques for high-traffic applications: Scaling strategies and performance tuning",
+    title:
+      "Database optimization techniques for high-traffic applications: Scaling strategies and performance tuning",
     creator: "David Kim",
     likes: 198,
     reposts: 45,
@@ -108,7 +119,8 @@ const trendingDiscussions = [
     engagement: 332,
     trendData: [10, 15, 22, 28, 32, 38, 35, 42, 45, 38, 42, 45],
     tags: ["Database", "Optimization", "Backend"],
-    fullDescription: "Explore database optimization techniques for high-traffic applications. Discuss indexing strategies, query optimization, caching, and scaling approaches for different database systems."
+    fullDescription:
+      "Explore database optimization techniques for high-traffic applications. Discuss indexing strategies, query optimization, caching, and scaling approaches for different database systems.",
   },
 ];
 
@@ -186,17 +198,57 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
   const getEngagementStats = () => {
     if (type === "blog") {
       return [
-        { label: "Rating", value: item.rating, icon: "⭐", color: "text-yellow-600" },
-        { label: "Claps", value: item.claps, icon: "👏", color: "text-green-600" },
-        { label: "Reposts", value: item.reposts, icon: "🔁", color: "text-purple-600" },
-        { label: "Views", value: item.views, icon: "👀", color: "text-blue-600" },
+        {
+          label: "Rating",
+          value: item.rating,
+          icon: "⭐",
+          color: "text-yellow-600",
+        },
+        {
+          label: "Claps",
+          value: item.claps,
+          icon: "👏",
+          color: "text-green-600",
+        },
+        {
+          label: "Reposts",
+          value: item.reposts,
+          icon: "🔁",
+          color: "text-purple-600",
+        },
+        {
+          label: "Views",
+          value: item.views,
+          icon: "👀",
+          color: "text-blue-600",
+        },
       ];
     } else {
       return [
-        { label: "Likes", value: item.likes, icon: "👍", color: "text-blue-600" },
-        { label: "Comments", value: item.comments, icon: "💬", color: "text-green-600" },
-        { label: "Reposts", value: item.reposts, icon: "🔁", color: "text-purple-600" },
-        { label: "Views", value: item.views, icon: "👀", color: "text-gray-600" },
+        {
+          label: "Likes",
+          value: item.likes,
+          icon: "👍",
+          color: "text-blue-600",
+        },
+        {
+          label: "Comments",
+          value: item.comments,
+          icon: "💬",
+          color: "text-green-600",
+        },
+        {
+          label: "Reposts",
+          value: item.reposts,
+          icon: "🔁",
+          color: "text-purple-600",
+        },
+        {
+          label: "Views",
+          value: item.views,
+          icon: "👀",
+          color: "text-gray-600",
+        },
       ];
     }
   };
@@ -251,9 +303,14 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {engagementStats.map((stat, index) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-4 text-center">
+                <div
+                  key={index}
+                  className="bg-gray-50 rounded-lg p-4 text-center"
+                >
                   <div className={`text-2xl font-bold ${stat.color} mb-1`}>
-                    {stat.value > 1000 ? `${(stat.value / 1000).toFixed(1)}k` : stat.value}
+                    {stat.value > 1000
+                      ? `${(stat.value / 1000).toFixed(1)}k`
+                      : stat.value}
                   </div>
                   <div className="text-sm text-gray-600">{stat.label}</div>
                 </div>
@@ -273,7 +330,7 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
                     <span className="text-gray-600">Created:</span>
                     <span className="font-medium">{item.createdDate}</span>
                   </div>
-                 
+
                   {type === "blog" && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Read Time:</span>
@@ -284,12 +341,14 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-800 mb-3">Trend Analytics</h4>
+                <h4 className="font-semibold text-gray-800 mb-3">
+                  Trend Analytics
+                </h4>
                 <div className="flex justify-center">
-                  <Sparkline 
-                    data={item.trendData} 
-                    width={200} 
-                    height={60} 
+                  <Sparkline
+                    data={item.trendData}
+                    width={200}
+                    height={60}
                     color={type === "blog" ? "#3B82F6" : "#10B981"}
                   />
                 </div>
@@ -326,23 +385,64 @@ const Card = ({ item, type }) => {
   const getEngagementStats = () => {
     if (type === "blog") {
       return [
-        { label: "Rating", value: item.rating, icon: "⭐", color: "text-yellow-600" },
-        { label: "Claps", value: item.claps, icon: "👏", color: "text-green-600" },
-        { label: "Reposts", value: item.reposts, icon: "🔁", color: "text-purple-600" },
-        { label: "Views", value: item.views, icon: "👀", color: "text-blue-600" },
+        {
+          label: "Rating",
+          value: item.rating,
+          icon: "⭐",
+          color: "text-yellow-600",
+        },
+        {
+          label: "Claps",
+          value: item.claps,
+          icon: "👏",
+          color: "text-green-600",
+        },
+        {
+          label: "Reposts",
+          value: item.reposts,
+          icon: "🔁",
+          color: "text-purple-600",
+        },
+        {
+          label: "Views",
+          value: item.views,
+          icon: "👀",
+          color: "text-blue-600",
+        },
       ];
     } else {
       return [
-        { label: "Likes", value: item.likes, icon: "👍", color: "text-blue-600" },
-        { label: "Comments", value: item.comments, icon: "💬", color: "text-green-600" },
-        { label: "Reposts", value: item.reposts, icon: "🔁", color: "text-purple-600" },
-        { label: "Views", value: item.views, icon: "👀", color: "text-gray-600" },
+        {
+          label: "Likes",
+          value: item.likes,
+          icon: "👍",
+          color: "text-blue-600",
+        },
+        {
+          label: "Comments",
+          value: item.comments,
+          icon: "💬",
+          color: "text-green-600",
+        },
+        {
+          label: "Reposts",
+          value: item.reposts,
+          icon: "🔁",
+          color: "text-purple-600",
+        },
+        {
+          label: "Views",
+          value: item.views,
+          icon: "👀",
+          color: "text-gray-600",
+        },
       ];
     }
   };
 
   const engagementStats = getEngagementStats();
-  const shadowColor = type === "blog" ? "hover:shadow-blue-500/20" : "hover:shadow-green-500/20";
+  const shadowColor =
+    type === "blog" ? "hover:shadow-blue-500/20" : "hover:shadow-green-500/20";
 
   return (
     <>
@@ -386,7 +486,10 @@ const Card = ({ item, type }) => {
             {/* Stats Grid */}
             <div className="grid grid-cols-4 gap-2 mb-3">
               {engagementStats.map((stat, index) => (
-                <div key={index} className="text-center p-2 bg-gray-50 rounded-lg">
+                <div
+                  key={index}
+                  className="text-center p-2 bg-gray-50 rounded-lg"
+                >
                   <div className={`text-xs font-semibold ${stat.color}`}>
                     {stat.icon}{" "}
                     {stat.value > 1000
@@ -399,15 +502,13 @@ const Card = ({ item, type }) => {
 
             {/* See More Button */}
             <div className="flex items-center justify-end">
-
-            
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowModal(true)}
                 className={`text-xs font-medium px-3 py-1 rounded-lg ${
-                  type === "blog" 
-                    ? "bg-blue-50 text-blue-600 hover:bg-blue-100" 
+                  type === "blog"
+                    ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
                     : "bg-green-50 text-green-600 hover:bg-green-100"
                 } transition`}
               >
@@ -439,7 +540,7 @@ const TrendingSection = () => {
 
   return (
     <motion.div
-      className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter"
+      className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter sh"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
@@ -471,11 +572,7 @@ const TrendingSection = () => {
       </div>
 
       {/* ---------- HEADER ---------- */}
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-          🔥 Trending Now
-        </h3>
-      </div>
+      <div className="flex justify-between items-center mb-6"></div>
 
       {/* ---------- DESKTOP SIDE BY SIDE WITH SEPARATE FILTERS ---------- */}
       <div className="hidden md:grid grid-cols-2 gap-6">

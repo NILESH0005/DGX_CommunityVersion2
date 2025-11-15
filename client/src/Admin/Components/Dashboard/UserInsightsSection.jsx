@@ -11,9 +11,9 @@ const UserInsightsSection = () => {
   const userLeaderboard = [
     { id: 1, name: "Rohit Rawat", score: 98, attempts: 24, avatar: "👨‍💻", trend: "up" },
     { id: 2, name: "Ananya Sharma", score: 95, attempts: 28, avatar: "👩‍🎓", trend: "up" },
-    { id: 3, name: "Mike Rodriguez", score: 92, attempts: 19, avatar: "👨‍💼", trend: "down" },
-    { id: 4, name: "Sarah Chen", score: 89, attempts: 22, avatar: "👩‍🔬", trend: "up" },
-    { id: 5, name: "David Kim", score: 87, attempts: 16, avatar: "👨‍🎨", trend: "stable" }
+    { id: 3, name: "Nilesh", score: 92, attempts: 19, avatar: "👨‍💼", trend: "down" },
+    { id: 4, name: "Nisha", score: 89, attempts: 22, avatar: "👩‍🔬", trend: "up" },
+    { id: 5, name: "keshav", score: 87, attempts: 16, avatar: "👨‍🎨", trend: "stable" }
   ];
 
   const quizPerformance = [
@@ -80,75 +80,6 @@ const UserInsightsSection = () => {
     );
   };
 
-  const LineChart = ({ data, labels, height = 160, color = "#10B981" }) => {
-    const maxValue = Math.max(...data);
-    const points = data.map((value, index) => {
-      const x = (index / (data.length - 1)) * 100;
-      const y = 100 - (value / maxValue) * 100;
-      return `${x},${y}`;
-    }).join(" ");
-
-    return (
-      <div className="relative h-48">
-        <svg viewBox="0 0 100 100" className="w-full h-full">
-          {/* Grid lines */}
-          {[0, 25, 50, 75, 100].map((y) => (
-            <line
-              key={y}
-              x1="0"
-              y1={y}
-              x2="100"
-              y2={y}
-              stroke="#E5E7EB"
-              strokeWidth="0.5"
-            />
-          ))}
-          
-          {/* Line */}
-          <polyline
-            points={points}
-            fill="none"
-            stroke={color}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          
-          {/* Area under line */}
-          <polyline
-            points={`0,100 ${points} 100,100`}
-            fill={color}
-            fillOpacity="0.1"
-          />
-          
-          {/* Data points */}
-          {data.map((value, index) => {
-            const x = (index / (data.length - 1)) * 100;
-            const y = 100 - (value / maxValue) * 100;
-            return (
-              <circle
-                key={index}
-                cx={x}
-                cy={y}
-                r="1.5"
-                fill={color}
-                className="cursor-pointer hover:r-2 transition-all"
-                onClick={() => console.log(`${labels[index]}: ${value}`)}
-              />
-            );
-          })}
-        </svg>
-        
-        {/* X-axis labels */}
-        <div className="flex justify-between text-xs text-gray-500 mt-2">
-          {labels.map((label, index) => (
-            <span key={index}>{label}</span>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   const HorizontalBarChart = ({ users, metric = "score" }) => {
     const maxValue = Math.max(...users.map(user => user[metric]));
     
@@ -203,7 +134,7 @@ const UserInsightsSection = () => {
 
   return (
     <motion.div
-      className="bg-white rounded-2xl shadow-lg p-6 font-inter w-full h-full flex flex-col"
+      className="bg-white rounded-2xl shadow-lg p-6 font-inter w-full h-full flex flex-col shadow"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
@@ -225,7 +156,7 @@ const UserInsightsSection = () => {
           </select>
           
           <div className="flex bg-gray-100 rounded-lg p-1">
-            {["leaderboard", "quizzes", "activity"].map((tab) => (
+            {["leaderboard", "quizzes"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -334,31 +265,6 @@ const UserInsightsSection = () => {
             </div>
           )}
 
-          {activeTab === "activity" && (
-            <div className="space-y-6">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  📈 User Activity Trend
-                </h3>
-                <LineChart 
-                  data={activityData[timeRange]} 
-                  labels={activityData.labels[timeRange]}
-                  color="#F59E0B"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-                  <div className="text-2xl font-bold text-gray-800">1,234</div>
-                  <div className="text-sm text-gray-600">Active Users</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
-                  <div className="text-2xl font-bold text-gray-800">68%</div>
-                  <div className="text-sm text-gray-600">Engagement Rate</div>
-                </div>
-              </div>
-            </div>
-          )}
         </motion.div>
       </AnimatePresence>
 
