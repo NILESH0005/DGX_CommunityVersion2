@@ -14,13 +14,25 @@ const ChatBotModal = ({ isOpen, onClose }) => {
 
   // Initialize messages based on login status
   useEffect(() => {
-    const fetchUserInfo = async () => {
-      const userData = await getUser();
-      console.log("usseerrData", userData);
-      setUser(userData);
-    };
-    fetchUserInfo();
-  }, []);
+    if (isOpen) {
+      if (userToken && user) {
+        const username = user.Name || user.username || "Learner";
+        setMessages([
+          {
+            from: "bot",
+            text: `👋 **Hi ${username}!** How can I help you with your learning modules?`,
+          },
+        ]);
+      } else {
+        setMessages([
+          {
+            from: "bot",
+            text: "🔒 **Please log in to chat**\n\nYou need to be logged in to use the Learning Assistant. Please log in to get help with your study modules.",
+          },
+        ]);
+      }
+    }
+  }, [isOpen, userToken, user]);
 
   useEffect(() => {
     const fetchPdfIds = async () => {
@@ -170,7 +182,7 @@ const ChatBotModal = ({ isOpen, onClose }) => {
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.map((msg, index) => (
             <div
               key={index}
