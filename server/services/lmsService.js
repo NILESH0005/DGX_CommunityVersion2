@@ -524,12 +524,14 @@ export const getAllActiveFilesService = async () => {
         f.FilePath,
         f.FileType,
         f.UnitID,
+        u.UnitName,
         f.Description,
         f.SortingOrder,
         f.EstimatedTime,
         f.Percentage,
-        u.UnitName,
+        sm.SubModuleID,     
         sm.SubModuleName,
+        m.ModuleID,
         m.ModuleName
       FROM FilesDetails f
       INNER JOIN UnitsDetails u ON f.UnitID = u.UnitID
