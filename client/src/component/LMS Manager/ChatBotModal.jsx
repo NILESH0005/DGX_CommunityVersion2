@@ -16,7 +16,7 @@ const ChatBotModal = ({ isOpen, onClose }) => {
   useEffect(() => {
     const fetchUserInfo = async () => {
       const userData = await getUser();
-      console.log("usseerrData", userData)
+      console.log("usseerrData", userData);
       setUser(userData);
     };
     fetchUserInfo();
@@ -36,7 +36,7 @@ const ChatBotModal = ({ isOpen, onClose }) => {
         console.error("Error fetching PDF IDs:", error);
       }
     };
-    
+
     if (isOpen && userToken) {
       fetchPdfIds();
     }
@@ -70,7 +70,9 @@ const ChatBotModal = ({ isOpen, onClose }) => {
     console.log("Sending body to /ask endpoint:", body);
 
     try {
-      const res = await fetch("http://192.168.29.244:8000/ask", {
+      const CHATBOT_API = import.meta.env.VITE_CHATBOT_API_URL;
+
+      const res = await fetch(`${CHATBOT_API}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -86,13 +88,16 @@ const ChatBotModal = ({ isOpen, onClose }) => {
         setChatHistory(data.chat_history);
       }
 
-      const botReply = data?.answer || 
+      const botReply =
+        data?.answer ||
         "❌ Sorry, I couldn't generate a response based on the available content. Please try rephrasing your question or ask about something from your study modules.";
 
       // Replace "processing" message with bot reply
       setMessages((prev) =>
         prev.map((m) =>
-          m.text === processingMessage.text ? { from: "bot", text: botReply } : m
+          m.text === processingMessage.text
+            ? { from: "bot", text: botReply }
+            : m
         )
       );
     } catch (error) {
@@ -125,12 +130,12 @@ const ChatBotModal = ({ isOpen, onClose }) => {
 
   const modalStyles = {
     normal: "w-[380px] h-[520px] m-6",
-    expanded: "w-[90vw] h-[90vh] m-4 max-w-6xl"
+    expanded: "w-[90vw] h-[90vh] m-4 max-w-6xl",
   };
 
   return (
     <div className="fixed inset-0 flex items-end justify-end bg-black/20 backdrop-blur-sm z-50">
-      <div 
+      <div
         className={`bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-2xl flex flex-col transition-all duration-300 ${
           isExpanded ? modalStyles.expanded : modalStyles.normal
         }`}
@@ -147,9 +152,13 @@ const ChatBotModal = ({ isOpen, onClose }) => {
               className="text-gray-500 hover:text-indigo-600 transition-colors duration-200 p-1"
               title={isExpanded ? "Collapse" : "Expand"}
             >
-              {isExpanded ? <FiMinimize2 size={16} /> : <FiMaximize2 size={16} />}
+              {isExpanded ? (
+                <FiMinimize2 size={16} />
+              ) : (
+                <FiMaximize2 size={16} />
+              )}
             </button>
-            
+
             {/* Close Button */}
             <button
               onClick={onClose}
@@ -181,10 +190,22 @@ const ChatBotModal = ({ isOpen, onClose }) => {
                   <ReactMarkdown
                     components={{
                       p: ({ children }) => <p className="mb-1">{children}</p>,
-                      ul: ({ children }) => <ul className="list-disc list-inside mb-1">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside mb-1">{children}</ol>,
-                      li: ({ children }) => <li className="ml-2">{children}</li>,
-                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside mb-1">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside mb-1">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="ml-2">{children}</li>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold">{children}</strong>
+                      ),
                     }}
                   >
                     {msg.text}
@@ -202,8 +223,8 @@ const ChatBotModal = ({ isOpen, onClose }) => {
           <input
             type="text"
             placeholder={
-              userToken 
-                ? "Ask about your study modules..." 
+              userToken
+                ? "Ask about your study modules..."
                 : "Please log in to chat with the Learning Assistant"
             }
             value={input}

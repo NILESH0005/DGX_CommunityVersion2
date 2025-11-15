@@ -18,6 +18,8 @@ import {
 } from "react-icons/fa";
 import images from "../../../public/images";
 import { motion, AnimatePresence } from "framer-motion";
+import HeroModel from "./ChatBot";
+import ChatBotModal from "./ChatBotModal";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -54,6 +56,7 @@ const SubModuleCard = () => {
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
   const [viewedSubModules, setViewedSubModules] = useState(new Set());
   const [subModuleViews, setSubModuleViews] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Custom DGX Colors
   const DGX_COLORS = {
@@ -68,7 +71,7 @@ const SubModuleCard = () => {
       500: "#3b82f6",
       600: "#2563eb",
       700: "#1d4ed8",
-    }
+    },
   };
 
   const recordSubModuleView = async (subModuleId) => {
@@ -181,7 +184,7 @@ const SubModuleCard = () => {
   // Time formatting functions
   const formatTime = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return "Not started";
-    
+
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -197,7 +200,7 @@ const SubModuleCard = () => {
 
   const formatTimeCompact = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return "0s";
-    
+
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -213,7 +216,7 @@ const SubModuleCard = () => {
 
   const getTimeSpentColor = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return `text-gray-500 bg-gray-100`;
-    
+
     if (totalSeconds < 60) {
       return `text-${DGX_COLORS.green[700]} bg-${DGX_COLORS.green[100]}`;
     } else if (totalSeconds < 300) {
@@ -226,7 +229,10 @@ const SubModuleCard = () => {
   const getProgressPercentage = (totalSeconds) => {
     // Assuming a submodule typically takes 15 minutes (900 seconds) to complete
     const typicalSubModuleTime = 900;
-    const percentage = Math.min((totalSeconds / typicalSubModuleTime) * 100, 100);
+    const percentage = Math.min(
+      (totalSeconds / typicalSubModuleTime) * 100,
+      100
+    );
     return Math.round(percentage);
   };
 
@@ -244,8 +250,7 @@ const SubModuleCard = () => {
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = images.Noimage;
-            e.target.className =
-              "w-full h-full object-contain bg-gray-200 p-4";
+            e.target.className = "w-full h-full object-contain bg-gray-200 p-4";
           }}
           loading="lazy"
         />
@@ -430,13 +435,13 @@ const SubModuleCard = () => {
                     {/* Progress Bar Overlay */}
                     {totalTimeSpent > 0 && (
                       <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30">
-                        <div 
+                        <div
                           className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-1000 ease-out"
                           style={{ width: `${progressPercentage}%` }}
                         ></div>
                       </div>
                     )}
-                   </div>
+                  </div>
 
                   {/* Content Section */}
                   <div className="p-6 flex flex-col flex-grow">
@@ -452,7 +457,7 @@ const SubModuleCard = () => {
                           <span className="font-medium">{totalViews}</span>
                           <span>views</span>
                         </div>
-                        
+
                         <div className="flex items-center gap-1.5">
                           <FaClock className="text-green-400" />
                           <span className="font-medium">
@@ -475,7 +480,8 @@ const SubModuleCard = () => {
                         }`}
                         aria-live="polite"
                       >
-                        {subModule.SubModuleDescription || "No description available."}
+                        {subModule.SubModuleDescription ||
+                          "No description available."}
                       </p>
 
                       {subModule.SubModuleDescription &&
@@ -494,12 +500,12 @@ const SubModuleCard = () => {
                         >
                           {isExpanded ? (
                             <>
-                              <FaAngleUp className="mr-1 group-hover/button:-translate-y-0.5 transition-transform" /> 
+                              <FaAngleUp className="mr-1 group-hover/button:-translate-y-0.5 transition-transform" />
                               Show Less
                             </>
                           ) : (
                             <>
-                              <FaAngleDown className="mr-1 group-hover/button:translate-y-0.5 transition-transform" /> 
+                              <FaAngleDown className="mr-1 group-hover/button:translate-y-0.5 transition-transform" />
                               Read More
                             </>
                           )}
@@ -525,6 +531,17 @@ const SubModuleCard = () => {
           )}
         </motion.div>
       </div>
+      <button
+        onClick={() => setIsChatOpen(true)}
+        className="fixed bottom-6 right-6 z-50"
+      >
+        <div className="w-[120px] h-[120px] flex justify-center items-center">
+          <HeroModel />
+        </div>
+      </button>
+
+      {/* 👇 Chat Modal */}
+      <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   );
 };
