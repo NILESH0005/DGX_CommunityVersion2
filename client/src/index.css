@@ -116,7 +116,7 @@
 
 
 @media (min-width: 768px) {
-    .md\:text-xl {
+    .UnderLine {
         font-size: 1.25rem;
         line-height: 1.75rem;
         border-bottom: 1px solid grey;

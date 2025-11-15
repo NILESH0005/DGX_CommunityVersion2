@@ -183,7 +183,7 @@ const AdminDashboard = (props) => {
             {/* Admin Dashboard */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   activeComp === "DashboardPage" ? "bg-gray-700 text-yellow-300" : ""
                 }`}
                 onClick={() => handleMenuItemClick("DashboardPage")}
@@ -196,7 +196,7 @@ const AdminDashboard = (props) => {
             {/* Home */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={` UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   activeComp === "Home" ? "bg-gray-700 text-yellow-300" : ""
                 }`}
                 onClick={() => handleMenuItemClick("Home")}
@@ -209,7 +209,7 @@ const AdminDashboard = (props) => {
             {/* Users */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   activeComp === "users" ? "bg-gray-700 text-yellow-300" : ""
                 }`}
                 onClick={() => handleMenuItemClick("users")}
@@ -222,7 +222,7 @@ const AdminDashboard = (props) => {
             {/* LMS Section */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   ["select_module", "edit_module"].includes(activeComp)
                     ? "bg-gray-700 text-yellow-300"
                     : ""
@@ -249,7 +249,7 @@ const AdminDashboard = (props) => {
                   >
                     <li>
                       <div
-                        className={`py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
+                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
                           activeComp === "select_module"
                             ? "bg-gray-700 text-yellow-300"
                             : ""
@@ -262,7 +262,7 @@ const AdminDashboard = (props) => {
                     </li>
                     <li>
                       <div
-                        className={`py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
+                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
                           activeComp === "edit_module"
                             ? "bg-gray-700 text-yellow-300"
                             : ""
@@ -281,7 +281,7 @@ const AdminDashboard = (props) => {
             {/* Quiz Section */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   ["quizpanel", "quiz_bank", "quiz_mapping"].includes(
                     activeComp
                   )
@@ -310,7 +310,7 @@ const AdminDashboard = (props) => {
                   >
                     <li>
                       <div
-                        className={`py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
+                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
                           activeComp === "quizpanel"
                             ? "bg-gray-700 text-yellow-300"
                             : ""
@@ -323,7 +323,7 @@ const AdminDashboard = (props) => {
                     </li>
                     <li>
                       <div
-                        className={`py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
+                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
                           activeComp === "quiz_bank"
                             ? "bg-gray-700 text-yellow-300"
                             : ""
@@ -336,7 +336,7 @@ const AdminDashboard = (props) => {
                     </li>
                     <li>
                       <div
-                        className={`py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
+                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
                           activeComp === "quiz_mapping"
                             ? "bg-gray-700 text-yellow-300"
                             : ""
@@ -355,7 +355,7 @@ const AdminDashboard = (props) => {
             {/* Discussions */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   activeComp === "discussions"
                     ? "bg-gray-700 text-yellow-300"
                     : ""
@@ -370,7 +370,7 @@ const AdminDashboard = (props) => {
             {/* Blogs */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   activeComp === "blog_manager"
                     ? "bg-gray-700 text-yellow-300"
                     : ""
@@ -385,7 +385,7 @@ const AdminDashboard = (props) => {
             {/* Events */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   activeComp === "events" ? "bg-gray-700 text-yellow-300" : ""
                 }`}
                 onClick={() => handleMenuItemClick("events")}
@@ -398,7 +398,7 @@ const AdminDashboard = (props) => {
             {/* ContactUs */}
             <li>
               <div
-                className={`py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
                   activeComp === "contact" ? "bg-gray-700 text-yellow-300" : ""
                 }`}
                 onClick={() => handleMenuItemClick("contact")}
@@ -413,7 +413,7 @@ const AdminDashboard = (props) => {
 
       {/* Main Content */}
       <div
-        className={`flex-1 min-h-screen p-4 md:p-6 overflow-x-auto transition-all duration-300 mt-16 md:mt-0`}
+        className={`UnderLine flex-1 min-h-screen p-4 md:p-6 overflow-x-auto transition-all duration-300 mt-16 md:mt-0`}
       >
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
           {getComp(activeComp)}
