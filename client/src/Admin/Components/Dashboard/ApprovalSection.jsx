@@ -248,7 +248,7 @@ const ApprovalSection = () => {
       </div>
 
       {/* Footer Actions */}
-      <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+      {/* <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
         <div className="text-sm text-gray-500">
           Last updated: Just now
         </div>
@@ -260,7 +260,7 @@ const ApprovalSection = () => {
         >
           Review All Approvals
         </motion.button>
-      </div>
+      </div> */}
     </motion.div>
   );
 };
