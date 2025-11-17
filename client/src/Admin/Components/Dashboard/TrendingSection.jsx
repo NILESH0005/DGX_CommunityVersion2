@@ -601,8 +601,6 @@ const TrendingSection = () => {
             ))}
           </div>
         </div>
-
-        {/* DISCUSSIONS SECTION */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-md font-semibold flex items-center gap-2">

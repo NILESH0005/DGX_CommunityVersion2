@@ -56,7 +56,8 @@ const SubModuleCard = () => {
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
   const [viewedSubModules, setViewedSubModules] = useState(new Set());
   const [subModuleViews, setSubModuleViews] = useState([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+
 
   // Custom DGX Colors
   const DGX_COLORS = {

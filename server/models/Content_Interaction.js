@@ -8,11 +8,11 @@ export default (sequelize, DataTypes) => {
         autoIncrement: true,
       },
       ProcessName: {
-        type: DataTypes.STRING(100), // 'Blog' or 'Discussion'
+        type: DataTypes.STRING(100),
         allowNull: false,
       },
       reference: {
-        type: DataTypes.INTEGER, // Add this field to store BlogID or DiscussionID
+        type: DataTypes.INTEGER, 
         allowNull: false,
       },
       UserID: {
