@@ -330,7 +330,7 @@ export const getFileById = async (req, res) => {
       // Normalize the.local file path
       const normalizedPath = file.FilePath.replace(/^\/+/, "");
 
-      responseFile.FileURL = `${BASE_URL}/lms/download/${file.FileID}`;
+      responseFile.FileURL = `${BASE_URL}/${normalizedPath}`;
       responseFile.DirectFileURL = `${BASE_URL}/${normalizedPath}`;
     }
 
