@@ -315,97 +315,29 @@ export const getFileById = async (req, res) => {
 
     const file = result.data;
 
-    // If it's a link, redirect to the external URL
+    // Build dynamic base URL
+    const protocol = req.protocol;
+    const host = req.get("host");
+    const BASE_URL = `${protocol}://${host}`;
+
+    // Build final response object (file details)
+    let responseFile = { ...file };
+
+    // If external link, leave as is
     if (file.FileType === "link" || file.FilePath?.startsWith("http")) {
-      return res.redirect(file.FilePath);
-    }
-
-    // For local files - resolve the correct path
-    // Since your files are stored directly in uploads folder
-    let filePath;
-
-    if (file.FilePath.includes("/") || file.FilePath.includes("\\")) {
-      // If path contains slashes, use it as is
-      filePath = path.join(process.cwd(), "uploads", file.FilePath);
+      responseFile.FileURL = file.FilePath;
     } else {
-      // If it's just a filename, look directly in uploads folder
-      filePath = path.join(process.cwd(), "uploads", file.FilePath);
+      // Normalize the.local file path
+      const normalizedPath = file.FilePath.replace(/^\/+/, "");
+
+      responseFile.FileURL = `${BASE_URL}/lms/download/${file.FileID}`;
+      responseFile.DirectFileURL = `${BASE_URL}/${normalizedPath}`;
     }
 
-    console.log("Looking for file at:", filePath);
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.log("File not found at path:", filePath);
-
-      // Try to find the file in different locations
-      const possiblePaths = [
-        path.join(process.cwd(), "uploads", file.FilePath), // Direct in uploads
-        path.join(process.cwd(), "server", "uploads", file.FilePath), // If running from root
-        path.join(__dirname, "..", "uploads", file.FilePath), // Relative to controller
-        path.join(process.cwd(), file.FilePath), // Absolute from project root
-        file.FilePath, // Raw path
-      ];
-
-      let foundPath = null;
-      for (const possiblePath of possiblePaths) {
-        if (fs.existsSync(possiblePath)) {
-          foundPath = possiblePath;
-          console.log("Found file at:", foundPath);
-          break;
-        }
-      }
-
-      if (!foundPath) {
-        return res.status(404).json({
-          success: false,
-          message: "File not found on server",
-          debug: {
-            fileName: file.FilesName,
-            filePathFromDB: file.FilePath,
-            searchedPaths: possiblePaths,
-          },
-        });
-      }
-
-      filePath = foundPath;
-    }
-
-    // Set headers for file download
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${file.FilesName}"`
-    );
-
-    // Determine content type based on file extension
-    const ext = path.extname(file.FilesName).toLowerCase();
-    const mimeTypes = {
-      ".pdf": "application/pdf",
-      ".txt": "text/plain",
-      ".doc": "application/msword",
-      ".docx":
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ".xls": "application/vnd.ms-excel",
-      ".xlsx":
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ".ppt": "application/vnd.ms-powerpoint",
-      ".pptx":
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      ".zip": "application/zip",
-      ".mp4": "video/mp4",
-      ".mp3": "audio/mpeg",
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".gif": "image/gif",
-    };
-
-    const contentType = mimeTypes[ext] || "application/octet-stream";
-    res.setHeader("Content-Type", contentType);
-
-    console.log("Downloading file:", filePath);
-    // Send the file for download
-    return res.sendFile(filePath);
+    return res.status(200).json({
+      success: true,
+      data: responseFile,
+    });
   } catch (error) {
     console.error("Controller Error (getFileById):", error);
     return res.status(500).json({

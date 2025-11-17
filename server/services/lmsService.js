@@ -598,7 +598,9 @@ export const getFileByIdService = async (FileID) => {
         f.Percentage,
         u.UnitName,
         sm.SubModuleName,
-        m.ModuleName
+        sm.SubModuleID,
+        m.ModuleName,
+        m.ModuleID
       FROM FilesDetails f
       INNER JOIN UnitsDetails u ON f.UnitID = u.UnitID
       INNER JOIN SubModulesDetails sm ON u.SubModuleID = sm.SubModuleID
