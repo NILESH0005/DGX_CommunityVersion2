@@ -122,3 +122,8 @@
         border-bottom: 1px solid grey;
     }
 }
+
+.sh{
+    -webkit-box-shadow: 5px 7px 0 #6c757d;
+    margin-bottom: 2.875rem;
+}
