@@ -20,8 +20,6 @@ export class LMS {
     try {
       const { moduleId, subModuleId, unitId, type, url, description, isLink } =
         req.body;
-
-      // Handle file upload
       if (type === "file" || !isLink) {
         if (!req.file) {
           return res

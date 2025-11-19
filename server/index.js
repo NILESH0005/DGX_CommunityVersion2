@@ -17,6 +17,7 @@ import LMS from "./routes/LMS.js";
 import lmsEdit from "./routes/LmsEdit.js";
 import progressRoute from "./routes/ProgressTrack.js";
 import contactUs from "./routes/ContactUs.js";
+import dashboardRoutes from "./routes/Dashboard.js"
 import sequelize from "./config/database.js";
 // import { fileURLToPath } from 'url';
 // import { dirname } from 'path';
@@ -55,6 +56,8 @@ app.use("/quiz", quizRoutes);
 app.use("/lmsEdit", lmsEdit);
 app.use("/progressTrack", progressRoute);
 app.use("/contactUs", contactUs);
+app.use("/dashboard", dashboardRoutes);
+
 // app.use(express.static(path.join(__dirname, 'client/dist')));
 // app.get('*', (req, res) => {
 //   res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
