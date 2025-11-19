@@ -1,157 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ApiContext from "../../../context/ApiContext";
 
 /* -------------------------------
-   DUMMY DATA (Blogs + Discussions)
+   SPARKLINE COMPONENT (Optional - you can remove if not needed)
 -------------------------------- */
-const trendingBlogs = [
-  {
-    id: 1,
-    title:
-      "The Future of AI in Web Development: A Comprehensive Guide to Modern AI Tools and Frameworks",
-    author: "Sarah Chen",
-    rating: 4.8,
-    reposts: 142,
-    claps: 1250,
-    views: 15420,
-    rank: 1,
-    category: "Technology",
-    createdDate: "2024-01-15",
-    engagement: 1892,
-    trendData: [45, 52, 48, 65, 72, 68, 85, 92, 88, 95, 110, 125],
-    readTime: "8 min read",
-    tags: ["AI", "Web Dev", "Future"],
-    fullDescription:
-      "Explore the cutting-edge advancements in AI and how they're revolutionizing web development. From automated code generation to intelligent user interfaces, discover the tools and frameworks shaping the future of web applications.",
-  },
-  {
-    id: 2,
-    title:
-      "Mastering React Hooks in 2024: Advanced Patterns and Best Practices for Modern React Development",
-    author: "Mike Rodriguez",
-    rating: 4.6,
-    reposts: 98,
-    claps: 890,
-    views: 11200,
-    rank: 2,
-    category: "Programming",
-    createdDate: "2024-01-12",
-    engagement: 1052,
-    trendData: [30, 35, 42, 38, 45, 52, 58, 65, 72, 78, 85, 89],
-    readTime: "12 min read",
-    tags: ["React", "Hooks", "JavaScript"],
-    fullDescription:
-      "Dive deep into React Hooks with advanced patterns, custom hooks, and performance optimization techniques. Learn how to build scalable and maintainable React applications using modern hook-based architecture.",
-  },
-  {
-    id: 3,
-    title:
-      "Sustainable Web Design Practices: Building Eco-Friendly Digital Experiences for the Modern Web",
-    author: "Emma Wilson",
-    rating: 4.9,
-    reposts: 76,
-    claps: 1100,
-    views: 9800,
-    rank: 3,
-    category: "Design",
-    createdDate: "2024-01-10",
-    engagement: 1216,
-    trendData: [25, 28, 32, 45, 52, 48, 55, 62, 68, 72, 78, 110],
-    readTime: "6 min read",
-    tags: ["Design", "Sustainability", "UI/UX"],
-    fullDescription:
-      "Discover sustainable web design principles that reduce environmental impact while improving user experience. Learn about performance optimization, green hosting, and eco-conscious design patterns.",
-  },
-];
+// const Sparkline = ({ data, width = 60, height = 20, color = "#3B82F6" }) => {
+//   const max = Math.max(...data);
+//   const min = Math.min(...data);
 
-const trendingDiscussions = [
-  {
-    id: 1,
-    title:
-      "Best practices for microservices architecture in large-scale enterprise applications and distributed systems",
-    creator: "Alex Thompson",
-    likes: 324,
-    reposts: 87,
-    comments: 156,
-    isHot: true,
-    rank: 1,
-    views: 8900,
-    category: "Architecture",
-    createdDate: "2024-01-14",
-    engagement: 567,
-    trendData: [20, 25, 32, 45, 38, 42, 55, 62, 58, 65, 72, 87],
-    tags: ["Microservices", "Architecture", "Best Practices"],
-    fullDescription:
-      "Join the discussion on microservices best practices, including service decomposition, communication patterns, and deployment strategies for enterprise-scale applications.",
-  },
-  {
-    id: 2,
-    title:
-      "How do you handle state management in large React applications with complex data flow and multiple teams?",
-    creator: "Jessica Lee",
-    likes: 287,
-    reposts: 64,
-    comments: 203,
-    isHot: true,
-    rank: 2,
-    views: 11200,
-    category: "Frontend",
-    createdDate: "2024-01-13",
-    engagement: 554,
-    trendData: [15, 22, 35, 42, 38, 45, 52, 58, 65, 72, 68, 64],
-    tags: ["React", "State Management", "Frontend"],
-    fullDescription:
-      "Share your experiences and solutions for managing complex state in large React applications. Discuss Redux, Context API, Zustand, and other state management libraries.",
-  },
-  {
-    id: 3,
-    title:
-      "Database optimization techniques for high-traffic applications: Scaling strategies and performance tuning",
-    creator: "David Kim",
-    likes: 198,
-    reposts: 45,
-    comments: 89,
-    isHot: false,
-    rank: 3,
-    views: 6700,
-    category: "Backend",
-    createdDate: "2024-01-11",
-    engagement: 332,
-    trendData: [10, 15, 22, 28, 32, 38, 35, 42, 45, 38, 42, 45],
-    tags: ["Database", "Optimization", "Backend"],
-    fullDescription:
-      "Explore database optimization techniques for high-traffic applications. Discuss indexing strategies, query optimization, caching, and scaling approaches for different database systems.",
-  },
-];
+//   const points = data
+//     .map((value, index) => {
+//       const x = (index / (data.length - 1)) * width;
+//       const y = height - ((value - min) / (max - min)) * height;
+//       return `${x},${y}`;
+//     })
+//     .join(" ");
 
-/* -------------------------------
-   SPARKLINE COMPONENT
--------------------------------- */
-const Sparkline = ({ data, width = 60, height = 20, color = "#3B82F6" }) => {
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-
-  const points = data
-    .map((value, index) => {
-      const x = (index / (data.length - 1)) * width;
-      const y = height - ((value - min) / (max - min)) * height;
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  return (
-    <svg width={width} height={height} className="flex-shrink-0">
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-};
+//   return (
+//     <svg width={width} height={height} className="flex-shrink-0">
+//       <polyline
+//         points={points}
+//         fill="none"
+//         stroke={color}
+//         strokeWidth="2"
+//         strokeLinecap="round"
+//         strokeLinejoin="round"
+//       />
+//     </svg>
+//   );
+// };
 
 /* -------------------------------
    RANK BADGE COMPONENT
@@ -200,7 +78,7 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
       return [
         {
           label: "Rating",
-          value: item.rating,
+          value: item.avgRating,
           icon: "⭐",
           color: "text-yellow-600",
         },
@@ -212,7 +90,7 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
         },
         {
           label: "Reposts",
-          value: item.reposts,
+          value: item.repostCount,
           icon: "🔁",
           color: "text-purple-600",
         },
@@ -252,6 +130,11 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
       ];
     }
   };
+  const stripHtmlTags = (html) => {
+    if (!html) return "";
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return doc.body.textContent || "";
+  };
 
   const engagementStats = getEngagementStats();
 
@@ -279,7 +162,7 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
                   {item.title}
                 </h3>
                 <p className="text-gray-600 mt-1">
-                  by {type === "blog" ? item.author : item.creator}
+                  by {item.author || "Unknown"}
                 </p>
               </div>
             </div>
@@ -294,9 +177,9 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
           <div className="space-y-6">
             {/* Description */}
             <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Description</h4>
+              <h4 className="font-semibold text-gray-800 mb-2">Content</h4>
               <p className="text-gray-700 leading-relaxed">
-                {item.fullDescription}
+                {stripHtmlTags(item.content)}
               </p>
             </div>
 
@@ -319,54 +202,77 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
 
             {/* Additional Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-3">Details</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Category:</span>
-                    <span className="font-medium">{item.category}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Created:</span>
-                    <span className="font-medium">{item.createdDate}</span>
-                  </div>
-
-                  {type === "blog" && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Read Time:</span>
-                      <span className="font-medium">{item.readTime}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-3">
-                  Trend Analytics
+              {/* DETAILS CARD */}
+              <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+                <h4 className="font-semibold text-gray-900 mb-4 text-base">
+                  Blog Details
                 </h4>
-                <div className="flex justify-center">
-                  <Sparkline
-                    data={item.trendData}
-                    width={200}
-                    height={60}
-                    color={type === "blog" ? "#3B82F6" : "#10B981"}
-                  />
+
+                <div className="space-y-3 text-sm">
+                  {/* Category */}
+                  <div className="flex justify-between border-b pb-2">
+                    <span className="text-gray-600">Category</span>
+                    <span className="font-medium text-gray-800">
+                      {item.category || "—"}
+                    </span>
+                  </div>
+
+                  {/* Created On */}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Created On</span>
+                    <span className="font-medium text-gray-800">
+                      {new Date(item.addedOn).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "2-digit",
+                      })}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Tags */}
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Tags</h4>
-              <div className="flex flex-wrap gap-2">
-                {item.tags?.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm"
-                  >
-                    #{tag}
-                  </span>
-                ))}
+              {/* ENGAGEMENT CARD */}
+              <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+                <h4 className="font-semibold text-gray-900 mb-4 text-base">
+                  Engagement Analytics
+                </h4>
+
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Claps</span>
+                    <span className="font-medium text-gray-800">
+                      {item.claps}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Views</span>
+                    <span className="font-medium text-gray-800">
+                      {item.views}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Ratings</span>
+                    <span className="font-medium text-gray-800">
+                      {item.ratings}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Avg Rating</span>
+                    <span className="font-medium text-gray-800">
+                      {item.avgRating}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Reposts</span>
+                    <span className="font-medium text-gray-800">
+                      {item.repostCount}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -387,7 +293,7 @@ const Card = ({ item, type }) => {
       return [
         {
           label: "Rating",
-          value: item.rating,
+          value: item.avgRating,
           icon: "⭐",
           color: "text-yellow-600",
         },
@@ -399,7 +305,7 @@ const Card = ({ item, type }) => {
         },
         {
           label: "Reposts",
-          value: item.reposts,
+          value: item.repostCount,
           icon: "🔁",
           color: "text-purple-600",
         },
@@ -444,6 +350,13 @@ const Card = ({ item, type }) => {
   const shadowColor =
     type === "blog" ? "hover:shadow-blue-500/20" : "hover:shadow-green-500/20";
 
+  // Strip HTML tags from content for preview
+  const stripHtmlTags = (html) => {
+    if (!html) return "";
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return doc.body.textContent || "";
+  };
+
   return (
     <>
       <motion.div
@@ -462,25 +375,26 @@ const Card = ({ item, type }) => {
               <h4 className="font-inter font-semibold text-gray-900 text-sm line-clamp-1 hover:text-blue-600 transition flex-1 pr-2">
                 {item.title}
               </h4>
-
-              {/* Sparkline */}
-              <Sparkline
-                data={item.trendData}
-                color={type === "blog" ? "#3B82F6" : "#10B981"}
-              />
             </div>
 
             {/* Meta Info */}
             <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-              <span>by {type === "blog" ? item.author : item.creator}</span>
+              <span>by {item.author || "Unknown"}</span>
               <div className="flex items-center gap-2">
                 <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
-                  {item.category}
+                  {item.processName || "Blog"}
                 </span>
-                {type === "blog" && item.readTime && (
-                  <span className="text-gray-400">{item.readTime}</span>
-                )}
+                <span className="text-gray-400">
+                  {new Date(item.addedOn).toLocaleDateString()}
+                </span>
               </div>
+            </div>
+
+            {/* Content Preview */}
+            <div className="mb-3">
+              <p className="text-xs text-gray-600 line-clamp-2">
+                {stripHtmlTags(item.content)}
+              </p>
             </div>
 
             {/* Stats Grid */}
@@ -534,9 +448,91 @@ const Card = ({ item, type }) => {
    MAIN TRENDING SECTION
 -------------------------------- */
 const TrendingSection = () => {
+  const { fetchData } = useContext(ApiContext);
   const [activeTab, setActiveTab] = useState("blogs");
-  const [blogSortBy, setBlogSortBy] = useState("engagement");
+  const [blogSortBy, setBlogSortBy] = useState("claps");
   const [discussionSortBy, setDiscussionSortBy] = useState("engagement");
+  const [trendingBlogs, setTrendingBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch trending blogs from API
+  const fetchTrendingBlogs = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchData("dashboard/getTrendingBlogs", "GET");
+
+      if (response.success && response.data) {
+        // Add rank based on claps (or your preferred metric)
+        const blogsWithRank = response.data
+          .sort((a, b) => b.claps - a.claps)
+          .slice(0, 3) // Take only top 3
+          .map((blog, index) => ({
+            ...blog,
+            rank: index + 1,
+          }));
+
+        setTrendingBlogs(blogsWithRank);
+      } else {
+        throw new Error("Failed to fetch trending blogs");
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error("Error fetching trending blogs:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrendingBlogs();
+  }, []);
+
+  // Sort blogs based on selected filter
+  const sortedBlogs = React.useMemo(() => {
+    const blogs = [...trendingBlogs];
+
+    switch (blogSortBy) {
+      case "claps":
+        return blogs.sort((a, b) => b.claps - a.claps);
+      case "reposts":
+        return blogs.sort((a, b) => b.repostCount - a.repostCount);
+      case "views":
+        return blogs.sort((a, b) => b.views - a.views);
+      case "rating":
+        return blogs.sort(
+          (a, b) => parseFloat(b.avgRating) - parseFloat(a.avgRating)
+        );
+      default:
+        return blogs;
+    }
+  }, [trendingBlogs, blogSortBy]);
+
+  // Update ranks after sorting
+  const blogsWithUpdatedRanks = sortedBlogs.map((blog, index) => ({
+    ...blog,
+    rank: index + 1,
+  }));
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
+        <div className="text-center text-red-500">
+          Error loading trending blogs: {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -571,9 +567,6 @@ const TrendingSection = () => {
         </motion.button>
       </div>
 
-      {/* ---------- HEADER ---------- */}
-      <div className="flex justify-between items-center mb-6"></div>
-
       {/* ---------- DESKTOP SIDE BY SIDE WITH SEPARATE FILTERS ---------- */}
       <div className="hidden md:grid grid-cols-2 gap-6">
         {/* BLOGS SECTION */}
@@ -588,19 +581,21 @@ const TrendingSection = () => {
               onChange={(e) => setBlogSortBy(e.target.value)}
               className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="rating">Rating</option>
               <option value="claps">Claps</option>
-              <option value="reposts">Reposts</option>
+              <option value="reposts">Repost</option>
               <option value="views">Views</option>
+              <option value="rating">Rating</option>
             </select>
           </div>
 
           <div className="space-y-4">
-            {trendingBlogs.map((blog) => (
-              <Card key={blog.id} item={blog} type="blog" />
+            {blogsWithUpdatedRanks.map((blog) => (
+              <Card key={blog.reference} item={blog} type="blog" />
             ))}
           </div>
         </div>
+
+        {/* DISCUSSIONS SECTION - You can add this later when you have the API */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-md font-semibold flex items-center gap-2">
@@ -620,9 +615,9 @@ const TrendingSection = () => {
           </div>
 
           <div className="space-y-4">
-            {trendingDiscussions.map((disc) => (
-              <Card key={disc.id} item={disc} type="discussion" />
-            ))}
+            <div className="text-center text-gray-500 py-8">
+              Discussions coming soon...
+            </div>
           </div>
         </div>
       </div>
@@ -641,15 +636,14 @@ const TrendingSection = () => {
                 onChange={(e) => setBlogSortBy(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="engagement">Engagement</option>
-                <option value="rating">Rating</option>
                 <option value="claps">Claps</option>
-                <option value="reposts">Reposts</option>
+                <option value="reposts">Repost</option>
                 <option value="views">Views</option>
+                <option value="rating">Rating</option>
               </select>
             </div>
-            {trendingBlogs.map((blog) => (
-              <Card key={blog.id} item={blog} type="blog" />
+            {blogsWithUpdatedRanks.map((blog) => (
+              <Card key={blog.reference} item={blog} type="blog" />
             ))}
           </div>
         ) : (
@@ -671,9 +665,9 @@ const TrendingSection = () => {
                 <option value="views">Views</option>
               </select>
             </div>
-            {trendingDiscussions.map((disc) => (
-              <Card key={disc.id} item={disc} type="discussion" />
-            ))}
+            <div className="text-center text-gray-500 py-8">
+              Discussions coming soon...
+            </div>
           </div>
         )}
       </div>
