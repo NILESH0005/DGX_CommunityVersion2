@@ -442,6 +442,7 @@ const UserInsightsDashboard = () => {
       >
         {/* Header */}
         <div className="mb-8">
+          <span className="w-2 h-4 bg-green-500 rounded"></span>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             User Insights Dashboard
           </h1>
