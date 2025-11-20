@@ -315,7 +315,7 @@ const getCommentsRecursive = async (parentId, currentUserId) => {
     where: {
       Reference: parentId,
       delStatus: { [Op.or]: [0, null] },
-      Comment: { [Op.ne]: null }, // ✅ only actual comments
+      Comment: { [Op.ne]: null }, 
     },
     include: [
       {
@@ -362,9 +362,6 @@ const getCommentsRecursive = async (parentId, currentUserId) => {
   );
 };
 
-/**
- * Count all nested comments (recursively)
- */
 const countAllComments = (comments) => {
   let count = comments.length;
   for (const c of comments) {

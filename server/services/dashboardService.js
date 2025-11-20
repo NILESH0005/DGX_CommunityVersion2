@@ -1,7 +1,9 @@
 import db from "../models/index.js";
 import sequelize from "../config/database.js";
+import { Op } from "sequelize";
 
-const { ContentInteraction, CommunityBlog, User } = db;
+
+const { ContentInteraction, CommunityBlog, User, CommunityEvents } = db;
 
 export const getTrendingBlogsService = async () => {
   try {
@@ -45,9 +47,6 @@ export const getTrendingBlogsService = async () => {
       type: sequelize.QueryTypes.SELECT,
     });
 
-    // ------------------------------
-    // 2️⃣ RATING FREQUENCY QUERY
-    // ------------------------------
     const ratingQuery = `
       SELECT 
         COUNT(reference) AS frqBlog,
@@ -78,7 +77,7 @@ export const getTrendingBlogsService = async () => {
         reference: b.reference,
         title: b.title,
         content: b.content,
-        category: b.Category,          // ✅ NEW FIELD
+        category: b.Category, // ✅ NEW FIELD
         author: b.author,
         addedOn: b.AddOnDt,
         claps: b.claps,
@@ -101,4 +100,46 @@ export const getTrendingBlogsService = async () => {
   }
 };
 
+export const getApprovalCountsService = async () => {
+  try {
+    const pendingBlogs = await CommunityBlog.count({
+      where: {
+        delStatus: { [Op.or]: [0, null] },
+        Status: "Pending",
+      },
+    });
 
+    const pendingEvents = await CommunityEvents.count({
+      where: {
+        delStatus: { [Op.or]: [0, null] },
+        Status: "Pending",
+      },
+    });
+
+    const pendingUsers = await User.count({
+      where: {
+        delStatus: { [Op.or]: [0, null] },
+        FlagPasswordChange: 0,
+      },
+    });
+
+    const totalPending =
+      pendingBlogs + pendingEvents + pendingUsers;
+
+    return {
+      success: true,
+      data: {
+        pendingBlogs,
+        pendingEvents,
+        pendingUsers,
+        totalPending,
+      },
+    };
+  } catch (error) {
+    console.error("❌ Error fetching approval counts:", error);
+    return {
+      success: false,
+      error,
+    };
+  }
+};
