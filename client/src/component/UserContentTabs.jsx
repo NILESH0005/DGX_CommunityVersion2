@@ -57,8 +57,7 @@ const UserContentTabs = ({
                   key={index}
                   className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full"
                 >
-                  {/* Image Section */}
-                  <div className="w-full h-48 bg-gray-100 overflow-hidden">
+                  {/* <div className="w-full h-48 bg-gray-100 overflow-hidden">
                     {discussion.DiscussionImagePath ? (
                       <img
                         src={
@@ -74,7 +73,7 @@ const UserContentTabs = ({
                         <span className="text-gray-500 text-sm">No Image</span>
                       </div>
                     )}
-                  </div>
+                  </div> */}
 
                   {/* Content Section */}
                   <div className="p-4 flex flex-col flex-grow">

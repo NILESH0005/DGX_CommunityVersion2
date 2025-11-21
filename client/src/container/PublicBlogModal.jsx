@@ -514,7 +514,10 @@ const PublicBlogModal = ({
                     src={currentImageSrc}
                     alt={title}
                     onError={(e) => {
-                      console.error("Modal Image failed to load in DOM:", currentImageSrc);
+                      console.error(
+                        "Modal Image failed to load in DOM:",
+                        currentImageSrc
+                      );
                       setImageError(true);
                       e.target.src = Noimage;
                     }}
@@ -583,7 +586,7 @@ const PublicBlogModal = ({
                 <div className="flex items-center gap-3 mb-2">
                   <TbUserSquareRounded className="text-indigo-600 text-3xl" />
                   <span className="text-gray-600 font-medium">
-                    {AuthAdd || author || "Unknown author"}
+                    {blog?.User?.Name || author || "Unknown author"}
                   </span>
                 </div>
                 {RepostUser && RepostUser.Name && (

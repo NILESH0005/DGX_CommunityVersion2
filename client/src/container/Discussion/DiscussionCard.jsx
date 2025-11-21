@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AiFillLike, AiOutlineLike } from "react-icons/ai";
 import { FaComment } from "react-icons/fa";
- 
+import images from "../../../public/images.js";
 import {
   FiEye,
   FiRepeat,
@@ -378,7 +378,7 @@ const DiscussionCard = ({
                 <FiCheckCircle className="w-5 h-5 text-green-500" />
               ) : !discussion.allowRepost ? (
                 <img
-                  src="/your-image.png" 
+                  src="/Nrepost.png" 
                   alt="not allowed"
                   className="w-5 h-5 opacity-80 group-hover:opacity-100"
                 />

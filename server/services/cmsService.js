@@ -409,6 +409,13 @@ export const getLogoutHomePageContentService = async () => {
         CommunityDiscussion.findAll({
           where: {
             delStatus: 0,
+
+            // 🚫 DO NOT SHOW REPOSTED DISCUSSIONS
+            RepostID: {
+              [Op.or]: [null, 0],
+            },
+
+            // Parent discussions only
             [Op.or]: [{ Comment: null }, { Comment: "" }],
           },
           attributes: [
@@ -421,16 +428,17 @@ export const getLogoutHomePageContentService = async () => {
             "Visibility",
             "AddOnDt",
             "AuthAdd",
+
             [
               Sequelize.literal(`(
-                SELECT COUNT(*)
-                FROM Content_Interaction AS ci
-                WHERE 
-                  ci.ProcessName = 'Discussion'
-                  AND ci.reference = CommunityDiscussion.DiscussionID
-                  AND ci.Likes = 1
-                  AND ci.delStatus = 0
-              )`),
+        SELECT COUNT(*)
+        FROM content_interaction AS ci
+        WHERE 
+          ci.ProcessName = 'Discussion'
+          AND ci.reference = CommunityDiscussion.DiscussionID
+          AND ci.Likes = 1
+          AND ci.delStatus = 0
+      )`),
               "Likes",
             ],
           ],
