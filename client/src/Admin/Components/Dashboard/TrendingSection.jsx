@@ -3,35 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../../../context/ApiContext";
 
 /* -------------------------------
-   SPARKLINE COMPONENT (Optional - you can remove if not needed)
--------------------------------- */
-// const Sparkline = ({ data, width = 60, height = 20, color = "#3B82F6" }) => {
-//   const max = Math.max(...data);
-//   const min = Math.min(...data);
-
-//   const points = data
-//     .map((value, index) => {
-//       const x = (index / (data.length - 1)) * width;
-//       const y = height - ((value - min) / (max - min)) * height;
-//       return `${x},${y}`;
-//     })
-//     .join(" ");
-
-//   return (
-//     <svg width={width} height={height} className="flex-shrink-0">
-//       <polyline
-//         points={points}
-//         fill="none"
-//         stroke={color}
-//         strokeWidth="2"
-//         strokeLinecap="round"
-//         strokeLinejoin="round"
-//       />
-//     </svg>
-//   );
-// };
-
-/* -------------------------------
    RANK BADGE COMPONENT
 -------------------------------- */
 const RankBadge = ({ rank, size = "sm" }) => {
@@ -111,25 +82,26 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
         },
         {
           label: "Comments",
-          value: item.comments,
+          value: item.commentCount,
           icon: "💬",
           color: "text-green-600",
         },
         {
           label: "Reposts",
-          value: item.reposts,
+          value: item.repostCount,
           icon: "🔁",
           color: "text-purple-600",
         },
         {
           label: "Views",
-          value: item.views,
+          value: item.viewCount,
           icon: "👀",
           color: "text-gray-600",
         },
       ];
     }
   };
+
   const stripHtmlTags = (html) => {
     if (!html) return "";
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -177,7 +149,9 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
           <div className="space-y-6">
             {/* Description */}
             <div>
-              <h4 className="font-semibold text-gray-800 mb-2">Content</h4>
+              <h4 className="font-semibold text-gray-800 mb-2">
+                {type === "blog" ? "Content" : "Discussion"}
+              </h4>
               <p className="text-gray-700 leading-relaxed">
                 {stripHtmlTags(item.content)}
               </p>
@@ -205,15 +179,15 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
               {/* DETAILS CARD */}
               <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
                 <h4 className="font-semibold text-gray-900 mb-4 text-base">
-                  Blog Details
+                  {type === "blog" ? "Blog Details" : "Discussion Details"}
                 </h4>
 
                 <div className="space-y-3 text-sm">
                   {/* Category */}
                   <div className="flex justify-between border-b pb-2">
-                    <span className="text-gray-600">Category</span>
+                    <span className="text-gray-600">Type</span>
                     <span className="font-medium text-gray-800">
-                      {item.category || "—"}
+                      {item.ProcessName || item.processName || "—"}
                     </span>
                   </div>
 
@@ -221,7 +195,7 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Created On</span>
                     <span className="font-medium text-gray-800">
-                      {new Date(item.addedOn).toLocaleDateString("en-US", {
+                      {new Date(item.addedOn || item.AddOnDt).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "long",
                         day: "2-digit",
@@ -238,40 +212,74 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
                 </h4>
 
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Claps</span>
-                    <span className="font-medium text-gray-800">
-                      {item.claps}
-                    </span>
-                  </div>
+                  {type === "blog" ? (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Claps</span>
+                        <span className="font-medium text-gray-800">
+                          {item.claps}
+                        </span>
+                      </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Views</span>
-                    <span className="font-medium text-gray-800">
-                      {item.views}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Views</span>
+                        <span className="font-medium text-gray-800">
+                          {item.views}
+                        </span>
+                      </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Ratings</span>
-                    <span className="font-medium text-gray-800">
-                      {item.ratings}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Ratings</span>
+                        <span className="font-medium text-gray-800">
+                          {item.ratings}
+                        </span>
+                      </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Avg Rating</span>
-                    <span className="font-medium text-gray-800">
-                      {item.avgRating}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Avg Rating</span>
+                        <span className="font-medium text-gray-800">
+                          {item.avgRating}
+                        </span>
+                      </div>
 
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Reposts</span>
-                    <span className="font-medium text-gray-800">
-                      {item.repostCount}
-                    </span>
-                  </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Reposts</span>
+                        <span className="font-medium text-gray-800">
+                          {item.repostCount}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Likes</span>
+                        <span className="font-medium text-gray-800">
+                          {item.likes}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Views</span>
+                        <span className="font-medium text-gray-800">
+                          {item.viewCount}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Comments</span>
+                        <span className="font-medium text-gray-800">
+                          {item.commentCount}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Reposts</span>
+                        <span className="font-medium text-gray-800">
+                          {item.repostCount}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -326,19 +334,19 @@ const Card = ({ item, type }) => {
         },
         {
           label: "Comments",
-          value: item.comments,
+          value: item.commentCount,
           icon: "💬",
           color: "text-green-600",
         },
         {
           label: "Reposts",
-          value: item.reposts,
+          value: item.repostCount,
           icon: "🔁",
           color: "text-purple-600",
         },
         {
           label: "Views",
-          value: item.views,
+          value: item.viewCount,
           icon: "👀",
           color: "text-gray-600",
         },
@@ -382,10 +390,10 @@ const Card = ({ item, type }) => {
               <span>by {item.author || "Unknown"}</span>
               <div className="flex items-center gap-2">
                 <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
-                  {item.processName || "Blog"}
+                  {item.ProcessName || item.processName || (type === "blog" ? "Blog" : "Discussion")}
                 </span>
                 <span className="text-gray-400">
-                  {new Date(item.addedOn).toLocaleDateString()}
+                  {new Date(item.addedOn || item.AddOnDt).toLocaleDateString()}
                 </span>
               </div>
             </div>
@@ -451,15 +459,15 @@ const TrendingSection = () => {
   const { fetchData } = useContext(ApiContext);
   const [activeTab, setActiveTab] = useState("blogs");
   const [blogSortBy, setBlogSortBy] = useState("claps");
-  const [discussionSortBy, setDiscussionSortBy] = useState("engagement");
+  const [discussionSortBy, setDiscussionSortBy] = useState("likes");
   const [trendingBlogs, setTrendingBlogs] = useState([]);
+  const [trendingDiscussions, setTrendingDiscussions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Fetch trending blogs from API
   const fetchTrendingBlogs = async () => {
     try {
-      setLoading(true);
       const response = await fetchData("dashboard/getTrendingBlogs", "GET");
 
       if (response.success && response.data) {
@@ -479,13 +487,49 @@ const TrendingSection = () => {
     } catch (err) {
       setError(err.message);
       console.error("Error fetching trending blogs:", err);
+    }
+  };
+
+  // Fetch trending discussions from API
+  const fetchTrendingDiscussions = async () => {
+    try {
+      const response = await fetchData("dashboard/getTrendingDiscussion", "GET");
+
+      if (response.success && response.data) {
+        // Add rank based on likes (or your preferred metric)
+        const discussionsWithRank = response.data
+          .sort((a, b) => b.likes - a.likes)
+          .slice(0, 3) // Take only top 3
+          .map((discussion, index) => ({
+            ...discussion,
+            rank: index + 1,
+          }));
+
+        setTrendingDiscussions(discussionsWithRank);
+      } else {
+        throw new Error("Failed to fetch trending discussions");
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error("Error fetching trending discussions:", err);
+    }
+  };
+
+  // Fetch all data
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await Promise.all([fetchTrendingBlogs(), fetchTrendingDiscussions()]);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTrendingBlogs();
+    fetchAllData();
   }, []);
 
   // Sort blogs based on selected filter
@@ -508,9 +552,32 @@ const TrendingSection = () => {
     }
   }, [trendingBlogs, blogSortBy]);
 
+  // Sort discussions based on selected filter
+  const sortedDiscussions = React.useMemo(() => {
+    const discussions = [...trendingDiscussions];
+
+    switch (discussionSortBy) {
+      case "likes":
+        return discussions.sort((a, b) => b.likes - a.likes);
+      case "comments":
+        return discussions.sort((a, b) => b.commentCount - a.commentCount);
+      case "reposts":
+        return discussions.sort((a, b) => b.repostCount - a.repostCount);
+      case "views":
+        return discussions.sort((a, b) => b.viewCount - a.viewCount);
+      default:
+        return discussions;
+    }
+  }, [trendingDiscussions, discussionSortBy]);
+
   // Update ranks after sorting
   const blogsWithUpdatedRanks = sortedBlogs.map((blog, index) => ({
     ...blog,
+    rank: index + 1,
+  }));
+
+  const discussionsWithUpdatedRanks = sortedDiscussions.map((discussion, index) => ({
+    ...discussion,
     rank: index + 1,
   }));
 
@@ -528,7 +595,7 @@ const TrendingSection = () => {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
         <div className="text-center text-red-500">
-          Error loading trending blogs: {error}
+          Error loading trending content: {error}
         </div>
       </div>
     );
@@ -595,7 +662,7 @@ const TrendingSection = () => {
           </div>
         </div>
 
-        {/* DISCUSSIONS SECTION - You can add this later when you have the API */}
+        {/* DISCUSSIONS SECTION */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-md font-semibold flex items-center gap-2">
@@ -615,9 +682,15 @@ const TrendingSection = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="text-center text-gray-500 py-8">
-              Discussions coming soon...
-            </div>
+            {discussionsWithUpdatedRanks.length > 0 ? (
+              discussionsWithUpdatedRanks.map((discussion) => (
+                <Card key={discussion.reference} item={discussion} type="discussion" />
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No trending discussions found
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -658,16 +731,21 @@ const TrendingSection = () => {
                 onChange={(e) => setDiscussionSortBy(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                <option value="engagement">Engagement</option>
                 <option value="likes">Likes</option>
                 <option value="comments">Comments</option>
                 <option value="reposts">Reposts</option>
                 <option value="views">Views</option>
               </select>
             </div>
-            <div className="text-center text-gray-500 py-8">
-              Discussions coming soon...
-            </div>
+            {discussionsWithUpdatedRanks.length > 0 ? (
+              discussionsWithUpdatedRanks.map((discussion) => (
+                <Card key={discussion.reference} item={discussion} type="discussion" />
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No trending discussions found
+              </div>
+            )}
           </div>
         )}
       </div>

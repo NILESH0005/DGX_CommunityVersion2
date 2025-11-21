@@ -115,24 +115,6 @@ const TopContentSection = () => {
         </div>
       </div>
 
-      {/* LINE CHART DETAILS */}
-      <div className="mt-5">
-        <h3 className="text-sm font-semibold text-gray-800 mb-1">
-          Weekly Engagement Trend
-        </h3>
-
-        <p className="text-xs text-gray-500 leading-relaxed">
-          This line trend represents the **combined engagement** from LMS modules,
-          blog views, and discussion interactions over the last 7 days.
-          <br />
-          <span className="font-semibold text-green-600">
-            Overall activity increased by 12% this week.
-          </span>
-          <br />
-          Peaks indicate high user activity, while dips show slower days.
-        </p>
-      </div>
-
       {/* SPARKLINE TREND GRAPH */}
       <div className="mt-3 h-14">
         <ResponsiveContainer width="100%" height="100%">

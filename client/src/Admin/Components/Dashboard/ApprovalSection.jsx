@@ -9,9 +9,7 @@ const ApprovalSection = () => {
   const [loading, setLoading] = useState(true);
   const { fetchData } = useContext(ApiContext);
 
-  /* -----------------------------
-       FETCH APPROVAL COUNTS
-  ------------------------------ */
+
   const fetchApprovalCounts = async () => {
     try {
       setLoading(true);
@@ -26,7 +24,6 @@ const ApprovalSection = () => {
         const { pendingBlogs, pendingEvents, pendingUsers, totalPending } =
           data;
 
-        // Build dynamic pie chart values
         const pie = [
           {
             label: "Blogs",
@@ -69,9 +66,6 @@ const ApprovalSection = () => {
     fetchApprovalCounts();
   }, []);
 
-  /* -----------------------------
-        LOADING UI
-  ------------------------------ */
   if (loading || !approvalData) {
     return (
       <div className="p-6 text-center text-gray-500">
@@ -80,9 +74,6 @@ const ApprovalSection = () => {
     );
   }
 
-  /* -----------------------------
-        DYNAMIC STATS CARDS
-  ------------------------------ */
   const statsCards = [
     {
       id: 1,
