@@ -1,15 +1,15 @@
-import React, { useState, useContext, useEffect } from 'react';
-import BlogModal from '../../../component/BlogModal';
-import moment from 'moment';
-import ApiContext from '../../../context/ApiContext';
-import { FaEye, FaSearch, FaFilter } from 'react-icons/fa';
+import React, { useState, useContext, useEffect } from "react";
+import BlogModal from "../../../component/BlogModal";
+import moment from "moment";
+import ApiContext from "../../../context/ApiContext";
+import { FaEye, FaSearch, FaFilter } from "react-icons/fa";
 
-const BlogTable = ({ blogs, userToken }) => {
+const BlogTable = ({ blogs, userToken, defaultFilter  }) => {
   const [selectedBlog, setSelectedBlog] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(defaultFilter || "");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [blogData, setBlogData] = useState(blogs); 
+  const [blogData, setBlogData] = useState(blogs);
   const [searchTerm, setSearchTerm] = useState("");
   const { user } = useContext(ApiContext);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -20,11 +20,15 @@ const BlogTable = ({ blogs, userToken }) => {
       setIsMobileView(window.innerWidth <= 768);
     };
     checkMobileView();
-    window.addEventListener('resize', checkMobileView);
+    window.addEventListener("resize", checkMobileView);
     return () => {
-      window.removeEventListener('resize', checkMobileView);
+      window.removeEventListener("resize", checkMobileView);
     };
   }, []);
+
+  useEffect(() => {
+    setBlogData(blogs);
+  }, [blogs]);
 
   const updateBlogState = (blogId, newStatus) => {
     if (newStatus === "delete") {
@@ -43,16 +47,16 @@ const BlogTable = ({ blogs, userToken }) => {
   const getStatusClass = (status) => {
     switch (status) {
       case "Approved":
-        return "bg-green-200 text-green-800"; 
+        return "bg-green-200 text-green-800";
       case "Rejected":
-        return "bg-red-200 text-red-800"; 
+        return "bg-red-200 text-red-800";
       case "Pending":
-        return "bg-yellow-200 text-yellow-800"; 
+        return "bg-yellow-200 text-yellow-800";
       default:
         return "bg-gray-200 text-gray-800";
     }
   };
-  
+
   const openModal = (blog) => {
     setSelectedBlog(blog);
     setIsModalOpen(true);
@@ -64,12 +68,17 @@ const BlogTable = ({ blogs, userToken }) => {
   };
 
   const filteredBlogs = blogData.filter((blog) => {
-    const matchesStatus = statusFilter === "" || blog.Status?.toLowerCase() === statusFilter.toLowerCase();
-    const matchesCategory = categoryFilter === "" || blog.category?.toLowerCase() === categoryFilter.toLowerCase();
-    const matchesSearch = blog.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         blog.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         blog.UserName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         blog.Status?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus =
+      statusFilter === "" ||
+      blog.Status?.toLowerCase() === statusFilter.toLowerCase();
+    const matchesCategory =
+      categoryFilter === "" ||
+      blog.category?.toLowerCase() === categoryFilter.toLowerCase();
+    const matchesSearch =
+      blog.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.UserName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      blog.Status?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesCategory && matchesSearch;
   });
 
@@ -95,7 +104,9 @@ const BlogTable = ({ blogs, userToken }) => {
         </div>
         <div>
           <p className="text-xs text-gray-500">Published</p>
-          <p className="text-sm">{moment.utc(blog.publishedDate).format("MMMM D, YYYY")}</p>
+          <p className="text-sm">
+            {moment.utc(blog.publishedDate).format("MMMM D, YYYY")}
+          </p>
         </div>
       </div>
 
@@ -199,21 +210,46 @@ const BlogTable = ({ blogs, userToken }) => {
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-DGXgreen text-white">
                     <th className="p-2 border text-center w-12">#</th>
-                    <th className="p-2 border text-center min-w-[150px]">Title</th>
-                    <th className="p-2 border text-center min-w-[120px]">Category</th>
-                    <th className="p-2 border text-center min-w-[150px]">Name</th>
-                    <th className="p-2 border text-center min-w-[180px]">Published Date</th>
-                    <th className="p-2 border text-center min-w-[120px]">Status</th>
-                    <th className="p-2 border text-center min-w-[120px]">Actions</th>
+                    <th className="p-2 border text-center min-w-[150px]">
+                      Title
+                    </th>
+                    <th className="p-2 border text-center min-w-[120px]">
+                      Category
+                    </th>
+                    <th className="p-2 border text-center min-w-[150px]">
+                      Name
+                    </th>
+                    <th className="p-2 border text-center min-w-[180px]">
+                      Published Date
+                    </th>
+                    <th className="p-2 border text-center min-w-[120px]">
+                      Status
+                    </th>
+                    <th className="p-2 border text-center min-w-[120px]">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredBlogs.map((blog, index) => (
-                    <tr key={index} className={`hover:bg-gray-50 ${getStatusClass(blog.Status)}`}>
-                      <td className="p-2 border text-center w-12">{index + 1}</td>
-                      <td className="p-2 border text-center min-w-[150px]">{blog.title}</td>
-                      <td className="p-2 border text-center min-w-[120px]">{blog.category}</td>
-                      <td className="p-2 border text-center min-w-[150px]">{blog.User.Name}</td>
+                    <tr
+                      key={index}
+                      className={`hover:bg-gray-50 ${getStatusClass(
+                        blog.Status
+                      )}`}
+                    >
+                      <td className="p-2 border text-center w-12">
+                        {index + 1}
+                      </td>
+                      <td className="p-2 border text-center min-w-[150px]">
+                        {blog.title}
+                      </td>
+                      <td className="p-2 border text-center min-w-[120px]">
+                        {blog.category}
+                      </td>
+                      <td className="p-2 border text-center min-w-[150px]">
+                        {blog.User.Name}
+                      </td>
                       <td className="p-2 border text-center min-w-[180px]">
                         {moment.utc(blog.AddOnDt).format("MMMM D, YYYY ")}
                       </td>
@@ -238,8 +274,8 @@ const BlogTable = ({ blogs, userToken }) => {
         )
       ) : (
         <p className="text-center text-gray-500 py-4">
-          {searchTerm || statusFilter || categoryFilter 
-            ? "No blogs match your search/filters" 
+          {searchTerm || statusFilter || categoryFilter
+            ? "No blogs match your search/filters"
             : "No blogs found"}
         </p>
       )}

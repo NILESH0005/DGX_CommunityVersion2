@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Users from "./Components/Users";
 import Discussions from "./Components/Discussions";
@@ -10,7 +11,7 @@ import Home from "./Components/Home";
 import QuizPanel from "./Components/Quiz/QuizPanel";
 import QuestionBank from "./Components/Quiz/QuestionBank";
 import QuizMapping from "./Components/Quiz/QuizMapping";
-import Dashboard from "./Components/Dashboard/DashboardPage"; 
+import Dashboard from "./Components/Dashboard/DashboardPage";
 import {
   FaUsers,
   FaComments,
@@ -35,14 +36,19 @@ import LearningMaterialManager from "./Components/LMS/LearningMaterialManager";
 import LearningMaterialList from "./Components/LMS/LearningMaterialList";
 import ModuleBuilder from "./Components/LMS/ModuleBuilder/ModuleBuilder";
 import DashboardPage from "./Components/Dashboard/DashboardPage";
-
 const AdminDashboard = (props) => {
+  const location = useLocation();
   const [activeComp, setActiveComp] = useState("DashboardPage");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const overlayRef = useRef(null);
 
+  useEffect(() => {
+    if (location.state?.open) {
+      setActiveComp(location.state.open);
+    }
+  }, [location]);
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -147,6 +153,8 @@ const AdminDashboard = (props) => {
     closed: { x: "-100%" },
   };
 
+
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-100 relative">
       {/* Mobile Header */}
@@ -184,7 +192,9 @@ const AdminDashboard = (props) => {
             <li>
               <div
                 className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "DashboardPage" ? "bg-gray-700 text-yellow-300" : ""
+                  activeComp === "DashboardPage"
+                    ? "bg-gray-700 text-yellow-300"
+                    : ""
                 }`}
                 onClick={() => handleMenuItemClick("DashboardPage")}
               >

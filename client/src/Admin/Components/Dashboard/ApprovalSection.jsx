@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useContext  } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { motion } from "framer-motion";
 import ApiContext from "../../../context/ApiContext";
+import { useNavigate } from "react-router-dom";
 
 const ApprovalSection = () => {
   const [approvalData, setApprovalData] = useState(null);
@@ -8,7 +9,7 @@ const ApprovalSection = () => {
   const [selectedSegment, setSelectedSegment] = useState(null);
   const [loading, setLoading] = useState(true);
   const { fetchData } = useContext(ApiContext);
-
+  const navigate = useNavigate();
   /* -----------------------------
        FETCH APPROVAL COUNTS
   ------------------------------ */
@@ -91,8 +92,13 @@ const ApprovalSection = () => {
       color: "bg-blue-100 text-blue-600 border-blue-200",
       icon: "📝",
       description: "Blog posts awaiting review",
-      onClick: () => console.log("Navigate → blog approvals"),
+      onClick: () => {
+        navigate("/AdminDashboard", {
+          state: { open: "blog_manager", filter: "Pending" },
+        });
+      },
     },
+
     {
       id: 2,
       label: "Pending Event Approvals",
@@ -100,7 +106,11 @@ const ApprovalSection = () => {
       color: "bg-orange-100 text-orange-600 border-orange-200",
       icon: "📅",
       description: "Events needing approval",
-      onClick: () => console.log("Navigate → event approvals"),
+      onClick: () => {
+        navigate("/AdminDashboard", {
+          state: { open: "events" , filter: "Pending"},
+        });
+      },
     },
     {
       id: 4,
@@ -109,7 +119,11 @@ const ApprovalSection = () => {
       color: "bg-red-100 text-red-600 border-red-200",
       icon: "👥",
       description: "Users awaiting verification",
-      onClick: () => console.log("Navigate → user approvals"),
+      onClick: () => {
+        navigate("/AdminDashboard", {
+          state: { open: "users" },
+        });
+      },
     },
   ];
 

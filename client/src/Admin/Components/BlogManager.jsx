@@ -1,39 +1,42 @@
-import React, { useState, useEffect, useContext } from 'react';
-import BlogForm from './BlogComponents/BlogForm';
-import BlogTable from './BlogComponents/BlogTable';
-import ApiContext from '../../context/ApiContext';
-import { ToastContainer, toast } from 'react-toastify';
+import React, { useState, useEffect, useContext } from "react";
+import BlogForm from "./BlogComponents/BlogForm";
+import BlogTable from "./BlogComponents/BlogTable";
+import ApiContext from "../../context/ApiContext";
+import { ToastContainer, toast } from "react-toastify";
+import { useLocation } from "react-router-dom";
 
 const BlogManager = (props) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { fetchData, userToken } = useContext(ApiContext);
   const [isTableView, setIsTableView] = useState(true);
+  const location = useLocation();
+  const defaultFilter = location.state?.filter || "";
 
   const fetchBlogs = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const result = await fetchData(
-        'blog/getBlog',
-        'GET',
+        "blog/getBlog",
+        "GET",
         {},
-        { 
-          'Content-Type': 'application/json',
-          'auth-token': userToken 
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
         }
       );
 
       if (result.success) {
         props.setBlogs(result.data || []);
       } else {
-        setError(result.message || 'Failed to fetch blogs');
-        toast.error(result.message || 'Failed to fetch blogs');
+        setError(result.message || "Failed to fetch blogs");
+        toast.error(result.message || "Failed to fetch blogs");
       }
     } catch (err) {
-      setError('Failed to fetch blogs. Please try again later.');
-      toast.error('Failed to fetch blogs. Please try again later.');
+      setError("Failed to fetch blogs. Please try again later.");
+      toast.error("Failed to fetch blogs. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -44,7 +47,7 @@ const BlogManager = (props) => {
   }, []);
 
   const updateBlogs = (newBlog) => {
-    props.setBlogs(prev => [newBlog, ...prev]);
+    props.setBlogs((prev) => [newBlog, ...prev]);
   };
 
   if (loading) {
@@ -63,7 +66,7 @@ const BlogManager = (props) => {
     return (
       <div className="p-6 text-red-500">
         {error}
-        <button 
+        <button
           onClick={fetchBlogs}
           className="ml-4 bg-DGXblue text-white px-4 py-2 rounded"
         >
@@ -77,17 +80,17 @@ const BlogManager = (props) => {
     <div className="p-6">
       <ToastContainer />
       <h1 className="text-2xl font-bold mb-4">Blog Manager</h1>
-      
+
       <div className="mb-4 flex justify-between items-center">
         <button
           onClick={() => setIsTableView(!isTableView)}
           className="bg-DGXblue text-white px-4 py-2 rounded-lg hover:bg-DGXgreen transition-colors"
         >
-          {isTableView ? 'Add New Blog' : 'View All Blogs'}
+          {isTableView ? "Add New Blog" : "View All Blogs"}
         </button>
-        
+
         {isTableView && (
-          <button 
+          <button
             onClick={fetchBlogs}
             className="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
           >
@@ -98,7 +101,12 @@ const BlogManager = (props) => {
 
       {isTableView ? (
         props.blogs.length > 0 ? (
-          <BlogTable blogs={props.blogs} refreshBlogs={fetchBlogs} />
+          <BlogTable
+            blogs={props.blogs}
+            refreshBlogs={fetchBlogs}
+            userToken={props.userToken}
+            defaultFilter={defaultFilter}
+          />
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-500">No blogs found</p>
@@ -111,10 +119,10 @@ const BlogManager = (props) => {
           </div>
         )
       ) : (
-        <BlogForm 
-          updateBlogs={updateBlogs} 
-          setBlogs={props.setBlogs} 
-          setIsTableView={setIsTableView} 
+        <BlogForm
+          updateBlogs={updateBlogs}
+          setBlogs={props.setBlogs}
+          setIsTableView={setIsTableView}
           refreshBlogs={fetchBlogs}
         />
       )}

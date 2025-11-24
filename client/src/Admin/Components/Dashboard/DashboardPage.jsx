@@ -61,12 +61,7 @@ const DashboardPage = () => {
                 Welcome to your content management dashboard
               </p>
             </div>
-
-            {/* STATUS BADGE */}
-            <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border border-gray-200 shadow-sm ">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-600">System Live</span>
-            </div>
+         
           </div>
         </motion.div>
 

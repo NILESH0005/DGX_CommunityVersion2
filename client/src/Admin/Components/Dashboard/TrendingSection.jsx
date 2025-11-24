@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../../../context/ApiContext";
-
+import moment from 'moment';
 /* -------------------------------
    SPARKLINE COMPONENT (Optional - you can remove if not needed)
 -------------------------------- */
@@ -381,12 +381,11 @@ const Card = ({ item, type }) => {
             <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
               <span>by {item.author || "Unknown"}</span>
               <div className="flex items-center gap-2">
-                <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
-                  {item.processName || "Blog"}
-                </span>
+                
                 <span className="text-gray-400">
-                  {new Date(item.addedOn).toLocaleDateString()}
-                </span>
+  {moment(item.addedOn).format("MMMM D, YYYY")}
+</span>
+
               </div>
             </div>
 
