@@ -63,8 +63,7 @@ const ParticleBackground = () => {
 
 // Fixed RepostCard Component for horizontal scrollable users
 const RepostCard = ({ reposts = [] }) => {
-
-  console.log("ccccccccccccccccc", reposts)
+  console.log("ccccccccccccccccc", reposts);
   if (!reposts || reposts.length === 0) return null;
 
   // Sort reposts by AddOnDt descending (latest first)
@@ -517,7 +516,7 @@ const BlogPage = () => {
           )}
 
           {/* Repost Count Badge */}
-          {hasReposts && (
+          {/* {hasReposts && (
             <motion.span
               className="absolute top-3 right-3 bg-DGXgreen text-black px-3 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
               initial={{ scale: 0 }}
@@ -527,7 +526,7 @@ const BlogPage = () => {
               <PiRepeat size={12} />
               {reposts.length}
             </motion.span>
-          )}
+          )} */}
 
           {/* Rating Badge */}
           {blogStats.averageRating > 0 && (
@@ -575,28 +574,49 @@ const BlogPage = () => {
 
           {/* Rating and Claps */}
           <div className="flex items-center gap-4 mb-4">
-            {blogStats.averageRating > 0 && (
+            {/* {blogStats.averageRating > 0 && (
               <div className="flex items-center gap-2">
                 <StarRating value={blogStats.averageRating} />
                 <span className="text-sm text-gray-600">
                   ({blogStats.totalRatings})
                 </span>
               </div>
-            )}
+            )} */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 ml-auto"
+            >
+              {/* Likes */}
+              {blogStats.totalLikes > 0 && (
+                <motion.div
+                  whileHover={{ scale: 1.15, y: -2 }}
+                  whileTap={{ scale: 0.88 }}
+                  className="flex items-center gap-1 px-3 py-1 rounded-full 
+                 bg-gradient-to-r from-red-100 to-red-200 shadow-md cursor-pointer"
+                >
+                  <Heart className="text-red-600" size={16} />
+                  <span className="font-semibold text-gray-700">
+                    {blogStats.totalLikes}
+                  </span>
+                </motion.div>
+              )}
 
-            {blogStats.totalLikes > 0 && (
-              <div className="flex items-center gap-1 text-sm text-gray-600 ml-auto">
-                <Heart className="text-red-500" size={16} />
-                <span>{blogStats.totalLikes} claps</span>
-              </div>
-            )}
-
-            {blogStats.totalViews > 0 && (
-              <div className="flex items-center gap-1 text-sm text-gray-600">
-                <FiEye size={16} className="text-blue-500" />
-                <span>{blogStats.totalViews} views</span>
-              </div>
-            )}
+              {/* Views */}
+              {blogStats.totalViews > 0 && (
+                <motion.div
+                  whileHover={{ scale: 1.15, y: -2 }}
+                  whileTap={{ scale: 0.88 }}
+                  className="flex items-center gap-1 px-3 py-1 rounded-full 
+                 bg-gradient-to-r from-blue-100 to-blue-200 shadow-md cursor-pointer"
+                >
+                  <FiEye className="text-blue-600" size={16} />
+                  <span className="font-semibold text-gray-700">
+                    {blogStats.totalViews}
+                  </span>
+                </motion.div>
+              )}
+            </motion.div>
           </div>
 
           {/* Author Info */}

@@ -123,165 +123,56 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Header Section */}
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-4">
               <RankBadge rank={item.rank} size="lg" />
+
               <div>
                 <h3 className="font-bold text-2xl text-gray-900">
                   {item.title}
                 </h3>
+
                 <p className="text-gray-600 mt-1">
                   by {item.author || "Unknown"}
                 </p>
+
+                <span className="font-medium text-gray-800 text-sm">
+                  {new Date(item.addedOn || item.AddOnDt).toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "2-digit",
+                    }
+                  )}
+                </span>
               </div>
             </div>
+
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl p-1"
+              className="text-gray-400 hover:text-gray-600 text-2xl p-1 transition"
             >
               ✕
             </button>
           </div>
 
-          <div className="space-y-6">
-            {/* Description */}
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-2">
+          {/* Content Section */}
+          <div className="space-y-6 p-6 bg-gray-50 rounded-2xl shadow-inner border border-gray-200">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-300">
+              <h4 className="text-xl font-semibold text-gray-900">
                 {type === "blog" ? "Content" : "Discussion"}
               </h4>
-              <p className="text-gray-700 leading-relaxed">
+            </div>
+
+            <div className="bg-white p-5 rounded-xl leading-relaxed text-gray-700 shadow-sm border border-gray-100">
+              <p className="whitespace-pre-line text-[15px]">
                 {stripHtmlTags(item.content)}
               </p>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {engagementStats.map((stat, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-50 rounded-lg p-4 text-center"
-                >
-                  <div className={`text-2xl font-bold ${stat.color} mb-1`}>
-                    {stat.value > 1000
-                      ? `${(stat.value / 1000).toFixed(1)}k`
-                      : stat.value}
-                  </div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Additional Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* DETAILS CARD */}
-              <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                <h4 className="font-semibold text-gray-900 mb-4 text-base">
-                  {type === "blog" ? "Blog Details" : "Discussion Details"}
-                </h4>
-
-                <div className="space-y-3 text-sm">
-                  {/* Category */}
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-gray-600">Type</span>
-                    <span className="font-medium text-gray-800">
-                      {item.ProcessName || item.processName || "—"}
-                    </span>
-                  </div>
-
-                  {/* Created On */}
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Created On</span>
-                    <span className="font-medium text-gray-800">
-                      {new Date(item.addedOn || item.AddOnDt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "2-digit",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ENGAGEMENT CARD */}
-              <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-100">
-                <h4 className="font-semibold text-gray-900 mb-4 text-base">
-                  Engagement Analytics
-                </h4>
-
-                <div className="space-y-3 text-sm">
-                  {type === "blog" ? (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Claps</span>
-                        <span className="font-medium text-gray-800">
-                          {item.claps}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Views</span>
-                        <span className="font-medium text-gray-800">
-                          {item.views}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Ratings</span>
-                        <span className="font-medium text-gray-800">
-                          {item.ratings}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Avg Rating</span>
-                        <span className="font-medium text-gray-800">
-                          {item.avgRating}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Reposts</span>
-                        <span className="font-medium text-gray-800">
-                          {item.repostCount}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Likes</span>
-                        <span className="font-medium text-gray-800">
-                          {item.likes}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Views</span>
-                        <span className="font-medium text-gray-800">
-                          {item.viewCount}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Comments</span>
-                        <span className="font-medium text-gray-800">
-                          {item.commentCount}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Reposts</span>
-                        <span className="font-medium text-gray-800">
-                          {item.repostCount}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </motion.div>
@@ -389,11 +280,18 @@ const Card = ({ item, type }) => {
             <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
               <span>by {item.author || "Unknown"}</span>
               <div className="flex items-center gap-2">
-                <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                {/* <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
                   {item.ProcessName || item.processName || (type === "blog" ? "Blog" : "Discussion")}
-                </span>
-                <span className="text-gray-400">
-                  {new Date(item.addedOn || item.AddOnDt).toLocaleDateString()}
+                </span> */}
+                <span className="font-medium text-gray-800">
+                  {new Date(item.addedOn || item.AddOnDt).toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "2-digit",
+                    }
+                  )}
                 </span>
               </div>
             </div>
@@ -493,7 +391,10 @@ const TrendingSection = () => {
   // Fetch trending discussions from API
   const fetchTrendingDiscussions = async () => {
     try {
-      const response = await fetchData("dashboard/getTrendingDiscussion", "GET");
+      const response = await fetchData(
+        "dashboard/getTrendingDiscussion",
+        "GET"
+      );
 
       if (response.success && response.data) {
         // Add rank based on likes (or your preferred metric)
@@ -576,10 +477,12 @@ const TrendingSection = () => {
     rank: index + 1,
   }));
 
-  const discussionsWithUpdatedRanks = sortedDiscussions.map((discussion, index) => ({
-    ...discussion,
-    rank: index + 1,
-  }));
+  const discussionsWithUpdatedRanks = sortedDiscussions.map(
+    (discussion, index) => ({
+      ...discussion,
+      rank: index + 1,
+    })
+  );
 
   if (loading) {
     return (
@@ -684,7 +587,11 @@ const TrendingSection = () => {
           <div className="space-y-4">
             {discussionsWithUpdatedRanks.length > 0 ? (
               discussionsWithUpdatedRanks.map((discussion) => (
-                <Card key={discussion.reference} item={discussion} type="discussion" />
+                <Card
+                  key={discussion.reference}
+                  item={discussion}
+                  type="discussion"
+                />
               ))
             ) : (
               <div className="text-center text-gray-500 py-8">
@@ -739,7 +646,11 @@ const TrendingSection = () => {
             </div>
             {discussionsWithUpdatedRanks.length > 0 ? (
               discussionsWithUpdatedRanks.map((discussion) => (
-                <Card key={discussion.reference} item={discussion} type="discussion" />
+                <Card
+                  key={discussion.reference}
+                  item={discussion}
+                  type="discussion"
+                />
               ))
             ) : (
               <div className="text-center text-gray-500 py-8">

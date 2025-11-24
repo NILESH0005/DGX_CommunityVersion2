@@ -347,14 +347,15 @@ export const updateUserDetails = async (req, res) => {
   }
 };
 
-
 // controllers/userProfile.js
 export const uploadUserAvatar = async (req, res) => {
   try {
     const { email, avatar } = req.body; // avatar = base64 string
 
     if (!email || !avatar) {
-      return res.status(400).json({ success: false, message: "Email and avatar are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and avatar are required" });
     }
 
     // Update using EmailId (string) not UserID (integer)
@@ -366,6 +367,8 @@ export const uploadUserAvatar = async (req, res) => {
     return res.json({ success: true, message: "Avatar updated successfully" });
   } catch (err) {
     console.error("Error uploading avatar:", err);
-    return res.status(500).json({ success: false, message: "Error uploading avatar" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Error uploading avatar" });
   }
 };

@@ -201,3 +201,29 @@ export const getApprovalCountsService = async () => {
     };
   }
 };
+
+export const getProcessCountsService = async () => {
+  try {
+    const query = `
+      SELECT 
+        ProcessName, 
+        COUNT(View) AS viewCount
+      FROM Content_Interaction
+      WHERE IFNULL(delStatus, 0) = 0
+      GROUP BY ProcessName;
+    `;
+
+    const result = await sequelize.query(query, {
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    return {
+      success: true,
+      data: result,
+      message: "Process counts fetched successfully",
+    };
+  } catch (error) {
+    console.error("Process Count Service Error:", error);
+    throw error;
+  }
+};

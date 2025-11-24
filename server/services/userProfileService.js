@@ -383,6 +383,8 @@ export const getUserProfileService = async (userId) => {
 //   }
 // };
 
+
+
 export const getUserDiscussionsService = async (userEmail) => {
   try {
     // ✅ 1. Get user
@@ -417,6 +419,8 @@ export const getUserDiscussionsService = async (userEmail) => {
         "DiscussionImagePath",
         "Tag",
         "ResourceUrl",
+        "RepostID",
+        "RepostUserID",
         ["AddOnDt", "timestamp"],
       ],
       include: [{ model: User, attributes: ["Name", "ProfilePicture"] }],
@@ -458,7 +462,7 @@ export const getUserDiscussionsService = async (userEmail) => {
           },
         });
 
-        // 🔁 Repost count + users
+        // 🔁 Repost count + RepostUserIDs
         const reposts = await CommunityDiscussion.findAll({
           where: {
             RepostID: discussionId,
@@ -467,10 +471,22 @@ export const getUserDiscussionsService = async (userEmail) => {
           attributes: ["RepostUserID"],
         });
 
-        const repostCount = reposts.length;
         const repostUsers = reposts.map((r) => r.RepostUserID);
+        const repostCount = repostUsers.length;
 
-        // ✅ Nested comments (optional)
+        // 🆕 Fetch RepostUser Details (Name + ProfilePicture)
+        let repostUserDetails = [];
+        if (repostUsers.length > 0) {
+          repostUserDetails = await User.findAll({
+            where: {
+              UserID: repostUsers,
+              delStatus: { [Op.or]: [0, null] },
+            },
+            attributes: ["UserID", "Name", "ProfilePicture"],
+          });
+        }
+
+        // ✅ Nested comments (1st level + 2nd level)
         const comments = await CommunityDiscussion.findAll({
           where: {
             Reference: discussionId,
@@ -527,8 +543,9 @@ export const getUserDiscussionsService = async (userEmail) => {
           likeCount,
           userLike: userLike ? 1 : 0,
           commentCount,
-          repostCount, // 🆕 Added
-          repostUsers, // 🆕 Added
+          repostCount,
+          repostUsers,
+          repostUserDetails, // 🆕 ADDED HERE
           comment: nestedComments,
         };
       })

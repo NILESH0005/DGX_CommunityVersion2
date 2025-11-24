@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AiFillLike, AiOutlineLike } from "react-icons/ai";
 import { FaComment } from "react-icons/fa";
+import images from "../../../public/images.js";
 import {
   FiEye,
   FiRepeat,
@@ -175,11 +176,11 @@ const DiscussionCard = ({
   };
 
   const getTooltipMessage = () => {
-  if (loading) return "Reposting...";
-  if (reposted) return "Reposted Already";   
-  if (!discussion.allowRepost) return "Repost Not Allowed";
-  return "Repost Allowed";
-};
+    if (loading) return "Reposting...";
+    if (reposted) return "Reposted Already";
+    if (!discussion.allowRepost) return "Repost Not Allowed";
+    return "Repost Allowed";
+  };
 
   // ---------------------------
   // COMPONENT UI
@@ -376,7 +377,11 @@ const DiscussionCard = ({
               ) : reposted ? (
                 <FiCheckCircle className="w-5 h-5 text-green-500" />
               ) : !discussion.allowRepost ? (
-                <FiXCircle className="w-5 h-5 text-red-400" />
+                <img
+                  src="/Nrepost.png" 
+                  alt="not allowed"
+                  className="w-5 h-5 opacity-80 group-hover:opacity-100"
+                />
               ) : (
                 <FiRepeat className="w-5 h-5" />
               )}

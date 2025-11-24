@@ -1,38 +1,116 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { motion } from "framer-motion";
 import {
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
-  AreaChart,
-  Area,
+ 
 } from "recharts";
+import ApiContext from "../../../context/ApiContext";
 
 const TopContentSection = () => {
-  /* -----------------------------------
-     DONUT CHART DATA (Dummy Data)
-  -------------------------------------*/
-  const donutData = [
-    { name: "LMS Views", value: 4000, percent: 40, color: "#76B900", trend: "up" },
-    { name: "Blog Views", value: 3500, percent: 35, color: "#1E3A8A", trend: "down" },
-    { name: "Discussions", value: 2500, percent: 25, color: "#F59E0B", trend: "up" },
-  ];
+  const { fetchData } = useContext(ApiContext);
+  const [processData, setProcessData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const totalViews = donutData.reduce((sum, d) => sum + d.value, 0);
+  // Color mapping for different process types
+  const colorMap = {
+    LMS: "#76B900",
+    Blog: "#1E3A8A", 
+    Discussion: "#F59E0B"
+  };
 
-  /* -----------------------------------
-     SPARKLINE TREND DATA
-  -------------------------------------*/
-  const sparklineData = [
-    { uv: 1800 },
-    { uv: 2400 },
-    { uv: 2100 },
-    { uv: 3200 },
-    { uv: 2900 },
-    { uv: 3500 },
-    { uv: 4000 },
-  ];
+  // Fetch process counts from API
+  const fetchProcessCounts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchData("dashboard/processCounts", "GET");
+
+      if (response.success && response.data) {
+        // Filter out "Event" and transform data for the chart
+        const filteredData = response.data
+          .filter(item => item.ProcessName !== "Event")
+          .map(item => ({
+            name: item.ProcessName,
+            value: item.viewCount, // Changed from total to viewCount
+            color: colorMap[item.ProcessName] || "#6B7280" // fallback color
+          }));
+
+        setProcessData(filteredData);
+      } else {
+        throw new Error("Failed to fetch process counts");
+      }
+    } catch (err) {
+      setError(err.message);
+      console.error("Error fetching process counts:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProcessCounts();
+  }, []);
+
+  // Calculate percentages and prepare chart data
+  const donutData = React.useMemo(() => {
+    if (!processData.length) return [];
+
+    const total = processData.reduce((sum, item) => sum + item.value, 0);
+    
+    return processData.map(item => ({
+      ...item,
+      percent: Math.round((item.value / total) * 100),
+      // For demo purposes, adding random trend - you can replace this with actual trend data
+      trend: Math.random() > 0.5 ? "up" : "down"
+    }));
+  }, [processData]);
+
+  const totalCount = donutData.reduce((sum, d) => sum + d.value, 0);
+
+  if (loading) {
+    return (
+      <motion.div
+        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full p-6 font-inter flex flex-col"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="flex justify-center items-center h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-DGXgreen"></div>
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full p-6 font-inter flex flex-col"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="text-center text-red-500">
+          Error loading content data: {error}
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (!donutData.length) {
+    return (
+      <motion.div
+        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-full p-6 font-inter flex flex-col"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div className="text-center text-gray-500">
+          No content data available
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -43,14 +121,14 @@ const TopContentSection = () => {
       {/* HEADER */}
       <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <span className="w-2 h-5 bg-DGXgreen rounded"></span>
-        Content Performance Overview
+        Content Views Overview
       </h2>
 
       {/* TOTAL SUMMARY */}
       <p className="text-sm text-gray-600 mb-3">
-        Total Engagement:{" "}
+        Total Views:{" "}
         <span className="font-semibold text-gray-900">
-          {totalViews.toLocaleString()}
+          {totalCount.toLocaleString()}
         </span>
       </p>
 
@@ -95,20 +173,18 @@ const TopContentSection = () => {
 
                 {/* Count + Percentage */}
                 <p className="text-xs text-gray-500">
-                  {item.value.toLocaleString()} views
-                  <span className="ml-2 font-semibold text-gray-700">
-                    ({item.percent}%)
-                  </span>
+                  {item.value?.toLocaleString()} views
+                 
                 </p>
 
                 {/* Trend Indicator */}
-                <p
+                {/* <p
                   className={`text-xs mt-1 flex items-center gap-1 ${
                     item.trend === "up" ? "text-green-600" : "text-red-500"
                   }`}
                 >
                   {item.trend === "up" ? "▲ Increased" : "▼ Decreased"}
-                </p>
+                </p> */}
               </div>
             </div>
           ))}
@@ -116,19 +192,7 @@ const TopContentSection = () => {
       </div>
 
       {/* SPARKLINE TREND GRAPH */}
-      <div className="mt-3 h-14">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={sparklineData}>
-            <Area
-              type="monotone"
-              dataKey="uv"
-              stroke="#76B900"
-              fill="#76B90033"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      
     </motion.div>
   );
 };

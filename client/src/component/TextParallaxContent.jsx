@@ -4,6 +4,7 @@ import { CalendarDays, Clock, BookOpen } from "lucide-react";
 import moment from "moment";
 import ApiContext from "../context/ApiContext";
 import { FaHeart, FaUser, FaCalendarAlt } from "react-icons/fa";
+import DiscussionModal from "../component/discussion/DiscussionModal";
 
 const TextParallaxContent = () => {
   const [homeData, setHomeData] = useState({
@@ -398,7 +399,7 @@ const Card = ({ item, type, theme }) => {
       className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full transition-all duration-300`}
     >
       {/* 🖼️ Image */}
-      <div className="relative h-48 w-full overflow-hidden">
+      {/* <div className="relative h-48 w-full overflow-hidden">
         <motion.img
           src={getImageSrc()}
           alt={getTitle()}
@@ -409,10 +410,8 @@ const Card = ({ item, type, theme }) => {
           onError={(e) => (e.target.src = "/No_Image_Available.jpg")}
         />
 
-        {/* Color Accent */}
         <div className={`absolute top-0 left-0 w-full h-1 ${classes.bg}`} />
 
-        {/* Date Overlay for Blog/Event */}
         {(type === "blog" || type === "event") && dateInfo && (
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
             <div className="flex items-center gap-1 text-white text-xs font-medium">
@@ -421,7 +420,7 @@ const Card = ({ item, type, theme }) => {
             </div>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* 📄 Content */}
       <div className="p-5 flex flex-col flex-grow">

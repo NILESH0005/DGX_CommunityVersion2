@@ -4,6 +4,7 @@ import { logError, logInfo, logWarning, queryAsync } from "../helper/index.js";
 import db from "../models/index.js";
 import {
   getApprovalCountsService,
+  getProcessCountsService,
   getTrendingBlogsService,
   getTrendingDiscussionService,
 } from "../services/dashboardService.js";
@@ -55,6 +56,20 @@ export const getApprovalCounts = async (req, res) => {
       success: false,
       data: null,
       message: "Internal server error while fetching approval counts",
+    });
+  }
+};
+
+export const getProcessCounts = async (req, res) => {
+  try {
+    const response = await getProcessCountsService();
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Process Count Controller Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while fetching process counts",
     });
   }
 };
