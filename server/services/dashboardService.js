@@ -2,7 +2,6 @@ import db from "../models/index.js";
 import sequelize from "../config/database.js";
 import { Op } from "sequelize";
 
-
 const { ContentInteraction, CommunityBlog, User, CommunityEvents } = db;
 
 export const getTrendingBlogsService = async () => {
@@ -100,6 +99,66 @@ export const getTrendingBlogsService = async () => {
   }
 };
 
+export const getTrendingDiscussionService = async () => {
+  try {
+    const processName = "Discussion";
+
+    const query = `
+      SELECT 
+        COUNT(ci.Likes) AS likes,
+        COUNT(ci.View) AS viewCount,
+        ci.reference,
+        cd.title,
+        cd.content,
+        cd.AddOnDt,
+        u.Name AS author,
+        ci.ProcessName,
+
+        COUNT(cd1.DiscussionID) AS repostCount,
+        COUNT(DISTINCT cd2.DiscussionID) AS commentCount
+
+      FROM Content_Interaction ci
+      LEFT JOIN community_discussions cd 
+        ON cd.DiscussionID = ci.Reference
+
+      LEFT JOIN Community_User u 
+        ON cd.AuthAdd = u.UserID
+
+      LEFT JOIN community_discussions cd1 
+        ON cd.DiscussionID = cd1.RepostID
+        
+      LEFT JOIN community_discussions cd2 
+        ON cd.DiscussionID = cd2.Reference
+
+      WHERE 
+        ci.ProcessName = :processName
+        AND IFNULL(ci.delStatus, 0) = 0
+        AND IFNULL(cd.delStatus, 0) = 0
+        AND IFNULL(u.delStatus, 0) = 0
+        AND cd.Content IS NOT NULL
+        AND cd.Reference = 0
+
+      GROUP BY ci.reference
+
+      ORDER BY likes DESC;
+    `;
+
+    const discussionStats = await sequelize.query(query, {
+      replacements: { processName },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    return {
+      success: true,
+      data: discussionStats,
+      message: "Trending discussions fetched successfully",
+    };
+  } catch (error) {
+    console.error("Trending Discussion Service Error:", error);
+    throw error;
+  }
+};
+
 export const getApprovalCountsService = async () => {
   try {
     const pendingBlogs = await CommunityBlog.count({
@@ -123,8 +182,7 @@ export const getApprovalCountsService = async () => {
       },
     });
 
-    const totalPending =
-      pendingBlogs + pendingEvents + pendingUsers;
+    const totalPending = pendingBlogs + pendingEvents + pendingUsers;
 
     return {
       success: true,
@@ -141,5 +199,31 @@ export const getApprovalCountsService = async () => {
       success: false,
       error,
     };
+  }
+};
+
+export const getProcessCountsService = async () => {
+  try {
+    const query = `
+      SELECT 
+        ProcessName, 
+        COUNT(View) AS viewCount
+      FROM Content_Interaction
+      WHERE IFNULL(delStatus, 0) = 0
+      GROUP BY ProcessName;
+    `;
+
+    const result = await sequelize.query(query, {
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    return {
+      success: true,
+      data: result,
+      message: "Process counts fetched successfully",
+    };
+  } catch (error) {
+    console.error("Process Count Service Error:", error);
+    throw error;
   }
 };
