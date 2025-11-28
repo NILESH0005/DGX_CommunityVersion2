@@ -127,3 +127,15 @@
     -webkit-box-shadow: 5px 7px 0 #6c757d;
     margin-bottom: 2.875rem;
 }
+
+/* Scrollable in Modal*/
+.jodit-wysiwyg {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.notebook-container {
+  max-height: 80vh;
+  overflow-y: auto !important;
+  overflow-x: auto;
+}

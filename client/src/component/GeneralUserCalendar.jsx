@@ -112,12 +112,14 @@ const GeneralUserCalendar = (props) => {
     }
   };
 
-  const formattedEvents = props.events?.map((event) => ({
-    ...event,
-    start: moment(event.StartDate).toDate(),
-    end: moment(event.EndDate).toDate(),
-    title: event.EventTitle,
-  }));
+  const formattedEvents = props.events
+    ?.filter((event) => event.Status === "Approved") // 🔥 Only Approved Events
+    .map((event) => ({
+      ...event,
+      start: moment(event.StartDate).toDate(),
+      end: moment(event.EndDate).toDate(),
+      title: event.EventTitle,
+    }));
 
   const formats = {
     timeGutterFormat: (date, culture, localizer) =>
@@ -216,6 +218,7 @@ const GeneralUserCalendar = (props) => {
         <DetailsEventModal
           selectedEvent={selectedEvent}
           onClose={() => setSelectedEvent(null)}
+          reloadEvents={props.reloadEvents} // ✔ This is the function
         />
       )}
     </div>

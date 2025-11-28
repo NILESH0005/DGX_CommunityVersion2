@@ -310,7 +310,8 @@ const EventForm = (props) => {
           EventImage: newEvent.poster,
           EventDescription: newEvent.description,
           UserName: user.Name,
-          Status: eventStatus, // Using the same status here
+          UserID: user.UserID, // 🔥 REQUIRED
+          Status: eventStatus,
           start: new Date(newEvent.start),
           end: new Date(newEvent.end),
         };

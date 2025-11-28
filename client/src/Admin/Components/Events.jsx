@@ -3,70 +3,103 @@ import GeneralUserCalendar from "../../component/GeneralUserCalendar";
 import ApiContext from "../../context/ApiContext";
 import EventTable from "../../component/EventTable";
 import { MdTableChart } from "react-icons/md";
-import { FaCalendarAlt } from "react-icons/fa";
+import { FaCalendarAlt, FaPlus } from "react-icons/fa";
 
-const Events = (props) => {
-  console.log("admin events", props.events)
-  const { fetchData } = useContext(ApiContext);
+const Events = ({ events, setEvents }) => {
+  const { fetchData, userToken } = useContext(ApiContext);
+  const [reloadEvents, setReloadEvents] = useState(false);
+  const [showEventForm, setShowEventForm] = useState(false);
+
   const [showTable, setShowTable] = useState(() => {
     return sessionStorage.getItem("showTable") === "true";
   });
 
   const fetchEventData = async () => {
-    const endpoint = "eventandworkshop/getEvent";
-    const eventData = await fetchData(endpoint);
-    props.setEvents(eventData.data || []);
+    try {
+      if (!userToken) {
+        console.log("No user token, skipping events fetch");
+        return;
+      }
+
+      const endpoint = "eventandworkshop/getEvent";
+      const headers = {
+        "Content-Type": "application/json",
+        "auth-token": userToken,
+      };
+
+      console.log("Fetching events...");
+      const eventData = await fetchData(endpoint, "GET", null, headers);
+
+      if (eventData?.success) {
+        console.log("Events fetched successfully:", eventData.data?.length);
+        setEvents(eventData.data || []);
+      } else {
+        console.error("Failed to fetch events:", eventData);
+        setEvents([]);
+      }
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      setEvents([]);
+    }
   };
 
   useEffect(() => {
     fetchEventData();
-  }, [showTable]);
+  }, [userToken, reloadEvents]);
 
-  useEffect(() => {
-    const scrollPosition = sessionStorage.getItem("scrollPosition");
-    if (scrollPosition) {
-      window.scrollTo(0, parseInt(scrollPosition, 10));
-    }
+  const toggleView = () => {
+    const newView = !showTable;
+    sessionStorage.setItem("showTable", newView);
+    setShowTable(newView);
+  };
 
-    return () => {
-      sessionStorage.setItem("scrollPosition", window.scrollY);
-    };
-  }, []);
+  const handleReloadEvents = () => {
+    console.log("Triggering events reload...");
+    setReloadEvents(prev => !prev);
+  };
 
-  const handleToggleView = () => {
-    const newShowTable = !showTable;
-    sessionStorage.setItem("showTable", newShowTable);
-    setShowTable(newShowTable);
+  const handleAddEventSuccess = () => {
+    setShowEventForm(false);
+    handleReloadEvents();
   };
 
   return (
-    <div className="p-4 w-full"> 
-      {/* Toggle Button */}
-      <button
-        onClick={handleToggleView}
-        className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition mb-4"
-      >
-        {showTable ? "Show Calendar" : "Show Table"}
-        {showTable ? (
-          <FaCalendarAlt className="size-5" />
-        ) : (
-          <MdTableChart className="size-5" />
-        )}
-      </button>
+    <div className="p-4 w-full">
+      <div className="flex justify-between items-center mb-4">
+        <button
+          onClick={toggleView}
+          className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-md"
+        >
+          {showTable ? "Show Calendar" : "Show Table"}
+          {showTable ? <FaCalendarAlt /> : <MdTableChart />}
+        </button>
+        
+       
+      </div>
 
-      {/* Display Event Table or Calendar */}
-      <div className="w-full"> 
-        {showTable ? (
-          <div className="w-full bg-white rounded-lg shadow"> 
-            <EventTable events={props.events} setEvents={props.setEvents} />
-          </div>
+      {showEventForm ? (
+        <EventForm
+          events={events}
+          setEvents={setEvents}
+          reloadEvents={handleReloadEvents}
+          onSuccess={handleAddEventSuccess}
+          onCancel={() => setShowEventForm(false)}
+        />
+      ) : (
+        showTable ? (
+          <EventTable
+            events={events}
+            setEvents={setEvents}
+            reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
+          />
         ) : (
           <GeneralUserCalendar
-            events={props.events}
-            setEvents={props.setEvents}
+            events={events}
+            setEvents={setEvents}
+            reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
           />
-        )}
-      </div>
+        )
+      )}
     </div>
   );
 };

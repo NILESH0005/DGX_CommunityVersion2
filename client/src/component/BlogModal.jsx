@@ -58,7 +58,6 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
           timer: 1500,
         });
 
-      
         if (typeof updateBlogState === "function") {
           updateBlogState(blogId, Status);
         } else {
@@ -149,10 +148,10 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
       <div
         ref={modalRef}
-        className="bg-white w-full h-full max-w-full flex flex-col overflow-hidden"
+        className="bg-white w-full h-full max-w-full flex flex-col"
       >
         {/* Header - Updated to show UserName */}
         <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">

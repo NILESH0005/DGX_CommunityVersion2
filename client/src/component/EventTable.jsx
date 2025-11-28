@@ -1,26 +1,18 @@
-import React, { useRef, useState, useContext, useEffect } from "react";
-import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
-import moment from "moment";
-import "react-big-calendar/lib/css/react-big-calendar.css";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import React, { useState, useContext, useEffect } from "react";
 import ApiContext from "../context/ApiContext.jsx";
 import EventForm from "./eventAndWorkshop/EventForm.jsx";
 import DetailsEventModal from "./eventAndWorkshop/DetailsEventModal.jsx";
 import LoadPage from "./LoadPage.jsx";
 import Swal from "sweetalert2";
-import { FaEye, FaSearch, FaFilter, FaPlus } from "react-icons/fa";
+import { FaEye, FaSearch, FaFilter } from "react-icons/fa";
 
-const EventTable = (props) => {
+const EventTable = ({ events, setEvents, reloadEvents }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const { fetchData, userToken } = useContext(ApiContext);
   const [isTokenLoading, setIsTokenLoading] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownData, setDropdownData] = useState({
@@ -87,11 +79,6 @@ const EventTable = (props) => {
       const eventTypeOptions = await fetchDropdownValues("eventType");
       const eventHostOptions = await fetchDropdownValues("eventHost");
 
-      const eventTypeDropdown = [
-        { idCode: "All", ddValue: "All", ddCategory: "eventType" },
-        ...eventTypeOptions,
-      ];
-
       setDropdownData({
         categoryOptions: eventTypeOptions,
         companyCategoryOptions: eventHostOptions,
@@ -131,10 +118,10 @@ const EventTable = (props) => {
     try {
       const result = await fetchData(endpoint, method, {}, headers);
       if (result.success && Array.isArray(result.data)) {
-        props.setEvents(result.data);
+        setEvents(result.data);
       } else {
         console.error("Invalid data format:", result);
-        props.setEvents([]);
+        setEvents([]);
         Swal.fire({
           title: "Error",
           text: "Failed to load events data",
@@ -144,7 +131,7 @@ const EventTable = (props) => {
       }
     } catch (error) {
       console.error("Error fetching events:", error);
-      props.setEvents([]);
+      setEvents([]);
       Swal.fire({
         title: "Error",
         text: "Failed to connect to server",
@@ -173,15 +160,15 @@ const EventTable = (props) => {
     }
   };
 
-  const filteredEvents = props.events.filter((event) => {
+  const filteredEvents = events.filter((event) => {
     const matchesStatus = statusFilter === "" || event.Status === statusFilter;
     const matchesCategory =
       selectedCategory === "" || event.EventType === selectedCategory;
     const matchesSearch =
-      event.EventTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.UserName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.Venue.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.Status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.EventTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.UserName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.Venue?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.Status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       formatDateTime(event.StartDate)
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
@@ -213,7 +200,7 @@ const EventTable = (props) => {
       <div className="flex justify-between items-start">
         <div>
           <h3 className="font-bold text-lg">{event.EventTitle}</h3>
-          <p className="text-sm text-gray-600">By: {event.AuthAdd}</p>
+          <p className="text-sm text-gray-600">By: {event.UserName}</p>
         </div>
         <span className="px-2 py-1 rounded-full text-xs font-semibold">
           {event.Status}
@@ -344,7 +331,7 @@ const EventTable = (props) => {
 
       <div className="flex justify-end mb-4">
         <button
-          className="px-6 py-3 text-lg bg-DGXblue text-white font-semibold rounded-lg"
+          className="px-6 py-3 text-lg bg-DGXblue text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors"
           onClick={() => setShowForm(!showForm)}
         >
           {showForm ? "Show Table" : "Add Event"}
@@ -353,11 +340,12 @@ const EventTable = (props) => {
 
       {showForm ? (
         <EventForm
-          updateEvents={props.setEvents}
-          setEvents={props.setEvents}
+          events={events}
+          setEvents={setEvents}
           categoryOptions={dropdownData.categoryOptions}
           companyCategoryOptions={dropdownData.companyCategoryOptions}
           onCancel={() => setShowForm(false)}
+          reloadEvents={reloadEvents}
         />
       ) : filteredEvents.length > 0 ? (
         isMobileView ? (
@@ -453,32 +441,12 @@ const EventTable = (props) => {
         </div>
       )}
 
+      {/* ✅ Fixed: Use the reloadEvents prop */}
       {selectedEvent && (
         <DetailsEventModal
           selectedEvent={selectedEvent}
           onClose={() => setSelectedEvent(null)}
-          handleEventStatusChange={(eventId, action) => {
-            const statusMap = {
-              approve: "Approved",
-              reject: "Rejected",
-              delete: "Deleted" // if you need this
-            };
-            const newStatus = statusMap[action] || action;
-
-            if (action === "delete") {
-              props.setEvents((prev) =>
-                prev.filter((event) => event.EventID !== eventId)
-              );
-            } else {
-              props.setEvents((prev) =>
-                prev.map((event) =>
-                  event.EventID === eventId
-                    ? { ...event, Status: newStatus }
-                    : event
-                )
-              );
-            }
-          }}
+          reloadEvents={reloadEvents}
         />
       )}
     </div>

@@ -417,6 +417,26 @@ const BlogPage = () => {
     const isAccordionOpen = expandedAccordions[BlogID];
     const hasReposts = reposts && reposts.length > 0;
     const userName = User?.Name;
+    // Helper: remove HTML tags and decode basic entities
+    const stripHtml = (html) => {
+      if (!html) return "";
+      const div = document.createElement("div");
+      div.innerHTML = html;
+      // decode & return plain text
+      return div.textContent || div.innerText || "";
+    };
+
+    // Helper: truncate to N characters without cutting words (optional)
+    const truncate = (text, max = 180) => {
+      if (!text) return "";
+      if (text.length <= max) return text;
+      // try to cut at last space inside limit
+      const truncated = text.slice(0, max);
+      const lastSpace = truncated.lastIndexOf(" ");
+      return (
+        (lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated) + "..."
+      );
+    };
 
     const getAuthorInitials = (name) => {
       if (!name) return "U";
@@ -572,22 +592,28 @@ const BlogPage = () => {
             {title}
           </h3>
 
-          {/* Rating and Claps */}
+          {/* Blog Content Preview (Limited Words) */}
+          {/* Blog Content Preview (limited, plain text) */}
+          <p className="text-gray-700 text-sm mb-4 line-clamp-3 leading-relaxed">
+            {truncate(stripHtml(blog.content), 180)}
+          </p>
+
+          {/* Rating and Claps
           <div className="flex items-center gap-4 mb-4">
-            {/* {blogStats.averageRating > 0 && (
+             {blogStats.averageRating > 0 && (
               <div className="flex items-center gap-2">
                 <StarRating value={blogStats.averageRating} />
                 <span className="text-sm text-gray-600">
                   ({blogStats.totalRatings})
                 </span>
               </div>
-            )} */}
+            )} 
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center gap-3 ml-auto"
             >
-              {/* Likes */}
+             //  Likes 
               {blogStats.totalLikes > 0 && (
                 <motion.div
                   whileHover={{ scale: 1.15, y: -2 }}
@@ -602,7 +628,7 @@ const BlogPage = () => {
                 </motion.div>
               )}
 
-              {/* Views */}
+              // Views 
               {blogStats.totalViews > 0 && (
                 <motion.div
                   whileHover={{ scale: 1.15, y: -2 }}
@@ -617,7 +643,7 @@ const BlogPage = () => {
                 </motion.div>
               )}
             </motion.div>
-          </div>
+          </div> */}
 
           {/* Author Info */}
           <div className="mt-auto flex items-center gap-3 mb-4">

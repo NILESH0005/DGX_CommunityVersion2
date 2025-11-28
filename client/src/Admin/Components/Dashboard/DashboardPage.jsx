@@ -203,12 +203,7 @@ const DashboardPage = () => {
           </motion.div>
         </motion.div>
 
-        {/* Footer */}
-        <motion.div variants={itemVariants} className="text-center pt-8 pb-4">
-          <p className="text-gray-400 text-sm">
-            © 2024 Content Management System • v2.4.1
-          </p>
-        </motion.div>
+       
       </div>
     </motion.div>
   );

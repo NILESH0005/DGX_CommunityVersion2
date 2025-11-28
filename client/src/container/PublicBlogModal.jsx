@@ -1,13 +1,18 @@
 import React, { useContext, useEffect, useState } from "react";
-import { faXmark } from "@fortawesome/free-solid-svg-icons";
+import {
+  faXmark,
+  faExpand,
+  faCompress,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { TbUserSquareRounded } from "react-icons/tb";
 import Swal from "sweetalert2";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../context/ApiContext";
-import { FiRepeat } from "react-icons/fi";
+import { FiRepeat, FiShare2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { PiHandsClappingLight, PiHandsClappingFill } from "react-icons/pi";
+import { IoStar, IoStarOutline, IoStarHalf } from "react-icons/io5";
 import RatingStars from "./RatingStars";
 import Noimage from "../assets/No_Image_Available.jpg";
 
@@ -32,12 +37,43 @@ const PublicBlogModal = ({
   const [likeCount, setLikeCount] = useState(blog?.likesCount || 0);
   const [userRating, setUserRating] = useState(0);
   const [averageRating, setAverageRating] = useState(blog?.averageRating || 0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
 
   // Add the same image handling logic as BlogPage
   const [currentImageSrc, setCurrentImageSrc] = useState("");
   const [imageError, setImageError] = useState(false);
+
+  // Handle fullscreen toggle
+  const toggleFullScreen = () => {
+    setIsFullScreen(!isFullScreen);
+  };
+
+  // Close fullscreen on escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isFullScreen]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isFullScreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isFullScreen]);
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) {
@@ -477,340 +513,332 @@ const PublicBlogModal = ({
   const alreadyReposted = blog?.RepostUserID === user?.UserID;
   const canRepost = blog?.allowRepost && !isMyBlog && !alreadyReposted;
 
+  // Enhanced Rating Stars Component
+  const EnhancedRatingStars = ({
+    value,
+    onChange,
+    readOnly = false,
+    size = 20,
+  }) => {
+    const [hoverRating, setHoverRating] = useState(0);
+
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => {
+          const ratingValue = hoverRating || value;
+          const filled = star <= ratingValue;
+
+          return (
+            <motion.button
+              key={star}
+              whileHover={!readOnly ? { scale: 1.2 } : {}}
+              whileTap={!readOnly ? { scale: 0.9 } : {}}
+              className={`${
+                readOnly ? "cursor-default" : "cursor-pointer"
+              } transition-colors duration-200 ${
+                filled ? "text-yellow-400" : "text-gray-300"
+              }`}
+              onClick={() => !readOnly && onChange(star)}
+              onMouseEnter={() => !readOnly && setHoverRating(star)}
+              onMouseLeave={() => !readOnly && setHoverRating(0)}
+              disabled={readOnly}
+            >
+              {filled ? <IoStar size={size} /> : <IoStarOutline size={size} />}
+            </motion.button>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 backdrop-blur-sm p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-md flex justify-center items-center z-50 p-4"
       >
         <motion.div
-          initial={{ scale: 0.95, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.95, y: 20 }}
-          transition={{ type: "spring", damping: 20 }}
-          className="bg-white p-6 rounded-xl w-full max-w-8xl max-h-[90vh] relative overflow-y-auto shadow-2xl"
+          initial={{ scale: 0.95, y: 20, opacity: 0 }}
+          animate={{ scale: 1, y: 0, opacity: 1 }}
+          exit={{ scale: 0.95, y: 20, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className={`bg-white shadow-2xl border border-gray-100 flex flex-col ${
+            isFullScreen
+              ? "fixed inset-0 w-screen h-screen overflow-y-auto overflow-x-hidden rounded-none"
+              : "rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden"
+          }`}
         >
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            className="text-gray-500 hover:text-gray-700 text-2xl absolute top-4 right-4 transition-colors duration-200 z-10"
-            onClick={closeModal}
-          >
-            <FontAwesomeIcon icon={faXmark} />
-          </motion.button>
+          {/* Header Controls */}
+          <div className="flex items-center justify-between p-4 lg:p-6 border-b border-gray-200 bg-white sticky top-0 z-40 shrink-0">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={closeModal}
+              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-200 font-medium text-sm"
+            >
+              ← Back
+            </motion.button>
 
-          <div className="flex flex-col items-center h-full">
-            <div className="w-full mb-8 relative">
-              {/* Updated Image Section with same logic as BlogPage */}
-              <div className="relative h-[600px] w-full overflow-hidden">
+            <div className="flex items-center gap-3">
+              {/* Fullscreen Toggle Button */}
+              <motion.button
+                whileHover={{ scale: 1.1, backgroundColor: "rgba(0,0,0,0.05)" }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleFullScreen}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200 bg-white border border-gray-200 shadow-sm"
+                title={isFullScreen ? "Exit fullscreen" : "Enter fullscreen"}
+              >
+                <FontAwesomeIcon icon={isFullScreen ? faCompress : faExpand} />
+              </motion.button>
+
+              {/* Close Button */}
+              {/* <motion.button
+                whileHover={{ scale: 1.1, backgroundColor: "rgba(0,0,0,0.05)" }}
+                whileTap={{ scale: 0.9 }}
+                onClick={closeModal}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200 bg-white border border-gray-200 shadow-sm"
+              >
+                <FontAwesomeIcon icon={faXmark} />
+              </motion.button> */}
+            </div>
+          </div>
+
+          {/* Scrollable Content - Fixed height calculation */}
+          <div
+            className="flex-1 min-h-[400px]"
+            style={
+              isFullScreen
+                ? {
+                    height: "100vh",
+                    overflowY: "auto",
+                  }
+                : { overflowY: "auto" }
+            }
+          >
+            {/* Header Section - 2 Columns (Left text, Right image) */}
+            <div className="w-full flex flex-col lg:flex-row items-start gap-6 p-4 lg:p-8">
+              {/* LEFT SIDE — Title + Author + Date */}
+              <div className="flex-1">
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-2xl lg:text-4xl font-bold text-gray-900 mb-4 leading-tight"
+                >
+                  {title}
+                </motion.h1>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <TbUserSquareRounded className="text-white text-lg lg:text-xl" />
+                  </div>
+
+                  <div className="text-left">
+                    <p className="text-gray-900 font-semibold text-sm lg:text-base">
+                      {blog?.User?.Name || author || "Unknown author"}
+                    </p>
+                    <p className="text-gray-500 text-xs lg:text-sm">
+                      {published_date}
+                    </p>
+                  </div>
+                </div>
+
+                {RepostUser && RepostUser.Name && (
+                  <div className="flex items-center gap-2 text-xs lg:text-sm text-emerald-600 font-medium bg-emerald-50 px-3 py-1 rounded-full mt-3">
+                    <FiRepeat className="text-xs" />
+                    <span>Originally by {RepostUser.Name}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* RIGHT SIDE — IMAGE */}
+              <div className="w-full lg:w-1/2 h-48 lg:h-60 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                 {currentImageSrc && !imageError ? (
                   <motion.img
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 1.05 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="w-full h-full object-cover"
+                    transition={{ duration: 0.7, ease: "easeOut" }}
                     src={currentImageSrc}
+                    className="w-full h-full object-contain"
                     alt={title}
                     onError={(e) => {
-                      console.error(
-                        "Modal Image failed to load in DOM:",
-                        currentImageSrc
-                      );
                       setImageError(true);
                       e.target.src = Noimage;
                     }}
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                    <img
-                      src={Noimage}
-                      alt="Fallback"
-                      className="max-h-40 max-w-40 opacity-50"
-                    />
-                  </div>
+                  <img src={Noimage} className="max-h-32 max-w-32 opacity-30" />
                 )}
               </div>
-
-              {/* Rating display badge */}
-              <motion.div
-                className="absolute top-4 left-4 bg-white bg-opacity-90 px-3 py-1 rounded-full text-sm font-semibold shadow-md flex items-center gap-1"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <RatingStars
-                  value={blogStats.averageRating}
-                  readOnly
-                  size={16}
-                />
-                <span className="text-gray-700 ml-1">
-                  {blogStats.averageRating}
-                </span>
-                {blogStats.totalRatings > 0 && (
-                  <span className="text-gray-500 text-xs">
-                    ({blogStats.totalRatings})
-                  </span>
-                )}
-              </motion.div>
-
-              {RepostUser && RepostUser.Name && (
-                <motion.span
-                  className="absolute top-4 right-4 bg-DGXgreen text-black px-3 py-1 rounded-full text-sm font-semibold shadow-md"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  Repost
-                </motion.span>
-              )}
             </div>
 
-            <div className="w-full px-4">
-              <motion.h2
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-3xl md:text-4xl font-bold mb-6 text-center text-gray-800"
-              >
-                {title}
-              </motion.h2>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="mb-6 flex flex-col items-center"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <TbUserSquareRounded className="text-indigo-600 text-3xl" />
-                  <span className="text-gray-600 font-medium">
-                    {blog?.User?.Name || author || "Unknown author"}
-                  </span>
-                </div>
-                {RepostUser && RepostUser.Name && (
-                  <div className="flex items-center gap-2 text-sm text-DGXgreen font-medium">
-                    <FiRepeat className="text-DGXgreen" />
-                    <span>Reposted from {RepostUser.Name}</span>
-                  </div>
-                )}
-                <p className="text-gray-500 text-sm">{published_date}</p>
-              </motion.div>
-
-              {/* ---- BLOG CONTENT (render Jodit HTML) ---- */}
-              {/* Key changes:
-                  - Use .blog-content wrapper and CSS below to make sure Jodit output
-                    (alignments, lists, tables) renders correctly.
-                  - We avoid forcing a global text-justify that would override Jodit's alignment.
-              */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="mb-6"
-              >
-                <div
-                  className="blog-content text-gray-700 leading-relaxed space-y-4 max-w-none overflow-x-auto"
-                  // render raw html from Jodit
-                  dangerouslySetInnerHTML={{ __html: content }}
-                />
-              </motion.div>
-
-              {/* Styling to ensure lists/tables/alignments show as expected */}
-              <style>{`
-                /* blog-content specific styles so they don't accidentally affect rest of app */
-                .blog-content { word-break: break-word; }
-                .blog-content img { max-width: 100%; height: auto; display: block; margin: 0.5rem 0; }
-                .blog-content figure { margin: 0; }
-                .blog-content table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; }
-                .blog-content table th,
-                .blog-content table td { border: 1px solid #e5e7eb; padding: 0.5rem; text-align: left; vertical-align: top; }
-                .blog-content thead th { background: #f9fafb; font-weight: 600; }
-                .blog-content ul, .blog-content ol { padding-left: 1.25rem; margin: 0.5rem 0; }
-                .blog-content ul { list-style-type: disc; }
-                .blog-content ol { list-style-type: decimal; }
-                /* Honor inline align attributes and inline styles for text-align (center/left/right) */
-                .blog-content [align="center"], .blog-content .align-center { text-align: center; }
-                .blog-content [align="right"], .blog-content .align-right { text-align: right; }
-                .blog-content [align="left"], .blog-content .align-left { text-align: left; }
-                /* Force inline style text-align to apply (important when other utilities exist) */
-                .blog-content [style*="text-align"] { text-align: inherit !important; }
-                /* small helpers for code blocks */
-                .blog-content pre { white-space: pre-wrap; word-break: break-word; padding: 0.75rem; background: #11182710; border-radius: 0.5rem; overflow: auto; }
-                .blog-content code { background: #F3F4F6; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
-                /* ensure long words don't break the layout */
-                .blog-content * { max-width: 100%; box-sizing: border-box; }
-              `}</style>
-
-              {/* Rating Section */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-200"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-700">
-                    Your rating
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Use arrows to adjust
-                  </span>
-                </div>
-                <RatingStars
-                  value={userRating}
-                  onChange={handleRate}
-                  aria-label="Your rating"
-                />
-                {userRating > 0 && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-sm text-gray-600 mt-2"
+            {/* Engagement Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="border-t border-b border-gray-200 pt-2 lg:pt-4 pb-6 lg:pb-2 mb-6 lg:mb-8"
+            >
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
+                {/* Left: Engagement Buttons */}
+                <div className="flex flex-wrap items-center px-4 gap-2 lg:gap-3 justify-start w-full mb-4">
+                  {/* Clap Button */}
+                  <motion.button
+                    variants={{
+                      initial: { scale: 1 },
+                      animate: {
+                        scale: [1, 1.4, 1],
+                        transition: { duration: 0.4 },
+                      },
+                    }}
+                    initial="initial"
+                    animate={isLiked ? "animate" : "initial"}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleLike}
+                    className={`flex items-center gap-2 lg:gap-3 px-3 lg:px-6 py-2 lg:py-3 rounded-full transition-all duration-300 font-medium shadow-lg ${
+                      isLiked
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-purple-500/25"
+                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    }`}
                   >
-                    You rated this {userRating} star{userRating > 1 ? "s" : ""}
-                  </motion.p>
-                )}
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="flex flex-wrap justify-center gap-4 mt-8 pb-4"
-              >
-                <motion.button
-                  variants={{
-                    initial: { scale: 1 },
-                    animate: {
-                      scale: [1, 1.3, 1],
-                      transition: { duration: 0.3 },
-                    },
-                  }}
-                  initial="initial"
-                  animate={isLiked ? "animate" : "initial"}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleLike}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 font-medium ${
-                    isLiked
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/30"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md"
-                  }`}
-                >
-                  <motion.div
-                    animate={isLiked ? { rotate: [0, -10, 10, 0] } : {}}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {isLiked ? (
-                      <PiHandsClappingFill className="text-xl" />
-                    ) : (
-                      <PiHandsClappingLight className="text-xl" />
+                    <motion.div
+                      animate={isLiked ? { rotate: [0, -15, 15, 0] } : {}}
+                      transition={{ duration: 0.6 }}
+                    >
+                      {isLiked ? (
+                        <PiHandsClappingFill className="text-lg lg:text-xl" />
+                      ) : (
+                        <PiHandsClappingLight className="text-lg lg:text-xl" />
+                      )}
+                    </motion.div>
+                    <span className="font-semibold text-sm lg:text-base">
+                      {isLiked ? "Clapped" : "Clap"}
+                    </span>
+                    {likeCount > 0 && (
+                      <span
+                        className={`px-1 lg:px-2 py-0.5 lg:py-1 rounded-full text-xs font-medium ${
+                          isLiked ? "bg-white/20" : "bg-gray-100"
+                        }`}
+                      >
+                        {likeCount}
+                      </span>
                     )}
-                  </motion.div>
-                  <span className="font-semibold">
-                    {isLiked ? "Clapped!" : "Clap"}{" "}
-                    {likeCount > 0 && `• ${likeCount}`}
-                  </span>
-                </motion.button>
+                  </motion.button>
 
-                {user?.isAdmin == "1" && Status === "Pending" && (
-                  <>
+                  {/* Rating Section */}
+                  <div className="flex items-center gap-2 lg:gap-3 bg-gray-50 px-2 lg:px-4 py-1 lg:py-3 rounded-full border border-gray-200">
+                    <span className="text-xs lg:text-sm font-medium text-gray-700">
+                      Rate:
+                    </span>
+                    <EnhancedRatingStars
+                      value={userRating}
+                      onChange={handleRate}
+                      size={16}
+                    />
+                  </div>
+
+                  {/* Share Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={async () => {
+                      const blogUrl = getBlogUrl();
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({
+                            title: title || "Check out this blog!",
+                            text: content
+                              ? content
+                                  .replace(/<[^>]+>/g, "")
+                                  .substring(0, 100) + "..."
+                              : "Interesting blog post",
+                            url: blogUrl,
+                          });
+                        } catch (error) {
+                          if (error.name !== "AbortError") {
+                            await safeCopyToClipboard(blogUrl);
+                          }
+                        }
+                      } else {
+                        await safeCopyToClipboard(blogUrl);
+                      }
+                    }}
+                    className="flex items-center gap-1 lg:gap-3 px-3 lg:px-6 py-2 lg:py-3 rounded-full bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-lg transition-all duration-200 font-medium text-sm lg:text-base"
+                  >
+                    <FiShare2 className="text-base lg:text-lg" />
+                    <span className="hidden sm:inline">Share</span>
+                  </motion.button>
+
+                  {/* Repost Button */}
+                  {canRepost && Status === "Approved" && (
                     <motion.button
-                      whileHover={{
-                        scale: 1.05,
-                        boxShadow: "0 4px 12px rgba(22, 163, 74, 0.3)",
-                      }}
+                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
+                      onClick={handleRepost}
+                      className="flex items-center gap-1 lg:gap-3 px-3 lg:px-6 py-2 lg:py-3 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/25 transition-all duration-200 font-medium text-sm lg:text-base"
+                    >
+                      <FiRepeat className="text-base lg:text-lg" />
+                      <span className="hidden sm:inline">Repost</span>
+                    </motion.button>
+                  )}
+                </div>
+
+                {/* Right: Admin Controls */}
+                {user?.isAdmin == "1" && Status === "Pending" && (
+                  <div className="flex items-center gap-2 lg:gap-3 justify-center lg:justify-end">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-3 lg:px-6 py-2 lg:py-3 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25 transition-all duration-200 font-medium text-sm lg:text-base"
                       onClick={() => handleAction("approve")}
                     >
                       Approve
                     </motion.button>
                     <motion.button
-                      whileHover={{
-                        scale: 1.05,
-                        boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)",
-                      }}
+                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
+                      className="px-3 lg:px-6 py-2 lg:py-3 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-red-500/25 transition-all duration-200 font-medium text-sm lg:text-base"
                       onClick={() => handleAction("reject")}
                     >
                       Reject
                     </motion.button>
-                  </>
+                  </div>
                 )}
+              </div>
+            </motion.div>
 
-                {canRepost && Status === "Approved" && (
-                  <motion.button
-                    whileHover={{
-                      scale: 1.05,
-                      boxShadow: "0 4px 12px rgba(59, 130, 246, 0.3)",
-                    }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleRepost}
-                    className="bg-DGXgreen hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
-                  >
-                    <FiRepeat className="inline mr-2" />
-                    Repost
-                  </motion.button>
-                )}
+            {/* Main Content */}
+            <div className="px-4 lg:px-8 pb-6 lg:pb-8">
+              {/* Blog Content */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="prose prose-sm lg:prose-lg max-w-none mb-6 lg:mb-8"
+              >
+                <div
+                  className="blog-content text-gray-700 leading-relaxed space-y-4 lg:space-y-6"
+                  dangerouslySetInnerHTML={{ __html: content }}
+                />
+              </motion.div>
+
+              {/* Footer */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex justify-center pt-4 lg:pt-6 border-t border-gray-200"
+              >
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={async () => {
-                    const blogUrl = getBlogUrl();
-
-                    if (navigator.share) {
-                      try {
-                        await navigator.share({
-                          title: title || "Check out this blog!",
-                          text: content
-                            ? content
-                                .replace(/<[^>]+>/g, "")
-                                .substring(0, 100) + "..."
-                            : "Interesting blog post",
-                          url: blogUrl,
-                        });
-                      } catch (error) {
-                        if (error.name !== "AbortError") {
-                          console.error("Share failed:", error);
-                          await safeCopyToClipboard(blogUrl);
-                        }
-                      }
-                    } else {
-                      await safeCopyToClipboard(blogUrl);
-                    }
-                  }}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                    />
-                  </svg>
-                  Share
-                </motion.button>
-
-                <motion.button
-                  whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
-                  }}
-                  whileTap={{ scale: 0.95 }}
                   onClick={closeModal}
-                  className="bg-DGXblue hover:bg-DGXgreen text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200"
+                  className="px-4 lg:px-8 py-2 lg:py-3 rounded-full bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg transition-all duration-200 font-medium hover:shadow-xl text-sm lg:text-base"
                 >
-                  Close
+                  Close Article
                 </motion.button>
               </motion.div>
             </div>

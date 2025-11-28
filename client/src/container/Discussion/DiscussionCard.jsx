@@ -251,7 +251,8 @@ const DiscussionCard = ({
           {discussion.Title}
         </h3>
 
-        <div className="text-gray-700 leading-relaxed">
+        <div className="text-gray-700 leading-relaxed ql-snow discussion-content">
+
           {discussion.Content.length > 500 ? (
             <>
               <div
@@ -261,6 +262,7 @@ const DiscussionCard = ({
                   ),
                 }}
               />
+
               <span
                 className="text-DGXblue cursor-pointer font-semibold hover:underline inline-flex items-center gap-1 mt-2"
                 onClick={() => openModal(discussion)}
@@ -378,7 +380,7 @@ const DiscussionCard = ({
                 <FiCheckCircle className="w-5 h-5 text-green-500" />
               ) : !discussion.allowRepost ? (
                 <img
-                  src="/Nrepost.png" 
+                  src="/Nrepost.png"
                   alt="not allowed"
                   className="w-5 h-5 opacity-80 group-hover:opacity-100"
                 />

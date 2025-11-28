@@ -185,7 +185,8 @@ const UserContentTabs = ({
               My Events
             </h2>
             <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-              {totalEventsCount} {totalEventsCount === 1 ? "Event" : "Events"}
+              {events.length} {events.length === 1 ? "Event" : "Events"}
+
             </span>
           </div>
           <AddUserEvent events={events} setEvents={setEvents} />

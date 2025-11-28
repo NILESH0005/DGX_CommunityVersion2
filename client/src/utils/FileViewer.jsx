@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import React, { useState, useEffect, useRef } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -21,8 +21,9 @@ const loadExternalLibraries = () => {
     // Load marked.js for markdown parsing
     if (!window.marked) {
       scriptsToLoad++;
-      const markedScript = document.createElement('script');
-      markedScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js';
+      const markedScript = document.createElement("script");
+      markedScript.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js";
       markedScript.onload = checkComplete;
       document.head.appendChild(markedScript);
     }
@@ -30,13 +31,15 @@ const loadExternalLibraries = () => {
     // Load highlight.js for syntax highlighting
     if (!window.hljs) {
       scriptsToLoad++;
-      const hljsScript = document.createElement('script');
-      hljsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+      const hljsScript = document.createElement("script");
+      hljsScript.src =
+        "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js";
       hljsScript.onload = () => {
         // Load CSS for highlight.js
-        const hljsCSS = document.createElement('link');
-        hljsCSS.rel = 'stylesheet';
-        hljsCSS.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+        const hljsCSS = document.createElement("link");
+        hljsCSS.rel = "stylesheet";
+        hljsCSS.href =
+          "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css";
         document.head.appendChild(hljsCSS);
         checkComplete();
       };
@@ -58,8 +61,8 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   const [error, setError] = useState(null);
   const [librariesLoaded, setLibrariesLoaded] = useState(false);
 
-  const fileExtension = fileUrl?.split('.').pop()?.toLowerCase() || '';
-  const fileName = filesName || fileUrl?.split('/').pop() || 'file';
+  const fileExtension = fileUrl?.split(".").pop()?.toLowerCase() || "";
+  const fileName = filesName || fileUrl?.split("/").pop() || "file";
 
   useEffect(() => {
     loadExternalLibraries().then(() => {
@@ -77,7 +80,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   // };
 
   const handleLinkClick = () => {
-    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    window.open(fileUrl, "_blank", "noopener,noreferrer");
   };
 
   // const renderDownloadButton = () => (
@@ -101,12 +104,15 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   };
 
   const onDocumentLoadError = (error) => {
-    console.error('PDF load error:', error);
-    setPdfError('Failed to load PDF. The file may be corrupted or invalid.');
+    console.error("PDF load error:", error);
+    setPdfError("Failed to load PDF. The file may be corrupted or invalid.");
   };
 
   // 👉 Handle YouTube Links
-  if (fileUrl && (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be"))) {
+  if (
+    fileUrl &&
+    (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be"))
+  ) {
     let videoId = "";
 
     // Handle youtube.com/live/VIDEO_ID
@@ -151,61 +157,84 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
 
   const renderNotebook = (notebook) => {
     return (
-      <div className="notebook-container p-4 bg-white rounded-lg shadow">
-        <h2 className="text-xl font-bold mb-4">{notebook.metadata?.name || 'Jupyter Notebook'}</h2>
+      <div className="notebook-container p-4 bg-white rounded-lg shadow max-h-[80vh] overflow-y-auto overflow-x-auto">
+        <h2 className="text-xl font-bold mb-4">
+          {notebook.metadata?.name || "Jupyter Notebook"}
+        </h2>
         {notebook.cells.map((cell, index) => (
           <div
             key={index}
-            className={`mb-4 p-3 rounded ${cell.cell_type === 'code' ? 'bg-gray-50' : 'bg-white'}`}
+            className={`mb-4 p-3 rounded ${
+              cell.cell_type === "code" ? "bg-gray-50" : "bg-white"
+            }`}
           >
-            {cell.cell_type === 'code' ? (
+            {cell.cell_type === "code" ? (
               <>
                 <div className="flex items-center bg-gray-200 px-2 py-1 rounded-t">
-                  <span className="text-xs font-mono text-gray-600">In [{cell.execution_count || ' '}]:</span>
+                  <span className="text-xs font-mono text-gray-600">
+                    In [{cell.execution_count || " "}]:
+                  </span>
                 </div>
                 <pre className="p-2 bg-gray-100 text-gray-800 rounded-b overflow-x-auto">
                   <code
                     dangerouslySetInnerHTML={{
-                      __html: window.hljs ? window.hljs.highlight(cell.source.join(''), { language: 'python' }).value : cell.source.join('')
+                      __html: window.hljs
+                        ? window.hljs.highlight(cell.source.join(""), {
+                            language: "python",
+                          }).value
+                        : cell.source.join(""),
                     }}
                   />
                 </pre>
                 {cell.outputs?.length > 0 && (
                   <div className="mt-2 p-2 bg-white border rounded">
-                    <div className="text-xs font-mono text-gray-500 mb-1">Out [{cell.execution_count || ' '}]:</div>
+                    <div className="text-xs font-mono text-gray-500 mb-1">
+                      Out [{cell.execution_count || " "}]:
+                    </div>
                     {cell.outputs.map((output, i) => (
                       <div key={i} className="font-mono text-sm">
-                        {output.output_type === 'stream' ? (
+                        {output.output_type === "stream" ? (
                           <pre className="whitespace-pre-wrap">
-                            {output.text ? (Array.isArray(output.text) ? output.text.join('') : output.text) : ''}
+                            {output.text
+                              ? Array.isArray(output.text)
+                                ? output.text.join("")
+                                : output.text
+                              : ""}
                           </pre>
-                        ) : output.output_type === 'execute_result' || output.output_type === 'display_data' ? (
-                          output.data?.['text/html'] ? (
-                            <div dangerouslySetInnerHTML={{
-                              __html: Array.isArray(output.data['text/html'])
-                                ? output.data['text/html'].join('')
-                                : output.data['text/html']
-                            }} />
-                          ) : output.data?.['image/png'] ? (
+                        ) : output.output_type === "execute_result" ||
+                          output.output_type === "display_data" ? (
+                          output.data?.["text/html"] ? (
+                            <div
+                              dangerouslySetInnerHTML={{
+                                __html: Array.isArray(output.data["text/html"])
+                                  ? output.data["text/html"].join("")
+                                  : output.data["text/html"],
+                              }}
+                            />
+                          ) : output.data?.["image/png"] ? (
                             <img
-                              src={`data:image/png;base64,${output.data['image/png']}`}
+                              src={`data:image/png;base64,${output.data["image/png"]}`}
                               alt="Output"
                               className="max-w-full h-auto"
                             />
                           ) : (
-                            output.data?.['text/plain']?.join('\n') || ''
+                            output.data?.["text/plain"]?.join("\n") || ""
                           )
-                        ) : output.output_type === 'error' ? (
+                        ) : output.output_type === "error" ? (
                           <div className="text-red-600">
-                            <div className="font-bold">{output.ename}: {output.evalue}</div>
+                            <div className="font-bold">
+                              {output.ename}: {output.evalue}
+                            </div>
                             {output.traceback && (
                               <pre className="text-xs mt-1 whitespace-pre-wrap">
-                                {output.traceback.join('\n')}
+                                {output.traceback.join("\n")}
                               </pre>
                             )}
                           </div>
                         ) : (
-                          output.data?.['text/plain']?.join('\n') || output.text?.join('\n') || ''
+                          output.data?.["text/plain"]?.join("\n") ||
+                          output.text?.join("\n") ||
+                          ""
                         )}
                       </div>
                     ))}
@@ -214,15 +243,18 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
               </>
             ) : (
               <div className="prose max-w-none">
-                {cell.source.join('') ? (
+                {cell.source.join("") ? (
                   window.marked ? (
-                    <div dangerouslySetInnerHTML={{
-                      __html: window.marked.parse(cell.source.join(''))
-                    }} />
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: window.marked.parse(cell.source.join("")),
+                      }}
+                    />
                   ) : (
-                    cell.source.join('').split('\n').map((line, i) => (
-                      <p key={i}>{line}</p>
-                    ))
+                    cell.source
+                      .join("")
+                      .split("\n")
+                      .map((line, i) => <p key={i}>{line}</p>)
                   )
                 ) : (
                   <p className="text-gray-400 italic">Empty markdown cell</p>
@@ -237,23 +269,26 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
 
   // Handle Jupyter Notebook files
   useEffect(() => {
-    if (fileExtension === 'ipynb' && librariesLoaded) {
+    if (fileExtension === "ipynb" && librariesLoaded) {
       const loadNotebook = async () => {
         setLoading(true);
         setError(null);
         try {
-          if (!fileUrl.startsWith('http://localhost') && !fileUrl.startsWith('file://')) {
+          if (
+            !fileUrl.startsWith("http://localhost") &&
+            !fileUrl.startsWith("file://")
+          ) {
             return;
           }
 
           // Fallback for local files
           const response = await fetch(fileUrl);
-          if (!response.ok) throw new Error('Failed to fetch notebook');
+          if (!response.ok) throw new Error("Failed to fetch notebook");
           const notebook = await response.json();
           setNotebookContent(renderNotebook(notebook));
         } catch (err) {
-          console.error('Error loading notebook:', err);
-          setError('Could not load notebook. ' + err.message);
+          console.error("Error loading notebook:", err);
+          setError("Could not load notebook. " + err.message);
         } finally {
           setLoading(false);
         }
@@ -264,14 +299,16 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   }, [fileUrl, fileExtension, librariesLoaded]);
 
   // Handle link file type
-  if (fileType === 'link') {
+  if (fileType === "link") {
     return (
       <div className="relative flex flex-col items-center justify-center p-8 min-h-[400px]">
         {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         <div className="flex flex-col items-center space-y-6">
           <div className="text-6xl mb-4">🔗</div>
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">External Link</h3>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            External Link
+          </h3>
           <p className="text-gray-500 mb-6 text-center max-w-md">
             Click the button below to visit the link in a new tab
           </p>
@@ -304,7 +341,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
             src={fileUrl}
             alt={fileName}
             className="max-w-full max-h-full object-contain"
-            onError={() => setIframeKey(prev => prev + 1)}
+            onError={() => setIframeKey((prev) => prev + 1)}
           />
         </div>
       </div>
@@ -312,11 +349,11 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   }
 
   // Handle PDF files
-  if (fileExtension === 'pdf') {
+  if (fileExtension === "pdf") {
     return (
       <div className="relative w-full flex flex-col items-center">
         {/* {renderDownloadButton()}*/}
-        {renderSubmoduleHeader()} 
+        {renderSubmoduleHeader()}
         <div className="w-full max-w-4xl bg-white rounded-lg shadow-md overflow-hidden">
           {pdfError ? (
             <div className="p-8 text-center">
@@ -340,7 +377,10 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
             >
               <div className="overflow-y-auto max-h-[80vh]">
                 {Array.from(new Array(numPages), (el, index) => (
-                  <div key={`page_${index + 1}`} className="mb-4 border-b border-gray-200 last:border-b-0">
+                  <div
+                    key={`page_${index + 1}`}
+                    className="mb-4 border-b border-gray-200 last:border-b-0"
+                  >
                     <Page
                       pageNumber={index + 1}
                       width={800}
@@ -362,7 +402,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   }
 
   // Handle Office files
-  if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(fileExtension)) {
+  if (["doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(fileExtension)) {
     return (
       <div className="relative w-full h-full flex flex-col">
         {/* {renderDownloadButton()} */}
@@ -371,12 +411,14 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
           <iframe
             key={iframeKey}
             title="Office viewer"
-            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
+              fileUrl
+            )}`}
             width="100%"
             height="100%"
             frameBorder="0"
             className="border rounded-lg"
-            onError={() => setIframeKey(prev => prev + 1)}
+            onError={() => setIframeKey((prev) => prev + 1)}
           />
         </div>
       </div>
@@ -384,9 +426,12 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   }
 
   // Handle Jupyter Notebook files (.ipynb)
-  if (fileExtension === 'ipynb') {
+  if (fileExtension === "ipynb") {
     // For deployed environments, use a different approach
-    if (!fileUrl.startsWith('http://localhost') && !fileUrl.startsWith('file://')) {
+    if (
+      !fileUrl.startsWith("http://localhost") &&
+      !fileUrl.startsWith("file://")
+    ) {
       return (
         <div className="relative w-full h-full flex flex-col">
           {/* {renderDownloadButton()} */}
@@ -400,7 +445,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
               ) : error ? (
                 <div className="text-center p-8">
                   <div className="text-red-500 mb-4">{error}</div>
-                  <button 
+                  <button
                     onClick={handleDownload}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
@@ -411,16 +456,17 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
                 notebookContent
               ) : (
                 <div className="text-center p-8">
-                  <button 
+                  <button
                     onClick={async () => {
                       setLoading(true);
                       try {
                         const response = await fetch(fileUrl);
-                        if (!response.ok) throw new Error('Failed to fetch notebook');
+                        if (!response.ok)
+                          throw new Error("Failed to fetch notebook");
                         const notebook = await response.json();
                         setNotebookContent(renderNotebook(notebook));
                       } catch (err) {
-                        setError('Could not load notebook. ' + err.message);
+                        setError("Could not load notebook. " + err.message);
                       } finally {
                         setLoading(false);
                       }
@@ -451,28 +497,28 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
             <div className="text-red-500 mb-4">{error}</div>
           </div>
         ) : (
-          <>
-            {notebookContent}
-          </>
+          <>{notebookContent}</>
         )}
       </div>
     );
   }
 
   // Handle CSV files
-  if (fileExtension === 'csv') {
+  if (fileExtension === "csv") {
     return (
       <div className="relative w-full h-full flex flex-col">
         {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         <iframe
           key={iframeKey}
-          src={`https://docs.google.com/spreadsheets/d/e/2PACX-1vR9xX9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ/pubhtml?gid=0&single=true&output=csv&url=${encodeURIComponent(fileUrl)}`}
+          src={`https://docs.google.com/spreadsheets/d/e/2PACX-1vR9xX9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ/pubhtml?gid=0&single=true&output=csv&url=${encodeURIComponent(
+            fileUrl
+          )}`}
           width="100%"
           height="100%"
           title="CSV Viewer"
           className="border rounded-lg"
-          onError={() => setIframeKey(prev => prev + 1)}
+          onError={() => setIframeKey((prev) => prev + 1)}
         />
       </div>
     );
