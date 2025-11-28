@@ -139,3 +139,18 @@
   overflow-y: auto !important;
   overflow-x: auto;
 }
+
+/* FIX Jodit editor list rendering */
+.jodit-wysiwyg ul {
+  list-style-type: disc !important;
+  margin-left: 1.5rem !important;
+}
+
+.jodit-wysiwyg ol {
+  list-style-type: decimal !important;
+  margin-left: 1.5rem !important;
+}
+
+.jodit-wysiwyg li {
+  display: list-item !important;
+}

@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "jodit": "^4.7.9",
+    "jodit-react": "^5.2.38",
     "moment-timezone": "^0.6.0",
     "mysql2": "^3.14.3",
     "sequelize": "^6.37.7",
