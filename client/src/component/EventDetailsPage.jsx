@@ -213,13 +213,21 @@ const EventDetailsPage = ({ events = [events] }) => {
     toast.info("ICS download functionality coming soon!");
   };
 
-  const handleRegister = () => {
-    if (event?.RegistrationLink) {
-      window.open(event.RegistrationLink, "_blank", "noopener,noreferrer");
-    } else {
-      toast.info("Registration link not available");
+ const handleRegister = () => {
+  if (event?.RegistrationLink) {
+    let url = event.RegistrationLink.trim();
+
+    // If URL does not start with http or https → add https://
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://" + url;
     }
-  };
+
+    window.open(url, "_blank", "noopener,noreferrer");
+  } else {
+    toast.info("Registration link not available");
+  }
+};
+
   useEffect(() => {
     fetchEventDetails();
   }, [eventId, events]);
