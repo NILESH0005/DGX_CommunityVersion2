@@ -309,6 +309,13 @@ const PublicBlogModal = ({
     }
   };
 
+  useEffect(() => {
+    if (blogStats) {
+      setLikeCount(blogStats.totalLikes || 0);
+      setAverageRating(blogStats.averageRating || 0);
+    }
+  }, [blogStats]);
+
   const handleRate = async (rating) => {
     if (!userToken) {
       Swal.fire({
@@ -387,7 +394,7 @@ const PublicBlogModal = ({
 
     try {
       const result = await fetchData(endpoint, method, body, headers);
-
+      console.log("hgdsjhgfjhsdgfhjksghjkdgkjh", result);
       if (result.success) {
         Swal.fire({
           title: "Success!",
@@ -582,7 +589,6 @@ const PublicBlogModal = ({
             </motion.button>
 
             <div className="flex items-center gap-3">
-              {/* Fullscreen Toggle Button */}
               <motion.button
                 whileHover={{ scale: 1.1, backgroundColor: "rgba(0,0,0,0.05)" }}
                 whileTap={{ scale: 0.9 }}
@@ -617,9 +623,7 @@ const PublicBlogModal = ({
                 : { overflowY: "auto" }
             }
           >
-            {/* Header Section - 2 Columns (Left text, Right image) */}
             <div className="w-full flex flex-col lg:flex-row items-start gap-6 p-4 lg:p-8">
-              {/* LEFT SIDE — Title + Author + Date */}
               <div className="flex-1">
                 <motion.h1
                   initial={{ opacity: 0, y: 20 }}

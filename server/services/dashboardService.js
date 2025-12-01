@@ -9,7 +9,7 @@ export const getTrendingBlogsService = async () => {
     const processName = "Blog";
     const mainQuery = `
       SELECT 
-        COUNT(ci.Likes) AS claps,
+        SUM(ci.Likes = 1) AS claps,
         COUNT(ci.Rating) AS ratingCount,
         COUNT(ci.View) AS viewCount,
         ci.reference,
@@ -105,7 +105,7 @@ export const getTrendingDiscussionService = async () => {
 
     const query = `
       SELECT 
-        COUNT(ci.Likes) AS likes,
+        SUM(ci.Likes = 1) AS likes,
         COUNT(ci.View) AS viewCount,
         ci.reference,
         cd.title,
