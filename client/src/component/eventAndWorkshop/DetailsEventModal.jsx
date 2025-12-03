@@ -3,11 +3,7 @@ import moment from "moment";
 import Swal from "sweetalert2";
 import ApiContext from "../../context/ApiContext";
 
-const DetailsEventModal = ({
-  selectedEvent,
-  onClose,
-  reloadEvents,
-}) => {
+const DetailsEventModal = ({ selectedEvent, onClose, reloadEvents }) => {
   const { user, userToken, fetchData } = useContext(ApiContext);
   const [remark, setRemark] = useState("");
 
@@ -184,6 +180,26 @@ const DetailsEventModal = ({
         return "text-red-600 bg-red-50 border-red-200";
       default:
         return "text-gray-600 bg-gray-50 border-gray-200";
+    }
+  };
+
+  const handleRegister = () => {
+    if (selectedEvent?.RegistrationLink) {
+      let url = selectedEvent.RegistrationLink.trim();
+
+      // If URL does not start with http or https → add https://
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "https://" + url;
+      }
+
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      Swal.fire({
+        title: "Info",
+        text: "Registration link not available",
+        icon: "info",
+        confirmButtonText: "OK",
+      });
     }
   };
 
@@ -485,11 +501,11 @@ const DetailsEventModal = ({
             {selectedEvent.RegistrationLink &&
               selectedEvent.Status !== "Pending" &&
               selectedEvent.Status !== "Rejected" && (
-                <a
-                  href={selectedEvent.RegistrationLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg transition-colors duration-200 font-medium flex items-center gap-2 text-sm sm:text-base flex-1 sm:flex-none justify-center"
+                <button
+                  onClick={handleRegister}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg 
+            transition-colors duration-200 font-medium flex items-center gap-2 
+            text-sm sm:text-base flex-1 sm:flex-none justify-center"
                 >
                   <svg
                     className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0"
@@ -501,11 +517,13 @@ const DetailsEventModal = ({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 
+         5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 
+         3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                     />
                   </svg>
                   Register Here
-                </a>
+                </button>
               )}
             <button
               onClick={onClose}
