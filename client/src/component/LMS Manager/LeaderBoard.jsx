@@ -346,14 +346,14 @@ export const LeaderBoard = () => {
                 Refresh Leaderboard
               </motion.button>
               
-              <motion.button
+              {/* <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/dashboard")}
                 className="flex-1 bg-white text-DGXblue py-3.5 px-6 rounded-xl hover:bg-gray-50 transition-all duration-300 font-semibold border-2 border-DGXblue shadow-sm"
               >
                 Go to Dashboard
-              </motion.button>
+              </motion.button> */}
             </div>
 
             {/* Hint text */}
