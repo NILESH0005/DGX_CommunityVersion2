@@ -4,7 +4,7 @@ import Community_Blog from "../models/Community_Blog.js";
 import { Op, Sequelize } from "sequelize";
 const Blog = db.CommunityBlog;
 
-const { User, CommunityBlog, ContentInteraction } = db;
+const { User, CommunityBlog, ContentInteractionLog } = db;
 // export const createBlogPost = async (userEmail, blogData) => {
 //   try {
 //     const user = await User.findOne({
@@ -435,7 +435,7 @@ export const getUserBlogsService = async (userEmail) => {
     });
 
     // ✅ Step 5: Calculate total likes and average ratings per blog
-    const interactionStats = await ContentInteraction.findAll({
+    const interactionStats = await ContentInteractionLog.findAll({
       attributes: [
         "reference",
         [
@@ -678,7 +678,7 @@ export const handleBlogLikeAction = async (user, postData) => {
     if (!blogId) throw new Error("Invalid blog reference");
 
     // Check if an interaction already exists for this user & blog
-    let interaction = await ContentInteraction.findOne({
+    let interaction = await ContentInteractionLog.findOne({
       where: {
         ProcessName: "Blog",
         UserID: user.UserID,

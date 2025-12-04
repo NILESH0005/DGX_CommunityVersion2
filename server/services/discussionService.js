@@ -1,7 +1,7 @@
 import db from "../models/index.js";
 import { Op } from "sequelize"; // ✅ direct import
 
-const { User, CommunityDiscussion, TableDDReference, ContentInteraction } = db;
+const { User, CommunityDiscussion, TableDDReference, ContentInteractionLog } = db;
 
 // export const createDiscussionPost = async (userId, postData) => {
 //   try {
@@ -442,7 +442,7 @@ export const getPublicDiscussionsService = async (email) => {
           order: [["AddOnDt", "DESC"]],
         });
 
-        const likeCount = await ContentInteraction.count({
+        const likeCount = await ContentInteractionLog.count({
           where: {
             ProcessName: "Discussion",
             reference: discussion.DiscussionID,
@@ -451,7 +451,7 @@ export const getPublicDiscussionsService = async (email) => {
           },
         });
 
-        const userLike = await ContentInteraction.findOne({
+        const userLike = await ContentInteractionLog.findOne({
           where: {
             ProcessName: "Discussion",
             reference: discussion.DiscussionID,
@@ -544,8 +544,8 @@ export const getPublicDiscussionsService = async (email) => {
 //           userId
 //         );
 
-//         // 🆕 Like count via Content_Interaction
-//         const likeCount = await ContentInteraction.count({
+//         // 🆕 Like count via Content_Interaction_Log
+//         const likeCount = await ContentInteractionLog.count({
 //           where: {
 //             ProcessName: "Discussion",
 //             reference: discussion.DiscussionID,
@@ -555,7 +555,7 @@ export const getPublicDiscussionsService = async (email) => {
 //         });
 
 //         // 🆕 User like status
-//         const userLike = await ContentInteraction.findOne({
+//         const userLike = await ContentInteractionLog.findOne({
 //           where: {
 //             ProcessName: "Discussion",
 //             reference: discussion.DiscussionID,
@@ -853,7 +853,7 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
     console.log("User action - UserID:", userId, "DiscussionID:", discussionId);
 
     // Check if an interaction already exists for this user & discussion
-    let interaction = await ContentInteraction.findOne({
+    let interaction = await ContentInteractionLog.findOne({
       where: {
         ProcessName: "Discussion",
         UserID: userId,
@@ -886,7 +886,7 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
       );
 
       // Update existing interaction
-      await ContentInteraction.update(
+      await ContentInteractionLog.update(
         {
           Likes: finalLikeStatus,
           LikeStatus: 0,
@@ -912,7 +912,7 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
     finalLikeStatus = 1;
     message = "Discussion liked successfully";
 
-    const newInteraction = await ContentInteraction.create({
+    const newInteraction = await ContentInteractionLog.create({
       ProcessName: "Discussion",
       UserID: userId,
       reference: discussionId,
@@ -984,7 +984,7 @@ export const getDiscussionLikesInfoRaw = async (
         ci.AddOnDt,
         u.Name as UserName,
         u.ProfilePicture
-      FROM Content_Interaction ci
+      FROM Content_Interaction_Log ci
       LEFT JOIN Community_User u ON ci.UserID = u.UserID
       WHERE 
         ci.ProcessName = 'Discussion'

@@ -8,8 +8,8 @@ const {
   LMSUnitsDetails,
   LMSFilesDetails,
   LMSUserProgress,
+  ContentInteractionLog,
   CommunityDiscussion,
-  ContentInteraction,
   CommunityBlog,
 } = db;
 import { Op } from "sequelize";
@@ -499,7 +499,7 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
-        const likeCount = await ContentInteraction.count({
+        const likeCount = await ContentInteractionLog.count({
           where: {
             ProcessName: "Discussion",
             reference: discussion.DiscussionID,
@@ -508,12 +508,11 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
-        const viewCount = await ContentInteraction.count({
+        const viewCount = await ContentInteractionLog.count({
           where: {
             ProcessName: "Discussion",
             reference: discussion.DiscussionID,
             delStatus: 0,
-            ViewStatus: 0,
             View: 1,
           },
         });
@@ -545,7 +544,7 @@ export const getBlogStatsService = async () => {
     const results = await Promise.all(
       blogs.map(async (blog) => {
         // ✅ Count likes
-        const likeCount = await ContentInteraction.count({
+        const likeCount = await ContentInteractionLog.count({
           where: {
             ProcessName: "Blog",
             reference: blog.BlogID,
@@ -555,7 +554,7 @@ export const getBlogStatsService = async () => {
         });
 
         // ✅ Calculate average rating only for rated entries
-        const ratingData = await ContentInteraction.findAll({
+        const ratingData = await ContentInteractionLog.findAll({
           where: {
             ProcessName: "Blog",
             reference: blog.BlogID,
@@ -573,12 +572,11 @@ export const getBlogStatsService = async () => {
           const total = validRatings.reduce((sum, r) => sum + r, 0);
           avgRating = (total / validRatings.length).toFixed(2);
         }
-        const viewCount = await ContentInteraction.count({
+        const viewCount = await ContentInteractionLog.count({
           where: {
             ProcessName: "Blog",
             reference: blog.BlogID,
             delStatus: 0,
-            ViewStatus: 0,
             View: 1,
           },
         });

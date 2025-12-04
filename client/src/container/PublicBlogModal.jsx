@@ -657,7 +657,6 @@ const PublicBlogModal = ({
                 )}
               </div>
 
-              {/* RIGHT SIDE — IMAGE */}
               <div className="w-full lg:w-1/2 h-48 lg:h-60 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                 {currentImageSrc && !imageError ? (
                   <motion.img

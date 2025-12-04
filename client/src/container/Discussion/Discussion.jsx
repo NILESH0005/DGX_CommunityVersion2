@@ -17,8 +17,6 @@ import TopContributors from "../../component/discussion/TopContributors.jsx";
 const Discussion = () => {
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
-
-  // ===== States =====
   const [demoDiscussions, setDemoDiscussions] = useState([]);
   const [filteredDiscussions, setFilteredDiscussions] = useState([]);
   const [discussionStats, setDiscussionStats] = useState({});

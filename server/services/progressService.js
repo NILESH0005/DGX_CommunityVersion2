@@ -1,7 +1,7 @@
 // services/progressService.js
 import db, { sequelize } from "../models/index.js";
 import { Sequelize } from "sequelize";
-const { ContentInteraction } = db;
+const { ContentInteractionLog } = db;
 
 export const getModuleSubmoduleProgressService = async (
   userEmail,
@@ -127,7 +127,7 @@ export class ViewService {
       // Use transaction to ensure data consistency
       const result = await db.sequelize.transaction(async (transaction) => {
         // Check if view already exists with proper locking to prevent race conditions
-        let interaction = await ContentInteraction.findOne({
+        let interaction = await ContentInteractionLog.findOne({
           where: {
             ProcessName,
             UserID: userId,
@@ -156,7 +156,6 @@ export class ViewService {
           // If row exists but View is not set, update it
           if (!interaction.View) {
             interaction.View = 1;
-            interaction.ViewStatus = 0;
             interaction.AuthLstEdt = userId.toString();
             interaction.editOnDt = currentDate;
             await interaction.save({ transaction });
@@ -179,7 +178,7 @@ export class ViewService {
 
         // No existing view found - create new one
         // Double-check with a more specific query to prevent duplicates
-        const existingView = await ContentInteraction.findOne({
+        const existingView = await ContentInteractionLog.findOne({
           where: {
             ProcessName,
             UserID: userId,
@@ -204,7 +203,7 @@ export class ViewService {
         }
 
         // Create new interaction
-        const newInteraction = await ContentInteraction.create(
+        const newInteraction = await ContentInteractionLog.create(
           {
             ProcessName,
             UserID: userId,
@@ -214,7 +213,6 @@ export class ViewService {
             Rating: null,
             RatingStatus: null,
             SubModuleID: viewData.SubModuleID || null,
-            ViewStatus: 0,
             View: 1,
             AuthAdd: userId.toString(),
             AddOnDt: currentDate,
@@ -249,7 +247,7 @@ export class ViewService {
             attributes: ["UserID"],
           });
 
-          const existing = await ContentInteraction.findOne({
+          const existing = await ContentInteractionLog.findOne({
             where: {
               ProcessName: viewData.ProcessName,
               UserID: user.UserID,
@@ -285,12 +283,11 @@ export class ViewService {
    */
   static async getViewStats(ProcessName, reference) {
     try {
-      const views = await ContentInteraction.findAll({
+      const views = await ContentInteractionLog.findAll({
         where: {
           ProcessName,
           reference,
           delStatus: 0,
-          ViewStatus: 0,
         },
         attributes: [
           [db.sequelize.fn("COUNT", db.sequelize.col("id")), "uniqueViewers"],
@@ -331,13 +328,12 @@ export class ViewService {
         throw new Error("User not found");
       }
 
-      const interaction = await ContentInteraction.findOne({
+      const interaction = await ContentInteractionLog.findOne({
         where: {
           ProcessName,
           UserID: user.UserID,
           reference,
           delStatus: 0,
-          ViewStatus: 0,
         },
         attributes: ["id", "View", "AddOnDt"],
       });
