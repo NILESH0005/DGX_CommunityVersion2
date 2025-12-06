@@ -19,7 +19,6 @@ const DiscussionList = ({
     setDiscussionList(discussions);
   }, [discussions]);
 
-  // ✅ Update repost list locally
   const updateRepostList = (discussionId, newRepost) => {
     setDiscussionList((prevList) =>
       prevList.map((d) =>
@@ -35,11 +34,10 @@ const DiscussionList = ({
     );
   };
 
-  // ---------------------------
-  // Record discussion view
-  // ---------------------------
+  // Record discussion view - let backend handle duplicates
   const recordDiscussionView = async (discussionID) => {
     if (!userToken) return;
+    
     const endpoint = "progressTrack/recordView";
     const method = "POST";
     const headers = {
@@ -50,16 +48,46 @@ const DiscussionList = ({
       ProcessName: "Discussion",
       reference: discussionID,
     };
+    
     try {
-      await fetchData(endpoint, method, body, headers);
+      const response = await fetchData(endpoint, method, body, headers);
+      
+      // Only increment local count if it's a new view
+      if (response.success && !response.data.alreadyViewed) {
+        setDiscussionList(prevList =>
+          prevList.map(d =>
+            d.DiscussionID === discussionID
+              ? { ...d, viewCount: (d.viewCount || 0) + 1 }
+              : d
+          )
+        );
+      }
+      
+      console.log("View response:", response);
     } catch (err) {
       console.error("Error recording discussion view:", err);
     }
   };
 
-  // ---------------------------
+  // Handle card click to open modal
+  const handleCardClick = async (discussion, e) => {
+    // Check if click is on interactive elements
+    if (
+      e.target.closest("button") ||
+      e.target.closest("a") ||
+      e.target.classList.contains("prevent-modal")
+    ) {
+      return;
+    }
+
+    // Record view (backend will handle duplicates)
+    await recordDiscussionView(discussion.DiscussionID);
+
+    // Open modal
+    openModal(discussion);
+  };
+
   // Render Section
-  // ---------------------------
   if (!discussionList.length) {
     return (
       <div className="text-center text-gray-500 mt-8">
@@ -73,29 +101,14 @@ const DiscussionList = ({
       {discussionList.map((discussion) => (
         <div
           key={discussion.DiscussionID}
-          onClick={async (e) => {
-            if (
-              !e.target.closest("button") &&
-              !e.target.closest("a") &&
-              !e.target.classList.contains("prevent-modal")
-            ) {
-              const viewedKey = `viewed_${user?.UserID}_${discussion.DiscussionID}`;
-
-              if (!localStorage.getItem(viewedKey)) {
-                localStorage.setItem(viewedKey, "true");
-                discussion.viewCount = (discussion.viewCount || 0) + 1;
-                await recordDiscussionView(discussion.DiscussionID);
-              }
-
-              openModal(discussion);
-            }
-          }}
+          onClick={(e) => handleCardClick(discussion, e)}
+          className="cursor-pointer"
         >
           <DiscussionCard
             discussion={discussion}
             openModal={() => {
-              openModal(discussion);
-              recordDiscussionView(discussion.DiscussionID);
+              // For "Continue reading" link
+              handleCardClick(discussion, { target: { classList: [] } });
             }}
             userToken={userToken}
             navigate={navigate}
@@ -103,7 +116,7 @@ const DiscussionList = ({
             user={user}
             updateLikeCount={updateLikeCount}
             updateCommentCount={updateCommentCount}
-            updateRepostList={updateRepostList} // ✅ pass new prop
+            updateRepostList={updateRepostList}
           />
         </div>
       ))}

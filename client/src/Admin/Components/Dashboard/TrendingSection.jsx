@@ -384,16 +384,14 @@ const TrendingSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch trending blogs from API
   const fetchTrendingBlogs = async () => {
     try {
       const response = await fetchData("dashboard/getTrendingBlogs", "GET");
 
       if (response.success && response.data) {
-        // Add rank based on claps (or your preferred metric)
         const blogsWithRank = response.data
           .sort((a, b) => b.claps - a.claps)
-          .slice(0, 3) // Take only top 3
+          .slice(0, 3) 
           .map((blog, index) => ({
             ...blog,
             rank: index + 1,
@@ -409,7 +407,6 @@ const TrendingSection = () => {
     }
   };
 
-  // Fetch trending discussions from API
   const fetchTrendingDiscussions = async () => {
     try {
       const response = await fetchData(

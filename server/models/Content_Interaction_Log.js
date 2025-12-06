@@ -1,18 +1,18 @@
 export default (sequelize, DataTypes) => {
   return sequelize.define(
-    "Content_Interaction",
+    "Content_Interaction_Log",
     {
-      Id: {
+      id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
-      Type: {
+      ProcessName: {
         type: DataTypes.STRING(100),
         allowNull: false,
       },
-      ReferenceId: {
-        type: DataTypes.INTEGER,
+      reference: {
+        type: DataTypes.INTEGER, 
         allowNull: false,
       },
       UserID: {
@@ -20,10 +20,6 @@ export default (sequelize, DataTypes) => {
         allowNull: false,
       },
       Likes: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
-      Dislikes: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
@@ -35,13 +31,17 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      Repost:{
+      Comments:{
         type: DataTypes.INTEGER,
         allowNull: true
       },
-      Comments: {
+      Repost: {
         type: DataTypes.INTEGER,
         allowNull: true,
+      },
+      Dislike:{
+        type: DataTypes.INTEGER,
+        allowNull: true
       },
       AuthAdd: { type: DataTypes.STRING(800), allowNull: true },
       AuthDel: { type: DataTypes.STRING(800), allowNull: true },
@@ -52,7 +52,7 @@ export default (sequelize, DataTypes) => {
       delStatus: { type: DataTypes.INTEGER, allowNull: true },
     },
     {
-      tableName: "Content_Interaction",
+      tableName: "Content_Interaction_Log",
       timestamps: false,
     }
   );

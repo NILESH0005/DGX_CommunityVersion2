@@ -10,7 +10,7 @@ const {
   Group_Master,
   LMSUserProgress,
   User,
-  ContentInteraction,
+  ContentInteractionLog,
 } = db;
 
 export class LMSService {
@@ -276,7 +276,7 @@ export class LMSViewsService {
       const results = await Promise.all(
         subModules.map(async (sub) => {
           // Count total views
-          const totalViews = await ContentInteraction.count({
+          const totalViews = await ContentInteractionLog.count({
             where: {
               ProcessName: "LMS",
               reference: sub.SubModuleID,
@@ -344,10 +344,10 @@ export class LMSViewsService {
   //       raw: true,
   //     });
 
-  //     // For each submodule, count views from Content_Interaction
+  //     // For each submodule, count views from Content_Interaction_Log
   //     const results = await Promise.all(
   //       subModules.map(async (sub) => {
-  //         const totalViews = await ContentInteraction.count({
+  //         const totalViews = await ContentInteractionLog.count({
   //           where: {
   //             ProcessName: "LMS",
   //             reference: sub.SubModuleID,
@@ -397,10 +397,10 @@ export class LMSViewsService {
   //         if (subModuleIDs.length === 0) return { ...module, totalViews: 0 };
 
   //         // Count unique UserIDs across all submodules (distinct users)
-  //         const [results] = await ContentInteraction.sequelize.query(
+  //         const [results] = await ContentInteractionLog.sequelize.query(
   //           `
   //           SELECT COUNT(DISTINCT UserID) AS uniqueUsers
-  //           FROM Content_Interaction
+  //           FROM Content_Interaction_Log
   //           WHERE ProcessName = 'LMS'
   //           AND delStatus = 0
   //           AND View = 1
@@ -448,10 +448,10 @@ export class LMSViewsService {
             return { ...module, totalViews: 0, totalTimeSpent: 0 };
 
           // Count unique UserIDs across all submodules (distinct users)
-          const [viewsResult] = await ContentInteraction.sequelize.query(
+          const [viewsResult] = await ContentInteractionLog.sequelize.query(
             `
           SELECT COUNT(DISTINCT UserID) AS uniqueUsers
-          FROM Content_Interaction
+          FROM Content_Interaction_Log
           WHERE ProcessName = 'LMS'
           AND delStatus = 0
           AND View = 1

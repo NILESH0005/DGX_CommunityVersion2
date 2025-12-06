@@ -3,7 +3,7 @@ const {
   User,
   CommunityBlog,
   CommunityDiscussion,
-  ContentInteraction,
+  ContentInteractionLog,
   TableDDReference,
 } = db;
 import { Op, fn, col } from "sequelize";
@@ -58,7 +58,7 @@ export const getUserProfileService = async (userId) => {
 
     if (blogIDs.length > 0) {
       // Fetch Likes, Avg Rating, and Views
-      const blogInteractions = await ContentInteraction.findAll({
+      const blogInteractions = await ContentInteractionLog.findAll({
         where: {
           ProcessName: "blog",
           reference: { [Op.in]: blogIDs },
@@ -158,7 +158,7 @@ export const getUserProfileService = async (userId) => {
 
     if (discussionIDs.length > 0) {
       // Fetch Likes, Comments, and Views
-      const discussionInteractions = await ContentInteraction.findAll({
+      const discussionInteractions = await ContentInteractionLog.findAll({
         where: {
           ProcessName: "discussion",
           reference: { [Op.in]: discussionIDs },
@@ -433,7 +433,7 @@ export const getUserDiscussionsService = async (userEmail) => {
         const discussionId = disc.DiscussionID;
 
         // 👍 Like count
-        const likeCount = await ContentInteraction.count({
+        const likeCount = await ContentInteractionLog.count({
           where: {
             ProcessName: "Discussion",
             reference: discussionId,
@@ -443,7 +443,7 @@ export const getUserDiscussionsService = async (userEmail) => {
         });
 
         // ❤️ User liked?
-        const userLike = await ContentInteraction.findOne({
+        const userLike = await ContentInteractionLog.findOne({
           where: {
             ProcessName: "Discussion",
             reference: discussionId,
@@ -521,7 +521,7 @@ export const getUserDiscussionsService = async (userEmail) => {
               order: [["AddOnDt", "DESC"]],
             });
 
-            const commentLikeCount = await ContentInteraction.count({
+            const commentLikeCount = await ContentInteractionLog.count({
               where: {
                 ProcessName: "Discussion",
                 reference: comment.DiscussionID,

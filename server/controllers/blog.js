@@ -601,16 +601,8 @@ export const likeBlogController = async (req, res) => {
       });
     }
 
-    const userInstance = await User.findOne({
-      where: { EmailId: userEmail, delStatus: 0 },
-    });
-
-    if (!userInstance) throw new Error("User not found");
-
-    // Convert Sequelize instance to plain object
-    const user = userInstance.get({ plain: true });
-
-    const result = await handleBlogLikeAction(user, postData);
+    // Just pass the email, NOT the user object
+    const result = await handleBlogLikeAction(userEmail, postData);
 
     return res.status(200).json(result);
   } catch (err) {
@@ -625,8 +617,8 @@ export const likeBlogController = async (req, res) => {
 export const rateBlogController = async (req, res) => {
   try {
     const userEmail = req.user?.id;
+    const postData = req.body;
     const blogId = req.params.blogId;
-    const { rating } = req.body;
 
     if (!userEmail) {
       return res.status(400).json({
@@ -635,20 +627,25 @@ export const rateBlogController = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({
-      where: { EmailId: userEmail, delStatus: 0 },
-    });
+    // Add blogId to postData if not already there
+    if (!postData.reference && !postData.blogId) {
+      postData.reference = blogId;
+    }
 
-    if (!user) throw new Error("User not found");
-
-    const result = await handleBlogRateAction(user, {
-      reference: blogId,
-      rating: parseInt(rating),
-    });
+    const result = await handleBlogRateAction(userEmail, postData);
 
     return res.status(200).json(result);
   } catch (err) {
     console.error("Rate Blog Controller Error:", err);
+
+    // Custom error message for duplicate rating
+    if (err.message.includes("already rated")) {
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: err.message || "Something went wrong",

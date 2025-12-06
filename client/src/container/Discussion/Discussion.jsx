@@ -17,8 +17,6 @@ import TopContributors from "../../component/discussion/TopContributors.jsx";
 const Discussion = () => {
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
-
-  // ===== States =====
   const [demoDiscussions, setDemoDiscussions] = useState([]);
   const [filteredDiscussions, setFilteredDiscussions] = useState([]);
   const [discussionStats, setDiscussionStats] = useState({});
@@ -79,13 +77,10 @@ const Discussion = () => {
 
       setLoading(true);
       const result = await fetchData(endpoint, method, body, headers);
-
-      // 🧹 1. Separate original & reposted discussions
       const allDiscussions = result?.data?.updatedDiscussions || [];
       const reposts = allDiscussions.filter((d) => d.RepostID);
       const discussions = allDiscussions.filter((d) => !d.RepostID);
 
-      // 🔗 2. Merge repost info into their original posts
       reposts.forEach((r) => {
         const target = discussions.find(
           (orig) => orig.DiscussionID === r.RepostID
@@ -110,7 +105,6 @@ const Discussion = () => {
         viewCount: stats[d.DiscussionID]?.TotalViews || 0,
       }));
 
-      // ✅ 4. Set states
       setDemoDiscussions(discussionsWithStats);
       setFilteredDiscussions(discussionsWithStats);
       setIsLoading(false);
@@ -121,7 +115,6 @@ const Discussion = () => {
     }
   };
 
-  // ===== Top Users =====
   const getTopUsersByDiscussions = (discussions) => {
     const userMap = {};
     discussions.forEach((d) => {
@@ -136,7 +129,6 @@ const Discussion = () => {
       .slice(0, 5);
   };
 
-  // ===== Effects =====
   useEffect(() => {
     const initFetch = async () => {
       await fetchDiscussionData(user?.EmailId || null);

@@ -6,7 +6,7 @@ import { fn, col } from "sequelize"; // ✅ ADD THIS LINE
 const CommunityEvents = db.CommunityEvents;
 const User = db.User;
 const MasterTable = db.TableDDReference;
-const ContentInteraction = db.ContentInteraction;
+const ContentInteractionLog = db.ContentInteractionLog;
 // const istToUtc = (dateString) => {
 //   if (!dateString) return null;
 //   return moment
@@ -314,7 +314,7 @@ export const EventViewService = {
 
       const results = await Promise.all(
         events.map(async (event) => {
-          const totalViews = await ContentInteraction.count({
+          const totalViews = await ContentInteractionLog.count({
             where: {
               ProcessName: "Event",
               reference: event.EventID,
@@ -340,7 +340,7 @@ export const EventViewService = {
 
   async getEventViewById(eventId) {
     try {
-      const totalViews = await ContentInteraction.count({
+      const totalViews = await ContentInteractionLog.count({
         where: {
           ProcessName: "Event",
           reference: eventId,
