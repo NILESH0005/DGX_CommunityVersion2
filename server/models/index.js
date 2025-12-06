@@ -20,8 +20,10 @@ import QuizDetailsModel from "./QuizDetails.js";
 import UserActivityModel from "./UserActivity.js";
 import ContentEngagementModel from "./ContentEngagement.js";
 import ContactUsModel from "../models/Contact_Us.js";
-import ContentInteractionModel from "./Content_Interaction.js";
+import ContentInteractionLogModel from "./Content_Interaction_Log.js";
 import userLoginLogModel from "./Community_User_Login_Log.js";
+import ContentInteractionModel from "./Content_Interaction.js"
+
 
 
 const User = UserModel(sequelize, DataTypes);
@@ -45,6 +47,7 @@ const QuizDetails = QuizDetailsModel(sequelize, DataTypes);
 const UserActivity = UserActivityModel(sequelize, DataTypes);
 const ContentEngagement = ContentEngagementModel(sequelize, DataTypes);
 const ContactUs = ContactUsModel(sequelize, DataTypes);
+const ContentInteractionLog = ContentInteractionLogModel(sequelize, DataTypes);
 const ContentInteraction = ContentInteractionModel(sequelize, DataTypes);
 
 const db = {
@@ -54,6 +57,7 @@ const db = {
   CommunityBlog,
   CommunityDiscussion,
   CommunityEvents,
+  ContentInteractionLog,
   ContentInteraction,
   LMSFilesDetails,
   Group_Master,
@@ -146,33 +150,33 @@ CommunityBlog.hasMany(CommunityBlog, {
   as: "reposts",
 });
 
-ContentInteraction.belongsTo(User, {
+ContentInteractionLog.belongsTo(User, {
   foreignKey: 'UserID',
   targetKey: 'UserID',
   as: 'User'
 });
 
-CommunityBlog.hasMany(ContentInteraction, {
+CommunityBlog.hasMany(ContentInteractionLog, {
   foreignKey: 'reference',
   sourceKey: 'BlogID',
   as: 'ContentInteractions',
   constraints: false
 });
 
-User.hasMany(ContentInteraction, {
+User.hasMany(ContentInteractionLog, {
   foreignKey: 'UserID',
   sourceKey: 'UserID',
   as: 'ContentInteractions'
 });
 
-ContentInteraction.belongsTo(CommunityDiscussion, {
+ContentInteractionLog.belongsTo(CommunityDiscussion, {
   foreignKey: 'reference',
   targetKey: 'DiscussionID',
   as: 'Discussion',
   constraints: false
 });
 
-ContentInteraction.belongsTo(CommunityBlog, {
+ContentInteractionLog.belongsTo(CommunityBlog, {
   foreignKey: 'reference',
   targetKey: 'BlogID',
   as: 'Blog',
@@ -180,7 +184,7 @@ ContentInteraction.belongsTo(CommunityBlog, {
 });
 
 
-CommunityDiscussion.hasMany(ContentInteraction, {
+CommunityDiscussion.hasMany(ContentInteractionLog, {
   foreignKey: 'reference',
   sourceKey: 'DiscussionID',
   as: 'ContentInteractions',
@@ -196,7 +200,3 @@ CommunityDiscussion.belongsTo(TableDDReference, {
 
 export default db;
 export { sequelize };
-
-
-
-
