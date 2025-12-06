@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { AiFillLike, AiOutlineLike } from "react-icons/ai";
 import { FaComment } from "react-icons/fa";
-import images from "../../../public/images.js";
 import {
   FiEye,
   FiRepeat,
   FiLoader,
   FiCheckCircle,
-  FiXCircle,
 } from "react-icons/fi";
 import DOMPurify from "dompurify";
 import Swal from "sweetalert2";
@@ -29,15 +27,23 @@ const DiscussionCard = ({
   const [reposted, setReposted] = useState(
     discussion.reposts?.some((r) => r.userId === user?.uniqueId) || false
   );
+
   const currentUserId = user?.uniqueId || user?.UserID;
   const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
+
+  // 🔥 Correct profile image sources - from code 2
+  const profilePic =
+    discussion.ProfilePicture || discussion.UserImage || discussion.User?.ProfilePicture;
+  const userName = discussion.UserName || discussion.User?.Name;
+
   useEffect(() => {
     const hasReposted =
       discussion.reposts?.some((r) => r.userId === currentUserId) || false;
     setReposted(hasReposted);
   }, [discussion.reposts, currentUserId]);
+
   // ---------------------------
-  // LIKE HANDLER
+  // LIKE HANDLER (from code 2)
   // ---------------------------
   const handleLike = async (e) => {
     e.stopPropagation();
@@ -86,7 +92,7 @@ const DiscussionCard = ({
   };
 
   // ---------------------------
-  // REPOST HANDLER
+  // REPOST HANDLER (from code 2)
   // ---------------------------
   const handleRepost = async (e) => {
     e.stopPropagation();
@@ -115,7 +121,7 @@ const DiscussionCard = ({
       discussion.reposts?.some((r) => r.userId === currentUserId) || false;
 
     if (alreadyReposted || reposted) {
-      Swal.fire("Info", "You’ve already reposted this discussion.", "info");
+      Swal.fire("Info", "You've already reposted this discussion.", "info");
       return;
     }
 
@@ -132,30 +138,26 @@ const DiscussionCard = ({
         visibility: discussion.VisibilityValue || "public",
         bannerImagePath: discussion.DiscussionImagePath || null,
         allowRepost: discussion.allowRepost,
-        repostId: discussion.DiscussionID, // key for repost
-      };
-
-      const headers = {
-        "Content-Type": "application/json",
-        "auth-token": userToken,
+        repostId: discussion.DiscussionID,
       };
 
       const res = await fetchData(
         "discussion/discussionpost",
         "POST",
         body,
-        headers
+        {
+          "Content-Type": "application/json",
+          "auth-token": userToken,
+        }
       );
 
       if (!res.success) throw new Error(res.message);
 
-      // ✅ Update repost state locally
-      const updatedReposts = [
+      discussion.reposts = [
         ...(discussion.reposts || []),
         { userId: currentUserId, name: user?.Name },
       ];
 
-      discussion.reposts = updatedReposts;
       setReposted(true);
 
       Swal.fire("Success", "Discussion reposted successfully!", "success");
@@ -183,30 +185,34 @@ const DiscussionCard = ({
   };
 
   // ---------------------------
-  // COMPONENT UI
+  // COMPONENT UI (Visuals from code 1, functionality from code 2)
   // ---------------------------
   return (
     <div className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
       {/* Author Section */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          {discussion.User?.ProfilePicture ? (
+          {profilePic ? (
             <img
-              src={discussion.User.ProfilePicture}
-              alt={discussion.User.Name}
+              src={`${UPLOADS_BASE_URL}/${profilePic}`}
+              alt={userName}
               className="w-10 h-10 rounded-full border-2 border-white shadow-md"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "/default-user.png";
+              }}
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-DGXgreen to-DGXblue flex items-center justify-center text-white font-semibold text-sm">
-              {discussion.User.Name?.charAt(0) || "U"}
+              {userName?.charAt(0) || "U"}
             </div>
           )}
           <div>
             <p className="font-semibold text-gray-800">
-              {discussion.User.Name}
+              {userName}
             </p>
 
-            {/* Repost List */}
+            {/* Repost List (from code 1) */}
             {discussion.reposts && discussion.reposts.length > 0 && (
               <p className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
                 <FiRepeat className="w-3 h-3" />
@@ -252,8 +258,7 @@ const DiscussionCard = ({
         </h3>
 
         <div className="text-gray-700 leading-relaxed ql-snow discussion-content">
-
-          {discussion.Content.length > 500 ? (
+          {discussion.Content?.length > 500 ? (
             <>
               <div
                 dangerouslySetInnerHTML={{
@@ -262,7 +267,6 @@ const DiscussionCard = ({
                   ),
                 }}
               />
-
               <span
                 className="text-DGXblue cursor-pointer font-semibold hover:underline inline-flex items-center gap-1 mt-2"
                 onClick={() => openModal(discussion)}
@@ -291,16 +295,20 @@ const DiscussionCard = ({
             }
             alt="Discussion Banner"
             className="w-full object-cover max-h-[400px] hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/default-banner.png";
+            }}
           />
         </div>
       )}
 
-      {/* Tags */}
+      {/* Tags (from code 1) */}
       {discussion.Tag && (
         <div className="flex flex-wrap gap-2 mb-3">
           {(typeof discussion.Tag === "string"
             ? discussion.Tag.split(",").filter(Boolean)
-            : discussion.Tag
+            : Array.isArray(discussion.Tag) ? discussion.Tag : []
           ).map((tag, index) => (
             <span
               key={index}
@@ -312,10 +320,10 @@ const DiscussionCard = ({
         </div>
       )}
 
-      {/* Footer */}
+      {/* Footer (Enhanced from code 1) */}
       <div className="flex flex-wrap items-center justify-between pt-4 border-t border-gray-100 gap-4">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          {/* Like */}
+          {/* Like Button (Enhanced from code 1) */}
           <button
             onClick={handleLike}
             className="flex items-center gap-2 group"
@@ -342,7 +350,7 @@ const DiscussionCard = ({
             </span>
           </button>
 
-          {/* Comment */}
+          {/* Comment Button (Enhanced from code 1) */}
           <button
             onClick={handleComment}
             className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen"
@@ -353,7 +361,7 @@ const DiscussionCard = ({
             <span className="font-medium">{discussion.commentCount || 0}</span>
           </button>
 
-          {/* Views */}
+          {/* Views (from code 1) */}
           <div className="flex items-center gap-2 text-gray-500">
             <div className="p-2 rounded-full bg-gray-100">
               <FiEye className="w-5 h-5" />
@@ -361,15 +369,17 @@ const DiscussionCard = ({
             <span className="font-medium">{discussion.viewCount || 0}</span>
           </div>
 
-          {/* Repost Button */}
+          {/* Repost Button with Tooltip (Enhanced from code 1) */}
           <div className="relative group">
             <button
               onClick={handleRepost}
-              disabled={loading || reposted}
+              disabled={loading || reposted || !discussion.allowRepost}
               onMouseEnter={() => setTooltip(getTooltipMessage())}
               onMouseLeave={() => setTooltip("")}
               className={`p-2 rounded-full transition-all ${
                 reposted
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : !discussion.allowRepost
                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-DGXblue"
               }`}
@@ -397,6 +407,7 @@ const DiscussionCard = ({
           </div>
         </div>
 
+        {/* Date (from code 1) */}
         <div className="text-xs text-gray-500">
           {new Date(discussion.AddOnDt).toLocaleDateString("en-US", {
             year: "numeric",

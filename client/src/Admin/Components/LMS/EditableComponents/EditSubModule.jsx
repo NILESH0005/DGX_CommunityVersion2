@@ -286,62 +286,7 @@ const EditSubModule = ({ module, onBack }) => {
     }
   };
 
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      if (!file.type.match("image.*")) {
-        Swal.fire({
-          title: "Invalid File Type",
-          text: "Only image files are allowed",
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-        return;
-      }
-
-      if (file.size > MAX_FILE_SIZE_KB * 1024) {
-        Swal.fire({
-          title: "File Too Large",
-          text: `Image size exceeds ${MAX_FILE_SIZE_KB}KB limit`,
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        return;
-      }
-
-      setIsCompressing(true);
-      setError(null);
-
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-
-      const base64String = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = reader.result;
-          resolve(dataUrl);
-        };
-        reader.onerror = (error) => reject(error);
-        reader.readAsDataURL(file);
-      });
-
-      setNewImageFile({
-        data: base64String.split(",")[1],
-        contentType: file.type,
-        fullDataUrl: base64String,
-      });
-    } catch (error) {
-      setError("Failed to process image");
-      setImagePreview(null);
-      setNewImageFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } finally {
-      setIsCompressing(false);
-    }
-  };
+ 
 
   const handleImageUpload = (uploadResult) => {
     const { filePath } = uploadResult;

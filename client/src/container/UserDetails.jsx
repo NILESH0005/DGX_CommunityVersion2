@@ -31,6 +31,9 @@ export default function UserDetails() {
   const { fetchData } = useContext(ApiContext);
   const userId = id;
 
+  // Add base uploads URL from environment variable
+  const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+
   const [activeTab, setActiveTab] = useState("blogs");
   const [viewMode, setViewMode] = useState("grid");
   const [sortBy, setSortBy] = useState("date");
@@ -55,6 +58,48 @@ export default function UserDetails() {
       fetchUserProfile();
     }
   }, [userId]);
+
+  // Helper function to get full image URL
+  const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+    
+    if (imagePath.startsWith("http")) {
+      return imagePath;
+    }
+    
+    // Check if it's already a full URL
+    if (imagePath.includes(baseUploadsUrl) || 
+        imagePath.startsWith("http://") || 
+        imagePath.startsWith("https://") ||
+        imagePath.startsWith("//")) {
+      return imagePath;
+    }
+    
+    return `${baseUploadsUrl}/${imagePath}`;
+  };
+
+  // Helper function to get profile image URL
+  const getProfileImageUrl = (userData) => {
+    const profilePic = userData?.ProfilePicture || userData?.profilePicture || userData?.UserImage;
+    
+    if (!profilePic) {
+      return Noimage; // Use your imported default image
+    }
+    
+    if (profilePic.startsWith("http") || profilePic.startsWith("//")) {
+      return profilePic;
+    }
+    
+    if (profilePic.includes("uploads/")) {
+      return `${baseUploadsUrl}/${profilePic}`;
+    }
+    
+    if (profilePic.includes(baseUploadsUrl)) {
+      return profilePic;
+    }
+    
+    return `${baseUploadsUrl}/uploads/${profilePic}`;
+  };
 
   const fetchUserProfile = async () => {
     setIsLoading(true);
@@ -89,7 +134,7 @@ export default function UserDetails() {
 
         setUserData({
           ProfilePicture:
-            userData.ProfilePicture || userData.profilePicture || null,
+            getProfileImageUrl(userData), // Use helper function
           UserDescription:
             userData.UserDescription ||
             userData.userDescription ||
@@ -99,8 +144,22 @@ export default function UserDetails() {
           EmailId: userData.EmailId || userData.emailId || "No email available",
         });
 
-        setBlogs(userBlogs);
-        setDiscussions(userDiscussions);
+        // Process blogs with proper image URLs
+        const processedBlogs = userBlogs.map(blog => ({
+          ...blog,
+          image: blog.image ? getFullImageUrl(blog.image) : Noimage
+        }));
+
+        // Process discussions with proper image URLs
+        const processedDiscussions = userDiscussions.map(discussion => ({
+          ...discussion,
+          DiscussionImagePath: discussion.DiscussionImagePath ? 
+            getFullImageUrl(discussion.DiscussionImagePath) : Noimage,
+          image: discussion.image ? getFullImageUrl(discussion.image) : Noimage
+        }));
+
+        setBlogs(processedBlogs);
+        setDiscussions(processedDiscussions);
       } else {
         const errorMsg = response?.message || "Failed to fetch user profile";
         console.error("API Error:", errorMsg);
@@ -115,6 +174,7 @@ export default function UserDetails() {
       setIsLoading(false);
     }
   };
+  
   useEffect(() => {
     if (isLoading) {
       document.documentElement.classList.add("loading");
@@ -234,11 +294,15 @@ export default function UserDetails() {
               {/* --- Profile Picture Section --- */}
               <div className="relative group">
                 <div className="relative w-40 h-40 rounded-2xl border-4 border-white shadow-2xl group-hover:scale-105 transition-all duration-500 overflow-hidden">
-                  {userData.ProfilePicture ? (
+                  {userData.ProfilePicture && userData.ProfilePicture !== Noimage ? (
                     <img
                       src={userData.ProfilePicture}
                       alt={userData.Name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = Noimage;
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-DGXgreen to-DGXblue flex items-center justify-center text-white text-5xl font-bold">
@@ -666,7 +730,7 @@ function ContentCard({
       }}
     >
       {/* Image Section */}
-      {getImage() && (
+      {getImage() && getImage() !== Noimage && (
         <div
           className={`relative overflow-hidden ${
             viewMode === "grid" ? "h-56" : "h-48 w-64 flex-shrink-0"
@@ -677,14 +741,11 @@ function ContentCard({
             alt={getTitle()}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             onError={(e) => {
+              e.target.onerror = null;
               e.target.style.display = "none";
-              e.target.nextSibling.style.display = "flex";
+              // You can add fallback here if needed
             }}
           />
-          {/* Fallback image */}
-          <div className="absolute inset-0 bg-gradient-to-br from-DGXgreen to-DGXblue hidden items-center justify-center">
-            <BookOpen className="w-12 h-12 text-white/80" />
-          </div>
         </div>
       )}
 

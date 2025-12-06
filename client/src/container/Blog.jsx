@@ -526,7 +526,7 @@ const BlogPage = () => {
           )}
           {Category && (
             <motion.span
-              className="absolute top-3 left-3 bg-white text-DGXblue px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
+              className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold shadow-lg  text-white bg-black/60 backdrop-blur-sm border border-white/20"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3 }}
@@ -547,43 +547,52 @@ const BlogPage = () => {
               {reposts.length}
             </motion.span>
           )} */}
-
-          {/* Rating Badge */}
-          {blogStats.averageRating > 0 && (
-            <motion.div
-              className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <span className="text-yellow-500">⭐</span>
-              <span className="text-gray-700">
-                {blogStats.averageRating.toFixed(1)}
-              </span>
-            </motion.div>
-          )}
         </div>
 
         {/* Rest of the BlogCard content remains the same */}
         <div className="p-5 flex-grow flex flex-col">
-          {/* Date and Read Time */}
-          <div className="flex items-center text-xs text-gray-500 mb-3">
-            <span className="flex items-center">
-              <CalendarDays className="mr-1" size={14} />
-              {new Date(AddOnDt || publishedDate).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-              })}
-            </span>
-            {readTime && (
-              <>
-                <span className="mx-2">•</span>
-                <span className="flex items-center">
-                  <TbClock className="mr-1" size={14} />
-                  {readTime} min read
+          {/* Top Row: Left (date + read time), Right (rating) */}
+          <div className="flex items-center justify-between text-xs text-gray-500 mb-3 w-full">
+            {/* LEFT: Date + Read Time */}
+            <div className="flex items-center gap-2">
+              {/* Date */}
+              <span className="flex items-center">
+                <CalendarDays className="mr-1" size={14} />
+                {new Date(AddOnDt || publishedDate).toLocaleDateString(
+                  "en-US",
+                  {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  }
+                )}
+              </span>
+
+              {/* Read Time */}
+              {readTime && (
+                <>
+                  <span className="">•</span>
+                  <span className="flex items-center">
+                    <TbClock className="mr-1" size={14} />
+                    {readTime} min read
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* RIGHT: Rating Badge */}
+            {blogStats.averageRating > 0 && (
+              <motion.div
+                className="flex items-center bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full text-[11px] font-semibold shadow-sm gap-1"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                <span className="text-yellow-500">⭐</span>
+                <span className="text-gray-700">
+                  {blogStats.averageRating.toFixed(1)}
                 </span>
-              </>
+              </motion.div>
             )}
           </div>
 
@@ -592,7 +601,6 @@ const BlogPage = () => {
             {title}
           </h3>
 
-          {/* Blog Content Preview (Limited Words) */}
           {/* Blog Content Preview (limited, plain text) */}
           <p className="text-gray-700 text-sm mb-4 line-clamp-3 leading-relaxed">
             {truncate(stripHtml(blog.content), 180)}
