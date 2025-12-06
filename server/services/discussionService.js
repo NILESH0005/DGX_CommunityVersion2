@@ -748,10 +748,10 @@ export const getPublicDiscussionsService = async (email) => {
           },
         });
 
-        const userLike = await ContentInteractionLog.findOne({
+        const userLike = await ContentInteraction.findOne({
           where: {
-            ProcessName: "Discussion",
-            reference: discussion.DiscussionID,
+            Type: "Discussion",
+            ReferenceId: discussion.DiscussionID,
             UserID: userId,
             Likes: 1,
             delStatus: { [Op.or]: [0, null] },

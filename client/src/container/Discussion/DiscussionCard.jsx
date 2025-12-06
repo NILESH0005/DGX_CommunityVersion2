@@ -34,7 +34,7 @@ const DiscussionCard = ({
   // 🔥 Correct profile image sources - from code 2
   const profilePic =
     discussion.ProfilePicture || discussion.UserImage || discussion.User?.ProfilePicture;
-  const userName = discussion.UserName || discussion.User?.Name;
+  const userName = discussion.User?.Name;
 
   useEffect(() => {
     const hasReposted =

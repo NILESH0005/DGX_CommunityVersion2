@@ -1167,10 +1167,10 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
 
 export const getUserBlogInteractionService = async (userId, blogId) => {
   try {
-    const interaction = await ContentInteractionLog.findOne({
+    const interaction = await ContentInteraction.findOne({
       where: {
-        ProcessName: "Blog",
-        reference: blogId,
+        Type: "Blog",
+        ReferenceId: blogId,
         UserID: userId,
         delStatus: 0,
       },

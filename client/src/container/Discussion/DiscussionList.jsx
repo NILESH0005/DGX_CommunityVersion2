@@ -19,7 +19,6 @@ const DiscussionList = ({
     setDiscussionList(discussions);
   }, [discussions]);
 
-  // Update repost list locally
   const updateRepostList = (discussionId, newRepost) => {
     setDiscussionList((prevList) =>
       prevList.map((d) =>
