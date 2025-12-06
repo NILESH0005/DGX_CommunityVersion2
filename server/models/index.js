@@ -22,6 +22,7 @@ import ContentEngagementModel from "./ContentEngagement.js";
 import ContactUsModel from "../models/Contact_Us.js";
 import ContentInteractionLogModel from "./Content_Interaction_Log.js";
 import userLoginLogModel from "./Community_User_Login_Log.js";
+import ContentInteractionModel from "./Content_Interaction.js"
 
 
 
@@ -47,6 +48,7 @@ const UserActivity = UserActivityModel(sequelize, DataTypes);
 const ContentEngagement = ContentEngagementModel(sequelize, DataTypes);
 const ContactUs = ContactUsModel(sequelize, DataTypes);
 const ContentInteractionLog = ContentInteractionLogModel(sequelize, DataTypes);
+const ContentInteraction = ContentInteractionModel(sequelize, DataTypes);
 
 const db = {
   sequelize,
@@ -56,6 +58,7 @@ const db = {
   CommunityDiscussion,
   CommunityEvents,
   ContentInteractionLog,
+  ContentInteraction,
   LMSFilesDetails,
   Group_Master,
   LMSModulesDetails,

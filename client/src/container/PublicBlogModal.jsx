@@ -41,16 +41,13 @@ const PublicBlogModal = ({
   const { fetchData, userToken, user } = useContext(ApiContext);
   const navigate = useNavigate();
 
-  // Add the same image handling logic as BlogPage
   const [currentImageSrc, setCurrentImageSrc] = useState("");
   const [imageError, setImageError] = useState(false);
 
-  // Handle fullscreen toggle
   const toggleFullScreen = () => {
     setIsFullScreen(!isFullScreen);
   };
 
-  // Close fullscreen on escape key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape" && isFullScreen) {
@@ -62,7 +59,6 @@ const PublicBlogModal = ({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isFullScreen]);
 
-  // Prevent body scroll when modal is open
   useEffect(() => {
     if (isFullScreen) {
       document.body.style.overflow = "hidden";
@@ -119,8 +115,6 @@ const PublicBlogModal = ({
       const src = getImageUrl(image);
       setCurrentImageSrc(src);
       setImageError(false);
-
-      // Pre-load the image to check if it's valid
       const img = new Image();
       img.onload = () => {
         console.log(`✅ Modal Image pre-loaded: ${src}`);
@@ -235,7 +229,8 @@ const PublicBlogModal = ({
 
       const result = await fetchData(endpoint, method, {}, headers);
       if (result.success) {
-        const { hasLiked, userRating } = result.data;
+        const hasLiked = result.data.hasLiked || result.data.liked || false;
+        const userRating = result.data.userRating || 0;
         setIsLiked(hasLiked);
         setUserRating(userRating);
       }
@@ -259,7 +254,6 @@ const PublicBlogModal = ({
     }
   };
 
-  // Handle Like function
   const handleLike = async () => {
     if (!userToken) {
       Swal.fire({
@@ -274,6 +268,14 @@ const PublicBlogModal = ({
       });
       return;
     }
+
+    const newLikeState = !isLiked;
+    const newLikeCount = newLikeState
+      ? likeCount + 1
+      : Math.max(0, likeCount - 1);
+
+    setIsLiked(newLikeState);
+    setLikeCount(newLikeCount);
 
     try {
       const endpoint = "blog/likeBlogController";
@@ -291,12 +293,14 @@ const PublicBlogModal = ({
       const result = await fetchData(endpoint, method, body, headers);
 
       if (result.success) {
-        setIsLiked(!isLiked);
-        fetchUserInteraction();
-        fetchBlogStats();
+        const serverLiked = result.data.liked || result.data.hasLiked || false;
+        const serverLikeCount = result.data.likesCount || likeCount;
 
-        setIsLiked(result.data.liked);
-        setLikeCount((prev) => (result.data.liked ? prev + 1 : prev - 1));
+        setIsLiked(serverLiked);
+        setLikeCount(serverLikeCount);
+
+        // Refresh stats
+        fetchBlogStats();
 
         if (refreshBlogs) {
           refreshBlogs();
@@ -331,40 +335,63 @@ const PublicBlogModal = ({
       return;
     }
 
-    try {
-      const endpoint = `blog/rate/${BlogID}`;
-      const method = "POST";
-      const headers = {
-        "Content-Type": "application/json",
-        "auth-token": userToken,
-      };
+    // Ask for confirmation
+    Swal.fire({
+      title: "Confirm Rating",
+      text: `Are you sure you want to rate this blog ${rating} stars? You can only rate once.`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, rate it!",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const endpoint = `blog/rate/${BlogID}`;
+          const method = "POST";
+          const headers = {
+            "Content-Type": "application/json",
+            "auth-token": userToken,
+          };
 
-      const body = { rating };
+          const body = { rating, reference: BlogID };
 
-      const result = await fetchData(endpoint, method, body, headers);
+          const result = await fetchData(endpoint, method, body, headers);
 
-      if (result.success) {
-        setUserRating(rating);
-        fetchUserInteraction();
-        fetchBlogStats();
+          if (result.success) {
+            setUserRating(rating);
+            fetchUserInteraction();
+            fetchBlogStats();
 
-        Swal.fire({
-          title: "Success!",
-          text: `You rated this blog ${rating} stars!`,
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+            Swal.fire({
+              title: "Success!",
+              text: `You rated this blog ${rating} stars!`,
+              icon: "success",
+              timer: 1500,
+              showConfirmButton: false,
+            });
 
-        if (refreshBlogs) {
-          refreshBlogs();
+            if (refreshBlogs) {
+              refreshBlogs();
+            }
+          } else {
+            Swal.fire("Error", result.message, "error");
+          }
+        } catch (error) {
+          // Handle duplicate rating error
+          if (error.message?.includes("already rated")) {
+            Swal.fire({
+              title: "Already Rated",
+              text: "You have already rated this blog. You can only rate once.",
+              icon: "info",
+              confirmButtonText: "OK",
+            });
+          } else {
+            Swal.fire("Error", "Error submitting rating", "error");
+          }
         }
-      } else {
-        Swal.fire("Error", result.message, "error");
       }
-    } catch (error) {
-      Swal.fire("Error", "Error submitting rating", "error");
-    }
+    });
   };
 
   useEffect(() => {
@@ -520,7 +547,6 @@ const PublicBlogModal = ({
   const alreadyReposted = blog?.RepostUserID === user?.UserID;
   const canRepost = blog?.allowRepost && !isMyBlog && !alreadyReposted;
 
-  // Enhanced Rating Stars Component
   const EnhancedRatingStars = ({
     value,
     onChange,
@@ -744,7 +770,7 @@ const PublicBlogModal = ({
                   </div>
 
                   {/* Share Button */}
-                  <motion.button
+                  {/* <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={async () => {
@@ -773,7 +799,7 @@ const PublicBlogModal = ({
                   >
                     <FiShare2 className="text-base lg:text-lg" />
                     <span className="hidden sm:inline">Share</span>
-                  </motion.button>
+                  </motion.button> */}
 
                   {/* Repost Button */}
                   {canRepost && Status === "Approved" && (

@@ -2,9 +2,10 @@ import db from "../models/index.js"; // assuming your models/index.js exports al
 import { logInfo, logWarning, logError } from "../helper/index.js";
 import Community_Blog from "../models/Community_Blog.js";
 import { Op, Sequelize } from "sequelize";
+import Content_Interaction from "../models/Content_Interaction.js";
 const Blog = db.CommunityBlog;
 
-const { User, CommunityBlog, ContentInteractionLog } = db;
+const { User, CommunityBlog, ContentInteractionLog, ContentInteraction } = db;
 // export const createBlogPost = async (userEmail, blogData) => {
 //   try {
 //     const user = await User.findOne({
@@ -170,6 +171,12 @@ export const createBlogPost = async (userEmail, blogData) => {
           approvedBy = originalBlog.ApprovedBy || "System Auto-Approval";
           approvedOn = new Date();
         }
+
+        await recordBlogRepostInInteractionTables(
+          user.UserID,
+          repostId,
+          repostUserId
+        );
       }
     }
 
@@ -223,6 +230,136 @@ export const createBlogPost = async (userEmail, blogData) => {
         message: "Something went wrong while posting the blog",
       },
     };
+  }
+};
+
+const recordBlogRepostInInteractionTables = async (
+  userId,
+  repostId,
+  originalUserId
+) => {
+  const currentDate = new Date();
+
+  try {
+    // ===== 1. For the user who is reposting (the current user) =====
+    let reposterInteraction = await ContentInteraction.findOne({
+      where: {
+        Type: "Blog",
+        UserID: userId,
+        ReferenceId: repostId,
+        delStatus: 0,
+      },
+    });
+
+    if (reposterInteraction) {
+      // Update repost count
+      await ContentInteraction.update(
+        {
+          Repost: (reposterInteraction.Repost || 0) + 1,
+          AuthLstEdt: userId,
+          editOnDt: currentDate,
+        },
+        {
+          where: { Id: reposterInteraction.Id },
+        }
+      );
+    } else {
+      // Create new entry if doesn't exist
+      await ContentInteraction.create({
+        Type: "Blog",
+        ReferenceId: repostId,
+        UserID: userId,
+        Likes: 0,
+        Dislikes: 0,
+        View: 0,
+        Rating: null,
+        Repost: 1,
+        Comments: null,
+        AuthAdd: userId,
+        AuthDel: null,
+        AuthLstEdt: null,
+        delOnDt: null,
+        AddOnDt: currentDate,
+        editOnDt: null,
+        delStatus: 0,
+      });
+    }
+
+    // ===== 2. For the original blog owner (if different user) =====
+    if (originalUserId && originalUserId !== userId) {
+      let ownerInteraction = await ContentInteraction.findOne({
+        where: {
+          Type: "Blog",
+          UserID: originalUserId,
+          ReferenceId: repostId,
+          delStatus: 0,
+        },
+      });
+
+      if (ownerInteraction) {
+        // Update repost count for original owner
+        await ContentInteraction.update(
+          {
+            Repost: (ownerInteraction.Repost || 0) + 1,
+            AuthLstEdt: userId,
+            editOnDt: currentDate,
+          },
+          {
+            where: { Id: ownerInteraction.Id },
+          }
+        );
+      } else {
+        // Create new entry if doesn't exist
+        await ContentInteraction.create({
+          Type: "Blog",
+          ReferenceId: repostId,
+          UserID: originalUserId,
+          Likes: 0,
+          Dislikes: 0,
+          View: 0,
+          Rating: null,
+          Repost: 1,
+          Comments: null,
+          AuthAdd: userId,
+          AuthDel: null,
+          AuthLstEdt: null,
+          delOnDt: null,
+          AddOnDt: currentDate,
+          editOnDt: null,
+          delStatus: 0,
+        });
+      }
+    }
+
+    try {
+      await ContentInteractionLog.create({
+        ProcessName: "Blog",
+        reference: repostId,
+        UserID: userId,
+        Likes: null,
+        Dislike: null,
+        Rating: null,
+        View: null,
+        Comments: null,
+        Repost: 1,
+        AuthAdd: userId,
+        AuthDel: null,
+        AuthLstEdt: null,
+        delOnDt: null,
+        AddOnDt: currentDate,
+        editOnDt: null,
+        delStatus: 0,
+      });
+    } catch (logError) {
+      // If Repost column doesn't exist, log without it
+      console.log("Note: Repost column not available in ContentInteractionLog");
+    }
+
+    console.log("Blog repost recorded in interaction tables:", repostId);
+  } catch (error) {
+    console.error("Error recording blog repost in interaction tables:", error);
+    // Don't throw error - we don't want to fail blog creation
+    // just because interaction logging failed
   }
 };
 
@@ -434,28 +571,11 @@ export const getUserBlogsService = async (userEmail) => {
       raw: true,
     });
 
-    // ✅ Step 5: Calculate total likes and average ratings per blog
     const interactionStats = await ContentInteractionLog.findAll({
       attributes: [
         "reference",
-        [
-          Sequelize.literal(`
-            SUM(CASE 
-              WHEN LikeStatus = 0 THEN Likes 
-              ELSE 0 
-            END)
-          `),
-          "clapCount",
-        ],
-        [
-          Sequelize.literal(`
-            AVG(CASE 
-              WHEN RatingStatus = 0 THEN Rating 
-              ELSE NULL 
-            END)
-          `),
-          "averageRating",
-        ],
+        [Sequelize.fn("SUM", Sequelize.col("Likes")), "clapCount"],
+        [Sequelize.fn("AVG", Sequelize.col("Rating")), "averageRating"],
       ],
       where: {
         ProcessName: "Blog",
@@ -671,159 +791,292 @@ export const updateBlogService = async (blogId, user, data) => {
   };
 };
 
-export const handleBlogLikeAction = async (user, postData) => {
-  console.log("user at blog like ", user);
+export const handleBlogLikeAction = async (userEmail, postData) => {
   try {
     const blogId = postData.reference;
+
     if (!blogId) throw new Error("Invalid blog reference");
 
-    // Check if an interaction already exists for this user & blog
-    let interaction = await ContentInteractionLog.findOne({
+    console.log("Service - Fetching user with email:", userEmail);
+
+    const user = await User.findOne({
       where: {
-        ProcessName: "Blog",
-        UserID: user.UserID,
-        reference: blogId,
+        EmailId: userEmail,
         delStatus: 0,
       },
+      attributes: ["UserID", "Name", "EmailId"],
     });
 
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const userId = user.UserID;
     const currentDate = new Date();
-    const intendedLikeStatus = postData.likes === 1 ? 1 : 0;
 
-    if (interaction) {
-      // Update existing interaction - only update if like status is changing
-      const updateData = {
-        AuthLstEdt: user.UserID, // <-- Use numeric ID here too
-        editOnDt: currentDate,
-      };
+    const transaction = await User.sequelize.transaction();
 
-      // Only update Likes if it's changing
-      if (interaction.Likes !== intendedLikeStatus) {
-        updateData.Likes = intendedLikeStatus;
-        updateData.LikeStatus = 0; // Always 0
+    try {
+      let currentInteraction = await ContentInteraction.findOne({
+        where: {
+          Type: "Blog",
+          UserID: userId,
+          ReferenceId: blogId,
+          delStatus: 0,
+        },
+        transaction,
+      });
+
+      let newLikeStatus;
+      let newDislikeStatus;
+      let message;
+      let logLikeStatus;
+      let logDislikeStatus;
+
+      if (currentInteraction) {
+        // 2-STATE TOGGLE LOGIC:
+        // 1. If currently LIKED (1,0) → change to DISLIKED (0,1)
+        // 2. If currently DISLIKED (0,1) → change to LIKED (1,0)
+
+        if (currentInteraction.Likes === 1) {
+          // Currently LIKED → change to DISLIKED
+          newLikeStatus = 0;
+          newDislikeStatus = 1;
+          message = "Changed to dislike";
+          logLikeStatus = 0;
+          logDislikeStatus = 1;
+        } else {
+          // Currently DISLIKED → change to LIKED
+          newLikeStatus = 1;
+          newDislikeStatus = 0;
+          message = "Blog liked successfully";
+          logLikeStatus = 1;
+          logDislikeStatus = 0;
+        }
+
+        await ContentInteraction.update(
+          {
+            Likes: newLikeStatus,
+            Dislikes: newDislikeStatus,
+            AuthLstEdt: userId,
+            editOnDt: currentDate,
+          },
+          {
+            where: { Id: currentInteraction.Id },
+            transaction,
+          }
+        );
+      } else {
+        // First interaction - start with LIKED
+        newLikeStatus = 1;
+        newDislikeStatus = 0;
+        message = "Blog liked successfully";
+        logLikeStatus = 1;
+        logDislikeStatus = 0;
+
+        currentInteraction = await ContentInteraction.create(
+          {
+            Type: "Blog", // Changed from "Discussion" to "Blog"
+            ReferenceId: blogId,
+            UserID: userId,
+            Likes: newLikeStatus,
+            Dislikes: newDislikeStatus,
+            Rating: null,
+            View: null,
+            Repost: null,
+            Comments: null,
+            AuthAdd: userId,
+            AuthDel: null,
+            AuthLstEdt: null,
+            delOnDt: null,
+            AddOnDt: currentDate,
+            editOnDt: null,
+            delStatus: 0,
+          },
+          { transaction }
+        );
       }
 
-      await ContentInteraction.update(updateData, {
-        where: { id: interaction.id },
-      });
+      // Create log entry
+      await ContentInteractionLog.create(
+        {
+          ProcessName: "Blog", // Changed from "Discussion" to "Blog"
+          reference: blogId,
+          UserID: userId,
+          Likes: logLikeStatus,
+          Dislike: logDislikeStatus,
+          Rating: null,
+          View: null,
+          Comments: null,
+          AuthAdd: userId,
+          AuthDel: null,
+          AuthLstEdt: null,
+          delOnDt: null,
+          AddOnDt: currentDate,
+          editOnDt: null,
+          delStatus: 0,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
 
       return {
         success: true,
         data: {
-          liked: intendedLikeStatus === 1,
-          interactionId: interaction.id,
+          liked: newLikeStatus === 1,
+          disliked: newDislikeStatus === 1,
+          neutral: false, // Never neutral in this 2-state system
+          interactionId: currentInteraction.Id,
         },
-        message:
-          intendedLikeStatus === 1
-            ? "Blog liked successfully"
-            : "Blog unliked successfully",
+        message: message,
       };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
     }
-
-    const newInteraction = await ContentInteraction.create({
-      ProcessName: "Blog",
-      UserID: user.UserID,
-      reference: blogId,
-      Likes: intendedLikeStatus,
-      LikeStatus: 0,
-      Rating: null,
-      RatingStatus: null,
-      AuthAdd: user.UserID, // <-- Use numeric ID
-      AuthDel: null,
-      AuthLstEdt: null,
-      delOnDt: null,
-      AddOnDt: currentDate,
-      editOnDt: null,
-      delStatus: 0,
-    });
-
-    return {
-      success: true,
-      data: {
-        liked: intendedLikeStatus === 1,
-        interactionId: newInteraction.id,
-      },
-      message:
-        intendedLikeStatus === 1
-          ? "Blog liked successfully"
-          : "Blog unliked successfully",
-    };
   } catch (error) {
-    console.error("Blog Like Error:", error);
+    console.error("Blog Like/Dislike Error:", error);
     throw error;
   }
 };
 
-export const handleBlogRateAction = async (user, postData) => {
+export const handleBlogRateAction = async (userEmail, postData) => {
   try {
     const blogId = postData.reference || postData.blogId;
     const ratingValue = postData.rating;
 
     if (!blogId) throw new Error("Invalid blog reference");
     if (!ratingValue || ratingValue < 1 || ratingValue > 5) {
-      throw new Error("Invalid rating value");
+      throw new Error("Invalid rating value. Must be between 1 and 5");
     }
 
-    let interaction = await ContentInteraction.findOne({
+    console.log("Service - Processing blog rating for user:", userEmail);
+    const user = await User.findOne({
       where: {
-        ProcessName: "Blog",
-        UserID: user.UserID,
-        reference: blogId,
+        EmailId: userEmail,
         delStatus: 0,
       },
+      attributes: ["UserID", "Name", "EmailId"],
     });
 
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const userId = user.UserID;
     const currentDate = new Date();
 
-    if (interaction) {
-      const updateData = {
-        Rating: ratingValue,
-        RatingStatus: 0,
-        AuthLstEdt: user.UserID,
-        editOnDt: currentDate,
-      };
+    const transaction = await User.sequelize.transaction();
 
-      await ContentInteraction.update(updateData, {
-        where: { id: interaction.id },
+    try {
+      // ===== 1. Check if user has already rated this blog =====
+      let existingRating = await ContentInteraction.findOne({
+        where: {
+          Type: "Blog",
+          UserID: userId,
+          ReferenceId: blogId,
+          Rating: { [Sequelize.Op.ne]: null }, // Rating is not null
+          delStatus: 0,
+        },
+        transaction,
       });
+
+      if (existingRating) {
+        await transaction.rollback();
+        throw new Error(
+          "You have already rated this blog. You can only rate once."
+        );
+      }
+
+      // ===== 2. Update/Create in main ContentInteraction table =====
+      let mainInteraction = await ContentInteraction.findOne({
+        where: {
+          Type: "Blog",
+          UserID: userId,
+          ReferenceId: blogId,
+          delStatus: 0,
+        },
+        transaction,
+      });
+
+      if (mainInteraction) {
+        // Update existing interaction with rating
+        await ContentInteraction.update(
+          {
+            Rating: ratingValue,
+            AuthLstEdt: userId,
+            editOnDt: currentDate,
+          },
+          {
+            where: { Id: mainInteraction.Id },
+            transaction,
+          }
+        );
+      } else {
+        // Create new interaction with rating
+        mainInteraction = await ContentInteraction.create(
+          {
+            Type: "Blog",
+            ReferenceId: blogId,
+            UserID: userId,
+            Likes: 0,
+            Dislikes: 0,
+            Rating: ratingValue,
+            View: 0,
+            Repost: null,
+            Comments: null,
+            AuthAdd: userId,
+            AuthDel: null,
+            AuthLstEdt: null,
+            delOnDt: null,
+            AddOnDt: currentDate,
+            editOnDt: null,
+            delStatus: 0,
+          },
+          { transaction }
+        );
+      }
+
+      // ===== 3. Create log entry in ContentInteractionLog table =====
+      await ContentInteractionLog.create(
+        {
+          ProcessName: "Blog",
+          reference: blogId,
+          UserID: userId,
+          Likes: null,
+          Dislike: null,
+          Rating: ratingValue,
+          View: null,
+          Comments: null,
+          AuthAdd: userId,
+          AuthDel: null,
+          AuthLstEdt: null,
+          delOnDt: null,
+          AddOnDt: currentDate,
+          editOnDt: null,
+          delStatus: 0,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
 
       return {
         success: true,
         data: {
           rated: true,
           rating: ratingValue,
-          interactionId: interaction.id,
+          interactionId: mainInteraction.Id,
+          userId: userId,
+          blogId: blogId,
         },
         message: "Blog rated successfully",
       };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
     }
-
-    const newInteraction = await ContentInteraction.create({
-      ProcessName: "Blog",
-      UserID: user.UserID,
-      reference: blogId,
-      Likes: 0,
-      LikeStatus: 0,
-      Rating: ratingValue,
-      RatingStatus: 0,
-      AuthAdd: user.UserID,
-      AuthDel: null,
-      AuthLstEdt: null,
-      delOnDt: null,
-      AddOnDt: currentDate,
-      editOnDt: null,
-      delStatus: 0,
-    });
-
-    return {
-      success: true,
-      data: {
-        rated: true,
-        rating: ratingValue,
-        interactionId: newInteraction.id,
-      },
-      message: "Blog rated successfully",
-    };
   } catch (error) {
     console.error("Blog Rate Error:", error);
     throw error;
@@ -838,7 +1091,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
 
     if (!blogId) throw new Error("Invalid blog reference");
 
-    let interaction = await ContentInteraction.findOne({
+    let interaction = await ContentInteractionLog.findOne({
       where: {
         ProcessName: "Blog",
         UserID: user.UserID,
@@ -865,7 +1118,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
         updateData.RatingStatus = 0;
       }
 
-      await ContentInteraction.update(updateData, {
+      await ContentInteractionLog.update(updateData, {
         where: { id: interaction.id },
       });
 
@@ -880,7 +1133,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
       };
     }
 
-    const newInteraction = await ContentInteraction.create({
+    const newInteraction = await ContentInteractionLog.create({
       ProcessName: "Blog",
       UserID: user.UserID,
       reference: blogId,
@@ -914,7 +1167,7 @@ export const handleBlogLikeAndRateAction = async (user, postData) => {
 
 export const getUserBlogInteractionService = async (userId, blogId) => {
   try {
-    const interaction = await ContentInteraction.findOne({
+    const interaction = await ContentInteractionLog.findOne({
       where: {
         ProcessName: "Blog",
         reference: blogId,
@@ -952,20 +1205,19 @@ export const getBlogStatsService = async (blogId) => {
     }
 
     // Get the sequelize instance from the model
-    const sequelize = ContentInteraction.sequelize;
+    const sequelize = ContentInteractionLog.sequelize;
 
-    // Get total likes count
     const totalLikes = await ContentInteraction.count({
       where: {
-        ProcessName: "Blog",
-        reference: blogId,
+        Type: "Blog",
+        ReferenceId: blogId,
         Likes: 1,
         delStatus: 0,
       },
     });
 
     // Get average rating - FIXED: Use model's sequelize instance
-    const ratingData = await ContentInteraction.findOne({
+    const ratingData = await ContentInteractionLog.findOne({
       where: {
         ProcessName: "Blog",
         reference: blogId,
@@ -982,7 +1234,7 @@ export const getBlogStatsService = async (blogId) => {
     const totalRatings = parseInt(ratingData?.totalRatings) || 0;
     const averageRating = parseFloat(ratingData?.averageRating) || 0;
 
-    const totalViews = await ContentInteraction.count({
+    const totalViews = await ContentInteractionLog.count({
       where: {
         ProcessName: "Blog",
         reference: blogId,

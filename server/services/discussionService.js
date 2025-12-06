@@ -1,7 +1,13 @@
 import db from "../models/index.js";
-import { Op } from "sequelize"; // ✅ direct import
+import { Op, Sequelize } from "sequelize";
 
-const { User, CommunityDiscussion, TableDDReference, ContentInteractionLog } = db;
+const {
+  User,
+  CommunityDiscussion,
+  TableDDReference,
+  ContentInteractionLog,
+  ContentInteraction,
+} = db;
 
 // export const createDiscussionPost = async (userId, postData) => {
 //   try {
@@ -87,7 +93,6 @@ export const createDiscussionPost = async (userId, postData) => {
       where: { EmailId: userId, delStatus: 0 },
     });
     if (!user) throw new Error("User not found, please login first");
-
     // ===== IMPROVED LIKE DETECTION =====
     // Check if this is PURELY a like action (no post content, just reference and likes)
     const isPureLikeAction =
@@ -104,8 +109,26 @@ export const createDiscussionPost = async (userId, postData) => {
       return await handleLikeAction(user, postData);
     }
 
-    // ===== REST OF YOUR EXISTING CODE FOR CREATING POSTS =====
-    // Map visibility to internal ID
+    const isCommentRequest =
+      postData.reference &&
+      postData.comment &&
+      !postData.title &&
+      !postData.tags &&
+      !postData.repostId &&
+      !postData.image &&
+      !postData.url;
+
+    if (isCommentRequest) {
+      // Check if it's a first-level comment
+      const isFirstLevelComment = await checkIfFirstLevelComment(
+        postData.reference
+      );
+
+      if (isFirstLevelComment) {
+        await recordCommentInInteractionTables(user.UserID, postData.reference);
+      }
+    }
+
     let visibilityId = null;
     if (postData.visibility) {
       const visibilityRecord = await TableDDReference.findOne({
@@ -137,6 +160,12 @@ export const createDiscussionPost = async (userId, postData) => {
       if (originalPost) {
         repostUserId = originalPost.UserID;
       }
+
+      await recordRepostInInteractionTables(
+        user.UserID,
+        repostId,
+        repostUserId
+      );
     }
 
     // Create new discussion (original or repost)
@@ -184,6 +213,275 @@ export const createDiscussionPost = async (userId, postData) => {
   } catch (error) {
     console.error("Discussion Service Error:", error);
     throw error;
+  }
+};
+
+const recordRepostInInteractionTables = async (
+  userId,
+  repostId,
+  originalUserId
+) => {
+  const currentDate = new Date();
+  const transaction = await User.sequelize.transaction();
+
+  try {
+    // ===== 1. For the user who is reposting (the current user) =====
+    // Update main content_interaction table for reposter
+    let reposterInteraction = await ContentInteraction.findOne({
+      where: {
+        Type: "Discussion",
+        UserID: userId,
+        ReferenceId: repostId,
+        delStatus: 0,
+      },
+      transaction,
+    });
+
+    if (reposterInteraction) {
+      // Update repost count
+      await ContentInteraction.update(
+        {
+          Repost: (reposterInteraction.Repost || 0) + 1,
+          AuthLstEdt: userId,
+          editOnDt: currentDate,
+        },
+        {
+          where: { Id: reposterInteraction.Id },
+          transaction,
+        }
+      );
+    } else {
+      // Create new entry if doesn't exist
+      await ContentInteraction.create(
+        {
+          Type: "Discussion",
+          ReferenceId: repostId,
+          UserID: userId,
+          Likes: 0,
+          Dislikes: 0,
+          View: 0,
+          Rating: null,
+          Repost: 1,
+          Comments: 0,
+          AuthAdd: userId,
+          AuthDel: null,
+          AuthLstEdt: null,
+          delOnDt: null,
+          AddOnDt: currentDate,
+          editOnDt: null,
+          delStatus: 0,
+        },
+        { transaction }
+      );
+    }
+
+    // ===== 2. For the original post owner (if different user) =====
+    if (originalUserId && originalUserId !== userId) {
+      let ownerInteraction = await ContentInteraction.findOne({
+        where: {
+          Type: "Discussion",
+          UserID: originalUserId,
+          ReferenceId: repostId,
+          delStatus: 0,
+        },
+        transaction,
+      });
+
+      if (ownerInteraction) {
+        // Update repost count for original owner
+        await ContentInteraction.update(
+          {
+            Repost: (ownerInteraction.Repost || 0) + 1,
+            AuthLstEdt: userId,
+            editOnDt: currentDate,
+          },
+          {
+            where: { Id: ownerInteraction.Id },
+            transaction,
+          }
+        );
+      } else {
+        // Create new entry if doesn't exist
+        await ContentInteraction.create(
+          {
+            Type: "Discussion",
+            ReferenceId: repostId,
+            UserID: originalUserId,
+            Likes: 0,
+            Dislikes: 0,
+            View: 0,
+            Rating: null,
+            Repost: 1,
+            Comments: 0,
+            AuthAdd: userId,
+            AuthDel: null,
+            AuthLstEdt: null,
+            delOnDt: null,
+            AddOnDt: currentDate,
+            editOnDt: null,
+            delStatus: 0,
+          },
+          { transaction }
+        );
+      }
+    }
+
+    // ===== 3. Create log entry for repost (if you have Repost column) =====
+    // Note: Your ContentInteractionLog model doesn't have Repost column
+    // You can either:
+    // Option A: Add Repost column to ContentInteractionLog model
+    // Option B: Track reposts in a different way (e.g., in Comments column with special value)
+    // Option C: Skip log table for reposts (since main table tracks it)
+
+    // If you add Repost column to ContentInteractionLog:
+    /**/
+    await ContentInteractionLog.create(
+      {
+        ProcessName: "Discussion",
+        reference: repostId,
+        UserID: userId,
+        Likes: null,
+        Dislike: null,
+        Rating: null,
+        View: null,
+        Comments: null,
+        Repost: 1,
+        AuthAdd: userId,
+        AuthDel: null,
+        AuthLstEdt: null,
+        delOnDt: null,
+        AddOnDt: currentDate,
+        editOnDt: null,
+        delStatus: 0,
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
+    console.log(
+      "Repost recorded in interaction tables for discussion:",
+      repostId
+    );
+  } catch (error) {
+    await transaction.rollback();
+    console.error("Error recording repost in interaction tables:", error);
+    // Don't throw error here - we don't want to fail the repost creation
+    // just because interaction logging failed
+  }
+};
+
+const checkIfFirstLevelComment = async (discussionId) => {
+  try {
+    // Get the discussion to check if it's an original post
+    const discussion = await CommunityDiscussion.findOne({
+      where: {
+        DiscussionID: discussionId,
+        delStatus: 0,
+      },
+      attributes: ["Reference"],
+    });
+
+    if (!discussion) {
+      return false; // Discussion not found
+    }
+
+    // If Reference = 0, it's an original post (first-level)
+    // If Reference > 0, it's a comment/reply (not first-level)
+    return discussion.Reference === 0;
+  } catch (error) {
+    console.error("Error checking first-level comment:", error);
+    return false;
+  }
+};
+
+const recordCommentInInteractionTables = async (userId, discussionId) => {
+  const currentDate = new Date();
+  const transaction = await User.sequelize.transaction();
+
+  try {
+    // Update main content_interaction table ONLY for the commenter
+    let commenterInteraction = await ContentInteraction.findOne({
+      where: {
+        Type: "Discussion",
+        UserID: userId, // The user who is commenting
+        ReferenceId: discussionId,
+        delStatus: 0,
+      },
+      transaction,
+    });
+
+    if (commenterInteraction) {
+      // Increment comment count ONLY for the commenter
+      await ContentInteraction.update(
+        {
+          Comments: (commenterInteraction.Comments || 0) + 1,
+          AuthLstEdt: userId,
+          editOnDt: currentDate,
+        },
+        {
+          where: { Id: commenterInteraction.Id },
+          transaction,
+        }
+      );
+    } else {
+      // Create new entry if doesn't exist
+      await ContentInteraction.create(
+        {
+          Type: "Discussion",
+          ReferenceId: discussionId,
+          UserID: userId, // The user who is commenting
+          Likes: 0,
+          Dislikes: 0,
+          View: 0,
+          Rating: null,
+          Repost: null,
+          Comments: 1, // This user has 1 comment
+          AuthAdd: userId,
+          AuthDel: null,
+          AuthLstEdt: null,
+          delOnDt: null,
+          AddOnDt: currentDate,
+          editOnDt: null,
+          delStatus: 0,
+        },
+        { transaction }
+      );
+    }
+
+    // Create log entry for comment
+    await ContentInteractionLog.create(
+      {
+        ProcessName: "Discussion",
+        reference: discussionId,
+        UserID: userId, // The user who commented
+        Likes: null,
+        Dislike: null,
+        Rating: null,
+        View: null,
+        Comments: 1, // This log shows 1 comment action
+        AuthAdd: userId,
+        AuthDel: null,
+        AuthLstEdt: null,
+        delOnDt: null,
+        AddOnDt: currentDate,
+        editOnDt: null,
+        delStatus: 0,
+      },
+      { transaction }
+    );
+
+    await transaction.commit();
+    console.log(
+      "Comment recorded in interaction tables for user:",
+      userId,
+      "on discussion:",
+      discussionId
+    );
+  } catch (error) {
+    await transaction.rollback();
+    console.error("Error recording comment in interaction tables:", error);
+    // Don't throw error here - we don't want to fail the comment creation
+    // just because interaction logging failed
   }
 };
 
@@ -315,7 +613,7 @@ const getCommentsRecursive = async (parentId, currentUserId) => {
     where: {
       Reference: parentId,
       delStatus: { [Op.or]: [0, null] },
-      Comment: { [Op.ne]: null }, 
+      Comment: { [Op.ne]: null },
     },
     include: [
       {
@@ -433,7 +731,6 @@ export const getPublicDiscussionsService = async (email) => {
           }
         }
 
-        // Get ALL like entries for this discussion to count properly
         const allLikeEntries = await CommunityDiscussion.findAll({
           where: {
             Reference: discussion.DiscussionID,
@@ -442,10 +739,10 @@ export const getPublicDiscussionsService = async (email) => {
           order: [["AddOnDt", "DESC"]],
         });
 
-        const likeCount = await ContentInteractionLog.count({
+        const likeCount = await ContentInteraction.count({
           where: {
-            ProcessName: "Discussion",
-            reference: discussion.DiscussionID,
+            Type: "Discussion",
+            ReferenceId: discussion.DiscussionID,
             Likes: 1,
             delStatus: { [Op.or]: [0, null] },
           },
@@ -830,11 +1127,11 @@ export const deleteUserCommentService = async (userId, commentId) => {
 export const handleDiscussionLikeAction = async (userEmail, postData) => {
   try {
     const discussionId = postData.reference;
+
     if (!discussionId) throw new Error("Invalid discussion reference");
 
     console.log("Service - Fetching user with email:", userEmail);
 
-    // Fetch user from database using email
     const user = await User.findOne({
       where: {
         EmailId: userEmail,
@@ -848,97 +1145,131 @@ export const handleDiscussionLikeAction = async (userEmail, postData) => {
     }
 
     const userId = user.UserID;
-    const userName = user.Name || "Unknown User";
-
-    console.log("User action - UserID:", userId, "DiscussionID:", discussionId);
-
-    // Check if an interaction already exists for this user & discussion
-    let interaction = await ContentInteractionLog.findOne({
-      where: {
-        ProcessName: "Discussion",
-        UserID: userId,
-        reference: discussionId,
-        delStatus: 0,
-      },
-    });
-
     const currentDate = new Date();
-    let finalLikeStatus;
-    let message;
 
-    if (interaction) {
-      // Toggle like status
-      if (interaction.Likes === 1) {
-        // User already liked - unlike it
-        finalLikeStatus = 0;
-        message = "Discussion unliked successfully";
+    const transaction = await User.sequelize.transaction();
+
+    try {
+      let currentInteraction = await ContentInteraction.findOne({
+        where: {
+          Type: "Discussion",
+          UserID: userId,
+          ReferenceId: discussionId,
+          delStatus: 0,
+        },
+        transaction,
+      });
+
+      let newLikeStatus;
+      let newDislikeStatus;
+      let message;
+      let logLikeStatus;
+      let logDislikeStatus;
+
+      if (currentInteraction) {
+        // 2-STATE TOGGLE LOGIC:
+        // 1. If currently LIKED (1,0) → change to DISLIKED (0,1)
+        // 2. If currently DISLIKED (0,1) → change to LIKED (1,0)
+
+        if (currentInteraction.Likes === 1) {
+          // Currently LIKED → change to DISLIKED
+          newLikeStatus = 0;
+          newDislikeStatus = 1;
+          message = "Changed to dislike";
+          logLikeStatus = 0;
+          logDislikeStatus = 1;
+        } else {
+          // Currently DISLIKED → change to LIKED
+          newLikeStatus = 1;
+          newDislikeStatus = 0;
+          message = "Discussion liked successfully";
+          logLikeStatus = 1;
+          logDislikeStatus = 0;
+        }
+
+        await ContentInteraction.update(
+          {
+            Likes: newLikeStatus,
+            Dislikes: newDislikeStatus,
+            AuthLstEdt: userId,
+            editOnDt: currentDate,
+          },
+          {
+            where: { Id: currentInteraction.Id },
+            transaction,
+          }
+        );
       } else {
-        // User hasn't liked or was unliked - like it
-        finalLikeStatus = 1;
+        // First interaction - start with LIKED
+        newLikeStatus = 1;
+        newDislikeStatus = 0;
         message = "Discussion liked successfully";
+        logLikeStatus = 1;
+        logDislikeStatus = 0;
+
+        currentInteraction = await ContentInteraction.create(
+          {
+            Type: "Discussion",
+            ReferenceId: discussionId,
+            UserID: userId,
+            Likes: newLikeStatus,
+            Dislikes: newDislikeStatus,
+            Rating: null,
+            View: null,
+            Repost: null,
+            Comments: null,
+            AuthAdd: userId,
+            AuthDel: null,
+            AuthLstEdt: null,
+            delOnDt: null,
+            AddOnDt: currentDate,
+            editOnDt: null,
+            delStatus: 0,
+          },
+          { transaction }
+        );
       }
 
-      console.log(
-        "Toggle like - Current:",
-        interaction.Likes,
-        "New:",
-        finalLikeStatus
+      // Create log entry
+      await ContentInteractionLog.create(
+        {
+          ProcessName: "Discussion",
+          reference: discussionId,
+          UserID: userId,
+          Likes: logLikeStatus,
+          Dislike: logDislikeStatus,
+          Rating: null,
+          View: null,
+          Comments: null,
+          AuthAdd: userId,
+          AuthDel: null,
+          AuthLstEdt: null,
+          delOnDt: null,
+          AddOnDt: currentDate,
+          editOnDt: null,
+          delStatus: 0,
+        },
+        { transaction }
       );
 
-      // Update existing interaction
-      await ContentInteractionLog.update(
-        {
-          Likes: finalLikeStatus,
-          LikeStatus: 0,
-          AuthLstEdt: userId,
-          editOnDt: currentDate,
-        },
-        {
-          where: { id: interaction.id },
-        }
-      );
+      await transaction.commit();
 
       return {
         success: true,
         data: {
-          liked: finalLikeStatus === 1,
-          interactionId: interaction.id,
+          liked: newLikeStatus === 1,
+          disliked: newDislikeStatus === 1,
+          neutral: false, // Never neutral in this 2-state system
+          interactionId: currentInteraction.Id,
         },
         message: message,
       };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
     }
-
-    // No existing interaction - create new one with like (1)
-    finalLikeStatus = 1;
-    message = "Discussion liked successfully";
-
-    const newInteraction = await ContentInteractionLog.create({
-      ProcessName: "Discussion",
-      UserID: userId,
-      reference: discussionId,
-      Likes: finalLikeStatus,
-      LikeStatus: 0,
-      Rating: null,
-      RatingStatus: null,
-      AuthAdd: userId,
-      AuthDel: null,
-      AuthLstEdt: null,
-      delOnDt: null,
-      AddOnDt: currentDate,
-      editOnDt: null,
-      delStatus: 0,
-    });
-
-    return {
-      success: true,
-      data: {
-        liked: finalLikeStatus === 1,
-        interactionId: newInteraction.id,
-      },
-      message: message,
-    };
   } catch (error) {
-    console.error("Discussion Like Error:", error);
+    console.error("Discussion Like/Dislike Error:", error);
     throw error;
   }
 };

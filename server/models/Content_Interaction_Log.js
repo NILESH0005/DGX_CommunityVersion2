@@ -35,6 +35,10 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true
       },
+      Repost: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       Dislike:{
         type: DataTypes.INTEGER,
         allowNull: true

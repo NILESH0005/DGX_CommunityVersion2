@@ -11,6 +11,7 @@ const {
   ContentInteractionLog,
   CommunityDiscussion,
   CommunityBlog,
+  ContentInteraction,
 } = db;
 import { Op } from "sequelize";
 
@@ -499,12 +500,12 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
-        const likeCount = await ContentInteractionLog.count({
+        const likeCount = await ContentInteraction.count({
           where: {
-            ProcessName: "Discussion",
-            reference: discussion.DiscussionID,
+            Type: "Discussion",
+            ReferenceId: discussion.DiscussionID,
             Likes: 1,
-            delStatus: 0,
+            delStatus: { [Op.or]: [0, null] },
           },
         });
 
