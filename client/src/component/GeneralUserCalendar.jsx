@@ -15,6 +15,8 @@ const localizer = momentLocalizer(moment);
 const eventColors = {
   NVIDIA: "#013D54", // DGXblue
   "Global Infoventures Event": "#76B900", // DGXgreen
+  PAST_EVENT: "#DC2626", // Red for past events
+  UPCOMING_EVENT: "#F59E0B", // Yellow for upcoming events
 };
 
 const GeneralUserCalendar = (props) => {
@@ -75,8 +77,40 @@ const GeneralUserCalendar = (props) => {
     }
   };
 
+  // Function to check if event is past, upcoming, or current
+  const getEventStatus = (event) => {
+    const now = moment();
+    const start = moment(event.StartDate);
+    const end = moment(event.EndDate);
+    
+    if (end.isBefore(now)) {
+      return "PAST_EVENT";
+    } else if (start.isAfter(now)) {
+      return "UPCOMING_EVENT";
+    } else {
+      return "CURRENT_EVENT"; // Event is currently happening
+    }
+  };
+
   const eventStyleGetter = (event) => {
-    const backgroundColor = eventColors[event.Category] || "#C0C0C0";
+    // Determine event status (past or upcoming)
+    const eventStatus = getEventStatus(event);
+    
+    // Get color based on category or status
+    let backgroundColor;
+    if (eventStatus === "PAST_EVENT") {
+      backgroundColor = eventColors.PAST_EVENT; // Red for past events
+    } else if (eventStatus === "UPCOMING_EVENT") {
+      backgroundColor = eventColors.UPCOMING_EVENT; // Yellow for upcoming events
+    } else {
+      // For current events or if no status determined, use category colors
+      backgroundColor = eventColors[event.Category] || "#C0C0C0";
+    }
+    
+    // Add strikethrough for past events
+    const textDecoration = eventStatus === "PAST_EVENT" ? "line-through" : "none";
+    const opacity = eventStatus === "PAST_EVENT" ? 0.8 : 1;
+    
     return {
       style: {
         backgroundColor,
@@ -88,6 +122,9 @@ const GeneralUserCalendar = (props) => {
         height: "100%",
         fontSize: "0.75rem",
         padding: "0.2rem",
+        textDecoration: textDecoration,
+        opacity: opacity,
+        border: eventStatus === "UPCOMING_EVENT" ? "1px solid #D97706" : "none", // Darker yellow border for upcoming
       },
     };
   };
@@ -112,14 +149,35 @@ const GeneralUserCalendar = (props) => {
     }
   };
 
-  const formattedEvents = props.events
-    ?.filter((event) => event.Status === "Approved") // 🔥 Only Approved Events
-    .map((event) => ({
-      ...event,
-      start: moment(event.StartDate).toDate(),
-      end: moment(event.EndDate).toDate(),
-      title: event.EventTitle,
-    }));
+  // Sort events: upcoming first, then past events
+  const sortedEvents = props.events
+    ?.filter((event) => event.Status === "Approved")
+    .sort((a, b) => {
+      const aStart = moment(a.StartDate);
+      const bStart = moment(b.StartDate);
+      const now = moment();
+      
+      // Both events are upcoming - sort by date ascending
+      if (aStart.isAfter(now) && bStart.isAfter(now)) {
+        return aStart.diff(bStart);
+      }
+      // Both events are past - sort by date descending (most recent first)
+      if (aStart.isBefore(now) && bStart.isBefore(now)) {
+        return bStart.diff(aStart);
+      }
+      // One upcoming, one past - upcoming comes first
+      return aStart.isAfter(now) ? -1 : 1;
+    })
+    .map((event) => {
+      const status = getEventStatus(event);
+      return {
+        ...event,
+        start: moment(event.StartDate).toDate(),
+        end: moment(event.EndDate).toDate(),
+        title: event.EventTitle,
+        status: status, // Add status for reference
+      };
+    });
 
   const formats = {
     timeGutterFormat: (date, culture, localizer) =>
@@ -130,46 +188,109 @@ const GeneralUserCalendar = (props) => {
       )}`,
   };
 
-  const renderMobileEventCard = (event, index) => (
-    <div
-      key={event.EventID}
-      className={`p-4 mb-4 rounded-lg shadow ${
-        eventColors[event.Category] ? "border-t-4" : ""
-      }`}
-      style={{
-        borderTopColor: eventColors[event.Category] || "transparent",
-        borderTopWidth: "4px",
-      }}
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-bold text-lg">{event.EventTitle}</h3>
-          <p className="text-sm text-gray-600">{event.Venue}</p>
+  const renderMobileEventCard = (event, index) => {
+    const eventStatus = getEventStatus(event);
+    const statusColor = eventStatus === "PAST_EVENT" 
+      ? eventColors.PAST_EVENT 
+      : eventStatus === "UPCOMING_EVENT" 
+        ? eventColors.UPCOMING_EVENT 
+        : eventColors[event.Category] || "#C0C0C0";
+    
+    const isPastEvent = eventStatus === "PAST_EVENT";
+    
+    return (
+      <div
+        key={event.EventID}
+        className={`p-4 mb-4 rounded-lg shadow ${
+          statusColor ? "border-t-4" : ""
+        } ${isPastEvent ? "opacity-80" : ""}`}
+        style={{
+          borderTopColor: statusColor,
+          borderTopWidth: "4px",
+        }}
+      >
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 
+              className={`font-bold text-lg ${isPastEvent ? "line-through" : ""}`}
+              style={{ color: isPastEvent ? "#6B7280" : "inherit" }}
+            >
+              {event.EventTitle}
+            </h3>
+            <p className="text-sm text-gray-600">{event.Venue}</p>
+            <div className="mt-1">
+              <span 
+                className={`text-xs px-2 py-1 rounded-full ${isPastEvent ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}`}
+              >
+                {eventStatus === "PAST_EVENT" ? "Past Event" : 
+                 eventStatus === "UPCOMING_EVENT" ? "Upcoming Event" : 
+                 "Current Event"}
+              </span>
+              {event.Category && (
+                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800 ml-2">
+                  {event.Category}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-sm">
+            <FaCalendarAlt size={12} />
+            <span>{moment(event.start).format("MMM D")}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1 text-sm">
-          <FaCalendarAlt size={12} />
-          <span>{moment(event.start).format("MMM D")}</span>
+
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div>
+            <p className="text-xs text-gray-500">Start</p>
+            <p className={`text-sm ${isPastEvent ? "text-gray-500" : ""}`}>
+              {formatDateTime(event.StartDate)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">End</p>
+            <p className={`text-sm ${isPastEvent ? "text-gray-500" : ""}`}>
+              {formatDateTime(event.EndDate)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex justify-end">
+          <button
+            onClick={() => handleSelectEvent(event)}
+            className="bg-DGXblue text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm"
+          >
+            View Details
+          </button>
         </div>
       </div>
+    );
+  };
 
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <div>
-          <p className="text-xs text-gray-500">Start</p>
-          <p className="text-sm">{formatDateTime(event.StartDate)}</p>
+  // Legend component for color coding
+  const ColorLegend = () => (
+    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <h3 className="text-sm font-semibold mb-2 text-gray-700">Event Color Legend:</h3>
+      <div className="flex flex-wrap gap-3">
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors.UPCOMING_EVENT }}></div>
+          <span className="text-sm">Upcoming Events</span>
         </div>
-        <div>
-          <p className="text-xs text-gray-500">End</p>
-          <p className="text-sm">{formatDateTime(event.EndDate)}</p>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors.PAST_EVENT }}></div>
+          <span className="text-sm">Past Events</span>
         </div>
-      </div>
-
-      <div className="mt-3 flex justify-end">
-        <button
-          onClick={() => handleSelectEvent(event)}
-          className="bg-DGXblue text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm"
-        >
-          View Details
-        </button>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors.NVIDIA }}></div>
+          <span className="text-sm">NVIDIA Events</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors["Global Infoventures Event"] }}></div>
+          <span className="text-sm">Global Infoventures Events</span>
+        </div>
+        {/* <div className="flex items-center">
+          <div className="w-4 h-4 rounded mr-2 bg-gray-400"></div>
+          <span className="text-sm">Other Events</span>
+        </div> */}
       </div>
     </div>
   );
@@ -182,13 +303,16 @@ const GeneralUserCalendar = (props) => {
         </h1>
       </div>
 
+      {/* Color Legend */}
+      <ColorLegend />
+
       {isLoading ? (
         <Skeleton height={600} className="bg-gray-200 rounded-lg mb-10" />
       ) : isMobileView ? (
         <div className="bg-white rounded-lg border-2 border-DGXgreen shadow-lg p-4 mb-10">
-          {formattedEvents && formattedEvents.length > 0 ? (
+          {sortedEvents && sortedEvents.length > 0 ? (
             <div className="space-y-3">
-              {formattedEvents.map((event, index) =>
+              {sortedEvents.map((event, index) =>
                 renderMobileEventCard(event, index)
               )}
             </div>
@@ -201,7 +325,7 @@ const GeneralUserCalendar = (props) => {
       ) : (
         <BigCalendar
           localizer={localizer}
-          events={formattedEvents}
+          events={sortedEvents}
           formats={formats}
           eventPropGetter={eventStyleGetter}
           startAccessor="start"
@@ -211,6 +335,23 @@ const GeneralUserCalendar = (props) => {
           className="bg-white rounded-lg border-2 border-DGXgreen shadow-lg p-5 mb-10"
           onSelectEvent={handleSelectEvent}
           views={["month", "week"]} // Only show Month and Week views
+          components={{
+            event: ({ event }) => {
+              const eventStatus = getEventStatus(event);
+              const isPast = eventStatus === "PAST_EVENT";
+              return (
+                <div 
+                  className={`rbc-event-content ${isPast ? "line-through" : ""}`}
+                  style={{
+                    textDecoration: isPast ? "line-through" : "none",
+                    opacity: isPast ? 0.8 : 1
+                  }}
+                >
+                  {event.EventTitle}
+                </div>
+              );
+            }
+          }}
         />
       )}
 

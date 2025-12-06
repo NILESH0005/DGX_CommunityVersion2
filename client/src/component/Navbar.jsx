@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { images } from "../../public/index.js";
 import { AiOutlineMenu } from "react-icons/ai";
@@ -30,6 +30,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [imageVersion, setImageVersion] = useState(0); // Add version state for cache busting
 
   const toggleDropdown = () => {
     setDropdownOpen(!isDropdownOpen);
@@ -77,12 +78,60 @@ const Navbar = () => {
 
   const getProfileImage = () => {
     if (user?.ProfilePicture) {
-      if (!user.ProfilePicture.startsWith("data:image")) {
-        return `${user.ProfilePicture}?${new Date().getTime()}`;
+      const profilePic = user.ProfilePicture;
+      
+      // If it's already a full URL or data URL, return as is with version
+      if (profilePic.startsWith("http") || profilePic.startsWith("data:image")) {
+        return `${profilePic}${profilePic.includes('?') ? '&' : '?'}v=${imageVersion}`;
       }
-      return user.ProfilePicture;
+      
+      // Otherwise, construct the full URL with cache busting
+      return `${import.meta.env.VITE_API_UPLOADSURL}/${profilePic}?v=${imageVersion}&t=${new Date().getTime()}`;
     }
     return images.defaultProfile;
+  };
+
+  // Listen for profile image updates
+  useEffect(() => {
+    // Force image refresh when user data changes
+    if (user?.ProfilePicture) {
+      setImageVersion(prev => prev + 1);
+      console.log("Profile picture updated, version:", imageVersion + 1);
+    }
+  }, [user?.ProfilePicture]);
+
+  // Listen for storage events (from other tabs/windows)
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'profileImageUpdated' || e.key === 'userDataUpdated') {
+        setImageVersion(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Add a global event listener for profile updates within same tab
+  useEffect(() => {
+    const handleProfileImageUpdate = () => {
+      setImageVersion(prev => prev + 1);
+    };
+
+    // Listen for custom event from UserAvatar component
+    window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
+    
+    return () => {
+      window.removeEventListener('profileImageUpdated', handleProfileImageUpdate);
+    };
+  }, []);
+
+  // Generate a unique key for the image to force re-render
+  const getImageKey = () => {
+    return `profile-${user?.ProfilePicture || 'default'}-${imageVersion}`;
   };
 
   return (
@@ -149,6 +198,7 @@ const Navbar = () => {
                   onError={(e) => {
                     e.target.src = images.defaultProfile;
                   }}
+                  key={getImageKey()} // Force re-render when image changes
                 />
               </div>
 
@@ -225,6 +275,7 @@ const Navbar = () => {
                     onError={(e) => {
                       e.target.src = images.defaultProfile;
                     }}
+                    key={getImageKey()} // Force re-render when image changes
                   />
                 </div>
               )}

@@ -104,16 +104,27 @@ const EditSubModule = ({ module, onBack }) => {
         SubModuleDescription: submodule.SubModuleDescription || "",
       });
 
+      // Set image preview properly
       if (submodule.SubModuleImageUrl) {
         setImagePreview(submodule.SubModuleImageUrl);
       } else if (submodule.SubModuleImage?.data) {
         setImagePreview(
-          `data:${submodule.SubModuleImage.contentType || "image/jpeg"}`
+          `data:${submodule.SubModuleImage.contentType || "image/jpeg"};base64,${
+            typeof submodule.SubModuleImage.data === "string"
+              ? submodule.SubModuleImage.data
+              : btoa(
+                  String.fromCharCode(
+                    ...new Uint8Array(submodule.SubModuleImage.data)
+                  )
+                )
+          }`
         );
       } else if (submodule.SubModuleImagePath) {
-        setImagePreview(
-          `${window.location.origin}/${submodule.SubModuleImagePath}`
-        );
+        const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+        const imageUrl = submodule.SubModuleImagePath.startsWith("http")
+          ? submodule.SubModuleImagePath
+          : `${baseUploadsUrl}/${submodule.SubModuleImagePath}`;
+        setImagePreview(imageUrl);
       } else {
         setImagePreview(null);
       }
@@ -275,62 +286,7 @@ const EditSubModule = ({ module, onBack }) => {
     }
   };
 
-  const handleImageChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      if (!file.type.match("image.*")) {
-        Swal.fire({
-          title: "Invalid File Type",
-          text: "Only image files are allowed",
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-        return;
-      }
-
-      if (file.size > MAX_FILE_SIZE_KB * 1024) {
-        Swal.fire({
-          title: "File Too Large",
-          text: `Image size exceeds ${MAX_FILE_SIZE_KB}KB limit`,
-          icon: "error",
-          confirmButtonText: "OK",
-        });
-        if (fileInputRef.current) fileInputRef.current.value = "";
-        return;
-      }
-
-      setIsCompressing(true);
-      setError(null);
-
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-
-      const base64String = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = reader.result;
-          resolve(dataUrl);
-        };
-        reader.onerror = (error) => reject(error);
-        reader.readAsDataURL(file);
-      });
-
-      setNewImageFile({
-        data: base64String.split(",")[1],
-        contentType: file.type,
-        fullDataUrl: base64String,
-      });
-    } catch (error) {
-      setError("Failed to process image");
-      setImagePreview(null);
-      setNewImageFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } finally {
-      setIsCompressing(false);
-    }
-  };
+ 
 
   const handleImageUpload = (uploadResult) => {
     const { filePath } = uploadResult;
@@ -366,6 +322,12 @@ const EditSubModule = ({ module, onBack }) => {
               )
         }`
       );
+    } else if (editingSubmodule?.SubModuleImagePath) {
+      const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+      const imageUrl = editingSubmodule.SubModuleImagePath.startsWith("http")
+        ? editingSubmodule.SubModuleImagePath
+        : `${baseUploadsUrl}/${editingSubmodule.SubModuleImagePath}`;
+      setImagePreview(imageUrl);
     } else {
       setImagePreview(null);
     }
@@ -569,33 +531,50 @@ const EditSubModule = ({ module, onBack }) => {
       editingSubmodule?.SubModuleID === submodule.SubModuleID
     ) {
       return (
-        <div className="h-40 sm:h-48 flex flex-col items-center justify-center p-4 bg-black bg-opacity-70">
-          {imagePreview ? (
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="max-h-32 object-contain mb-4 transition-opacity duration-300"
-            />
-          ) : (
-            <p className="text-gray-200">No Image Available</p>
-          )}
+        <div className="min-h-40 sm:min-h-48 flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-900 space-y-4 w-full relative">
+          {/* IMAGE PREVIEW SECTION */}
+          <div className="flex-1 flex items-center justify-center w-full mb-4">
+            {imagePreview ? (
+              <div className="relative w-full h-40 flex items-center justify-center">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="max-h-40 max-w-full object-contain rounded-lg shadow-md"
+                />
+              </div>
+            ) : (
+              <div className="h-40 flex items-center justify-center w-full">
+                <p className="text-gray-500 dark:text-gray-400 text-center">
+                  No Image Available
+                </p>
+              </div>
+            )}
+          </div>
 
-          <FileUploader
-            moduleName="LMS"
-            folderName="submodule-banners"
-            onUploadComplete={handleImageUpload}
-            accept="image/*"
-            maxSize={200 * 1024}
-            label="Upload Banner Image"
-          />
-
-          <div className="flex gap-2 flex-wrap justify-center mt-2">
+          {/* UPLOAD AND CANCEL BUTTONS - Properly aligned */}
+          <div className="w-full flex flex-col sm:flex-row justify-center items-center gap-3 mt-4">
+            <div className="w-full sm:w-auto">
+              <FileUploader
+                moduleName="LMS"
+                folderName="submodule-banners"
+                onUploadComplete={handleImageUpload}
+                accept="image/*"
+                maxSize={200 * 1024}
+                label="Upload Banner Image"
+                className="w-full sm:w-auto"
+              />
+            </div>
+            
             <button
               type="button"
               onClick={handleCancelImageEdit}
-              className="px-3 py-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-500 text-xs transition-colors duration-200 flex items-center"
+              className="px-4 py-2 bg-gray-300 dark:bg-gray-700 
+                         text-gray-700 dark:text-gray-200 rounded-lg 
+                         hover:bg-gray-400 dark:hover:bg-gray-600 
+                         text-sm transition-colors duration-200 
+                         flex items-center justify-center w-full sm:w-auto"
             >
-              <FaTimes className="mr-1" />
+              <FaTimes className="mr-2" />
               Cancel
             </button>
           </div>
@@ -694,9 +673,9 @@ const EditSubModule = ({ module, onBack }) => {
             <p className="text-gray-200 mb-3 text-sm">No Image Available</p>
             <button
               onClick={() => setIsImageEditing(true)}
-              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs transition-colors duration-200 shadow-md hover:shadow-lg flex items-center mx-auto"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors duration-200 shadow-md hover:shadow-lg flex items-center mx-auto"
             >
-              <FaImage className="mr-1" />
+              <FaImage className="mr-2" />
               Add Image
             </button>
           </div>

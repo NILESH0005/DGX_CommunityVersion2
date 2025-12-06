@@ -1,141 +1,199 @@
-import React, { useState, useContext, useRef, useEffect } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { images } from "../../public/index.js";
 import { FaCamera, FaCheck, FaTimes, FaSpinner } from "react-icons/fa";
 import ApiContext from "../context/ApiContext.jsx";
 import Swal from "sweetalert2";
-import { compressImage } from "../utils/compressImage.js";
+import FileUploader from "../container/FileUploader";
 
 const UserAvatar = ({ user, onImageUpdate }) => {
-  const { userToken, fetchData, setUser } = useContext(ApiContext);
+  const { userToken } = useContext(ApiContext);
   const [previewImage, setPreviewImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFilePath, setUploadedFilePath] = useState(null);
+  const [currentProfileImage, setCurrentProfileImage] = useState("");
 
+  // Initialize current profile image
+  useEffect(() => {
+    if (user?.ProfilePicture) {
+      if (user.ProfilePicture.startsWith("http")) {
+        setCurrentProfileImage(user.ProfilePicture);
+      } else {
+        setCurrentProfileImage(
+          `${import.meta.env.VITE_API_UPLOADSURL}/${user.ProfilePicture}`
+        );
+      }
+    } else {
+      setCurrentProfileImage(images.defaultProfile);
+    }
+  }, [user]);
+
+  // Get the image URL to display
   const getProfileImageUrl = () => {
+    // Always show preview if available (uploaded but not saved yet)
     if (previewImage) return previewImage;
-    return user?.ProfilePicture || images.defaultProfile;
+
+    // Otherwise show current profile image
+    return currentProfileImage;
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const validTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!validTypes.includes(file.type)) {
+  const handleImageUpload = (result) => {
+    setIsUploading(false);
+    console.log("FileUploader Result:", result);
+
+    if (!result?.success) {
       Swal.fire({
         icon: "error",
-        title: "Invalid File",
-        text: "Only JPG, PNG, and WEBP images are allowed",
+        title: "Upload failed",
+        text: result?.message || "Failed to upload image",
       });
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (result.filePath) {
+      setUploadedFilePath(result.filePath);
+
+      // Create preview URL
+      const previewUrl = `${import.meta.env.VITE_API_UPLOADSURL}/${
+        result.filePath
+      }`;
+
+      // Update preview immediately
+      setPreviewImage(previewUrl);
+      setImageFile(result.filePath);
+    } else {
       Swal.fire({
         icon: "error",
-        title: "File Too Large",
-        text: "Image size should be less than 5MB",
+        title: "Upload Error",
+        text: "No file path received from upload",
       });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const compressedDataURL = await compressImage(file);
-      setPreviewImage(compressedDataURL);
-    } catch (error) {
-      console.error("Error processing image:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to process the image",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const saveAvatar = async () => {
-    if (isLoading || !previewImage) return;
+    if (!uploadedFilePath) {
+      Swal.fire({
+        icon: "warning",
+        title: "No Image",
+        text: "Please upload an image first",
+      });
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      // Send the complete data URL as the backend expects
-      const response = await fetchData(
-        "userprofile/updateProfilePicture",
-        "POST",
-        { 
-          email: user?.EmailId,
-          avatar: previewImage // Send the complete data URL
-        },
+      const response = await fetch(
+        `${import.meta.env.VITE_API_BASEURL}userprofile/updateProfilePicture`,
         {
-          "Content-Type": "application/json",
-          "auth-token": userToken,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "auth-token": userToken,
+          },
+          body: JSON.stringify({
+            email: user.EmailId,
+            avatar: uploadedFilePath,
+          }),
         }
       );
 
-      if (!response) {
-        throw new Error("No response from server");
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (error) {
+        console.error("JSON parse error:", error);
+        throw new Error("Invalid response from server");
       }
 
-      if (response.success) {
-        if (setUser) {
-          setUser((prev) => ({
-            ...prev,
-            ProfilePicture: previewImage,
-          }));
-        }
+      console.log("Parsed data:", data);
 
+      if (response.ok && data.success) {
+        const updatedProfilePic = `${
+          import.meta.env.VITE_API_UPLOADSURL
+        }/${uploadedFilePath}`;
+
+        // Update local state immediately
+        setCurrentProfileImage(updatedProfilePic);
+
+        // Clear preview since it's now the current image
         setPreviewImage(null);
 
+        // Call parent callback if provided
         if (onImageUpdate) {
-          onImageUpdate(previewImage);
+          onImageUpdate(updatedProfilePic);
         }
+
+        // Clear upload states
+        setUploadedFilePath(null);
+        setImageFile(null);
 
         Swal.fire({
           icon: "success",
           title: "Success!",
-          text: "Profile image updated successfully!",
+          text: data.message || "Profile image updated successfully",
           timer: 2000,
           showConfirmButton: false,
+        }).then(() => {
+          // 🔥 SIMPLE FIX: Reload the page after success
+          window.location.reload();
         });
       } else {
-        throw new Error(response.message || "Failed to update profile image");
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: data.message || "Failed to update profile image",
+        });
       }
     } catch (error) {
-      console.error("Error saving profile image:", error);
+      console.error("Save error:", error);
       Swal.fire({
         icon: "error",
         title: "Error",
         text: error.message || "Failed to update profile image",
       });
-      
-      // Revert the preview if there's an error
-      setPreviewImage(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
+  const cancelUpload = () => {
+    // Only clear preview, keep current profile image
+    setPreviewImage(null);
+    setImageFile(null);
+    setUploadedFilePath(null);
+    setIsUploading(false);
   };
+
+  const triggerFileUpload = () => {
+    setIsUploading(true);
+  };
+
+  // Check if we have an unsaved preview
+  const hasUnsavedChanges = previewImage && !isLoading;
 
   return (
     <div className="bg-DGXwhite w-full rounded-lg shadow-xl pb-6 border border-DGXgreen transition-all duration-300 hover:shadow-lg">
-      <div className="w-full h-[250px] rounded-t-lg overflow-hidden relative">
+      {/* Background Image */}
+      <div className="w-full h-[150px] md:h-[200px] lg:h-[250px] rounded-t-lg overflow-hidden relative">
         <img
           src={images.NvidiaBackground}
           className="w-full h-full object-cover"
           alt="Profile background"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
       </div>
 
-      <div className="flex flex-col items-center -mt-20 px-4">
+      {/* Profile Content */}
+      <div className="flex flex-col items-center px-4 -mt-16 md:-mt-20">
+        {/* Profile Image Container */}
         <div className="relative group mb-4">
-          <div className="w-40 h-40 border-4 border-white rounded-full overflow-hidden bg-gray-100 shadow-lg relative">
+          <div className="w-32 h-32 md:w-40 md:h-40 border-4 border-white rounded-full overflow-hidden bg-gray-100 shadow-lg relative">
             <img
               src={getProfileImageUrl()}
               className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
@@ -145,70 +203,95 @@ const UserAvatar = ({ user, onImageUpdate }) => {
               }}
             />
 
+            {/* Camera Overlay */}
             <div
               className={`absolute inset-0 flex flex-col items-center justify-center bg-black/50 rounded-full transition-all duration-300 ${
-                previewImage
+                isUploading || hasUnsavedChanges
                   ? "opacity-100"
                   : "opacity-0 group-hover:opacity-100"
               } cursor-pointer`}
-              onClick={triggerFileInput}
+              onClick={triggerFileUpload}
             >
-              <FaCamera className="text-2xl text-white mb-1" />
-              <span className="text-white text-sm font-medium">
-                {previewImage ? "Change Photo" : "Upload Photo"}
+              <FaCamera className="text-xl md:text-2xl text-white mb-1" />
+              <span className="text-white text-xs md:text-sm font-medium">
+                {hasUnsavedChanges ? "Change Photo" : "Upload Photo"}
               </span>
             </div>
           </div>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg, image/png, image/webp"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {user?.Name || "User"}
-          </h2>
-          <p className="text-DGXgray font-medium">{user?.Designation || ""}</p>
-          <p className="text-sm text-gray-500">{user?.EmailId || ""}</p>
-        </div>
-
-        <div className="w-full max-w-md space-y-4">
-          {previewImage && (
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => setPreviewImage(null)}
-                disabled={isLoading}
-                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 flex items-center disabled:opacity-50 transition-colors"
-              >
-                <FaTimes className="mr-2" />
-                Cancel
-              </button>
-              <button
-                onClick={saveAvatar}
-                disabled={isLoading}
-                className="px-6 py-2 bg-DGXgreen text-white rounded-full hover:bg-DGXdarkgreen flex items-center disabled:opacity-50 transition-colors shadow-md"
-              >
-                {isLoading ? (
-                  <>
-                    <FaSpinner className="mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <FaCheck className="mr-2" />
-                    Save Changes
-                  </>
-                )}
-              </button>
+          {/* File Uploader (only when triggered) */}
+          {isUploading && (
+            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-40 md:w-48 lg:w-56">
+              <FileUploader
+                moduleName="USER_PROFILE"
+                folderName={`profile-pictures/${user?.EmailId || "user"}`}
+                onUploadComplete={handleImageUpload}
+                accept="image/jpeg, image/png, image/webp"
+                maxSize={5 * 1024 * 1024}
+                label="Select Image"
+                showPreview={false}
+                customClassName="rounded-full"
+                onCancel={() => setIsUploading(false)}
+              />
             </div>
           )}
         </div>
+
+        {/* User Info */}
+        <div className="text-center mb-4 md:mb-6 w-full">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 truncate px-2">
+            {user?.Name || "User"}
+          </h2>
+          <p className="text-DGXgray font-medium text-sm md:text-base truncate px-2">
+            {user?.Designation || ""}
+          </p>
+          <p className="text-xs md:text-sm text-gray-500 truncate px-2">
+            {user?.EmailId || ""}
+          </p>
+        </div>
+
+        {/* Save/Cancel Buttons (only show when there are unsaved changes) */}
+        {hasUnsavedChanges && (
+          <div className="w-full max-w-xs md:max-w-md">
+            <div className="bg-gray-50 rounded-xl p-4 md:p-6 border border-gray-200">
+              <div className="flex flex-col items-center space-y-4">
+                <p className="text-sm md:text-base text-gray-700 font-medium text-center">
+                  Save this as your new profile picture?
+                </p>
+
+                <div className="flex flex-col sm:flex-row justify-center gap-3 w-full">
+                  <button
+                    onClick={cancelUpload}
+                    disabled={isLoading}
+                    className="px-4 py-2 md:px-6 md:py-2 bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300 flex items-center justify-center disabled:opacity-50 transition-colors flex-1 max-w-xs"
+                  >
+                    <FaTimes className="mr-2" />
+                    <span className="text-sm md:text-base">Cancel</span>
+                  </button>
+                  <button
+                    onClick={saveAvatar}
+                    disabled={isLoading}
+                    className="px-4 py-2 md:px-6 md:py-2 bg-DGXgreen text-white rounded-full hover:bg-DGXdarkgreen flex items-center justify-center disabled:opacity-50 transition-colors flex-1 max-w-xs shadow-md"
+                  >
+                    {isLoading ? (
+                      <>
+                        <FaSpinner className="mr-2 animate-spin" />
+                        <span className="text-sm md:text-base">Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FaCheck className="mr-2" />
+                        <span className="text-sm md:text-base">
+                          Save Changes
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

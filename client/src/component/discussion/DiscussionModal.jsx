@@ -13,9 +13,9 @@ import {
   ProfileLink,
   handleProfileRedirect,
 } from "../../utils/handleProfileRedirect.jsx";
-import { checkToxicityWithReasonAndFlag } from "../../utils/toxicityDetection.js"; // Import toxicity detection
+import { checkToxicityWithReasonAndFlag } from "../../utils/toxicityDetection.js";
 
-const BASE_URL = "http://localhost:5000";
+const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
 
 const DiscussionModal = ({
   isOpen,
@@ -31,7 +31,7 @@ const DiscussionModal = ({
   const [comments, setComments] = useState(discussion.comment || []);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false); // Add toxicity checking state
+  const [isCheckingToxicity, setIsCheckingToxicity] = useState(false);
   const [activeReplyIndex, setActiveReplyIndex] = useState(null);
   const [activeTab, setActiveTab] = useState("content");
   const [discussionImageUrl, setDiscussionImageUrl] = useState("");
@@ -47,18 +47,66 @@ const DiscussionModal = ({
       if (discussion.Image.startsWith("http")) {
         setDiscussionImageUrl(discussion.Image);
       } else {
-        setDiscussionImageUrl(`${BASE_URL}/${discussion.Image}`);
+        setDiscussionImageUrl(`${baseUploadsUrl}/${discussion.Image}`);
       }
     } else if (discussion?.DiscussionImagePath) {
       if (discussion.DiscussionImagePath.startsWith("http")) {
         setDiscussionImageUrl(discussion.DiscussionImagePath);
       } else {
-        setDiscussionImageUrl(`${BASE_URL}/${discussion.DiscussionImagePath}`);
+        setDiscussionImageUrl(`${baseUploadsUrl}/${discussion.DiscussionImagePath}`);
       }
     } else {
       setDiscussionImageUrl("");
     }
   }, [discussion]);
+
+  // Helper function to get full image URL
+  const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+    
+    if (imagePath.startsWith("http")) {
+      return imagePath;
+    }
+    
+    if (imagePath.includes(baseUploadsUrl) || 
+        imagePath.startsWith("http://") || 
+        imagePath.startsWith("https://") ||
+        imagePath.startsWith("//")) {
+      return imagePath;
+    }
+    
+    return `${baseUploadsUrl}/${imagePath}`;
+  };
+
+  // Helper function to get profile image URL
+  const getProfileImageUrl = (userData) => {
+    if (!userData) {
+      return images.defaultProfile;
+    }
+
+    const profilePic = userData.ProfilePicture || 
+                      userData.UserImage || 
+                      userData.profilePicture || 
+                      userData.userImage;
+
+    if (!profilePic) {
+      return images.defaultProfile;
+    }
+
+    if (profilePic.startsWith("http") || profilePic.startsWith("//")) {
+      return profilePic;
+    }
+
+    if (profilePic.includes(baseUploadsUrl)) {
+      return profilePic;
+    }
+
+    if (profilePic.includes("uploads/")) {
+      return `${baseUploadsUrl}/${profilePic.replace(/^\/+/, '')}`;
+    }
+
+    return `${baseUploadsUrl}/uploads/${profilePic.replace(/^\/+/, '')}`;
+  };
 
   // Toxicity validation function for comments and replies
   const validateCommentToxicity = async (text) => {
@@ -78,9 +126,9 @@ const DiscussionModal = ({
               Please review and modify your comment before posting.`,
           confirmButtonText: "I understand",
         });
-        return false; // Content is toxic
+        return false;
       }
-      return true; // Content is safe
+      return true;
     } catch (error) {
       console.error("Toxicity validation error:", error);
       const result = await Swal.fire({
@@ -91,7 +139,7 @@ const DiscussionModal = ({
         confirmButtonText: "Post Anyway",
         cancelButtonText: "Cancel",
       });
-      return result.isConfirmed; // Let user decide
+      return result.isConfirmed;
     } finally {
       setIsCheckingToxicity(false);
     }
@@ -119,7 +167,6 @@ const DiscussionModal = ({
 
     if (result.isConfirmed) {
       try {
-        // Use the new user-specific endpoint
         const endpoint = "discussion/deleteUserComment";
         const method = "POST";
         const headers = {
@@ -137,13 +184,11 @@ const DiscussionModal = ({
             text: "The comment has been deleted.",
           });
 
-          // Remove the comment from local state
           const updatedComments = comments.filter(
             (comment) => comment.DiscussionID !== commentId
           );
           setComments(updatedComments);
 
-          // Update comment count
           if (updateCommentCount) {
             updateCommentCount(
               discussion.DiscussionID,
@@ -214,10 +259,9 @@ const DiscussionModal = ({
       return;
     }
 
-    // Check for toxicity before posting comment
     const isContentAppropriate = await validateCommentToxicity(newComment);
     if (!isContentAppropriate) {
-      return; // Stop if content is inappropriate
+      return;
     }
 
     const endpoint = "discussion/discussionpost";
@@ -240,10 +284,13 @@ const DiscussionModal = ({
         throw new Error(data.message || "Failed to post comment");
       }
 
+      // Create new comment object with user's profile image
       const newCommentObj = {
         DiscussionID: data.data?.postId || Date.now(),
         UserID: user.UserID,
         UserName: user.Name,
+        ProfilePicture: user.ProfilePicture || user.UserImage,
+        UserImage: user.UserImage || user.ProfilePicture,
         Comment: newComment,
         timestamp: new Date().toISOString(),
         Likes: null,
@@ -295,10 +342,9 @@ const DiscussionModal = ({
       return;
     }
 
-    // Check for toxicity before posting reply
     const isContentAppropriate = await validateCommentToxicity(replyText);
     if (!isContentAppropriate) {
-      return; // Stop if content is inappropriate
+      return;
     }
 
     const endpoint = "discussion/discussionpost";
@@ -318,10 +364,14 @@ const DiscussionModal = ({
       if (!data.success) {
         throw new Error(data.message || "Failed to post reply");
       }
+      
+      // Create new reply object with user's profile image
       const newReply = {
         DiscussionID: data.data?.postId || Date.now(),
         UserID: user.UserID,
         UserName: user.Name,
+        ProfilePicture: user.ProfilePicture || user.UserImage,
+        UserImage: user.UserImage || user.ProfilePicture,
         Comment: replyText,
         timestamp: new Date().toISOString(),
         Likes: null,
@@ -381,10 +431,6 @@ const DiscussionModal = ({
     });
   };
 
-  const getUserImage = (userData) => {
-    return userData?.UserImage || images.defaultProfile;
-  };
-
   // Recursive component to render nested comments
   const Comment = ({ comment, depth = 0 }) => {
     const [isReplying, setIsReplying] = useState(false);
@@ -393,10 +439,9 @@ const DiscussionModal = ({
     const handleReply = async () => {
       if (!replyText.trim()) return;
 
-      // Check for toxicity before posting reply
       const isContentAppropriate = await validateCommentToxicity(replyText);
       if (!isContentAppropriate) {
-        return; // Stop if content is inappropriate
+        return;
       }
 
       await handleAddReply(comment.DiscussionID, replyText);
@@ -410,9 +455,13 @@ const DiscussionModal = ({
           {comment && (
             <ProfileImage
               userId={comment.UserID}
-              src={comment.UserImage || images.defaultProfile}
+              src={getProfileImageUrl(comment)}
               className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 object-cover"
               alt="User"
+              onError={(e) => {
+                console.log("Profile image failed to load for user:", comment.UserID);
+                e.target.src = images.defaultProfile;
+              }}
             />
           )}
 
@@ -468,9 +517,12 @@ const DiscussionModal = ({
                 <div className="flex space-x-2">
                   <ProfileImage
                     userId={user?.UserID}
-                    src={user?.ProfilePicture || images.defaultProfile}
+                    src={getProfileImageUrl(user)}
                     className="w-6 h-6 rounded-full"
                     alt="User"
+                    onError={(e) => {
+                      e.target.src = images.defaultProfile;
+                    }}
                   />
                   <div className="flex-1">
                     <textarea
@@ -543,8 +595,11 @@ const DiscussionModal = ({
               <ProfileImage
                 userId={discussion.User?.UserID}
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-300 bg-cover bg-center"
-                src={discussion.User?.ProfilePicture || images.defaultProfile}
+                src={getProfileImageUrl(discussion.User || discussion)}
                 alt="User"
+                onError={(e) => {
+                  e.target.src = images.defaultProfile;
+                }}
               />
 
               <div>
@@ -556,7 +611,7 @@ const DiscussionModal = ({
                     userId={discussion.UserID}
                     className="hover:text-DGXblue transition-colors"
                   >
-                    {discussion.User.Name || "Unknown author"}
+                    {discussion.User?.Name || discussion.UserName || "Unknown author"}
                   </ProfileLink>
                   <span className="hidden sm:block">•</span>
                   <span>
@@ -673,9 +728,12 @@ const DiscussionModal = ({
                 <div className="flex space-x-2">
                   <ProfileImage
                     userId={user?.UserID}
-                    src={user?.ProfilePicture || images.defaultProfile}
+                    src={getProfileImageUrl(user)}
                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 object-cover"
                     alt="User"
+                    onError={(e) => {
+                      e.target.src = images.defaultProfile;
+                    }}
                   />
 
                   <div className="flex-1">
