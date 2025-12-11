@@ -53,7 +53,9 @@ const DiscussionModal = ({
       if (discussion.DiscussionImagePath.startsWith("http")) {
         setDiscussionImageUrl(discussion.DiscussionImagePath);
       } else {
-        setDiscussionImageUrl(`${baseUploadsUrl}/${discussion.DiscussionImagePath}`);
+        setDiscussionImageUrl(
+          `${baseUploadsUrl}/${discussion.DiscussionImagePath}`
+        );
       }
     } else {
       setDiscussionImageUrl("");
@@ -63,18 +65,20 @@ const DiscussionModal = ({
   // Helper function to get full image URL
   const getFullImageUrl = (imagePath) => {
     if (!imagePath) return "";
-    
+
     if (imagePath.startsWith("http")) {
       return imagePath;
     }
-    
-    if (imagePath.includes(baseUploadsUrl) || 
-        imagePath.startsWith("http://") || 
-        imagePath.startsWith("https://") ||
-        imagePath.startsWith("//")) {
+
+    if (
+      imagePath.includes(baseUploadsUrl) ||
+      imagePath.startsWith("http://") ||
+      imagePath.startsWith("https://") ||
+      imagePath.startsWith("//")
+    ) {
       return imagePath;
     }
-    
+
     return `${baseUploadsUrl}/${imagePath}`;
   };
 
@@ -84,10 +88,11 @@ const DiscussionModal = ({
       return images.defaultProfile;
     }
 
-    const profilePic = userData.ProfilePicture || 
-                      userData.UserImage || 
-                      userData.profilePicture || 
-                      userData.userImage;
+    const profilePic =
+      userData.ProfilePicture ||
+      userData.UserImage ||
+      userData.profilePicture ||
+      userData.userImage;
 
     if (!profilePic) {
       return images.defaultProfile;
@@ -102,10 +107,10 @@ const DiscussionModal = ({
     }
 
     if (profilePic.includes("uploads/")) {
-      return `${baseUploadsUrl}/${profilePic.replace(/^\/+/, '')}`;
+      return `${baseUploadsUrl}/${profilePic.replace(/^\/+/, "")}`;
     }
 
-    return `${baseUploadsUrl}/uploads/${profilePic.replace(/^\/+/, '')}`;
+    return `${baseUploadsUrl}/uploads/${profilePic.replace(/^\/+/, "")}`;
   };
 
   // Toxicity validation function for comments and replies
@@ -364,7 +369,7 @@ const DiscussionModal = ({
       if (!data.success) {
         throw new Error(data.message || "Failed to post reply");
       }
-      
+
       // Create new reply object with user's profile image
       const newReply = {
         DiscussionID: data.data?.postId || Date.now(),
@@ -459,7 +464,10 @@ const DiscussionModal = ({
               className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 object-cover"
               alt="User"
               onError={(e) => {
-                console.log("Profile image failed to load for user:", comment.UserID);
+                console.log(
+                  "Profile image failed to load for user:",
+                  comment.UserID
+                );
                 e.target.src = images.defaultProfile;
               }}
             />
@@ -611,7 +619,9 @@ const DiscussionModal = ({
                     userId={discussion.UserID}
                     className="hover:text-DGXblue transition-colors"
                   >
-                    {discussion.User?.Name || discussion.UserName || "Unknown author"}
+                    {discussion.User?.Name ||
+                      discussion.UserName ||
+                      "Unknown author"}
                   </ProfileLink>
                   <span className="hidden sm:block">•</span>
                   <span>
@@ -696,22 +706,34 @@ const DiscussionModal = ({
                     {typeof discussion.Tag === "string"
                       ? discussion.Tag.split(",")
                           .filter((tag) => tag.trim())
-                          .map((tag, index) => (
+                          .map((tag, index) => {
+                            const cleaned = tag.trim();
+                            const formatted =
+                              cleaned.charAt(0).toUpperCase() +
+                              cleaned.slice(1);
+                            return (
+                              <span
+                                key={index}
+                                className="bg-DGXgreen text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs"
+                              >
+                                {formatted}
+                              </span>
+                            );
+                          })
+                      : discussion.Tag.map((tag, index) => {
+                          const formatted =
+                            typeof tag === "string"
+                              ? tag.charAt(0).toUpperCase() + tag.slice(1)
+                              : tag;
+                          return (
                             <span
                               key={index}
                               className="bg-DGXgreen text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs"
                             >
-                              {tag.trim()}
+                              {formatted}
                             </span>
-                          ))
-                      : discussion.Tag.map((tag, index) => (
-                          <span
-                            key={index}
-                            className="bg-DGXgreen text-white px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                          );
+                        })}
                   </div>
                 </div>
               )}

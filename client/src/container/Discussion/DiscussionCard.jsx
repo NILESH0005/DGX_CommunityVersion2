@@ -304,21 +304,27 @@ const DiscussionCard = ({
       )}
 
       {/* Tags (from code 1) */}
-      {discussion.Tag && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {(typeof discussion.Tag === "string"
-            ? discussion.Tag.split(",").filter(Boolean)
-            : Array.isArray(discussion.Tag) ? discussion.Tag : []
-          ).map((tag, index) => (
-            <span
-              key={index}
-              className="bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-3 py-1 text-xs font-medium shadow-md"
-            >
-              #{tag.trim()}
-            </span>
-          ))}
-        </div>
-      )}
+     {discussion.Tag && (
+  <div className="flex flex-wrap gap-2 mb-3">
+    {(typeof discussion.Tag === "string"
+      ? discussion.Tag.split(",").filter(Boolean)
+      : Array.isArray(discussion.Tag) ? discussion.Tag : []
+    ).map((tag, index) => {
+      const cleaned = tag.trim();
+      const formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+
+      return (
+        <span
+          key={index}
+          className="bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-3 py-1 text-xs font-medium shadow-md"
+        >
+          #{formatted}
+        </span>
+      );
+    })}
+  </div>
+)}
+
 
       {/* Footer (Enhanced from code 1) */}
       <div className="flex flex-wrap items-center justify-between pt-4 border-t border-gray-100 gap-4">
