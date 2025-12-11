@@ -434,8 +434,8 @@ export const getLogoutHomePageContentService = async () => {
         SELECT COUNT(*)
         FROM content_interaction AS ci
         WHERE 
-          ci.ProcessName = 'Discussion'
-          AND ci.reference = CommunityDiscussion.DiscussionID
+          ci.Type = 'Discussion'
+          AND ci.ReferenceId = CommunityDiscussion.DiscussionID
           AND ci.Likes = 1
           AND ci.delStatus = 0
       )`),

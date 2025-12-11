@@ -61,6 +61,15 @@ const ParticleBackground = () => {
   );
 };
 
+const getProfileUrl = (path) => {
+  if (!path) return Noimage;
+
+  if (path.startsWith("http") || path.startsWith("data:image/")) return path;
+
+  const base = import.meta.env.VITE_API_UPLOADSURL;
+  return `${base}/${path.replace(/^\/+/, "")}`;
+};
+
 // Fixed RepostCard Component for horizontal scrollable users
 const RepostCard = ({ reposts = [] }) => {
   console.log("ccccccccccccccccc", reposts);
@@ -581,19 +590,24 @@ const BlogPage = () => {
             </div>
 
             {/* RIGHT: Rating Badge */}
-            {blogStats.averageRating > 0 && (
-              <motion.div
-                className="flex items-center bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full text-[11px] font-semibold shadow-sm gap-1"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <span className="text-yellow-500">⭐</span>
-                <span className="text-gray-700">
-                  {blogStats.averageRating.toFixed(1)}
+            {/* ⭐ Rating + 👁 Views */}
+            <div className="flex items-center gap-3 mt-1">
+              {/* ⭐ Average Rating */}
+              <div className="flex items-center gap-1">
+                <span className="text-yellow-500 text-sm">⭐</span>
+                <span className="text-gray-700 text-sm font-semibold">
+                  {blogStats.averageRating?.toFixed(1) || "0.0"}
                 </span>
-              </motion.div>
-            )}
+              </div>
+
+              {/* 👁 Total Views */}
+              <div className="flex items-center gap-1">
+                <FiEye className="text-blue-600" size={14} />
+                <span className="text-gray-700 text-sm font-semibold">
+                  {blogStats.totalViews || 0}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Title */}
@@ -655,13 +669,15 @@ const BlogPage = () => {
 
           {/* Author Info */}
           <div className="mt-auto flex items-center gap-3 mb-4">
-            <motion.div
-              className="w-8 h-8 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-xs font-bold"
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-            >
-              {getAuthorInitials(userName)}
-            </motion.div>
+            {/* AUTHOR PROFILE IMAGE */}
+            <motion.img
+              src={getProfileUrl(User?.ProfilePicture)}
+              onError={(e) => (e.target.src = Noimage)}
+              className="w-9 h-9 rounded-full object-cover shadow-md"
+              whileHover={{ scale: 1.1 }}
+              transition={{ duration: 0.3 }}
+            />
+
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-900">
                 {userName || "Unknown Author"}

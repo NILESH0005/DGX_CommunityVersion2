@@ -279,7 +279,7 @@ const Home = () => {
                 variants={itemVariants}
               >
                 Accelerate Your{" "}
-                <span className="text-blue-300">AI Journey</span> With Us
+                <span className="text-[#08B4E9]">AI Journey</span> With Us
               </motion.h1>
 
               <motion.p
@@ -313,7 +313,7 @@ const Home = () => {
               {/* Use the 3D model here */}
               <HeroModel />
 
-              <motion.div
+              {/* <motion.div
                 className="absolute -bottom-8 -left-8 w-32 h-32 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-70"
                 animate={{
                   scale: [1, 1.2, 1],
@@ -324,7 +324,7 @@ const Home = () => {
                   duration: 6,
                   ease: "easeInOut",
                 }}
-              />
+              /> */}
             </motion.div>
           </motion.div>
         </div>
@@ -390,14 +390,14 @@ const Home = () => {
       </section>
 
       {/* Community Highlights */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 sm:py-16 md:py-20 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={containerVariants}
-            className="flex flex-col lg:flex-row items-center lg:items-start gap-12"
+            className="flex flex-col lg:flex-row items-center lg:items-start gap-12" // 👈 Image on top for mobile
           >
             {/* Image Section */}
             <motion.div className="w-full lg:w-1/2" variants={slideInFromLeft}>
@@ -408,7 +408,7 @@ const Home = () => {
                       <img
                         src={image}
                         alt={`Community highlight ${index + 1}`}
-                        className="w-full h-56 sm:h-64 md:h-80 object-cover rounded-xl"
+                        className="w-full h-48 sm:h-64 md:h-80 object-cover rounded-xl"
                       />
                     </div>
                   ))}
@@ -418,70 +418,74 @@ const Home = () => {
 
             {/* Text Section */}
             <motion.div
-              className="w-full lg:w-1/2 text-center lg:text-left"
+              className="w-full lg:w-1/2 text-center lg:text-left px-1"
               variants={slideInFromRight}
             >
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-snug">
                 Join Our{" "}
                 <span className="text-blue-600">Growing Community</span>
               </h2>
-              <p className="text-gray-600 text-base sm:text-lg mb-8">
+
+              <p className="text-gray-600 text-base sm:text-lg mb-6 sm:mb-8">
                 Connect with thousands of AI enthusiasts, researchers, and
-                professionals from around the world.
+                professionals.
               </p>
 
               <div className="space-y-6">
                 {/* Feature 1 */}
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:text-left text-center gap-4">
+                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-start">
                     <FontAwesomeIcon
                       icon={faUsers}
                       className="text-blue-600 text-xl"
                     />
                   </div>
+
                   <div>
                     <h3 className="font-semibold text-gray-900">
                       Expert Network
                     </h3>
                     <p className="text-gray-600">
                       Connect with AI/ML professionals, mentors, and learners
-                      worldwide
+                      worldwide.
                     </p>
                   </div>
                 </div>
 
                 {/* Feature 2 */}
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:text-left text-center gap-4">
+                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-start">
                     <FontAwesomeIcon
                       icon={faComment}
                       className="text-blue-600 text-xl"
                     />
                   </div>
+
                   <div>
                     <h3 className="font-semibold text-gray-900">
                       Discussion Forums
                     </h3>
                     <p className="text-gray-600">
-                      Dive into topic-focused conversations that matter
+                      Dive into topic-focused conversations that matter.
                     </p>
                   </div>
                 </div>
 
                 {/* Feature 3 */}
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-auto">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:text-left text-center gap-4">
+                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0 self-center sm:self-start">
                     <FontAwesomeIcon
                       icon={faCalendarAlt}
                       className="text-blue-600 text-xl"
                     />
                   </div>
+
                   <div>
                     <h3 className="font-semibold text-gray-900">
                       Regular Events
                     </h3>
                     <p className="text-gray-600">
-                      Stay updated with workshops, webinars, and AI conferences
+                      Stay updated with workshops, webinars, and AI conferences.
                     </p>
                   </div>
                 </div>

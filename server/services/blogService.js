@@ -1204,7 +1204,6 @@ export const getBlogStatsService = async (blogId) => {
       };
     }
 
-    // Get the sequelize instance from the model
     const sequelize = ContentInteractionLog.sequelize;
 
     const totalLikes = await ContentInteraction.count({
@@ -1216,7 +1215,6 @@ export const getBlogStatsService = async (blogId) => {
       },
     });
 
-    // Get average rating - FIXED: Use model's sequelize instance
     const ratingData = await ContentInteractionLog.findOne({
       where: {
         ProcessName: "Blog",
@@ -1238,9 +1236,22 @@ export const getBlogStatsService = async (blogId) => {
       where: {
         ProcessName: "Blog",
         reference: blogId,
-        View: 1, // Make sure your column for views is called 'View'
+        View: 1,
         delStatus: 0,
       },
+    });
+
+    //  ⭐ ADD: Fetch only profile picture of blog author
+    const blog = await CommunityBlog.findOne({
+      where: { BlogID: blogId },
+      attributes: ["UserID"],
+      include: [
+        {
+          model: User,
+          as: "User",
+          attributes: ["Name", "ProfilePicture"],
+        },
+      ],
     });
 
     return {
@@ -1251,6 +1262,10 @@ export const getBlogStatsService = async (blogId) => {
         averageRating: Math.round(averageRating * 10) / 10,
         blogId: parseInt(blogId),
         totalViews,
+
+        // ⭐ Added fields
+        authorName: blog?.User?.Name || null,
+        authorProfilePicture: blog?.User?.ProfilePicture || null,
       },
     };
   } catch (error) {

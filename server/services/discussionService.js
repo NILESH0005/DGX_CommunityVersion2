@@ -739,14 +739,14 @@ export const getPublicDiscussionsService = async (email) => {
           order: [["AddOnDt", "DESC"]],
         });
 
-        const likeCount = await ContentInteraction.count({
-          where: {
-            Type: "Discussion",
-            ReferenceId: discussion.DiscussionID,
-            Likes: 1,
-            delStatus: { [Op.or]: [0, null] },
-          },
-        });
+          const likeCount = await ContentInteraction.count({
+            where: {
+              Type: "Discussion",
+              ReferenceId: discussion.DiscussionID,
+              Likes: 1,
+              delStatus: { [Op.or]: [0, null] },
+            },
+          });
 
         const userLike = await ContentInteraction.findOne({
           where: {

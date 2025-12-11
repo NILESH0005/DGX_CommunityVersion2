@@ -5,6 +5,7 @@ import moment from "moment";
 import ApiContext from "../context/ApiContext";
 import { FaHeart, FaUser, FaCalendarAlt } from "react-icons/fa";
 import DiscussionModal from "../component/discussion/DiscussionModal";
+import ParticleRing from "../component/ParticleRing/ParticleRing";
 
 const TextParallaxContent = () => {
   const [homeData, setHomeData] = useState({
@@ -169,21 +170,24 @@ const TextParallaxContent = () => {
           </div>
         ) : (
           // Fallback when no featured event
-          <div className="relative h-[30vh] w-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center">
-                       {" "}
-            <div className="text-center text-DGXwhite z-20">
-                           {" "}
-              <h1 className="text-4xl md:text-6xl font-bold mb-4">
-                                Welcome to Our Community              {" "}
-              </h1>
-                           {" "}
-              <p className="text-xl opacity-90">
-                                Discover amazing events, blogs, and discussions
-                             {" "}
-              </p>
-                         {" "}
+          <div className="relative h-[30vh] w-full overflow-hidden">
+            {/* BACKGROUND RING */}
+            <div className="absolute inset-0 z-0">
+              <ParticleRing />
             </div>
-                     {" "}
+
+            {/* FOREGROUND TEXT */}
+            <div className="absolute inset-0 z-20 flex items-center justify-center text-center">
+              <div>
+                <h1 className="text-4xl md:text-6xl font-bold mb-4 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                  Welcome to Our Community
+                </h1>
+
+                <p className="text-xl text-white opacity-100 drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">
+                  Discover amazing events, blogs, and discussions
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

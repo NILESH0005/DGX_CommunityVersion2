@@ -659,19 +659,38 @@ const PublicBlogModal = ({
                 >
                   {title}
                 </motion.h1>
-
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                    <TbUserSquareRounded className="text-white text-lg lg:text-xl" />
-                  </div>
+                  <img
+                    src={
+                      blogStats?.authorProfilePicture
+                        ? getImageUrl(blogStats.authorProfilePicture)
+                        : Noimage
+                    }
+                    className="w-10 h-10 rounded-full"
+                  />
 
                   <div className="text-left">
-                    <p className="text-gray-900 font-semibold text-sm lg:text-base">
-                      {blog?.User?.Name || author || "Unknown author"}
+                    <p className="text-gray-900 font-semibold">
+                      {blogStats?.authorName}
                     </p>
-                    <p className="text-gray-500 text-xs lg:text-sm">
-                      {published_date}
-                    </p>
+                    <p className="text-gray-500 text-xs">{published_date}</p>
+                  </div>
+                </div>
+
+                {/* ⭐ Rating + 👁️ Views → PLACE HERE */}
+                <div className="flex items-center gap-4 text-gray-700 mt-3">
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold">
+                      {blogStats?.averageRating || 0}
+                    </span>
+                    <span>⭐</span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <span className="font-semibold">
+                      {blogStats?.totalViews || 0}
+                    </span>
+                    <span>👁️ Views</span>
                   </div>
                 </div>
 
