@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AiFillLike, AiOutlineLike } from "react-icons/ai";
 import { FaComment } from "react-icons/fa";
-import {
-  FiEye,
-  FiRepeat,
-  FiLoader,
-  FiCheckCircle,
-} from "react-icons/fi";
+import { FiEye, FiRepeat, FiLoader, FiCheckCircle } from "react-icons/fi";
 import DOMPurify from "dompurify";
 import Swal from "sweetalert2";
 
@@ -33,8 +28,10 @@ const DiscussionCard = ({
 
   // 🔥 Correct profile image sources - from code 2
   const profilePic =
-    discussion.ProfilePicture || discussion.UserImage || discussion.User?.ProfilePicture;
-  const userName = discussion.User?.Name;
+    discussion.ProfilePicture ||
+    discussion.UserImage ||
+    discussion.User?.ProfilePicture;
+  const userName = discussion?.User?.Name || "Unknown User";
 
   useEffect(() => {
     const hasReposted =
@@ -141,15 +138,10 @@ const DiscussionCard = ({
         repostId: discussion.DiscussionID,
       };
 
-      const res = await fetchData(
-        "discussion/discussionpost",
-        "POST",
-        body,
-        {
-          "Content-Type": "application/json",
-          "auth-token": userToken,
-        }
-      );
+      const res = await fetchData("discussion/discussionpost", "POST", body, {
+        "Content-Type": "application/json",
+        "auth-token": userToken,
+      });
 
       if (!res.success) throw new Error(res.message);
 
@@ -208,9 +200,7 @@ const DiscussionCard = ({
             </div>
           )}
           <div>
-            <p className="font-semibold text-gray-800">
-              {userName}
-            </p>
+            <p className="font-semibold text-gray-800">{userName}</p>
 
             {/* Repost List (from code 1) */}
             {discussion.reposts && discussion.reposts.length > 0 && (
@@ -304,27 +294,29 @@ const DiscussionCard = ({
       )}
 
       {/* Tags (from code 1) */}
-     {discussion.Tag && (
-  <div className="flex flex-wrap gap-2 mb-3">
-    {(typeof discussion.Tag === "string"
-      ? discussion.Tag.split(",").filter(Boolean)
-      : Array.isArray(discussion.Tag) ? discussion.Tag : []
-    ).map((tag, index) => {
-      const cleaned = tag.trim();
-      const formatted = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+      {discussion.Tag && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {(typeof discussion.Tag === "string"
+            ? discussion.Tag.split(",").filter(Boolean)
+            : Array.isArray(discussion.Tag)
+            ? discussion.Tag
+            : []
+          ).map((tag, index) => {
+            const cleaned = tag.trim();
+            const formatted =
+              cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 
-      return (
-        <span
-          key={index}
-          className="bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-3 py-1 text-xs font-medium shadow-md"
-        >
-          #{formatted}
-        </span>
-      );
-    })}
-  </div>
-)}
-
+            return (
+              <span
+                key={index}
+                className="bg-gradient-to-r from-DGXgreen to-DGXblue text-white rounded-full px-3 py-1 text-xs font-medium shadow-md"
+              >
+                #{formatted}
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Footer (Enhanced from code 1) */}
       <div className="flex flex-wrap items-center justify-between pt-4 border-t border-gray-100 gap-4">
