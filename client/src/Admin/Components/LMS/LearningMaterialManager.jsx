@@ -305,7 +305,7 @@ const LearningMaterialManager = () => {
                         uploadedAt: new Date().toISOString(),
                         serverName: uploadResponse.file.storedName,
                         storagePath: uploadResponse.file.storagePath,
-                        percentage: 0 // Will be recalculated
+                        percentage: 0 
 
                       }
                     ];
