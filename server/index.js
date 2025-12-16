@@ -17,7 +17,7 @@ import LMS from "./routes/LMS.js";
 import lmsEdit from "./routes/LmsEdit.js";
 import progressRoute from "./routes/ProgressTrack.js";
 import contactUs from "./routes/ContactUs.js";
-import dashboardRoutes from "./routes/Dashboard.js"
+import dashboardRoutes from "./routes/Dashboard.js";
 import sequelize from "./config/database.js";
 // import { fileURLToPath } from 'url';
 // import { dirname } from 'path';
@@ -107,8 +107,8 @@ connectToDatabase((err) => {
     await sequelize.authenticate();
     console.log("✅ MySQL connected successfully");
 
-    app.listen(port, () => {
-      console.log(`🚀 Server running at http://localhost:${port}`);
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`🚀 Server running at http://0.0.0.0:${port}`);
     });
   } catch (err) {
     console.error("❌ MySQL connection error:", err);

@@ -14,7 +14,6 @@ const UserAvatar = ({ user, onImageUpdate }) => {
   const [uploadedFilePath, setUploadedFilePath] = useState(null);
   const [currentProfileImage, setCurrentProfileImage] = useState("");
 
-  // Initialize current profile image
   useEffect(() => {
     if (user?.ProfilePicture) {
       if (user.ProfilePicture.startsWith("http")) {
@@ -29,12 +28,9 @@ const UserAvatar = ({ user, onImageUpdate }) => {
     }
   }, [user]);
 
-  // Get the image URL to display
   const getProfileImageUrl = () => {
-    // Always show preview if available (uploaded but not saved yet)
     if (previewImage) return previewImage;
 
-    // Otherwise show current profile image
     return currentProfileImage;
   };
 
