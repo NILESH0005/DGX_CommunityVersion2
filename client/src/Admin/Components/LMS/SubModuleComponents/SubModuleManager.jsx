@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useContext } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, FileText, X, ArrowLeft, Save, Plus, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  FileText,
+  X,
+  ArrowLeft,
+  Save,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { compressImage } from "../../../../utils/compressImage";
 import ApiContext from "../../../../context/ApiContext";
 import Swal from "sweetalert2";
@@ -16,16 +24,16 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
   const [errors, setErrors] = useState({});
   const [resetForm, setResetForm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   // Mobile responsiveness
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   const calculateFilePercentages = (files) => {
@@ -65,8 +73,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       confirmButtonColor: "#d33",
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Yes, delete it!",
-      background: '#fff',
-      color: '#1f2937',
+      background: "#fff",
+      color: "#1f2937",
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedSubModules = subModules.filter((sub) => sub.id !== id);
@@ -81,8 +89,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
           text: "Submodule has been deleted",
           timer: 1500,
           showConfirmButton: false,
-          background: '#fff',
-          color: '#1f2937',
+          background: "#fff",
+          color: "#1f2937",
         });
       }
     });
@@ -97,14 +105,14 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       confirmButtonColor: "#d33",
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Yes",
-      background: '#fff',
-      color: '#1f2937',
+      background: "#fff",
+      color: "#1f2937",
     }).then((result) => {
       if (result.isConfirmed) {
         const updatedSubModules = subModules.map((sub) => {
           if (sub.id === subModuleId) {
             const updatedUnits = sub.units.filter((unit) => unit.id !== unitId);
-            
+
             // Trigger animation by updating the state which will re-render with animations
             return {
               ...sub,
@@ -117,7 +125,9 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
 
         // Update selected submodule if it's the one being modified
         if (selectedSubModule?.id === subModuleId) {
-          setSelectedSubModule(updatedSubModules.find(sub => sub.id === subModuleId));
+          setSelectedSubModule(
+            updatedSubModules.find((sub) => sub.id === subModuleId)
+          );
         }
 
         Swal.fire({
@@ -126,8 +136,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
           text: "Unit has been deleted",
           timer: 1500,
           showConfirmButton: false,
-          background: '#fff',
-          color: '#1f2937',
+          background: "#fff",
+          color: "#1f2937",
         });
       }
     });
@@ -177,8 +187,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         text: "New submodule has been created successfully",
         timer: 1500,
         showConfirmButton: false,
-        background: '#fff',
-        color: '#1f2937',
+        background: "#fff",
+        color: "#1f2937",
       });
     } catch (error) {
       Swal.fire({
@@ -187,8 +197,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         text: "Failed to add submodule",
         timer: 1500,
         showConfirmButton: false,
-        background: '#fff',
-        color: '#1f2937',
+        background: "#fff",
+        color: "#1f2937",
       });
     }
   };
@@ -209,7 +219,7 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         };
 
         const updatedUnits = [...sub.units, newUnitWithId];
-        
+
         // This update will trigger the animation in SubModuleList
         return {
           ...sub,
@@ -223,7 +233,9 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
     setErrors({ ...errors, UnitName: null });
 
     // Update the selected submodule to reflect the new unit
-    setSelectedSubModule(updatedSubModules.find(sub => sub.id === selectedSubModule.id));
+    setSelectedSubModule(
+      updatedSubModules.find((sub) => sub.id === selectedSubModule.id)
+    );
 
     Swal.fire({
       icon: "success",
@@ -231,8 +243,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       text: "New unit has been created successfully",
       timer: 1500,
       showConfirmButton: false,
-      background: '#fff',
-      color: '#1f2937',
+      background: "#fff",
+      color: "#1f2937",
     });
   };
 
@@ -245,8 +257,18 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
     description = "",
     url = null
   ) => {
+    console.log("DEBUG - Upload parameters:", {
+      unitId, // This is the unit ID UUID
+      customFileName, // Should be "TEST"
+      estimatedTime, // Should be 1
+      typeOfEstimatedTime: typeof estimatedTime,
+    });
     if (!userToken) {
-      Swal.fire("Error", "Authentication token missing. Please log in again.", "error");
+      Swal.fire(
+        "Error",
+        "Authentication token missing. Please log in again.",
+        "error"
+      );
       return false;
     }
 
@@ -257,8 +279,19 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
 
     if (file) {
       const allowedExtensions = [
-        ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx",
-        ".ppt", ".pptx", ".mp4", ".mov", ".ipynb", ".py",
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".gif",
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".ppt",
+        ".pptx",
+        ".mp4",
+        ".mov",
+        ".ipynb",
+        ".py",
       ];
 
       const fileExt = file.name.split(".").pop().toLowerCase();
@@ -281,7 +314,7 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       fileSize: file ? file.size : 0,
       estimatedTime: estimatedTime,
       description: description,
-      isLink: !!url
+      isLink: !!url,
     };
 
     setSubModules((prev) => {
@@ -304,8 +337,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         title: file ? "Uploading file..." : "Adding link...",
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading(),
-        background: '#fff',
-        color: '#1f2937',
+        background: "#fff",
+        color: "#1f2937",
       });
 
       const formData = new FormData();
@@ -313,7 +346,10 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       formData.append("subModuleId", subModuleId);
       formData.append("unitId", unitId);
       formData.append("percentage", equalPercentage);
-      formData.append("customFileName", customFileName || (file ? file.name : "Link"));
+      formData.append(
+        "customFileName",
+        customFileName || (file ? file.name : "Link")
+      );
       formData.append("estimatedTime", estimatedTime.toString());
 
       if (file) {
@@ -347,7 +383,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
 
       const finalFile = {
         id: uuidv4(),
-        originalName: customFileName || result.fileName || (file ? file.name : "Link"),
+        originalName:
+          customFileName || result.fileName || (file ? file.name : "Link"),
         filePath: result.filePath || url,
         fileType: result.mimeType || (file ? file.type : "link"),
         uploadedAt: new Date().toISOString(),
@@ -355,8 +392,14 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         fileSize: result.fileSize || (file ? file.size : 0),
         estimatedTime: estimatedTime,
         description: description,
-        isLink: !!url
+        isLink: !!url,
       };
+
+      console.log("DEBUG - API Response:", {
+        result,
+        fileName: result.fileName, // What is this?
+        filePath: result.filePath,
+      });
 
       const updated = subModules.map((subModule) => {
         if (subModule.id !== subModuleId) return subModule;
@@ -380,7 +423,11 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
 
       if (onSave) onSave(updatedModule);
 
-      Swal.fire("Success", file ? "File uploaded successfully" : "Link added successfully", "success");
+      Swal.fire(
+        "Success",
+        file ? "File uploaded successfully" : "Link added successfully",
+        "success"
+      );
       return true;
     } catch (error) {
       console.error("Upload error:", error);
@@ -407,9 +454,15 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
     }
   };
 
-  const handleUploadLink = async (url, linkName, description, estimatedTime) => {
+  const handleUploadLink = async (
+    unitId, url, linkName, description, estimatedTime
+  ) => {
     if (!userToken) {
-      Swal.fire("Error", "Authentication token missing. Please log in again.", "error");
+      Swal.fire(
+        "Error",
+        "Authentication token missing. Please log in again.",
+        "error"
+      );
       return false;
     }
 
@@ -418,7 +471,6 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       return false;
     }
 
-    let unitId;
     let updatedSubModules = [...subModules];
 
     if (selectedSubModule.units.length === 0) {
@@ -426,14 +478,14 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         id: uuidv4(),
         UnitName: "Resources",
         UnitDescription: "External resources and links",
-        files: []
+        files: [],
       };
 
-      updatedSubModules = subModules.map(sub => {
+      updatedSubModules = subModules.map((sub) => {
         if (sub.id === selectedSubModule.id) {
           return {
             ...sub,
-            units: [...sub.units, newUnit]
+            units: [...sub.units, newUnit],
           };
         }
         return sub;
@@ -469,8 +521,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
       confirmButtonColor: "#76B900",
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Yes",
-      background: '#fff',
-      color: '#1f2937',
+      background: "#fff",
+      color: "#1f2937",
     }).then((result) => {
       if (result.isConfirmed) {
         setSubModules((currentSubModules) => {
@@ -487,8 +539,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
             text: "All changes have been saved",
             timer: 1500,
             showConfirmButton: false,
-            background: '#fff',
-            color: '#1f2937',
+            background: "#fff",
+            color: "#1f2937",
           });
 
           return currentSubModules;
@@ -511,8 +563,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         confirmButtonColor: "#d33",
         cancelButtonColor: "#6b7280",
         confirmButtonText: "Yes, cancel!",
-        background: '#fff',
-        color: '#1f2937',
+        background: "#fff",
+        color: "#1f2937",
       }).then((result) => {
         if (result.isConfirmed) {
           onCancel();
@@ -534,13 +586,16 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
             <BookOpen className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" />
             {module.ModuleName}
           </h2>
-          <p className="text-gray-600 mt-1 text-sm lg:text-base">Manage submodules and their units</p>
+          <p className="text-gray-600 mt-1 text-sm lg:text-base">
+            Manage submodules and their units
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-            {subModules.length} {subModules.length === 1 ? "Submodule" : "Submodules"}
+            {subModules.length}{" "}
+            {subModules.length === 1 ? "Submodule" : "Submodules"}
           </div>
-          
+
           {/* Mobile toggle button */}
           {isMobile && selectedSubModule && (
             <motion.button
@@ -548,7 +603,11 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
               onClick={toggleSubModuleList}
               className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
             >
-              <Plus className={`w-5 h-5 transition-transform ${showSubModuleList ? 'rotate-45' : ''}`} />
+              <Plus
+                className={`w-5 h-5 transition-transform ${
+                  showSubModuleList ? "rotate-45" : ""
+                }`}
+              />
             </motion.button>
           )}
         </div>
@@ -559,7 +618,7 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         {errors.subModules && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 flex items-start gap-3"
           >
@@ -586,11 +645,17 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
               initial={isMobile ? { x: -300, opacity: 0 } : { opacity: 0 }}
               animate={isMobile ? { x: 0, opacity: 1 } : { opacity: 1 }}
               exit={isMobile ? { x: -300, opacity: 0 } : { opacity: 0 }}
-              className={`lg:col-span-1 ${isMobile ? 'fixed inset-0 z-50 bg-white p-4 overflow-y-auto' : ''}`}
+              className={`lg:col-span-1 ${
+                isMobile
+                  ? "fixed inset-0 z-50 bg-white p-4 overflow-y-auto"
+                  : ""
+              }`}
             >
               {isMobile && (
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800">Submodules</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Submodules
+                  </h3>
                   <button
                     onClick={toggleSubModuleList}
                     className="p-1 rounded-lg hover:bg-gray-100"
@@ -613,7 +678,15 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
         </AnimatePresence>
 
         {/* Right Panel */}
-        <div className={`${isMobile && !showSubModuleList ? 'block' : isMobile ? 'hidden' : 'block'} lg:col-span-2 space-y-4 lg:space-y-6`}>
+        <div
+          className={`${
+            isMobile && !showSubModuleList
+              ? "block"
+              : isMobile
+              ? "hidden"
+              : "block"
+          } lg:col-span-2 space-y-4 lg:space-y-6`}
+        >
           {selectedSubModule ? (
             <SubModuleDetails
               key={selectedSubModule.id}
@@ -637,7 +710,8 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
                 Select a submodule
               </h4>
               <p className="text-gray-500 mt-2 text-center max-w-md text-sm px-4">
-                Choose a submodule from the list to view details and manage units
+                Choose a submodule from the list to view details and manage
+                units
               </p>
               {isMobile && (
                 <motion.button
@@ -669,7 +743,7 @@ const SubModuleManager = ({ module = {}, onSave, onCancel }) => {
           <ArrowLeft className="w-4 h-4 lg:w-5 lg:h-5" />
           {isMobile && selectedSubModule ? "Back to List" : "Cancel"}
         </motion.button>
-        
+
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}

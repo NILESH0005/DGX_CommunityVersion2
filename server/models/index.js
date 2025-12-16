@@ -200,7 +200,3 @@ CommunityDiscussion.belongsTo(TableDDReference, {
 
 export default db;
 export { sequelize };
-
-
-
-

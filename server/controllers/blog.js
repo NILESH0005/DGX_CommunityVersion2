@@ -535,7 +535,7 @@ export const getBlogById = async (req, res) => {
   }
 };
 
-export const getPublicBlogs = async (req, res) => {
+export const getPublicBlogs = async (req, res) => { 
   try {
     const blogs = await db.CommunityBlog.findAll({
       where: {
@@ -554,14 +554,14 @@ export const getPublicBlogs = async (req, res) => {
             {
               model: db.User,
               as: "RepostUser",
-              attributes: ["UserID", "Name"],
+              attributes: ["UserID", "Name", "ProfilePicture"],
             },
           ],
         },
         {
           model: db.User,
           as: "User",
-          attributes: ["UserID", "Name"],
+          attributes: ["UserID", "Name","ProfilePicture"],
         },
       ],
       order: [["AddOnDt", "DESC"]],

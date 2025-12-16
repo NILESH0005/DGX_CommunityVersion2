@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import {
-  FileText,
-  UploadCloud,
-  Trash2,
-  Link as LinkIcon,
-} from "lucide-react";
+import { FileText, UploadCloud, Trash2, Link as LinkIcon } from "lucide-react";
 import Swal from "sweetalert2";
 import AddUnitForm from "./AddUnitForm";
 import UnitDetails from "./UnitDetails";
@@ -154,7 +149,6 @@ const SubModuleDetails = ({
 
     try {
       const success = await onUploadLink(
-        subModule.id,
         currentUnit.id,
         url,
         linkName,
@@ -169,7 +163,7 @@ const SubModuleDetails = ({
           fileType: "link",
           fileSize: 0,
           uploadDate: new Date().toISOString(),
-          estimatedTime: estimatedTime || "0 min",
+          estimatedTime: estimatedTime || 0,
           fileUrl: url,
           description: description,
           isNew: true,
@@ -236,7 +230,11 @@ const SubModuleDetails = ({
     <>
       <UnitDetails subModule={subModule} onImageClick={showImagePreview} />
 
-      <AddUnitForm onAddUnit={onAddUnit} errors={errors} setErrors={setErrors} />
+      <AddUnitForm
+        onAddUnit={onAddUnit}
+        errors={errors}
+        setErrors={setErrors}
+      />
 
       {subModule.units.length > 0 ? (
         <motion.div
@@ -335,9 +333,7 @@ const SubModuleDetails = ({
         >
           <FileText className="w-12 h-12 text-DGXgray mb-4" />
           <p className="text-DGXgray">No units added yet</p>
-          <p className="text-sm text-DGXgray mt-1">
-            Add your first unit above
-          </p>
+          <p className="text-sm text-DGXgray mt-1">Add your first unit above</p>
         </motion.div>
       )}
 

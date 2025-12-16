@@ -62,42 +62,47 @@ export default function UserDetails() {
   // Helper function to get full image URL
   const getFullImageUrl = (imagePath) => {
     if (!imagePath) return "";
-    
+
     if (imagePath.startsWith("http")) {
       return imagePath;
     }
-    
+
     // Check if it's already a full URL
-    if (imagePath.includes(baseUploadsUrl) || 
-        imagePath.startsWith("http://") || 
-        imagePath.startsWith("https://") ||
-        imagePath.startsWith("//")) {
+    if (
+      imagePath.includes(baseUploadsUrl) ||
+      imagePath.startsWith("http://") ||
+      imagePath.startsWith("https://") ||
+      imagePath.startsWith("//")
+    ) {
       return imagePath;
     }
-    
+
     return `${baseUploadsUrl}/${imagePath}`;
   };
 
   // Helper function to get profile image URL
   const getProfileImageUrl = (userData) => {
-    const profilePic = userData?.ProfilePicture || userData?.profilePicture || userData?.UserImage;
-    
+    const profilePic =
+      userData?.ProfilePicture ||
+      userData?.profilePicture ||
+      userData?.UserImage;
+
     if (!profilePic) {
       return Noimage; // Use your imported default image
     }
-    
+
     if (profilePic.startsWith("http") || profilePic.startsWith("//")) {
       return profilePic;
     }
-    
+
     if (profilePic.includes("uploads/")) {
       return `${baseUploadsUrl}/${profilePic}`;
     }
-    
+
     if (profilePic.includes(baseUploadsUrl)) {
       return profilePic;
     }
-    
+
     return `${baseUploadsUrl}/uploads/${profilePic}`;
   };
 
@@ -133,8 +138,7 @@ export default function UserDetails() {
         console.log("Discussions:", userDiscussions);
 
         setUserData({
-          ProfilePicture:
-            getProfileImageUrl(userData), // Use helper function
+          ProfilePicture: getProfileImageUrl(userData), // Use helper function
           UserDescription:
             userData.UserDescription ||
             userData.userDescription ||
@@ -144,19 +148,32 @@ export default function UserDetails() {
           EmailId: userData.EmailId || userData.emailId || "No email available",
         });
 
-        // Process blogs with proper image URLs
-        const processedBlogs = userBlogs.map(blog => ({
+        // Process blogs with proper image URLs and parse counts
+        const processedBlogs = userBlogs.map((blog) => ({
           ...blog,
-          image: blog.image ? getFullImageUrl(blog.image) : Noimage
+          image: blog.image ? getFullImageUrl(blog.image) : Noimage,
+          LikesCount: parseInt(blog.LikesCount) || 0,
+          ViewCount: parseInt(blog.ViewCount) || 0,
+          Rating: parseFloat(blog.Rating) || 0,
+          RepostCount: parseInt(blog.RepostCount) || 0,
+          CommentsCount: parseInt(blog.CommentsCount) || 0,
         }));
 
-        // Process discussions with proper image URLs
-        const processedDiscussions = userDiscussions.map(discussion => ({
+        // Process discussions with proper image URLs and parse counts
+        const processedDiscussions = userDiscussions.map((discussion) => ({
           ...discussion,
-          DiscussionImagePath: discussion.DiscussionImagePath ? 
-            getFullImageUrl(discussion.DiscussionImagePath) : Noimage,
-          image: discussion.image ? getFullImageUrl(discussion.image) : Noimage
+          DiscussionImagePath: discussion.DiscussionImagePath
+            ? getFullImageUrl(discussion.DiscussionImagePath)
+            : Noimage,
+          image: discussion.image ? getFullImageUrl(discussion.image) : Noimage,
+          LikesCount: parseInt(discussion.LikesCount) || 0,
+          ViewCount: parseInt(discussion.ViewCount) || 0,
+          CommentsCount: parseInt(discussion.CommentsCount) || 0,
+          RepostCount: parseInt(discussion.RepostCount) || 0,
         }));
+
+        console.log("Processed Blogs:", processedBlogs);
+        console.log("Processed Discussions:", processedDiscussions);
 
         setBlogs(processedBlogs);
         setDiscussions(processedDiscussions);
@@ -174,7 +191,7 @@ export default function UserDetails() {
       setIsLoading(false);
     }
   };
-  
+
   useEffect(() => {
     if (isLoading) {
       document.documentElement.classList.add("loading");
@@ -269,14 +286,14 @@ export default function UserDetails() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
       {/* Back Button */}
-      <div className="fixed top-6 left-6 z-50">
+      {/* <div className="fixed top-6 left-6 z-50">
         <button
           onClick={handleBack}
           className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-2xl p-3 shadow-2xl hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 transform hover:scale-105 border border-white/20"
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-      </div>
+      </div> */}
 
       {/* Hero Section */}
       <div className="relative">
@@ -294,7 +311,8 @@ export default function UserDetails() {
               {/* --- Profile Picture Section --- */}
               <div className="relative group">
                 <div className="relative w-40 h-40 rounded-2xl border-4 border-white shadow-2xl group-hover:scale-105 transition-all duration-500 overflow-hidden">
-                  {userData.ProfilePicture && userData.ProfilePicture !== Noimage ? (
+                  {userData.ProfilePicture &&
+                  userData.ProfilePicture !== Noimage ? (
                     <img
                       src={userData.ProfilePicture}
                       alt={userData.Name}
@@ -311,8 +329,6 @@ export default function UserDetails() {
                         : "U"}
                     </div>
                   )}
-                  {/* Online indicator */}
-                  <div className="absolute bottom-2 right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
                 </div>
                 {/* Hover overlay effect */}
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-DGXgreen/20 to-DGXblue/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -327,9 +343,6 @@ export default function UserDetails() {
                       <h1 className="text-5xl font-bold text-gray-900 dark:text-white">
                         {userData.Name || "Unknown User"}
                       </h1>
-                      <div className="bg-DGXblue text-white p-2 rounded-full">
-                        <User className="w-5 h-5" />
-                      </div>
                     </div>
 
                     {/* Email */}
@@ -363,56 +376,87 @@ export default function UserDetails() {
       {/* Content Section */}
       <div className="max-w-[1500px] mx-auto px-8 py-14">
         {/* --- Enhanced Stats Section --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
           {/* Blogs Published */}
-          <div className="relative bg-blue-50 rounded-2xl p-6 shadow-md border border-blue-100 hover:shadow-lg transition-all duration-300">
+          <div className="relative bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-6 shadow-md border border-blue-100 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <p className="text-gray-700 text-lg font-medium">Blogs</p>
-                <p className="text-3xl font-bold mt-1 text-black">
+                <p className="text-gray-700 dark:text-gray-300 text-lg font-medium">
+                  Blogs
+                </p>
+                <p className="text-3xl font-bold mt-1 text-black dark:text-white">
                   {blogs.length}
                 </p>
               </div>
               <div className="absolute top-4 right-4 opacity-30">
-                <BookOpen className="w-10 h-10 text-blue-400" />
+                <BookOpen className="w-10 h-10 text-blue-400 dark:text-blue-300" />
               </div>
             </div>
           </div>
 
           {/* Discussions */}
-          <div className="relative bg-teal-50 rounded-2xl p-6 shadow-md border border-teal-100 hover:shadow-lg transition-all duration-300">
+          <div className="relative bg-teal-50 dark:bg-teal-900/20 rounded-2xl p-6 shadow-md border border-teal-100 dark:border-teal-800 hover:shadow-lg transition-all duration-300">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <p className="text-gray-700 text-lg font-medium">Discussions</p>
-                <p className="text-3xl font-bold mt-1 text-black">
+                <p className="text-gray-700 dark:text-gray-300 text-lg font-medium">
+                  Discussions
+                </p>
+                <p className="text-3xl font-bold mt-1 text-black dark:text-white">
                   {discussions.length}
                 </p>
               </div>
               <div className="absolute top-4 right-4 opacity-30">
-                <MessageSquare className="w-10 h-10 text-teal-400" />
+                <MessageSquare className="w-10 h-10 text-teal-400 dark:text-teal-300" />
               </div>
             </div>
           </div>
 
-          {/* Total Engagement */}
-          <div className="relative bg-pink-50 rounded-2xl p-6 shadow-md border border-pink-100 hover:shadow-lg transition-all duration-300">
+          {/* Total Views */}
+          <div className="relative bg-purple-50 dark:bg-purple-900/20 rounded-2xl p-6 shadow-md border border-purple-100 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <p className="text-gray-700 text-lg font-medium">Total Likes</p>
-                <p className="text-3xl font-bold mt-1 text-black">
-                  {discussions.reduce(
-                    (total, discussion) =>
-                      total + (parseInt(discussion.LikesCount) || 0),
+                <p className="text-gray-700 dark:text-gray-300 text-lg font-medium">
+                  Total Views
+                </p>
+                <p className="text-3xl font-bold mt-1 text-black dark:text-white">
+                  {blogs.reduce(
+                    (total, blog) => total + (blog.ViewCount || 0),
                     0
                   ) +
-                    blogs.reduce(
-                      (total, blog) => total + (parseInt(blog.LikesCount) || 0),
+                    discussions.reduce(
+                      (total, discussion) =>
+                        total + (discussion.ViewCount || 0),
                       0
                     )}
                 </p>
               </div>
               <div className="absolute top-4 right-4 opacity-30">
-                <TrendingUp className="w-10 h-10 text-pink-400" />
+                <Eye className="w-10 h-10 text-purple-400 dark:text-purple-300" />
+              </div>
+            </div>
+          </div>
+
+          {/* Total Likes */}
+          <div className="relative bg-pink-50 dark:bg-pink-900/20 rounded-2xl p-6 shadow-md border border-pink-100 dark:border-pink-800 hover:shadow-lg transition-all duration-300">
+            <div className="flex flex-col justify-between h-full">
+              <div>
+                <p className="text-gray-700 dark:text-gray-300 text-lg font-medium">
+                  Total Likes
+                </p>
+                <p className="text-3xl font-bold mt-1 text-black dark:text-white">
+                  {blogs.reduce(
+                    (total, blog) => total + (blog.LikesCount || 0),
+                    0
+                  ) +
+                    discussions.reduce(
+                      (total, discussion) =>
+                        total + (discussion.LikesCount || 0),
+                      0
+                    )}
+                </p>
+              </div>
+              <div className="absolute top-4 right-4 opacity-30">
+                <Heart className="w-10 h-10 text-pink-400 dark:text-pink-300" />
               </div>
             </div>
           </div>
@@ -613,39 +657,29 @@ function ContentCard({
   };
 
   const getLikes = () => {
-    if (type === "discussions") return parseInt(item.LikesCount) || 0;
-    if (type === "blogs") return parseInt(item.LikesCount) || 0;
-    return 0;
+    return item.LikesCount || 0;
   };
 
   const getComments = () => {
-    if (type === "discussions") return parseInt(item.CommentsCount) || 0;
-    if (type === "blogs") return parseInt(item.comments) || 0;
-    return 0;
+    return item.CommentsCount || 0;
   };
 
   const getReposts = () => {
-    if (type === "discussions") return parseInt(item.RepostCount) || 0;
-    if (type === "blogs") return parseInt(item.RepostCount) || 0;
-    return 0;
+    return item.RepostCount || 0;
   };
 
   const getViews = () => {
-    if (type === "blogs")
-      return parseInt(item.ViewsCount) || Math.floor(Math.random() * 1000);
-    if (type === "discussions")
-      return parseInt(item.ViewsCount) || Math.floor(Math.random() * 500);
-    return 0;
+    return item.ViewCount || 0;
   };
 
   const getReadingTime = () => {
     const content = getContent();
     const words = content.split(" ").length;
-    return Math.ceil(words / 200); // Assuming 200 words per minute
+    return Math.ceil(words / 200);
   };
 
   const getRating = () => {
-    if (type === "blogs") return parseFloat(item.Rating) || 0;
+    if (type === "blogs") return item.Rating || 0;
     return 0;
   };
 
@@ -674,30 +708,39 @@ function ContentCard({
         color: isLiked ? "text-red-500" : "text-gray-500 dark:text-gray-400",
         tooltip: "Likes",
       },
-      {
-        icon: Repeat,
-        value: getReposts(),
-        color: "text-purple-500",
-        tooltip: "Reposts",
-      },
     ];
 
-    // Add rating only for blogs
+    // Add different metrics based on type
     if (type === "blogs") {
-      metrics.splice(2, 0, {
-        icon: Star,
-        value: getRating(),
-        color: "text-yellow-500",
-        tooltip: "Rating",
-      });
+      metrics.push(
+        {
+          icon: Star,
+          value: getRating(),
+          color: "text-yellow-500",
+          tooltip: "Rating",
+        },
+        {
+          icon: Repeat,
+          value: getReposts(),
+          color: "text-purple-500",
+          tooltip: "Reposts",
+        }
+      );
     } else {
-      // For non-blogs, show comments
-      metrics.splice(2, 0, {
-        icon: MessageCircle,
-        value: getComments(),
-        color: "text-green-500",
-        tooltip: "Comments",
-      });
+      metrics.push(
+        {
+          icon: MessageCircle,
+          value: getComments(),
+          color: "text-green-500",
+          tooltip: "Comments",
+        },
+        {
+          icon: Repeat,
+          value: getReposts(),
+          color: "text-purple-500",
+          tooltip: "Reposts",
+        }
+      );
     }
 
     return (
@@ -716,6 +759,18 @@ function ContentCard({
         </div>
       </div>
     );
+  };
+
+  // Function to format the content without HTML tags
+  const getPlainTextContent = () => {
+    const content = getContent();
+    if (!content) return "No content available";
+
+    // Remove HTML tags and limit length
+    const plainText = content.replace(/<[^>]*>/g, "");
+    return plainText.length > 200
+      ? plainText.substring(0, 200) + "..."
+      : plainText;
   };
 
   return (
@@ -742,15 +797,15 @@ function ContentCard({
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.style.display = "none";
-              // You can add fallback here if needed
+              e.target.src = Noimage;
             }}
           />
         </div>
       )}
 
       {/* Content Section */}
-      <div className="p-7 flex-1 flex flex-col justify-between">
+      <div className="p-7 flex flex-col justify-between h-[350px] overflow-hidden">
+
         {/* Title */}
         <div>
           <div className="flex items-start justify-between gap-3 mb-4">
@@ -767,8 +822,9 @@ function ContentCard({
           <div
             className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed line-clamp-3 mb-5 opacity-90 
                  group-hover:opacity-100 transition-opacity duration-300"
-            dangerouslySetInnerHTML={{ __html: getContent() }}
-          />
+          >
+            {getPlainTextContent()}
+          </div>
 
           {/* Tags */}
           {getTags().length > 0 && (
@@ -812,17 +868,20 @@ function ContentCard({
                   day: "numeric",
                 })}
               </span>
+              {type === "blogs" && (
+                <>
+                  <span className="mx-1">•</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {getReadingTime()} min read
+                  </span>
+                </>
+              )}
             </div>
           )}
 
-          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 
-                   transition-colors duration-300"
-            >
-              <Share2 className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-            </button>
-          </div>
+        
+         
         </div>
       </div>
     </div>

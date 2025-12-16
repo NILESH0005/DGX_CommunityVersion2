@@ -372,7 +372,7 @@ export const loginUser = async (email, password, ipAddress, deviceInfo) => {
       DeviceInfo: JSON.stringify(deviceInfo),
       AddOnDt: now,
       delStatus: 0,
-    }); 
+    });
 
     const payload = {
       user: {

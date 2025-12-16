@@ -549,7 +549,7 @@ export const getAllActiveFilesService = async () => {
     const [results] = await sequelize.query(query);
 
     // Use server environment variable
-    const BASE_URL = process.env.API_BASE_URL || "http://localhost:5000";
+    const BASE_URL = process.env.API_BASE_URL;
     const UPLOADS_URL = process.env.API_UPLOADS_URL || BASE_URL;
 
     const updatedResults = results.map((file) => {

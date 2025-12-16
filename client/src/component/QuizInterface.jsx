@@ -493,46 +493,6 @@ const QuizInterface = () => {
               transition={{ duration: 2, repeat: Infinity }}
             ></motion.div>
           </section>
-
-          {/* Motivational Carousel Section */}
-          <section className="py-12 md:py-20 bg-white/50 backdrop-blur-sm">
-            <div className="container mx-auto px-4 relative">
-              {/* Background Image with Overlay */}
-              <div className="absolute inset-0 z-0">
-                <img
-                  src={images.quiz}
-                  alt="Learning background"
-                  className="object-cover w-full h-full opacity-50"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-DGXgreen/20 to-DGXblue/20" />
-              </div>
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="text-center mb-8 md:mb-12 relative z-10"
-              >
-                <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-DGXblue-800 mt-8 md:mt-20 mb-4">
-                  Join the Learning Revolution
-                </h2>
-                <p className="text-lg md:text-xl lg:text-2xl text-DGXgreen-700 mx-auto max-w-2xl">
-                  Be inspired by our community's journey towards knowledge and
-                  excellence
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                viewport={{ once: true }}
-                className="max-w-4xl mx-auto relative z-10"
-              >
-                <MotivationalCarousel quotes={motivationalQuotes} />
-              </motion.div>
-            </div>
-          </section>
         </>
       )}
     </div>

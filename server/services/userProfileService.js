@@ -4,13 +4,16 @@ const {
   CommunityBlog,
   CommunityDiscussion,
   ContentInteractionLog,
+  ContentInteraction,
   TableDDReference,
 } = db;
-import { Op, fn, col } from "sequelize";
+import { Op, fn, col, literal  } from "sequelize";
 
 export const getUserProfileService = async (userId) => {
   try {
-    // Step 1: Fetch user details
+    // ==========================
+    // 1. FETCH USER DETAILS
+    // ==========================
     const user = await User.findOne({
       where: { UserID: userId, delStatus: 0 },
       attributes: [
@@ -27,7 +30,9 @@ export const getUserProfileService = async (userId) => {
       return { success: false, message: "User not found" };
     }
 
-    // Step 2: Fetch approved blogs
+    // ==========================
+    // 2. FETCH APPROVED BLOGS
+    // ==========================
     const blogs = await CommunityBlog.findAll({
       where: {
         UserID: userId,
@@ -51,30 +56,33 @@ export const getUserProfileService = async (userId) => {
         "allowRepost",
         "AddOnDt",
       ],
+      raw: true,
     });
 
     const blogIDs = blogs.map((b) => b.BlogID);
     let blogStats = {};
 
     if (blogIDs.length > 0) {
-      // Fetch Likes, Avg Rating, and Views
-      const blogInteractions = await ContentInteractionLog.findAll({
+      // ===== Fetch Interaction Stats (Likes, Rating, Views, etc)
+      const blogInteractions = await ContentInteraction.findAll({
         where: {
-          ProcessName: "blog",
-          reference: { [Op.in]: blogIDs },
+          Type: "Blog",
+          ReferenceId: { [Op.in]: blogIDs },
           delStatus: { [Op.or]: [0, null] },
         },
         attributes: [
-          "reference",
-          [fn("SUM", col("Likes")), "LikesCount"],
+          "ReferenceId",
+          [fn("SUM", literal("CASE WHEN Likes = 1 THEN 1 ELSE 0 END")), "LikesCount"],
+          [fn("SUM", literal("CASE WHEN Dislikes = 1 THEN 1 ELSE 0 END")), "DislikeCount"],
+          [fn("SUM", literal("CASE WHEN View = 1 THEN 1 ELSE 0 END")), "ViewCount"],
           [fn("AVG", col("Rating")), "AvgRating"],
-          [fn("SUM", col("View")), "ViewCount"], // 👈 Added view count aggregation
+          [fn("SUM", literal("CASE WHEN Repost = 1 THEN 1 ELSE 0 END")), "RepostCount"],
         ],
-        group: ["reference"],
+        group: ["ReferenceId"],
         raw: true,
       });
 
-      // Count Reposts
+      // Count blog reposts from blog table
       const blogReposts = await CommunityBlog.findAll({
         where: {
           RepostID: { [Op.in]: blogIDs },
@@ -85,41 +93,45 @@ export const getUserProfileService = async (userId) => {
         raw: true,
       });
 
-      // Combine all stats
+      // ==========================
+      // FIXED MERGING OF BLOG STATS
+      // ==========================
       blogStats = blogIDs.reduce((acc, id) => {
-        const stats = blogInteractions.find((i) => i.reference === id) || {};
-        const reposts =
-          blogReposts.find((r) => r.RepostID === id)?.RepostCount || 0;
+        const stats = blogInteractions.find((i) => i.ReferenceId === id) || {};
+        const reposts = blogReposts.find((r) => r.RepostID === id)?.RepostCount || 0;
 
-        // Parse AvgRating safely
-        const rawAvg = stats.AvgRating;
+        // Calculate rating safely
         let avgRating = 0;
-        if (rawAvg !== undefined && rawAvg !== null) {
-          const num = Number(rawAvg);
-          if (Number.isFinite(num)) {
-            avgRating = parseFloat(num.toFixed(1));
-          }
+        if (stats.AvgRating !== undefined && stats.AvgRating !== null) {
+          const num = Number(stats.AvgRating);
+          if (Number.isFinite(num)) avgRating = parseFloat(num.toFixed(1));
         }
 
         acc[id] = {
-          LikesCount: stats.LikesCount || 0,
-          AvgRating: avgRating,
-          RepostCount: reposts,
-          ViewCount: stats.ViewCount || 0, // 👈 Add ViewCount in final object
+          LikesCount: Number(stats.LikesCount) || 0,
+          Rating: avgRating || 0,
+          RepostCount: Number(reposts) || 0,
+          ViewCount: Number(stats.ViewCount) || 0,
         };
+
         return acc;
       }, {});
     }
 
+    // ==========================
+    // FINAL BLOG DATA
+    // ==========================
     const blogData = blogs.map((b) => ({
-      ...b.toJSON(),
+      ...b,
       LikesCount: blogStats[b.BlogID]?.LikesCount || 0,
-      Rating: blogStats[b.BlogID]?.AvgRating || 0,
+      Rating: blogStats[b.BlogID]?.Rating || 0,
       RepostCount: blogStats[b.BlogID]?.RepostCount || 0,
-      ViewCount: blogStats[b.BlogID]?.ViewCount || 0, // 👈 Added here too
+      ViewCount: blogStats[b.BlogID]?.ViewCount || 0,
     }));
 
-    // Step 3: Fetch Discussions
+    // ==========================
+    // 3. FETCH USER DISCUSSIONS
+    // ==========================
     const discussions = await CommunityDiscussion.findAll({
       where: {
         UserID: userId,
@@ -151,91 +163,80 @@ export const getUserProfileService = async (userId) => {
           attributes: ["ddValue"],
         },
       ],
+      raw: false,
     });
 
     const discussionIDs = discussions.map((d) => d.DiscussionID);
     let discussionStats = {};
 
     if (discussionIDs.length > 0) {
-      // Fetch Likes, Comments, and Views
-      const discussionInteractions = await ContentInteractionLog.findAll({
+      const interactions = await ContentInteraction.findAll({
         where: {
-          ProcessName: "discussion",
-          reference: { [Op.in]: discussionIDs },
+          Type: "Discussion",
+          ReferenceId: { [Op.in]: discussionIDs },
           delStatus: { [Op.or]: [0, null] },
         },
         attributes: [
-          "reference",
-          [fn("SUM", col("Likes")), "LikesCount"],
-          [fn("SUM", col("Rating")), "CommentsCount"],
-          [fn("SUM", col("View")), "ViewCount"], // 👈 Added view count aggregation
+          "ReferenceId",
+          [fn("SUM", literal("CASE WHEN Likes = 1 THEN 1 ELSE 0 END")), "LikesCount"],
+          [fn("SUM", literal("CASE WHEN View = 1 THEN 1 ELSE 0 END")), "ViewCount"],
+          [fn("SUM", literal("CASE WHEN Comments = 1 THEN 1 ELSE 0 END")), "CommentsCount"],
+          [fn("SUM", literal("CASE WHEN Repost = 1 THEN 1 ELSE 0 END")), "RepostCount"],
         ],
-        group: ["reference"],
-        raw: true,
-      });
-
-      const discussionComments = await CommunityDiscussion.findAll({
-        where: {
-          Reference: { [Op.in]: discussionIDs },
-          delStatus: { [Op.or]: [0, null] },
-        },
-        attributes: [
-          "Reference",
-          [fn("COUNT", col("DiscussionID")), "CommentCount"],
-        ],
-        group: ["Reference"],
+        group: ["ReferenceId"],
         raw: true,
       });
 
       const discussionReposts = await CommunityDiscussion.findAll({
-        where: {
-          RepostID: { [Op.in]: discussionIDs },
-          delStatus: 0,
-        },
+        where: { RepostID: { [Op.in]: discussionIDs }, delStatus: 0 },
         attributes: ["RepostID", [fn("COUNT", col("RepostID")), "RepostCount"]],
         group: ["RepostID"],
         raw: true,
       });
 
+      const discussionComments = await CommunityDiscussion.findAll({
+        where: { Reference: { [Op.in]: discussionIDs }, delStatus: 0 },
+        attributes: ["Reference", [fn("COUNT", col("DiscussionID")), "CommentCount"]],
+        group: ["Reference"],
+        raw: true,
+      });
+
       discussionStats = discussionIDs.reduce((acc, id) => {
-        const stats = discussionInteractions.find((i) => i.reference === id) || {};
-        const commentCount =
-          discussionComments.find((c) => c.Reference === id)?.CommentCount || 0;
-        const reposts =
-          discussionReposts.find((r) => r.RepostID === id)?.RepostCount || 0;
+        const stats = interactions.find((i) => i.ReferenceId === id) || {};
+        const reposts = discussionReposts.find((r) => r.RepostID === id)?.RepostCount || 0;
+        const comments = discussionComments.find((c) => c.Reference === id)?.CommentCount || 0;
 
         acc[id] = {
-          LikesCount: stats.LikesCount || 0,
-          CommentsCount: commentCount,
-          RepostCount: reposts,
-          ViewCount: stats.ViewCount || 0, // 👈 Added view count
+          LikesCount: Number(stats.LikesCount) || 0,
+          CommentsCount: Number(comments) || 0,
+          RepostCount: Number(reposts) || 0,
+          ViewCount: Number(stats.ViewCount) || 0,
         };
+
         return acc;
       }, {});
     }
 
+    // ==========================
+    // FINAL DISCUSSION DATA
+    // ==========================
     const discussionData = discussions.map((d) => ({
       ...d.toJSON(),
       Visibility: d.VisibilityRef?.ddValue || "Private",
       LikesCount: discussionStats[d.DiscussionID]?.LikesCount || 0,
       CommentsCount: discussionStats[d.DiscussionID]?.CommentsCount || 0,
       RepostCount: discussionStats[d.DiscussionID]?.RepostCount || 0,
-      ViewCount: discussionStats[d.DiscussionID]?.ViewCount || 0, // 👈 Added here too
+      ViewCount: discussionStats[d.DiscussionID]?.ViewCount || 0,
     }));
 
-    // Step 4: Return Final Data
+    // ==========================
+    // FINAL RETURN
+    // ==========================
     return {
       success: true,
       message: "User profile fetched successfully",
       data: {
-        user: {
-          UserID: user.UserID,
-          ProfilePicture: user.ProfilePicture,
-          UserDescription: user.UserDescription,
-          Name: user.Name,
-          AddOnDt: user.AddOnDt,
-          EmailId: user.EmailId,
-        },
+        user: user.toJSON(),
         blogs: blogData,
         discussions: discussionData,
       },
@@ -245,8 +246,6 @@ export const getUserProfileService = async (userId) => {
     throw error;
   }
 };
-
-
 
 
 // export const getUserDiscussionsService = async (userEmail) => {
@@ -382,8 +381,6 @@ export const getUserProfileService = async (userId) => {
 //     throw error;
 //   }
 // };
-
-
 
 export const getUserDiscussionsService = async (userEmail) => {
   try {
