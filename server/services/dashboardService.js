@@ -470,11 +470,27 @@ export const getTrendingDiscussionService = async (
       filters: { processName, startDate, endDate },
     };
   } catch (error) {
-    console.error("Trending Discussion Service Error:", error);
-    console.error("SQL MESSAGE:", error.message);
+    console.error("Trending Discussion Service Error");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    if (error.original) {
+      console.error("Original DB error:", error.original);
+    }
+
+    if (error.parent) {
+      console.error("Parent DB error:", error.parent);
+    }
+
     if (error.sql) {
       console.error("SQL:", error.sql);
     }
+
+    if (error.parameters) {
+      console.error("Parameters:", error.parameters);
+    }
+
+    console.error("Full error object:", error);
+
     throw error;
   }
 };
