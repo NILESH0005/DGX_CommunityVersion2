@@ -375,11 +375,10 @@ export const getTrendingDiscussionService = async (
     let dateCondition = "";
     const replacements = { processName };
     if (startDate && endDate) {
-      dateCondition = `AND CAST(c.AddOnDt AS DATE) BETWEEN :startDate AND :endDate`;
+      dateCondition = "AND c.AddOnDt BETWEEN :startDate AND :endDate";
       replacements.startDate = startDate;
       replacements.endDate = endDate;
     }
-
     const query = `
       WITH UserFinalLikes AS (
           SELECT 
@@ -429,11 +428,11 @@ export const getTrendingDiscussionService = async (
       ReferenceViews AS (
           SELECT 
               c.reference,
-              SUM(IFNULL(c.\`View\`, 0)) AS ViewCount
+              SUM(IFNULL(c.View, 0)) AS ViewCount
           FROM Content_Interaction_Log c
           WHERE c.ProcessName = :processName
             AND IFNULL(c.delStatus, 0) = 0
-            AND c.\`View\` = 1
+            AND c.View = 1
             ${dateCondition}
           GROUP BY c.reference
       )
@@ -443,10 +442,10 @@ export const getTrendingDiscussionService = async (
           IFNULL(c.CommentCount, 0) AS CommentCount,
           IFNULL(rp.RepostCount, 0) AS RepostCount,
           IFNULL(v.ViewCount, 0) AS ViewCount,
-          ANY_VALUE(d.title) AS title,
-          ANY_VALUE(d.content) AS content,
-          ANY_VALUE(d.AddOnDt) AS AddOnDt,
-          ANY_VALUE(u.Name) AS author
+          d.title,
+          d.content,
+          d.AddOnDt,
+          u.Name AS author
       FROM ReferenceLikes r
       LEFT JOIN ReferenceComments c ON r.reference = c.reference
       LEFT JOIN ReferenceRepost rp ON r.reference = rp.reference
@@ -454,15 +453,13 @@ export const getTrendingDiscussionService = async (
       LEFT JOIN Community_Discussions d ON d.DiscussionID = r.reference
       LEFT JOIN Community_User u ON d.AuthAdd = u.UserID
       WHERE IFNULL(d.delStatus,0) = 0
-        AND d.\`Reference\` = 0
+        AND d.Reference = 0
       ORDER BY r.LikeCount DESC;
     `;
-
     const trending = await sequelize.query(query, {
       replacements,
       type: sequelize.QueryTypes.SELECT,
     });
-
     return {
       success: true,
       data: trending,
@@ -470,27 +467,7 @@ export const getTrendingDiscussionService = async (
       filters: { processName, startDate, endDate },
     };
   } catch (error) {
-    console.error("Trending Discussion Service Error");
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    if (error.original) {
-      console.error("Original DB error:", error.original);
-    }
-
-    if (error.parent) {
-      console.error("Parent DB error:", error.parent);
-    }
-
-    if (error.sql) {
-      console.error("SQL:", error.sql);
-    }
-
-    if (error.parameters) {
-      console.error("Parameters:", error.parameters);
-    }
-
-    console.error("Full error object:", error);
-
+    console.error("Trending Discussion Service Error:", error);
     throw error;
   }
 };
