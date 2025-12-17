@@ -2,7 +2,7 @@ import db from "../models/index.js";
 import sequelize from "../config/database.js";
 import { Op } from "sequelize";
 
-const {  CommunityBlog, User, CommunityEvents } = db;
+const { CommunityBlog, User, CommunityEvents } = db;
 
 export const getTrendingBlogsService = async (
   startDate = null,
@@ -11,53 +11,106 @@ export const getTrendingBlogsService = async (
   try {
     const processName = "Blog";
 
-    // Build WHERE conditions dynamically
     let dateCondition = "";
     const replacements = { processName };
 
     if (startDate && endDate) {
-      dateCondition = "AND ci.AddOnDt BETWEEN :startDate AND :endDate";
+      dateCondition =
+        "AND CAST(c.AddOnDt AS DATE) BETWEEN :startDate AND :endDate";
       replacements.startDate = startDate;
       replacements.endDate = endDate;
     }
 
     const mainQuery = `
+      WITH UserFinalLikes AS (
+          SELECT 
+              c.reference,
+              c.UserID,
+              CAST(
+                  SUBSTRING_INDEX(
+                      GROUP_CONCAT(c.Likes ORDER BY c.AddOnDt DESC),
+                      ',', 1
+                  ) AS UNSIGNED
+              ) AS final_like
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            ${dateCondition}
+          GROUP BY c.reference, c.UserID
+      ),
+
+      ReferenceLikes AS (
+          SELECT 
+              reference,
+              SUM(final_like) AS LikeCount
+          FROM UserFinalLikes
+          GROUP BY reference
+      ),
+
+      ReferenceRepost AS (
+          SELECT 
+              c.reference,
+              SUM(IFNULL(c.Repost, 0)) AS RepostCount
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            ${dateCondition}
+            AND c.Repost = 1
+          GROUP BY c.reference
+      ),
+
+      ReferenceViews AS (
+          SELECT 
+              c.reference,
+              SUM(IFNULL(c.View, 0)) AS ViewCount
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            ${dateCondition}
+            AND c.View = 1
+          GROUP BY c.reference
+      ),
+
+      ReferenceRating AS (
+          SELECT 
+              c.reference,
+              ROUND(AVG(c.Rating), 2) AS AvgRating,
+              COUNT(c.Rating) AS RatingCount
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            AND c.Rating > 0
+            ${dateCondition}
+          GROUP BY c.reference
+      )
+
       SELECT 
-        SUM(ci.Likes = 1) AS claps,
-        COUNT(ci.Rating) AS ratingCount,
-        COUNT(ci.View) AS viewCount,
-        ci.reference,
-        cb.title,
-        cb.content,
-        cb.AddOnDt,
-        cb.Category,
-        u.Name AS author,
-        ci.ProcessName,
+          rl.reference,
+          rl.LikeCount AS claps,
+          IFNULL(rv.ViewCount, 0) AS viewCount,
+          IFNULL(rr.RepostCount, 0) AS repostCount,
+          IFNULL(rt.AvgRating, 0) AS avgRating,
+          IFNULL(rt.RatingCount, 0) AS ratingCount,
 
-        (
-          SELECT COUNT(*) 
-          FROM Community_Blog r
-          WHERE r.RepostID = cb.BlogID 
-            AND IFNULL(r.delStatus, 0) = 0
-        ) AS repostCount
+          cb.title,
+          cb.content,
+          cb.Category,
+          cb.AddOnDt,
+          u.Name AS author
 
-      FROM Content_Interaction_Log ci
-      LEFT JOIN Community_Blog cb ON cb.BlogID = ci.Reference
+      FROM ReferenceLikes rl
+      LEFT JOIN ReferenceViews rv ON rl.reference = rv.reference
+      LEFT JOIN ReferenceRepost rr ON rl.reference = rr.reference
+      LEFT JOIN ReferenceRating rt ON rl.reference = rt.reference
+
+      LEFT JOIN Community_Blog cb ON cb.BlogID = rl.reference
       LEFT JOIN Community_User u ON u.UserID = cb.AuthAdd
 
-      WHERE ci.ProcessName = :processName
-        AND cb.RepostID IS NULL       
-        AND IFNULL(ci.delStatus, 0) = 0
+      WHERE cb.RepostID IS NULL
         AND IFNULL(cb.delStatus, 0) = 0
         AND IFNULL(u.delStatus, 0) = 0
-        ${dateCondition}
 
-      GROUP BY 
-        ci.reference,
-        ci.Likes,
-        ci.ProcessName
-
-      ORDER BY claps DESC;
+      ORDER BY rl.LikeCount DESC;
     `;
 
     const blogStats = await sequelize.query(mainQuery, {
@@ -65,57 +118,9 @@ export const getTrendingBlogsService = async (
       type: sequelize.QueryTypes.SELECT,
     });
 
-    // Rating frequency query with date filter
-    const ratingQuery = `
-      SELECT 
-        COUNT(reference) AS frqBlog,
-        reference 
-      FROM Content_Interaction_Log
-      WHERE ProcessName = :processName
-        AND IFNULL(delStatus, 0) = 0
-        ${
-          startDate && endDate
-            ? "AND AddOnDt BETWEEN :startDate AND :endDate"
-            : ""
-        }
-      GROUP BY reference;
-    `;
-
-    const ratingFreq = await sequelize.query(ratingQuery, {
-      replacements,
-      type: sequelize.QueryTypes.SELECT,
-    });
-
-    const ratingMap = {};
-    ratingFreq.forEach((row) => {
-      ratingMap[row.reference] = row.frqBlog;
-    });
-
-    const finalData = blogStats.map((b) => {
-      const avgRating =
-        b.ratingCount > 0
-          ? (b.ratingCount / (ratingMap[b.reference] || 1)).toFixed(2)
-          : "0.00";
-
-      return {
-        reference: b.reference,
-        title: b.title,
-        content: b.content,
-        category: b.Category,
-        author: b.author,
-        addedOn: b.AddOnDt,
-        claps: b.claps,
-        ratings: b.ratingCount,
-        avgRating,
-        views: b.viewCount,
-        repostCount: b.repostCount,
-        processName: b.ProcessName,
-      };
-    });
-
     return {
       success: true,
-      data: finalData,
+      data: blogStats,
       message: "Trending blogs fetched successfully",
       filters: {
         processName,
@@ -129,83 +134,83 @@ export const getTrendingBlogsService = async (
   }
 };
 
-export const getTrendingDiscussionService = async (
-  startDate = null,
-  endDate = null
-) => {
-  try {
-    const processName = "Discussion";
+// export const getTrendingDiscussionService = async (
+//   startDate = null,
+//   endDate = null
+// ) => {
+//   try {
+//     const processName = "Discussion";
 
-    // Build WHERE conditions dynamically
-    let dateCondition = "";
-    const replacements = { processName };
+//     // Build WHERE conditions dynamically
+//     let dateCondition = "";
+//     const replacements = { processName };
 
-    if (startDate && endDate) {
-      dateCondition = "AND ci.AddOnDt BETWEEN :startDate AND :endDate";
-      replacements.startDate = startDate;
-      replacements.endDate = endDate;
-    }
+//     if (startDate && endDate) {
+//       dateCondition = "AND ci.AddOnDt BETWEEN :startDate AND :endDate";
+//       replacements.startDate = startDate;
+//       replacements.endDate = endDate;
+//     }
 
-    const query = `
-      SELECT 
-        SUM(ci.Likes = 1) AS likes,
-        COUNT(ci.View) AS viewCount,
-        ci.reference,
-        cd.title,
-        cd.content,
-        cd.AddOnDt,
-        u.Name AS author,
-        ci.ProcessName,
-        COUNT(cd1.DiscussionID) AS repostCount,
-        COUNT(DISTINCT cd2.DiscussionID) AS commentCount
+//     const query = `
+//       SELECT
+//         SUM(ci.Likes = 1) AS likes,
+//         COUNT(ci.View) AS viewCount,
+//         ci.reference,
+//         cd.title,
+//         cd.content,
+//         cd.AddOnDt,
+//         u.Name AS author,
+//         ci.ProcessName,
+//         COUNT(cd1.DiscussionID) AS repostCount,
+//         COUNT(DISTINCT cd2.DiscussionID) AS commentCount
 
-      FROM Content_Interaction_Log ci
-      LEFT JOIN community_discussions cd 
-        ON cd.DiscussionID = ci.Reference
-      LEFT JOIN Community_User u 
-        ON cd.AuthAdd = u.UserID
-      LEFT JOIN community_discussions cd1 
-        ON cd.DiscussionID = cd1.RepostID
-      LEFT JOIN community_discussions cd2 
-        ON cd.DiscussionID = cd2.Reference
+//       FROM Content_Interaction_Log ci
+//       LEFT JOIN community_discussions cd
+//         ON cd.DiscussionID = ci.Reference
+//       LEFT JOIN Community_User u
+//         ON cd.AuthAdd = u.UserID
+//       LEFT JOIN community_discussions cd1
+//         ON cd.DiscussionID = cd1.RepostID
+//       LEFT JOIN community_discussions cd2
+//         ON cd.DiscussionID = cd2.Reference
 
-      WHERE 
-        ci.ProcessName = :processName
-        AND IFNULL(ci.delStatus, 0) = 0
-        AND IFNULL(cd.delStatus, 0) = 0
-        AND IFNULL(u.delStatus, 0) = 0
-        AND cd.Content IS NOT NULL
-        AND cd.Reference = 0
-        ${dateCondition}
+//       WHERE
+//         ci.ProcessName = :processName
+//         AND IFNULL(ci.delStatus, 0) = 0
+//         AND IFNULL(cd.delStatus, 0) = 0
+//         AND IFNULL(u.delStatus, 0) = 0
+//         AND cd.Content IS NOT NULL
+//         AND cd.Reference = 0
+//         ${dateCondition}
 
-      GROUP BY 
-        ci.reference,
-        ci.Likes,
-        ci.ProcessName
+//       GROUP BY
+//         ci.reference,
+//         ci.Likes,
+//         ci.ProcessName
 
-      ORDER BY likes DESC;
-    `;
+//       ORDER BY likes DESC;
+//     `;
 
-    const discussionStats = await sequelize.query(query, {
-      replacements,
-      type: sequelize.QueryTypes.SELECT,
-    });
+//     const discussionStats = await sequelize.query(query, {
+//       replacements,
+//       type: sequelize.QueryTypes.SELECT,
+//     });
 
-    return {
-      success: true,
-      data: discussionStats,
-      message: "Trending discussions fetched successfully",
-      filters: {
-        processName,
-        startDate,
-        endDate,
-      },
-    };
-  } catch (error) {
-    console.error("Trending Discussion Service Error:", error);
-    throw error;
-  }
-};
+//     return {
+//       success: true,
+//       data: discussionStats,
+//       message: "Trending discussions fetched successfully",
+//       filters: {
+//         processName,
+//         startDate,
+//         endDate,
+//       },
+//     };
+//   } catch (error) {
+//     console.error("Trending Discussion Service Error:", error);
+//     throw error;
+//   }
+// };
 
 export const getApprovalCountsService = async () => {
   try {
@@ -356,6 +361,113 @@ export const getDeviceAnalyticsService = async () => {
     };
   } catch (error) {
     console.error("Device Analytics Service Error:", error);
+    throw error;
+  }
+};
+
+export const getTrendingDiscussionService = async (
+  startDate = null,
+  endDate = null
+) => {
+  try {
+    const processName = "Discussion";
+
+    let dateCondition = "";
+    const replacements = { processName };
+    if (startDate && endDate) {
+      dateCondition = `AND CAST(c.AddOnDt AS DATE) BETWEEN :startDate AND :endDate`;
+      replacements.startDate = startDate;
+      replacements.endDate = endDate;
+    }
+    const query = `
+      WITH UserFinalLikes AS (
+          SELECT 
+              c.reference,
+              c.UserID,
+              CAST(
+                  SUBSTRING_INDEX(
+                      GROUP_CONCAT(c.Likes ORDER BY c.AddOnDt DESC),
+                      ',', 1
+                  ) AS UNSIGNED
+              ) AS final_like
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            ${dateCondition}
+          GROUP BY c.reference, c.UserID
+      ),
+      ReferenceLikes AS (
+          SELECT 
+              reference,
+              SUM(final_like) AS LikeCount
+          FROM UserFinalLikes
+          GROUP BY reference
+      ),
+      ReferenceComments AS (
+          SELECT 
+              c.reference,
+              SUM(IFNULL(c.Comments, 0)) AS CommentCount
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            AND c.Comments = 1
+            ${dateCondition}
+          GROUP BY c.reference
+      ),
+      ReferenceRepost AS (
+          SELECT 
+              c.reference,
+              SUM(IFNULL(c.Repost, 0)) AS RepostCount
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            AND c.Repost = 1
+            ${dateCondition}
+          GROUP BY c.reference
+      ),
+      ReferenceViews AS (
+          SELECT 
+              c.reference,
+              SUM(IFNULL(c.View, 0)) AS ViewCount
+          FROM Content_Interaction_Log c
+          WHERE c.ProcessName = :processName
+            AND IFNULL(c.delStatus, 0) = 0
+            AND c.View = 1
+            ${dateCondition}
+          GROUP BY c.reference
+      )
+      SELECT 
+          r.reference,
+          r.LikeCount,
+          IFNULL(c.CommentCount, 0) AS CommentCount,
+          IFNULL(rp.RepostCount, 0) AS RepostCount,
+          IFNULL(v.ViewCount, 0) AS ViewCount,
+          d.title,
+          d.content,
+          d.AddOnDt,
+          u.Name AS author
+      FROM ReferenceLikes r
+      LEFT JOIN ReferenceComments c ON r.reference = c.reference
+      LEFT JOIN ReferenceRepost rp ON r.reference = rp.reference
+      LEFT JOIN ReferenceViews v ON r.reference = v.reference
+      LEFT JOIN community_discussions d ON d.DiscussionID = r.reference
+      LEFT JOIN Community_User u ON d.AuthAdd = u.UserID
+      WHERE IFNULL(d.delStatus,0) = 0
+        AND d.Reference = 0
+      ORDER BY r.LikeCount DESC;
+    `;
+    const trending = await sequelize.query(query, {
+      replacements,
+      type: sequelize.QueryTypes.SELECT,
+    });
+    return {
+      success: true,
+      data: trending,
+      message: "Trending discussions fetched successfully",
+      filters: { processName, startDate, endDate },
+    };
+  } catch (error) {
+    console.error("Trending Discussion Service Error:", error);
     throw error;
   }
 };

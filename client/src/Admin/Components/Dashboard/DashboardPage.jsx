@@ -18,7 +18,6 @@ const DashboardPage = () => {
   const [calculatedRange, setCalculatedRange] = useState({ from: "", to: "" });
   const [isCustomRangeValid, setIsCustomRangeValid] = useState(false);
 
-  // Helper function to format date for display
   const formatDateForDisplay = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -26,7 +25,6 @@ const DashboardPage = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Helper function to format date for display with readable format
   const formatDateReadable = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -36,7 +34,6 @@ const DashboardPage = () => {
     });
   };
 
-  // Calculate date range based on filter type
   const calculateDateRange = (type, customFrom = "", customTo = "") => {
     const today = new Date();
     let fromDate = new Date();
@@ -90,7 +87,6 @@ const DashboardPage = () => {
     };
   };
 
-  // Check if custom range is valid (both dates selected and from <= to)
   const validateCustomRange = (from, to) => {
     if (!from || !to) return false;
     
@@ -100,7 +96,6 @@ const DashboardPage = () => {
     return fromDate <= toDate;
   };
 
-  // Handle custom range changes
   const handleCustomRangeChange = (field, value) => {
     const newCustomRange = {
       ...customRange,
@@ -109,7 +104,6 @@ const DashboardPage = () => {
     
     setCustomRange(newCustomRange);
     
-    // Check if both dates are selected and valid
     const isValid = validateCustomRange(newCustomRange.from, newCustomRange.to);
     setIsCustomRangeValid(isValid);
     
@@ -122,7 +116,6 @@ const DashboardPage = () => {
     }
   };
 
-  // Handle filter type change
   const handleFilterChange = (e) => {
     const newFilterType = e.target.value;
     setFilterType(newFilterType);
@@ -149,7 +142,6 @@ const DashboardPage = () => {
     }
   };
 
-  // Update calculated range when filter changes
   useEffect(() => {
     if (filterType !== "custom") {
       const range = calculateDateRange(filterType);
@@ -345,7 +337,6 @@ const DashboardPage = () => {
                       if (filterType === "custom") {
                         handleCustomRangeChange("to", e.target.value);
                       } else {
-                        // If not in custom mode, switch to custom mode with this date
                         setFilterType("custom");
                         handleCustomRangeChange("to", e.target.value);
                       }
@@ -354,7 +345,6 @@ const DashboardPage = () => {
                   />
                 </div>
 
-                {/* Date Range Display Badge */}
                 <div className={`
                   px-3 py-1.5 
                   ${getBadgeColor()}

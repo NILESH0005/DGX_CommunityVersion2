@@ -39,10 +39,8 @@ const UserAvatar = ({ user, onImageUpdate, refreshUserData }) => {
 
   // Get the image URL to display
   const getProfileImageUrl = () => {
-    // Always show preview if available (uploaded but not saved yet)
     if (previewImage) return previewImage;
 
-    // Otherwise show current profile image
     return currentProfileImage;
   };
 

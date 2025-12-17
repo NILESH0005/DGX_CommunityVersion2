@@ -2,34 +2,6 @@ import React, { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../../../context/ApiContext";
 import moment from 'moment';
-/* -------------------------------
-   SPARKLINE COMPONENT (Optional - you can remove if not needed)
--------------------------------- */
-// const Sparkline = ({ data, width = 60, height = 20, color = "#3B82F6" }) => {
-//   const max = Math.max(...data);
-//   const min = Math.min(...data);
-
-//   const points = data
-//     .map((value, index) => {
-//       const x = (index / (data.length - 1)) * width;
-//       const y = height - ((value - min) / (max - min)) * height;
-//       return `${x},${y}`;
-//     })
-//     .join(" ");
-
-//   return (
-//     <svg width={width} height={height} className="flex-shrink-0">
-//       <polyline
-//         points={points}
-//         fill="none"
-//         stroke={color}
-//         strokeWidth="2"
-//         strokeLinecap="round"
-//         strokeLinejoin="round"
-//       />
-//     </svg>
-//   );
-// };
 
 /* -------------------------------
    RANK BADGE COMPONENT
@@ -105,25 +77,25 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
       return [
         {
           label: "Likes",
-          value: item.likes,
+          value: item.LikeCount,
           icon: "👍",
           color: "text-blue-600",
         },
         {
           label: "Comments",
-          value: item.commentCount,
+          value: item.CommentCount,
           icon: "💬",
           color: "text-green-600",
         },
         {
           label: "Reposts",
-          value: item.repostCount,
+          value: item.RepostCount,
           icon: "🔁",
           color: "text-purple-600",
         },
         {
           label: "Views",
-          value: item.viewCount,
+          value: item.ViewCount,
           icon: "👀",
           color: "text-gray-600",
         },
@@ -248,25 +220,25 @@ const Card = ({ item, type }) => {
       return [
         {
           label: "Likes",
-          value: item.likes,
+          value: item.likes || item.LikeCount,
           icon: "👍",
           color: "text-blue-600",
         },
         {
           label: "Comments",
-          value: item.commentCount,
+          value: item.commentCount || item.CommentCount,
           icon: "💬",
           color: "text-green-600",
         },
         {
           label: "Reposts",
-          value: item.repostCount,
+          value: item.repostCount || item.RepostCount,
           icon: "🔁",
           color: "text-purple-600",
         },
         {
           label: "Views",
-          value: item.viewCount,
+          value: item.viewCount || item.ViewCount,
           icon: "👀",
           color: "text-gray-600",
         },
@@ -278,7 +250,6 @@ const Card = ({ item, type }) => {
   const shadowColor =
     type === "blog" ? "hover:shadow-blue-500/20" : "hover:shadow-green-500/20";
 
-  // Strip HTML tags from content for preview
   const stripHtmlTags = (html) => {
     if (!html) return "";
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -309,11 +280,9 @@ const Card = ({ item, type }) => {
             <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
               <span>by {item.author || "Unknown"}</span>
               <div className="flex items-center gap-2">
-                
                 <span className="text-gray-400">
-  {moment(item.addedOn).format("MMMM D, YYYY")}
-</span>
-
+                  {moment(item.addedOn || item.AddOnDt).format("MMMM D, YYYY")}
+                </span>
               </div>
             </div>
 
@@ -374,7 +343,7 @@ const Card = ({ item, type }) => {
 /* -------------------------------
    MAIN TRENDING SECTION
 -------------------------------- */
-const TrendingSection = () => {
+const TrendingSection = ({ dateFilter }) => {
   const { fetchData } = useContext(ApiContext);
   const [activeTab, setActiveTab] = useState("blogs");
   const [blogSortBy, setBlogSortBy] = useState("claps");
@@ -384,20 +353,16 @@ const TrendingSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchTrendingBlogs = async () => {
+  // Function to fetch trending blogs with date range
+  const fetchTrendingBlogs = async (fromDate, toDate) => {
     try {
-      const response = await fetchData("dashboard/getTrendingBlogs", "GET");
+      const response = await fetchData(
+        `dashboard/getTrendingBlogs?startDate=${fromDate}&endDate=${toDate}`, 
+        "GET"
+      );
 
       if (response.success && response.data) {
-        const blogsWithRank = response.data
-          .sort((a, b) => b.claps - a.claps)
-          .slice(0, 3) 
-          .map((blog, index) => ({
-            ...blog,
-            rank: index + 1,
-          }));
-
-        setTrendingBlogs(blogsWithRank);
+        setTrendingBlogs(response.data);
       } else {
         throw new Error("Failed to fetch trending blogs");
       }
@@ -407,24 +372,16 @@ const TrendingSection = () => {
     }
   };
 
-  const fetchTrendingDiscussions = async () => {
+  // Function to fetch trending discussions with date range
+  const fetchTrendingDiscussions = async (fromDate, toDate) => {
     try {
       const response = await fetchData(
-        "dashboard/getTrendingDiscussion",
+        `dashboard/getTrendingDiscussion?startDate=${fromDate}&endDate=${toDate}`,
         "GET"
       );
 
       if (response.success && response.data) {
-        // Add rank based on likes (or your preferred metric)
-        const discussionsWithRank = response.data
-          .sort((a, b) => b.likes - a.likes)
-          .slice(0, 3) // Take only top 3
-          .map((discussion, index) => ({
-            ...discussion,
-            rank: index + 1,
-          }));
-
-        setTrendingDiscussions(discussionsWithRank);
+        setTrendingDiscussions(response.data);
       } else {
         throw new Error("Failed to fetch trending discussions");
       }
@@ -434,12 +391,19 @@ const TrendingSection = () => {
     }
   };
 
-  // Fetch all data
+  // Fetch all data with current date range
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
-      await Promise.all([fetchTrendingBlogs(), fetchTrendingDiscussions()]);
+      
+      // Only fetch if dateFilter has valid dates
+      if (dateFilter && dateFilter.isValid && dateFilter.from && dateFilter.to) {
+        await Promise.all([
+          fetchTrendingBlogs(dateFilter.from, dateFilter.to),
+          fetchTrendingDiscussions(dateFilter.from, dateFilter.to)
+        ]);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -447,60 +411,72 @@ const TrendingSection = () => {
     }
   };
 
+  // Fetch data when component mounts or dateFilter changes
   useEffect(() => {
-    fetchAllData();
-  }, []);
+    if (dateFilter && dateFilter.isValid && dateFilter.from && dateFilter.to) {
+      fetchAllData();
+    }
+  }, [dateFilter]); // Re-fetch only when dateFilter changes
 
-  // Sort blogs based on selected filter
-  const sortedBlogs = React.useMemo(() => {
+  // Function to sort blogs based on selected criteria
+  const getSortedBlogs = React.useMemo(() => {
+    if (!trendingBlogs.length) return [];
+
     const blogs = [...trendingBlogs];
-
+    
     switch (blogSortBy) {
       case "claps":
-        return blogs.sort((a, b) => b.claps - a.claps);
+        return blogs.sort((a, b) => parseInt(b.claps || 0) - parseInt(a.claps || 0));
       case "reposts":
-        return blogs.sort((a, b) => b.repostCount - a.repostCount);
+        return blogs.sort((a, b) => parseInt(b.repostCount || 0) - parseInt(a.repostCount || 0));
       case "views":
-        return blogs.sort((a, b) => b.views - a.views);
+        return blogs.sort((a, b) => parseInt(b.views || 0) - parseInt(a.views || 0));
       case "rating":
-        return blogs.sort(
-          (a, b) => parseFloat(b.avgRating) - parseFloat(a.avgRating)
-        );
+        return blogs.sort((a, b) => parseFloat(b.avgRating || 0) - parseFloat(a.avgRating || 0));
       default:
-        return blogs;
+        return blogs.sort((a, b) => parseInt(b.claps || 0) - parseInt(a.claps || 0));
     }
   }, [trendingBlogs, blogSortBy]);
 
-  // Sort discussions based on selected filter
-  const sortedDiscussions = React.useMemo(() => {
-    const discussions = [...trendingDiscussions];
+  // Function to sort discussions based on selected criteria
+  const getSortedDiscussions = React.useMemo(() => {
+    if (!trendingDiscussions.length) return [];
 
+    const discussions = [...trendingDiscussions];
+    
     switch (discussionSortBy) {
       case "likes":
-        return discussions.sort((a, b) => b.likes - a.likes);
+        return discussions.sort((a, b) => parseInt(b.LikeCount || 0) - parseInt(a.LikeCount || 0));
       case "comments":
-        return discussions.sort((a, b) => b.commentCount - a.commentCount);
+        return discussions.sort((a, b) => parseInt(b.CommentCount || 0) - parseInt(a.CommentCount || 0));
       case "reposts":
-        return discussions.sort((a, b) => b.repostCount - a.repostCount);
+        return discussions.sort((a, b) => parseInt(b.RepostCount || 0) - parseInt(a.RepostCount || 0));
       case "views":
-        return discussions.sort((a, b) => b.viewCount - a.viewCount);
+        return discussions.sort((a, b) => parseInt(b.ViewCount || 0) - parseInt(a.ViewCount || 0));
       default:
-        return discussions;
+        return discussions.sort((a, b) => parseInt(b.LikeCount || 0) - parseInt(a.LikeCount || 0));
     }
   }, [trendingDiscussions, discussionSortBy]);
 
-  // Update ranks after sorting
-  const blogsWithUpdatedRanks = sortedBlogs.map((blog, index) => ({
-    ...blog,
-    rank: index + 1,
-  }));
+  // Add ranks to sorted blogs (limit to top 3)
+  const blogsWithRank = React.useMemo(() => {
+    return getSortedBlogs
+      .slice(0, 3) // Take only top 3
+      .map((blog, index) => ({
+        ...blog,
+        rank: index + 1,
+      }));
+  }, [getSortedBlogs]);
 
-  const discussionsWithUpdatedRanks = sortedDiscussions.map(
-    (discussion, index) => ({
-      ...discussion,
-      rank: index + 1,
-    })
-  );
+  // Add ranks to sorted discussions (limit to top 3)
+  const discussionsWithRank = React.useMemo(() => {
+    return getSortedDiscussions
+      .slice(0, 3) // Take only top 3
+      .map((discussion, index) => ({
+        ...discussion,
+        rank: index + 1,
+      }));
+  }, [getSortedDiscussions]);
 
   if (loading) {
     return (
@@ -522,13 +498,43 @@ const TrendingSection = () => {
     );
   }
 
+  // Display message if no valid date range
+  if (!dateFilter || !dateFilter.isValid || !dateFilter.from || !dateFilter.to) {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
+        <div className="text-center text-yellow-600">
+          Please select a valid date range to view trending content.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter sh"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* ---------- MOBILE TABS ONLY ---------- */}
+      {/* Date Range Display */}
+      <div className="mb-6 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-blue-700 font-medium">
+            📅 Showing data for: {dateFilter.displayText}
+            <span className="ml-3 text-xs bg-blue-100 px-2 py-1 rounded">
+              Sorted by: {activeTab === "blogs" ? 
+                blogSortBy.charAt(0).toUpperCase() + blogSortBy.slice(1) : 
+                discussionSortBy.charAt(0).toUpperCase() + discussionSortBy.slice(1)}
+            </span>
+          </span>
+          <button
+            onClick={fetchAllData}
+            className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg transition"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
       <div className="md:hidden flex space-x-2 bg-gray-100 p-1 rounded-xl mb-6">
         <motion.button
           onClick={() => setActiveTab("blogs")}
@@ -563,6 +569,9 @@ const TrendingSection = () => {
             <h3 className="text-md font-semibold flex items-center gap-2">
               <span className="w-2 h-4 bg-blue-500 rounded"></span>
               Trending Blogs
+              <span className="text-xs font-normal text-gray-500 ml-2">
+                (Top {blogsWithRank.length})
+              </span>
             </h3>
             <select
               value={blogSortBy}
@@ -577,9 +586,15 @@ const TrendingSection = () => {
           </div>
 
           <div className="space-y-4">
-            {blogsWithUpdatedRanks.map((blog) => (
-              <Card key={blog.reference} item={blog} type="blog" />
-            ))}
+            {blogsWithRank.length > 0 ? (
+              blogsWithRank.map((blog) => (
+                <Card key={blog.reference} item={blog} type="blog" />
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No trending blogs found for the selected date range
+              </div>
+            )}
           </div>
         </div>
 
@@ -589,6 +604,9 @@ const TrendingSection = () => {
             <h3 className="text-md font-semibold flex items-center gap-2">
               <span className="w-2 h-4 bg-green-500 rounded"></span>
               Trending Discussions
+              <span className="text-xs font-normal text-gray-500 ml-2">
+                (Top {discussionsWithRank.length})
+              </span>
             </h3>
             <select
               value={discussionSortBy}
@@ -603,8 +621,8 @@ const TrendingSection = () => {
           </div>
 
           <div className="space-y-4">
-            {discussionsWithUpdatedRanks.length > 0 ? (
-              discussionsWithUpdatedRanks.map((discussion) => (
+            {discussionsWithRank.length > 0 ? (
+              discussionsWithRank.map((discussion) => (
                 <Card
                   key={discussion.reference}
                   item={discussion}
@@ -613,7 +631,7 @@ const TrendingSection = () => {
               ))
             ) : (
               <div className="text-center text-gray-500 py-8">
-                No trending discussions found
+                No trending discussions found for the selected date range
               </div>
             )}
           </div>
@@ -628,21 +646,30 @@ const TrendingSection = () => {
               <h3 className="text-md font-semibold flex items-center gap-2">
                 <span className="w-2 h-4 bg-blue-500 rounded"></span>
                 Trending Blogs
+                <span className="text-xs font-normal text-gray-500 ml-2">
+                  (Top {blogsWithRank.length})
+                </span>
               </h3>
               <select
                 value={blogSortBy}
                 onChange={(e) => setBlogSortBy(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="claps">Claps</option>
-                <option value="reposts">Repost</option>
-                <option value="views">Views</option>
-                <option value="rating">Rating</option>
+                <option value="claps">Sort by Claps</option>
+                <option value="reposts">Sort by Repost</option>
+                <option value="views">Sort by Views</option>
+                <option value="rating">Sort by Rating</option>
               </select>
             </div>
-            {blogsWithUpdatedRanks.map((blog) => (
-              <Card key={blog.reference} item={blog} type="blog" />
-            ))}
+            {blogsWithRank.length > 0 ? (
+              blogsWithRank.map((blog) => (
+                <Card key={blog.reference} item={blog} type="blog" />
+              ))
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                No trending blogs found for the selected date range
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -650,20 +677,23 @@ const TrendingSection = () => {
               <h3 className="text-md font-semibold flex items-center gap-2">
                 <span className="w-2 h-4 bg-green-500 rounded"></span>
                 Trending Discussions
+                <span className="text-xs font-normal text-gray-500 ml-2">
+                  (Top {discussionsWithRank.length})
+                </span>
               </h3>
               <select
                 value={discussionSortBy}
                 onChange={(e) => setDiscussionSortBy(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                <option value="likes">Likes</option>
-                <option value="comments">Comments</option>
-                <option value="reposts">Reposts</option>
-                <option value="views">Views</option>
+                <option value="likes">Sort by Likes</option>
+                <option value="comments">Sort by Comments</option>
+                <option value="reposts">Sort by Reposts</option>
+                <option value="views">Sort by Views</option>
               </select>
             </div>
-            {discussionsWithUpdatedRanks.length > 0 ? (
-              discussionsWithUpdatedRanks.map((discussion) => (
+            {discussionsWithRank.length > 0 ? (
+              discussionsWithRank.map((discussion) => (
                 <Card
                   key={discussion.reference}
                   item={discussion}
@@ -672,7 +702,7 @@ const TrendingSection = () => {
               ))
             ) : (
               <div className="text-center text-gray-500 py-8">
-                No trending discussions found
+                No trending discussions found for the selected date range
               </div>
             )}
           </div>
