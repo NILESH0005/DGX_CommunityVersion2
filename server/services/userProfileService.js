@@ -389,6 +389,7 @@ export const getUserDiscussionsService = async (userEmail) => {
       where: { EmailId: userEmail, delStatus: { [Op.or]: [0, null] } },
       attributes: ["UserID", "Name"],
     });
+
     if (!user) return { success: false, message: "User not found" };
 
     // ✅ 2. Count total discussions
@@ -400,7 +401,7 @@ export const getUserDiscussionsService = async (userEmail) => {
       },
     });
 
-    // ✅ 3. Get user’s main discussions
+    // ✅ 3. Fetch user discussions
     const discussions = await CommunityDiscussion.findAll({
       where: {
         UserID: user.UserID,
@@ -424,16 +425,16 @@ export const getUserDiscussionsService = async (userEmail) => {
       order: [["AddOnDt", "DESC"]],
     });
 
-    // ✅ 4. Process each discussion
+    // ✅ 4. Process discussions
     const updatedDiscussions = await Promise.all(
       discussions.map(async (disc) => {
         const discussionId = disc.DiscussionID;
 
-        // 👍 Like count
-        const likeCount = await ContentInteractionLog.count({
+        // ❤️ Like count
+        const likeCount = await ContentInteraction.count({
           where: {
-            ProcessName: "Discussion",
-            reference: discussionId,
+            Type: "Discussion",
+            ReferenceId: discussionId,
             Likes: 1,
             delStatus: { [Op.or]: [0, null] },
           },
@@ -459,7 +460,7 @@ export const getUserDiscussionsService = async (userEmail) => {
           },
         });
 
-        // 🔁 Repost count + RepostUserIDs
+        // 🔁 Repost info
         const reposts = await CommunityDiscussion.findAll({
           where: {
             RepostID: discussionId,
@@ -471,7 +472,6 @@ export const getUserDiscussionsService = async (userEmail) => {
         const repostUsers = reposts.map((r) => r.RepostUserID);
         const repostCount = repostUsers.length;
 
-        // 🆕 Fetch RepostUser Details (Name + ProfilePicture)
         let repostUserDetails = [];
         if (repostUsers.length > 0) {
           repostUserDetails = await User.findAll({
@@ -483,7 +483,9 @@ export const getUserDiscussionsService = async (userEmail) => {
           });
         }
 
-        // ✅ Nested comments (1st level + 2nd level)
+        // ===============================
+        // 💬 FIRST-LEVEL COMMENTS (with User Image)
+        // ===============================
         const comments = await CommunityDiscussion.findAll({
           where: {
             Reference: discussionId,
@@ -497,11 +499,18 @@ export const getUserDiscussionsService = async (userEmail) => {
             ["AuthAdd", "UserName"],
             ["AddOnDt", "timestamp"],
           ],
+          include: [
+            {
+              model: User,
+              attributes: ["Name", "ProfilePicture"],
+            },
+          ],
           order: [["AddOnDt", "DESC"]],
         });
 
         const nestedComments = await Promise.all(
           comments.map(async (comment) => {
+            // 💬 SECOND-LEVEL COMMENTS (with User Image)
             const secondLevel = await CommunityDiscussion.findAll({
               where: {
                 Reference: comment.DiscussionID,
@@ -514,6 +523,12 @@ export const getUserDiscussionsService = async (userEmail) => {
                 "Comment",
                 ["AuthAdd", "UserName"],
                 ["AddOnDt", "timestamp"],
+              ],
+              include: [
+                {
+                  model: User,
+                  attributes: ["Name", "ProfilePicture"],
+                },
               ],
               order: [["AddOnDt", "DESC"]],
             });
@@ -529,8 +544,14 @@ export const getUserDiscussionsService = async (userEmail) => {
 
             return {
               ...comment.toJSON(),
+              UserName: comment.User?.Name || comment.UserName,
+              UserImage: comment.User?.ProfilePicture || null,
               likeCount: commentLikeCount,
-              comment: secondLevel,
+              comment: secondLevel.map((reply) => ({
+                ...reply.toJSON(),
+                UserName: reply.User?.Name || reply.UserName,
+                UserImage: reply.User?.ProfilePicture || null,
+              })),
             };
           })
         );
@@ -542,7 +563,7 @@ export const getUserDiscussionsService = async (userEmail) => {
           commentCount,
           repostCount,
           repostUsers,
-          repostUserDetails, // 🆕 ADDED HERE
+          repostUserDetails,
           comment: nestedComments,
         };
       })

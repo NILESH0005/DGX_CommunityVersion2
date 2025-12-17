@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 
-const PersonalInfoSection = ({ user, userToken, fetchData }) => {
+const PersonalInfoSection = ({ user, userToken, fetchData, onProfileUpdate, setLocalUser }) => {
   const [showEmailInput, setShowEmailInput] = useState(false);
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -116,6 +116,14 @@ const PersonalInfoSection = ({ user, userToken, fetchData }) => {
       console.log("EditedData:", editedData);
       console.log("Response:", response);
       if (response.success) {
+        // Update local user state immediately
+        if (setLocalUser && user) {
+          setLocalUser(prev => ({
+            ...prev,
+            ...editedData
+          }));
+        }
+        
         Swal.fire({
           icon: "success",
           title: "Success!",
@@ -124,6 +132,11 @@ const PersonalInfoSection = ({ user, userToken, fetchData }) => {
           showConfirmButton: false,
         }).then(() => {
           setIsEditing(false);
+          
+          // Call the update function to refresh user data from server
+          if (onProfileUpdate) {
+            onProfileUpdate();
+          }
         });
       } else {
         Swal.fire({
@@ -222,7 +235,6 @@ const PersonalInfoSection = ({ user, userToken, fetchData }) => {
         <h4 className="text-xl font-bold text-DGXblack">
           Personal Information
         </h4>
-        
       </div>
 
       <div className="mt-4 space-y-1 text-sm">
@@ -285,32 +297,32 @@ const PersonalInfoSection = ({ user, userToken, fetchData }) => {
             </span>
           </div>
         )}
-       <div className="flex justify-end pt-3">
-  {!isEditing ? (
-    <button
-      onClick={handleEditClick}
-      className="px-4 py-2 bg-DGXgreen  text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
-    >
-      Edit Profile
-    </button>
-  ) : (
-    <div className="flex space-x-2">
-      <button
-        onClick={handleCancelEdit}
-        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
-      >
-        Cancel
-      </button>
-      <button
-        onClick={handleSaveChanges}
-        className="px-4 py-2 bg-DGXgreen text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
-      >
-        Save
-      </button>
-    </div>
-  )}
-</div>
 
+        <div className="flex justify-end pt-3">
+          {!isEditing ? (
+            <button
+              onClick={handleEditClick}
+              className="px-4 py-2 bg-DGXgreen  text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
+            >
+              Edit Profile
+            </button>
+          ) : (
+            <div className="flex space-x-2">
+              <button
+                onClick={handleCancelEdit}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveChanges}
+                className="px-4 py-2 bg-DGXgreen text-white rounded-md hover:bg-DGXdarkgreen transition-colors text-sm font-medium"
+              >
+                Save
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Referral Section */}
