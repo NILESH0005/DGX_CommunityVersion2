@@ -375,7 +375,7 @@ export const getTrendingDiscussionService = async (
     let dateCondition = "";
     const replacements = { processName };
     if (startDate && endDate) {
-      dateCondition = "AND c.AddOnDt BETWEEN :startDate AND :endDate";
+      dateCondition = "AND CAST(c.AddOnDt AS DATE) BETWEEN :startDate AND :endDate";
       replacements.startDate = startDate;
       replacements.endDate = endDate;
     }
