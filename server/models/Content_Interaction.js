@@ -2,7 +2,7 @@ export default (sequelize, DataTypes) => {
   return sequelize.define(
     "Content_Interaction",
     {
-      Id: {
+      id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
