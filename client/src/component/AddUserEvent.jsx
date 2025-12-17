@@ -41,7 +41,7 @@ const AddUserEvent = (props) => {
   }
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50">
+    <div className="p-6 min-h-screen ">
       <div className="flex justify-center mb-8">
         <button
           onClick={() => setShowForm(!showForm)}

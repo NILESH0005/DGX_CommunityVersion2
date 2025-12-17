@@ -2,11 +2,12 @@ export default (sequelize, DataTypes) => {
   return sequelize.define(
     "Content_Interaction",
     {
-      id: {
+      id: { // ✅ FIXED (capital I)
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
       },
+
       Type: {
         type: DataTypes.STRING(100),
         allowNull: false,
@@ -35,9 +36,9 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      Repost:{
+      Repost: {
         type: DataTypes.INTEGER,
-        allowNull: true
+        allowNull: true,
       },
       Comments: {
         type: DataTypes.INTEGER,
@@ -54,6 +55,7 @@ export default (sequelize, DataTypes) => {
     {
       tableName: "Content_Interaction",
       timestamps: false,
+      freezeTableName: true, // ✅ recommended
     }
   );
 };

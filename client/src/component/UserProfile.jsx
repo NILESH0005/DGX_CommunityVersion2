@@ -35,7 +35,8 @@ const UserProfile = (props) => {
   const [activeTab, setActiveTab] = useState("posts");
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { user, userToken, fetchData, setUserToken } = useContext(ApiContext);
+  const { user, userToken, fetchData, setUserToken, setUser } =
+    useContext(ApiContext); // Add setUser from context
   const navigate = useNavigate();
   const [backgroundImage, setBackgroundImage] = useState(
     images.NvidiaBackground
@@ -47,11 +48,19 @@ const UserProfile = (props) => {
   const [profileImage, setProfileImage] = useState(null);
   const [editModalIsOpen, setEditModalIsOpen] = useState(false);
   const [discussionToEdit, setDiscussionToEdit] = useState(null);
+  const [localUser, setLocalUser] = useState(user); // Add local user state
+
+  // Sync localUser with context user
+  useEffect(() => {
+    if (user) {
+      setLocalUser(user);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (user?.ProfilePicture) {
+    if (localUser?.ProfilePicture) {
       // Add base URL to profile picture path
-      const fullProfilePictureUrl = `${BASE_URL}/${user.ProfilePicture}`;
+      const fullProfilePictureUrl = `${BASE_URL}/${localUser.ProfilePicture}`;
 
       const fetchProfileImage = async () => {
         try {
@@ -66,8 +75,10 @@ const UserProfile = (props) => {
         }
       };
       fetchProfileImage();
+    } else {
+      setProfileImage(null);
     }
-  }, [user]);
+  }, [localUser, BASE_URL]);
 
   const stripHtmlTags = (html) => {
     const doc = new DOMParser().parseFromString(html, "text/html");
@@ -177,6 +188,51 @@ const UserProfile = (props) => {
     setModalIsOpen(true);
   };
 
+  // Function to refresh user data from server
+  const refreshUserData = async () => {
+    try {
+      const endpoint = "userprofile/getUserDetails";
+      const method = "POST";
+      const headers = {
+        "Content-Type": "application/json",
+        "auth-token": userToken,
+      };
+      const body = {};
+
+      const result = await fetchData(endpoint, method, body, headers);
+      if (result && result.data) {
+        const updatedUser = result.data;
+        setLocalUser(updatedUser);
+
+        // Also update the context user if setUser is available
+        if (setUser) {
+          setUser(updatedUser);
+        }
+
+        return updatedUser;
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+    }
+  };
+
+  // Function to handle profile image update
+  const handleProfileImageUpdate = (imageUrl) => {
+    // Update local user state with new profile picture
+    if (localUser) {
+      const updatedUser = {
+        ...localUser,
+        ProfilePicture: imageUrl.replace(`${BASE_URL}/`, ""),
+      };
+      setLocalUser(updatedUser);
+
+      // Also update context if available
+      if (setUser) {
+        setUser(updatedUser);
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchUserDisscussions = () => {
       try {
@@ -222,13 +278,13 @@ const UserProfile = (props) => {
       }
     };
 
-    if (userToken && user) {
+    if (userToken && localUser) {
       setIsLoggedIn(true);
       fetchUserDisscussions();
     }
-  }, [user, userToken, fetchData]);
+  }, [localUser, userToken, fetchData, BASE_URL]);
 
-  console.log("user", user);
+  console.log("localUser", localUser);
 
   const handleDeleteDiscussion = async (discussion) => {
     const result = await Swal.fire({
@@ -258,7 +314,7 @@ const UserProfile = (props) => {
             title: "Deleted!",
             text: "The discussion has been deleted.",
             showConfirmButton: false,
-            timer: 1500, 
+            timer: 1500,
           });
 
           setUserDisscussion((prevDiscussions) =>
@@ -284,7 +340,60 @@ const UserProfile = (props) => {
   }, [props.events]);
 
   return !isLoggedIn ? (
-    <h1>Login?</h1>
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <div className="relative max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 overflow-hidden">
+        {/* Gradient Accent */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-DGXblue via-DGXgreen to-DGXblue" />
+
+        {/* Icon */}
+        <div className="flex justify-center mb-6">
+          <div className="w-14 h-14 flex items-center justify-center rounded-full bg-DGXblue/10 text-DGXblue">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-7 h-7"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.75 9V5.25A3.75 3.75 0 0012 1.5a3.75 3.75 0 00-3.75 3.75V9m-.75 0h9a2.25 2.25 0 012.25 2.25v8.25A2.25 2.25 0 0116.5 21h-9A2.25 2.25 0 015.25 19.5v-8.25A2.25 2.25 0 017.5 9z"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* Text */}
+        <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+          Login Required
+        </h2>
+        <p className="text-sm text-gray-600 text-center mb-6">
+          Please sign in to view discussions, post comments, and interact with
+          the community.
+        </p>
+
+        {/* Action */}
+        <button
+          onClick={() => navigate("/login")}
+          className="w-full py-3 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
+        >
+          Continue to Login
+        </button>
+
+        {/* Secondary */}
+        <p className="text-xs text-gray-500 text-center mt-4">
+          New here?{" "}
+          <span
+            onClick={() => navigate("/register")}
+            className="text-DGXblue font-medium cursor-pointer hover:underline"
+          >
+            Create an account
+          </span>
+        </p>
+      </div>
+    </div>
   ) : loading ? (
     <LoadPage />
   ) : (
@@ -308,9 +417,11 @@ const UserProfile = (props) => {
         {/* Left Sidebar - Profile Section */}
         <div className="w-full lg:w-1/4 flex flex-col gap-4">
           <UserAvatar
-            user={user}
+            user={localUser}
             handleImageChange={handleImageChange}
             profileImage={profileImage}
+            onImageUpdate={handleProfileImageUpdate} // Pass callback
+            refreshUserData={refreshUserData} // Pass refresh function
           />
 
           <div className="flex flex-col gap-4">
@@ -424,9 +535,11 @@ const UserProfile = (props) => {
 
             {/* Personal Info Section */}
             <PersonalInfoSection
-              user={user}
+              user={localUser}
               userToken={userToken}
               fetchData={fetchData}
+              onProfileUpdate={refreshUserData}
+              setLocalUser={setLocalUser} // Pass setter function
             />
           </div>
         </div>

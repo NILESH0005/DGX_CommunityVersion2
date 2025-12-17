@@ -17,6 +17,9 @@ const TextParallaxContent = () => {
   const [loading, setLoading] = useState(true);
   const { fetchData, userToken, user } = useContext(ApiContext);
 
+  // Get uploads base URL from environment variable (similar to DiscussionCard)
+  const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL || "";
+
   useEffect(() => {
     const fetchHomeData = async () => {
       try {
@@ -202,6 +205,7 @@ const TextParallaxContent = () => {
             theme="DGXblue"
             items={homeData.modules}
             type="module"
+            UPLOADS_BASE_URL={UPLOADS_BASE_URL}
           />
         )}
 
@@ -213,6 +217,7 @@ const TextParallaxContent = () => {
             theme="DGXgreen"
             items={homeData.discussions}
             type="discussion"
+            UPLOADS_BASE_URL={UPLOADS_BASE_URL}
           />
         )}
 
@@ -225,6 +230,7 @@ const TextParallaxContent = () => {
             items={homeData.blogs}
             type="blog"
             icon={<BookOpen className="w-6 h-6" />}
+            UPLOADS_BASE_URL={UPLOADS_BASE_URL}
           />
         )}
 
@@ -236,6 +242,7 @@ const TextParallaxContent = () => {
             theme="DGXgreen"
             items={upcomingEvents}
             type="event"
+            UPLOADS_BASE_URL={UPLOADS_BASE_URL}
           />
         )}
 
@@ -256,7 +263,7 @@ const TextParallaxContent = () => {
 };
 
 // Section Component
-const Section = ({ title, subtitle, theme, items, type, icon, AuthAdd }) => {
+const Section = ({ title, subtitle, theme, items, type, icon, AuthAdd, UPLOADS_BASE_URL }) => {
   const classes = {
     DGXgreen: {
       text: "text-DGXgreen",
@@ -306,7 +313,8 @@ const Section = ({ title, subtitle, theme, items, type, icon, AuthAdd }) => {
               item={item}
               type={type}
               theme={theme}
-              AuthAdd={AuthAdd} // Add this line to pass AuthAdd to Card
+              AuthAdd={AuthAdd}
+              UPLOADS_BASE_URL={UPLOADS_BASE_URL}
             />
           ))}
         </div>
@@ -315,9 +323,8 @@ const Section = ({ title, subtitle, theme, items, type, icon, AuthAdd }) => {
   );
 };
 
-// Updated Card Component with consistent styling
-// Updated Card Component
-const Card = ({ item, type, theme }) => {
+// Updated Card Component with UserImage
+const Card = ({ item, type, theme, UPLOADS_BASE_URL }) => {
   const classes = {
     DGXgreen: {
       text: "text-DGXgreen",
@@ -348,6 +355,26 @@ const Card = ({ item, type, theme }) => {
         : null;
 
     return img && img.trim() !== "" ? img : "/No_Image_Available.jpg";
+  };
+
+  const getUserImage = () => {
+    // Get user image from various possible field names
+    const userImage = 
+      item.UserImage || 
+      item.userImage || 
+      item.authorImage || 
+      item.profileImage;
+    
+    // Return user image only if available and not empty
+    return userImage && userImage.trim() !== "" ? userImage : null;
+  };
+
+  const getUserImageUrl = () => {
+    const userImage = getUserImage();
+    if (!userImage) return null;
+    
+    // Construct full URL using UPLOADS_BASE_URL (same as DiscussionCard)
+    return `${UPLOADS_BASE_URL}/${userImage}`;
   };
 
   const getTitle = () => {
@@ -391,6 +418,7 @@ const Card = ({ item, type, theme }) => {
 
   const statusInfo = getStatusInfo();
   const dateInfo = getDateInfo();
+  const userImageUrl = getUserImageUrl();
 
   return (
     <motion.div
@@ -402,7 +430,7 @@ const Card = ({ item, type, theme }) => {
       transition={{ type: "spring", stiffness: 250, damping: 20 }}
       className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-full transition-all duration-300`}
     >
-      {/* 🖼️ Image */}
+      {/* 🖼️ Main Image */}
       {/* <div className="relative h-48 w-full overflow-hidden">
         <motion.img
           src={getImageSrc()}
@@ -440,20 +468,46 @@ const Card = ({ item, type, theme }) => {
 
         {/* 📚 Metadata */}
         <div className="mt-auto pt-3 border-t border-gray-100">
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            {/* Left: Author + Likes */}
-            <div className="flex items-center gap-4">
-              {/* Author */}
-              <div className="flex items-center gap-1 text-gray-700">
-                <FaUser className="text-gray-400" />
-                <span className="italic">{authorName}</span>
+          <div className="flex justify-between items-center">
+            {/* Left: Author with UserImage + Likes */}
+            <div className="flex items-center gap-3">
+              {/* Author with UserImage */}
+              <div className="flex items-center gap-2">
+                {userImageUrl ? (
+                  <div className="relative">
+                    <img
+                      src={userImageUrl}
+                      alt={authorName}
+                      className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/default-user.png";
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border border-gray-300">
+                    <FaUser className="text-gray-500 text-sm" />
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs text-gray-700 font-medium">
+                    {authorName}
+                  </div>
+                  {type === "blog" && item.Category && (
+                    <div className="text-xs text-gray-500">
+                      {item.Category}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Likes / Status */}
               {statusInfo && (
-                <div className="flex items-center gap-1 text-gray-700">
+                <div className="flex items-center gap-1 text-gray-700 ml-2">
                   {statusInfo.icon}
-                  <span className="font-medium">
+                  <span className="text-xs font-medium">
                     {statusInfo.value} {statusInfo.label.toLowerCase()}
                   </span>
                 </div>
@@ -462,7 +516,7 @@ const Card = ({ item, type, theme }) => {
 
             {/* Right: Date */}
             {dateInfo && (type === "discussion" || type === "module") && (
-              <div className="flex items-center gap-1 text-gray-600">
+              <div className="flex items-center gap-1 text-xs text-gray-600">
                 <FaCalendarAlt className="text-gray-400" />
                 <span>{dateInfo}</span>
               </div>

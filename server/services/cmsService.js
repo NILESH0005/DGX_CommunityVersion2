@@ -380,6 +380,8 @@ export const getHomePageContentService = async () => {
   }
 };
 
+
+
 export const getLogoutHomePageContentService = async () => {
   try {
     // Fetch all data in parallel
@@ -428,17 +430,16 @@ export const getLogoutHomePageContentService = async () => {
             "Visibility",
             "AddOnDt",
             "AuthAdd",
-
             [
               Sequelize.literal(`(
-        SELECT COUNT(*)
-        FROM content_interaction AS ci
-        WHERE 
-          ci.Type = 'Discussion'
-          AND ci.ReferenceId = CommunityDiscussion.DiscussionID
-          AND ci.Likes = 1
-          AND ci.delStatus = 0
-      )`),
+                SELECT COUNT(*)
+                FROM content_interaction AS ci
+                WHERE 
+                  ci.Type = 'Discussion'
+                  AND ci.ReferenceId = CommunityDiscussion.DiscussionID
+                  AND ci.Likes = 1
+                  AND ci.delStatus = 0
+              )`),
               "Likes",
             ],
           ],
@@ -476,6 +477,7 @@ export const getLogoutHomePageContentService = async () => {
           return [];
         }),
 
+        // Featured Modules
         LMSModulesDetails.findAll({
           where: { delStatus: 0 },
           attributes: [
@@ -508,7 +510,6 @@ export const getLogoutHomePageContentService = async () => {
     // Collect all unique user IDs from AuthAdd fields
     const userIds = new Set();
 
-    // Extract user IDs from all results
     [
       ...featuredBlogsResult,
       ...recentDiscussionsResult,
@@ -520,32 +521,39 @@ export const getLogoutHomePageContentService = async () => {
       }
     });
 
-    // Fetch user names for all collected user IDs
+    // Fetch users with ProfilePicture
     const users = await User.findAll({
       where: {
         UserID: Array.from(userIds),
       },
-      attributes: ["UserID", "Name"],
+      attributes: ["UserID", "Name", "ProfilePicture"],
     }).catch((error) => {
       console.error("Error fetching users:", error);
       return [];
     });
 
-    // Create a mapping of UserID to Name
+    // Map UserID → Name + Image
     const userMap = users.reduce((map, user) => {
-      map[user.UserID] = user.Name;
+      map[user.UserID] = {
+        Name: user.Name,
+        UserImage: user.ProfilePicture || null,
+      };
       return map;
     }, {});
 
-    // Format dates and plain objects, and replace AuthAdd with user name
+    // Format data (NON-BREAKING)
     const formatData = (data) =>
       data.map((item) => {
         const itemData = item.get ? item.get({ plain: true }) : item;
-        const userName = userMap[itemData.AuthAdd] || itemData.AuthAdd; // Fallback to ID if name not found
+
+        const userData = userMap[itemData.AuthAdd];
+        const userName = userData?.Name || itemData.AuthAdd;
+        const userImage = userData?.UserImage || null;
 
         return {
           ...itemData,
-          AuthAdd: userName, // Replace ID with name
+          AuthAdd: userName,
+          UserImage: userImage, // ✅ ONLY ADDITION
           ...(itemData.publishedDate && {
             publishedDate: new Date(itemData.publishedDate).toISOString(),
           }),

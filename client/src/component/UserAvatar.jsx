@@ -1,12 +1,12 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import { images } from "../../public/index.js";
 import { FaCamera, FaCheck, FaTimes, FaSpinner } from "react-icons/fa";
 import ApiContext from "../context/ApiContext.jsx";
 import Swal from "sweetalert2";
 import FileUploader from "../container/FileUploader";
 
-const UserAvatar = ({ user, onImageUpdate }) => {
-  const { userToken } = useContext(ApiContext);
+const UserAvatar = ({ user, onImageUpdate, refreshUserData }) => {
+  const { userToken, setUser } = useContext(ApiContext);
   const [previewImage, setPreviewImage] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -14,20 +14,30 @@ const UserAvatar = ({ user, onImageUpdate }) => {
   const [uploadedFilePath, setUploadedFilePath] = useState(null);
   const [currentProfileImage, setCurrentProfileImage] = useState("");
 
-  useEffect(() => {
+  // Initialize current profile image
+  const initializeProfileImage = useCallback(() => {
     if (user?.ProfilePicture) {
       if (user.ProfilePicture.startsWith("http")) {
         setCurrentProfileImage(user.ProfilePicture);
       } else {
-        setCurrentProfileImage(
-          `${import.meta.env.VITE_API_UPLOADSURL}/${user.ProfilePicture}`
-        );
+        const baseUrl = import.meta.env.VITE_API_UPLOADSURL;
+        // Check if the ProfilePicture already has the base URL
+        if (user.ProfilePicture.includes(baseUrl)) {
+          setCurrentProfileImage(user.ProfilePicture);
+        } else {
+          setCurrentProfileImage(`${baseUrl}/${user.ProfilePicture}`);
+        }
       }
     } else {
       setCurrentProfileImage(images.defaultProfile);
     }
   }, [user]);
 
+  useEffect(() => {
+    initializeProfileImage();
+  }, [initializeProfileImage]);
+
+  // Get the image URL to display
   const getProfileImageUrl = () => {
     if (previewImage) return previewImage;
 
@@ -124,10 +134,24 @@ const UserAvatar = ({ user, onImageUpdate }) => {
           onImageUpdate(updatedProfilePic);
         }
 
+        // Also call refreshUserData to get updated user data from server
+        if (refreshUserData) {
+          await refreshUserData();
+        }
+
+        // Update context user if available
+        if (setUser && user) {
+          setUser((prev) => ({
+            ...prev,
+            ProfilePicture: uploadedFilePath,
+          }));
+        }
+
         // Clear upload states
         setUploadedFilePath(null);
         setImageFile(null);
 
+        // Show success message and reload page after modal closes
         Swal.fire({
           icon: "success",
           title: "Success!",
@@ -135,7 +159,6 @@ const UserAvatar = ({ user, onImageUpdate }) => {
           timer: 2000,
           showConfirmButton: false,
         }).then(() => {
-          // 🔥 SIMPLE FIX: Reload the page after success
           window.location.reload();
         });
       } else {
@@ -196,6 +219,7 @@ const UserAvatar = ({ user, onImageUpdate }) => {
               alt="User profile"
               onError={(e) => {
                 e.target.src = images.defaultProfile;
+                setCurrentProfileImage(images.defaultProfile);
               }}
             />
 

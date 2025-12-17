@@ -76,54 +76,67 @@ const UserContentTabs = ({
                   </div> */}
 
                   {/* Content Section */}
-                  <div className="p-4 flex flex-col flex-grow">
+                  <div
+                    className="relative flex flex-col flex-grow p-5 rounded-2xl bg-white border border-gray-100 shadow-sm 
+                hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                  >
+                    {/* Gradient Accent */}
+                    <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-DGXblue via-DGXgreen to-DGXblue" />
+
                     {/* Title */}
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+                    <h3 className="mt-2 text-lg font-semibold text-gray-900 leading-snug line-clamp-2 min-h-[3.5rem]">
                       {discussion.Title || "Untitled"}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-3 flex-grow">
+                    <p className="mt-2 text-sm text-gray-600 leading-relaxed line-clamp-3 flex-grow">
                       {stripHtmlTags(discussion.Content) ||
                         "No description available"}
                     </p>
 
+                    {/* Divider */}
+                    <div className="my-4 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
                     {/* Engagement Metrics */}
-                    <div className="flex items-center justify-between mb-3 text-xs text-gray-600">
-                      {/* Left Section: Likes & Comments */}
-                      <div className="flex items-center gap-4">
-                        {/* Likes */}
-                        <div className="flex items-center gap-1">
-                          <AiFillLike className="text-DGXblue w-4 h-4" />
-                          <span className="font-semibold">
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                      {/* Likes & Comments */}
+                      <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-1.5">
+                          <AiFillLike className="w-4 h-4 text-DGXblue" />
+                          <span className="font-semibold text-gray-800">
                             {discussion.likeCount || 0}
                           </span>
+                          <span className="text-gray-400">Likes</span>
                         </div>
 
-                        {/* Comments */}
-                        <div className="flex items-center gap-1">
-                          <FaComment className="text-DGXgreen w-4 h-4" />
-                          <span className="font-semibold">
+                        <div className="flex items-center gap-1.5">
+                          <FaComment className="w-4 h-4 text-DGXgreen" />
+                          <span className="font-semibold text-gray-800">
                             {discussion.commentCount || 0}
                           </span>
+                          <span className="text-gray-400">Comments</span>
                         </div>
                       </div>
 
-                      {/* Right Section: Repost */}
-                      <div className="relative group flex items-center gap-1">
-                        {/* Dynamic Icon */}
+                      {/* Repost */}
+                      <div className="relative group flex items-center gap-1.5">
                         {discussion.allowRepost ? (
-                          <FiRepeat className="text-DGXblue w-4 h-4 group-hover:rotate-180 transition-transform duration-300" />
+                          <FiRepeat className="w-4 h-4 text-DGXblue group-hover:rotate-180 transition-transform duration-300" />
                         ) : (
-                          <FiXCircle className="text-red-400 w-4 h-4" />
+                          <FiXCircle className="w-4 h-4 text-red-400" />
                         )}
 
-                        <span className="font-semibold">
+                        <span className="font-semibold text-gray-800">
                           {discussion.repostCount || 0}
                         </span>
 
-                        {/* Tooltip on hover */}
-                        <div className="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-all duration-300 whitespace-nowrap">
+                        {/* Tooltip */}
+                        <div
+                          className="absolute -top-7 left-5/2 -translate-x-1/2 -translate-x-550
+  bg-gray-900 text-white text-[9px] pl-1 pr-1.5 py-0.5 rounded
+  opacity-0 group-hover:opacity-100 transition-all duration-200
+  whitespace-nowrap shadow-sm"
+                        >
                           {discussion.allowRepost
                             ? "Repost Allowed"
                             : "Repost Not Allowed"}
@@ -131,34 +144,42 @@ const UserContentTabs = ({
                       </div>
                     </div>
 
-                    <div className="text-xs text-gray-500 mb-3">
-                      Created:{" "}
-                      {discussion.timestamp
-                        ? moment(discussion.timestamp).format("MMMM D, YYYY")
-                        : "No date available"}
+                    {/* Date */}
+                    <div className="mt-3 text-[11px] text-gray-500">
+                      Created on{" "}
+                      <span className="font-medium text-gray-700">
+                        {discussion.timestamp
+                          ? moment(discussion.timestamp).format("MMMM D, YYYY")
+                          : "No date available"}
+                      </span>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex justify-between items-center mt-auto">
-                      <div className="flex space-x-2">
+                    {/* Actions */}
+                    <div className="mt-5 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
                         <button
                           onClick={() => handleClickDiscussion(discussion)}
-                          className="flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors text-sm"
+                          className="flex items-center gap-1 text-sm font-medium text-DGXblue 
+                   hover:text-DGXblue/80 transition-colors"
                         >
                           Read more
-                          <FaArrowRight className="ml-1" />
+                          <FaArrowRight />
                         </button>
+
                         <button
                           onClick={() => handleEditDiscussion(discussion)}
-                          className="flex items-center text-green-600 hover:text-green-800 font-medium transition-colors text-sm"
+                          className="flex items-center gap-1 text-sm font-medium text-green-600 
+                   hover:text-green-700 transition-colors"
                         >
                           Edit
-                          <FaEdit className="ml-1" />
+                          <FaEdit />
                         </button>
                       </div>
+
                       <button
                         onClick={() => handleDeleteDiscussion(discussion)}
-                        className="p-1 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors"
+                        className="p-2 rounded-full text-gray-400 hover:text-red-600 
+                 hover:bg-red-50 transition-colors"
                         aria-label="Delete post"
                       >
                         <FaTrash className="text-sm" />
