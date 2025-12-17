@@ -437,24 +437,24 @@ export const getTrendingDiscussionService = async (
           GROUP BY c.reference
       )
       SELECT 
-          r.reference,
-          r.LikeCount,
-          IFNULL(c.CommentCount, 0) AS CommentCount,
-          IFNULL(rp.RepostCount, 0) AS RepostCount,
-          IFNULL(v.ViewCount, 0) AS ViewCount,
-          d.title,
-          d.content,
-          d.AddOnDt,
-          u.Name AS author
-      FROM ReferenceLikes r
-      LEFT JOIN ReferenceComments c ON r.reference = c.reference
-      LEFT JOIN ReferenceRepost rp ON r.reference = rp.reference
-      LEFT JOIN ReferenceViews v ON r.reference = v.reference
-      LEFT JOIN community_discussions d ON d.DiscussionID = r.reference
-      LEFT JOIN Community_User u ON d.AuthAdd = u.UserID
-      WHERE IFNULL(d.delStatus,0) = 0
-        AND d.Reference = 0
-      ORDER BY r.LikeCount DESC;
+    r.reference,
+    r.LikeCount,
+    IFNULL(c.CommentCount, 0) AS CommentCount,
+    IFNULL(rp.RepostCount, 0) AS RepostCount,
+    IFNULL(v.ViewCount, 0) AS ViewCount,
+    ANY_VALUE(d.title) AS title,
+    ANY_VALUE(d.content) AS content,
+    ANY_VALUE(d.AddOnDt) AS AddOnDt,
+    ANY_VALUE(u.Name) AS author
+FROM ReferenceLikes r
+LEFT JOIN ReferenceComments c ON r.reference = c.reference
+LEFT JOIN ReferenceRepost rp ON r.reference = rp.reference
+LEFT JOIN ReferenceViews v ON r.reference = v.reference
+LEFT JOIN community_discussions d ON d.DiscussionID = r.reference
+LEFT JOIN Community_User u ON d.AuthAdd = u.UserID
+WHERE IFNULL(d.delStatus,0) = 0
+  AND d.\`Reference\` = 0
+ORDER BY r.LikeCount DESC;
     `;
     const trending = await sequelize.query(query, {
       replacements,
