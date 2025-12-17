@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiContext from "../../../context/ApiContext";
-import moment from 'moment';
+import moment from "moment";
 
 /* -------------------------------
    RANK BADGE COMPONENT
@@ -357,7 +357,7 @@ const TrendingSection = ({ dateFilter }) => {
   const fetchTrendingBlogs = async (fromDate, toDate) => {
     try {
       const response = await fetchData(
-        `dashboard/getTrendingBlogs?startDate=${fromDate}&endDate=${toDate}`, 
+        `dashboard/getTrendingBlogs?startDate=${fromDate}&endDate=${toDate}`,
         "GET"
       );
 
@@ -396,12 +396,17 @@ const TrendingSection = ({ dateFilter }) => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Only fetch if dateFilter has valid dates
-      if (dateFilter && dateFilter.isValid && dateFilter.from && dateFilter.to) {
+      if (
+        dateFilter &&
+        dateFilter.isValid &&
+        dateFilter.from &&
+        dateFilter.to
+      ) {
         await Promise.all([
           fetchTrendingBlogs(dateFilter.from, dateFilter.to),
-          fetchTrendingDiscussions(dateFilter.from, dateFilter.to)
+          fetchTrendingDiscussions(dateFilter.from, dateFilter.to),
         ]);
       }
     } catch (err) {
@@ -418,23 +423,32 @@ const TrendingSection = ({ dateFilter }) => {
     }
   }, [dateFilter]); // Re-fetch only when dateFilter changes
 
-  // Function to sort blogs based on selected criteria
   const getSortedBlogs = React.useMemo(() => {
     if (!trendingBlogs.length) return [];
 
     const blogs = [...trendingBlogs];
-    
+
     switch (blogSortBy) {
       case "claps":
-        return blogs.sort((a, b) => parseInt(b.claps || 0) - parseInt(a.claps || 0));
+        return blogs.sort(
+          (a, b) => parseInt(b.claps || 0) - parseInt(a.claps || 0)
+        );
       case "reposts":
-        return blogs.sort((a, b) => parseInt(b.repostCount || 0) - parseInt(a.repostCount || 0));
+        return blogs.sort(
+          (a, b) => parseInt(b.repostCount || 0) - parseInt(a.repostCount || 0)
+        );
       case "views":
-        return blogs.sort((a, b) => parseInt(b.views || 0) - parseInt(a.views || 0));
+        return blogs.sort(
+          (a, b) => parseInt(b.views || 0) - parseInt(a.views || 0)
+        );
       case "rating":
-        return blogs.sort((a, b) => parseFloat(b.avgRating || 0) - parseFloat(a.avgRating || 0));
+        return blogs.sort(
+          (a, b) => parseFloat(b.avgRating || 0) - parseFloat(a.avgRating || 0)
+        );
       default:
-        return blogs.sort((a, b) => parseInt(b.claps || 0) - parseInt(a.claps || 0));
+        return blogs.sort(
+          (a, b) => parseInt(b.claps || 0) - parseInt(a.claps || 0)
+        );
     }
   }, [trendingBlogs, blogSortBy]);
 
@@ -443,18 +457,29 @@ const TrendingSection = ({ dateFilter }) => {
     if (!trendingDiscussions.length) return [];
 
     const discussions = [...trendingDiscussions];
-    
+
     switch (discussionSortBy) {
       case "likes":
-        return discussions.sort((a, b) => parseInt(b.LikeCount || 0) - parseInt(a.LikeCount || 0));
+        return discussions.sort(
+          (a, b) => parseInt(b.LikeCount || 0) - parseInt(a.LikeCount || 0)
+        );
       case "comments":
-        return discussions.sort((a, b) => parseInt(b.CommentCount || 0) - parseInt(a.CommentCount || 0));
+        return discussions.sort(
+          (a, b) =>
+            parseInt(b.CommentCount || 0) - parseInt(a.CommentCount || 0)
+        );
       case "reposts":
-        return discussions.sort((a, b) => parseInt(b.RepostCount || 0) - parseInt(a.RepostCount || 0));
+        return discussions.sort(
+          (a, b) => parseInt(b.RepostCount || 0) - parseInt(a.RepostCount || 0)
+        );
       case "views":
-        return discussions.sort((a, b) => parseInt(b.ViewCount || 0) - parseInt(a.ViewCount || 0));
+        return discussions.sort(
+          (a, b) => parseInt(b.ViewCount || 0) - parseInt(a.ViewCount || 0)
+        );
       default:
-        return discussions.sort((a, b) => parseInt(b.LikeCount || 0) - parseInt(a.LikeCount || 0));
+        return discussions.sort(
+          (a, b) => parseInt(b.LikeCount || 0) - parseInt(a.LikeCount || 0)
+        );
     }
   }, [trendingDiscussions, discussionSortBy]);
 
@@ -499,7 +524,12 @@ const TrendingSection = ({ dateFilter }) => {
   }
 
   // Display message if no valid date range
-  if (!dateFilter || !dateFilter.isValid || !dateFilter.from || !dateFilter.to) {
+  if (
+    !dateFilter ||
+    !dateFilter.isValid ||
+    !dateFilter.from ||
+    !dateFilter.to
+  ) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
         <div className="text-center text-yellow-600">
@@ -521,9 +551,11 @@ const TrendingSection = ({ dateFilter }) => {
           <span className="text-sm text-blue-700 font-medium">
             📅 Showing data for: {dateFilter.displayText}
             <span className="ml-3 text-xs bg-blue-100 px-2 py-1 rounded">
-              Sorted by: {activeTab === "blogs" ? 
-                blogSortBy.charAt(0).toUpperCase() + blogSortBy.slice(1) : 
-                discussionSortBy.charAt(0).toUpperCase() + discussionSortBy.slice(1)}
+              Sorted by:{" "}
+              {activeTab === "blogs"
+                ? blogSortBy.charAt(0).toUpperCase() + blogSortBy.slice(1)
+                : discussionSortBy.charAt(0).toUpperCase() +
+                  discussionSortBy.slice(1)}
             </span>
           </span>
           <button
