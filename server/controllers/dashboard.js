@@ -80,7 +80,14 @@ export const getTrendingDiscussion = async (req, res) => {
     return res.status(500).json({
       success: false,
       data: null,
-      message: "Internal server error while fetching trending discussions",
+      message:
+        error?.original?.sqlMessage || // MySQL error
+        error?.message || // Sequelize / JS error
+        "Internal server error",
+      errorName: error?.name || null,
+      sqlState: error?.original?.sqlState || null,
+      sql: error?.sql || null, // ⚠️ remove in prod
+      parameters: error?.parameters || null, // ⚠️ remove in prod
     });
   }
 };
