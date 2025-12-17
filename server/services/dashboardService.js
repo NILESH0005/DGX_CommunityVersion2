@@ -468,6 +468,8 @@ export const getTrendingDiscussionService = async (
     };
   } catch (error) {
     console.error("Trending Discussion Service Error:", error);
+    console.error("SQL MESSAGE:", error.message);
+    console.error("SQL:", error.sql);
     throw error;
   }
 };
