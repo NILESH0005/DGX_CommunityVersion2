@@ -15,27 +15,24 @@ const TopContentSection = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Color mapping for different process types
   const colorMap = {
     LMS: "#76B900",
     Blog: "#1E3A8A", 
     Discussion: "#F59E0B"
   };
 
-  // Fetch process counts from API
   const fetchProcessCounts = async () => {
     try {
       setLoading(true);
       const response = await fetchData("dashboard/processCounts", "GET");
 
       if (response.success && response.data) {
-        // Filter out "Event" and transform data for the chart
         const filteredData = response.data
           .filter(item => item.ProcessName !== "Event")
           .map(item => ({
             name: item.ProcessName,
-            value: item.viewCount, // Changed from total to viewCount
-            color: colorMap[item.ProcessName] || "#6B7280" // fallback color
+            value: item.viewCount, 
+            color: colorMap[item.ProcessName] || "#6B7280" 
           }));
 
         setProcessData(filteredData);

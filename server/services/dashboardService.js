@@ -375,7 +375,8 @@ export const getTrendingDiscussionService = async (
     let dateCondition = "";
     const replacements = { processName };
     if (startDate && endDate) {
-      dateCondition = "AND CAST(c.AddOnDt AS DATE) BETWEEN :startDate AND :endDate";
+      dateCondition =
+        "AND CAST(c.AddOnDt AS DATE) BETWEEN :startDate AND :endDate";
       replacements.startDate = startDate;
       replacements.endDate = endDate;
     }
@@ -468,6 +469,66 @@ export const getTrendingDiscussionService = async (
     };
   } catch (error) {
     console.error("Trending Discussion Service Error:", error);
+    throw error;
+  }
+};
+
+export const getMostActiveUsersService = async () => {
+  try {
+    const query = `
+      WITH LoginScore AS (
+    SELECT
+        UserID,
+        COUNT(*) AS LoginCount,
+        COUNT(DISTINCT DATE(LogInDateTime)) AS ActiveDays
+    FROM Community_User_Login_Log
+    WHERE IFNULL(delStatus, 0) = 0
+    GROUP BY UserID
+),
+ActivityScore AS (
+    SELECT
+        UserID,
+        SUM(
+            IFNULL(Likes,0) * 2 +
+            IFNULL(Comments,0) * 3 +
+            IFNULL(Repost,0) * 4 +
+            IFNULL(View,0) * 1
+        ) AS InteractionScore
+    FROM Content_Interaction_Log
+    WHERE IFNULL(delStatus, 0) = 0
+    GROUP BY UserID
+)
+SELECT
+    u.UserID,
+    u.Name,
+    u.EmailId,
+    IFNULL(l.LoginCount, 0) AS LoginCount,
+    IFNULL(l.ActiveDays, 0) AS ActiveDays,
+    IFNULL(a.InteractionScore, 0) AS InteractionScore,
+    (
+        IFNULL(l.LoginCount, 0) * 1 +
+        IFNULL(l.ActiveDays, 0) * 5 +
+        IFNULL(a.InteractionScore, 0)
+    ) AS TotalScore
+FROM Community_User u
+LEFT JOIN LoginScore l ON u.UserID = l.UserID
+LEFT JOIN ActivityScore a ON u.UserID = a.UserID
+WHERE IFNULL(u.delStatus, 0) = 0
+ORDER BY TotalScore DESC;
+
+    `;
+
+    const results = await db.sequelize.query(query, {
+      type: db.sequelize.QueryTypes.SELECT,
+    });
+
+    return {
+      success: true,
+      message: "Most active users fetched successfully",
+      data: results,
+    };
+  } catch (error) {
+    console.error("Most Active Users Service Error:", error);
     throw error;
   }
 };

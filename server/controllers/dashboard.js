@@ -5,6 +5,7 @@ import db from "../models/index.js";
 import {
   getApprovalCountsService,
   getDeviceAnalyticsService,
+  getMostActiveUsersService,
   getProcessCountsService,
   getTrendingBlogsService,
   getTrendingDiscussionService,
@@ -138,6 +139,20 @@ export const getDeviceAnalytics = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal error while fetching device analytics",
+    });
+  }
+};
+
+export const getMostActiveUsers = async (req, res) => {
+  try {
+    const response = await getMostActiveUsersService();
+    return res.status(200).json(response);
+  } catch (error) {
+    console.error("Most Active Users Controller Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal error while fetching most active users",
     });
   }
 };

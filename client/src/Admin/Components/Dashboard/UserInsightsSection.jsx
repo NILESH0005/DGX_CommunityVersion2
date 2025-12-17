@@ -7,7 +7,8 @@ const UserInsightsDashboard = () => {
   const [deviceData, setDeviceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
-  
+  const [activeUsers, setActiveUsers] = useState([]);
+
   // Import your API context
   const { fetchData } = React.useContext(ApiContext);
 
@@ -17,11 +18,11 @@ const UserInsightsDashboard = () => {
       try {
         setLoading(true);
         const response = await fetchData("dashboard/deviceAnalytics", "GET");
-        
+
         if (response.success && response.data) {
           const { total, data } = response;
           setTotalUsers(total);
-          
+
           // Transform the API response to match your component structure
           const transformedData = [
             {
@@ -43,7 +44,7 @@ const UserInsightsDashboard = () => {
               bgColor: "bg-gradient-to-br from-green-50 to-emerald-50",
             },
           ];
-          
+
           setDeviceData(transformedData);
         }
       } catch (error) {
@@ -57,6 +58,43 @@ const UserInsightsDashboard = () => {
     };
 
     fetchDeviceAnalytics();
+  }, []);
+
+  const getAvatarFromName = (name = "") => {
+    return name ? name.charAt(0).toUpperCase() : "👤";
+  };
+
+  // Derive role from email (optional logic)
+  const getRoleFromEmail = (email = "") => {
+    if (email.includes("giindia")) return "GI Employee";
+    if (email.includes("gmail")) return "Community Member";
+    return "User";
+  };
+
+  useEffect(() => {
+    const fetchMostActiveUsers = async () => {
+      try {
+        const response = await fetchData("dashboard/getMostActiveUsers", "GET");
+
+        if (response.success && Array.isArray(response.data)) {
+          const transformedUsers = response.data.map((user) => ({
+            id: user.UserID,
+            name: user.Name || "Unknown User",
+            email: user.EmailId || "",
+            score: Number(user.TotalScore) || 0,
+            interaction: Number(user.InteractionScore) || 0,
+            loginCount: Number(user.LoginCount) || 0,
+            activeDays: Number(user.ActiveDays) || 0,
+          }));
+
+          setActiveUsers(transformedUsers);
+        }
+      } catch (error) {
+        console.error("Error fetching most active users:", error);
+      }
+    };
+
+    fetchMostActiveUsers();
   }, []);
 
   // Sample data for fallback
@@ -92,84 +130,83 @@ const UserInsightsDashboard = () => {
     ];
   };
 
-  const userLeaderboard = [
-    {
-      id: 1,
-      name: "Rohit Rawat",
-      score: 98,
-      avatar: "👨‍💻",
-      activity: 142,
-      role: "Software Engineer",
-    },
-    {
-      id: 2,
-      name: "Ananya Sharma",
-      score: 95,
-      avatar: "👩‍🎓",
-      activity: 138,
-      role: "Data Analyst",
-    },
-    {
-      id: 3,
-      name: "Nilesh Kumar",
-      score: 92,
-      avatar: "👨‍💼",
-      activity: 125,
-      role: "Product Manager",
-    },
-    {
-      id: 4,
-      name: "Nisha Patel",
-      score: 89,
-      avatar: "👩‍🔬",
-      activity: 118,
-      role: "UX Designer",
-    },
-  ];
+  const EngagementCard = ({ user, index }) => {
+    const medals = ["🥇", "🥈", "🥉"];
+    const progress = Math.min((user.score / 200) * 100, 100);
 
-  const EngagementCard = ({ user, index }) => (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.1 }}
-      whileHover={{ scale: 1.02, y: -4 }}
-      className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 cursor-pointer group"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
-              {user.avatar}
-            </div>
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-              <span className="text-xs text-white">↑</span>
-            </div>
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.15 }}
+        whileHover={{ scale: 1.03 }}
+        className={`relative bg-white rounded-2xl p-6 shadow-md border 
+        ${
+          index === 0
+            ? "border-yellow-300 shadow-yellow-100"
+            : "border-gray-100"
+        }
+        hover:shadow-xl transition-all`}
+      >
+        {/* Rank Badge */}
+        <div className="absolute -top-3 -right-3 text-3xl">{medals[index]}</div>
+
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 text-white flex items-center justify-center text-xl font-bold">
+            {user.name?.charAt(0) || "👤"}
           </div>
-          <div>
-            <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-              {user.name}
-            </h4>
-            <p className="text-sm text-gray-500">{user.role}</p>
+
+          <div className="flex-1">
+            <h4 className="font-bold text-lg text-gray-900">{user.name}</h4>
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
+          </div>
+
+          <div className="text-right">
+            <p className="text-xs text-gray-500">Total Score</p>
+            <p className="text-2xl font-extrabold text-emerald-600">
+              {user.score}
+            </p>
           </div>
         </div>
-      </div>
-      
-      <div className="relative pt-2">
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${(user.activity / 150) * 100}%` }}
-            transition={{ delay: index * 0.1 + 0.3, duration: 1 }}
-            className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full"
-          />
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 text-center mb-4">
+          <div className="bg-gray-50 rounded-lg p-2">
+            <p className="text-xs text-gray-500">Logins</p>
+            <p className="font-bold text-gray-900">{user.loginCount}</p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-2">
+            <p className="text-xs text-gray-500">Active Days</p>
+            <p className="font-bold text-gray-900">{user.activeDays}</p>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-2">
+            <p className="text-xs text-gray-500">Interactions</p>
+            <p className="font-bold text-gray-900">{user.interaction}</p>
+          </div>
         </div>
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>Activity Score</span>
-          <span className="font-medium">{user.score}</span>
+
+        {/* Progress Bar */}
+        <div>
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Engagement Level</span>
+            <span>{progress.toFixed(0)}%</span>
+          </div>
+
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 1 }}
+              className="h-full bg-gradient-to-r from-emerald-500 to-green-400"
+            />
+          </div>
         </div>
-      </div>
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   const DeviceCard = ({ device, index }) => (
     <motion.div
@@ -177,7 +214,9 @@ const UserInsightsDashboard = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
       whileHover={{ scale: 1.03 }}
-      onClick={() => setSelectedDevice(device.id === selectedDevice ? null : device.id)}
+      onClick={() =>
+        setSelectedDevice(device.id === selectedDevice ? null : device.id)
+      }
       className={`${device.bgColor} rounded-2xl p-6 border-2 border-transparent hover:border-gray-200 transition-all duration-300 cursor-pointer relative overflow-hidden group`}
     >
       {/* Background Pattern */}
@@ -187,7 +226,7 @@ const UserInsightsDashboard = () => {
 
       <div className="relative z-10">
         <div className="flex items-center gap-4 mb-4">
-          <div 
+          <div
             className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl"
             style={{ background: device.color }}
           >
@@ -195,7 +234,9 @@ const UserInsightsDashboard = () => {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900">{device.device}</h3>
-            <p className="text-sm text-gray-600">{device.users.toLocaleString()} users</p>
+            <p className="text-sm text-gray-600">
+              {device.users.toLocaleString()} users
+            </p>
           </div>
         </div>
 
@@ -203,7 +244,9 @@ const UserInsightsDashboard = () => {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-gray-700">Usage</span>
-            <span className="text-xl font-bold text-gray-900">{device.percentage.toFixed(1)}%</span>
+            <span className="text-xl font-bold text-gray-900">
+              {device.percentage.toFixed(1)}%
+            </span>
           </div>
           <div className="h-3 bg-white/50 rounded-full overflow-hidden">
             <motion.div
@@ -224,7 +267,7 @@ const UserInsightsDashboard = () => {
             className="mt-4 pt-4 border-t border-gray-200/50"
           >
             <div className="text-xs text-gray-600">
-              {device.device === "Mobile & Tablet" 
+              {device.device === "Mobile & Tablet"
                 ? "Includes smartphones and tablets (Android, iOS, iPad)"
                 : device.device === "Desktop & Laptop"
                 ? "Includes desktop computers and laptops (Windows, macOS, Linux)"
@@ -252,11 +295,7 @@ const UserInsightsDashboard = () => {
     >
       {/* Header */}
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ y: -20 }}
-          animate={{ y: 0 }}
-          className="mb-10"
-        >
+        <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="mb-10">
           <div className="flex items-center justify-between mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -266,7 +305,8 @@ const UserInsightsDashboard = () => {
                 </h1>
               </div>
               <p className="text-gray-600 text-lg max-w-2xl">
-                Real-time insights into user engagement patterns and platform usage metrics
+                Real-time insights into user engagement patterns and platform
+                usage metrics
               </p>
             </div>
           </div>
@@ -284,12 +324,20 @@ const UserInsightsDashboard = () => {
             <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">📱 Device Distribution</h2>
-                  <p className="text-gray-600">Platform usage across different device types</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    📱 Device Distribution
+                  </h2>
+                  <p className="text-gray-600">
+                    Platform usage across different device types
+                  </p>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-900">{totalUsers.toLocaleString()}</div>
-                  <div className="text-sm text-green-600 font-medium">Total logged devices</div>
+                  <div className="text-3xl font-bold text-gray-900">
+                    {totalUsers.toLocaleString()}
+                  </div>
+                  <div className="text-sm text-green-600 font-medium">
+                    Total logged devices
+                  </div>
                 </div>
               </div>
 
@@ -299,7 +347,7 @@ const UserInsightsDashboard = () => {
                 ))}
               </div>
             </div>
-          </motion.div> 
+          </motion.div>
 
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -310,22 +358,27 @@ const UserInsightsDashboard = () => {
             <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">⭐ Most Active Users</h2>
-                  <p className="text-gray-600">Top contributors by engagement score</p>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    ⭐ Most Active Users
+                  </h2>
+                  <p className="text-gray-600">
+                    Top contributors by engagement score
+                  </p>
                 </div>
-                {/* <div className="text-right">
-                  <div className="text-sm text-gray-500 mb-1">Weekly Ranking</div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-medium text-gray-900">Live updates</span>
-                  </div>
-                </div> */}
               </div>
 
               <div className="space-y-4">
-                {userLeaderboard.map((user, index) => (
-                  <EngagementCard key={user.id} user={user} index={index} />
-                ))}
+                {activeUsers.length > 0 ? (
+                  activeUsers
+                    .slice(0, 3)
+                    .map((user, index) => (
+                      <EngagementCard key={user.id} user={user} index={index} />
+                    ))
+                ) : (
+                  <p className="text-gray-500 text-sm">
+                    No activity data available
+                  </p>
+                )}
               </div>
             </div>
           </motion.div>
