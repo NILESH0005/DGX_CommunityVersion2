@@ -14,6 +14,7 @@ import {
   FaArrowLeft,
   FaClock,
   FaEye,
+  FaStar,
   FaPlayCircle,
 } from "react-icons/fa";
 import images from "../../../public/images";
@@ -56,8 +57,7 @@ const SubModuleCard = () => {
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
   const [viewedSubModules, setViewedSubModules] = useState(new Set());
   const [subModuleViews, setSubModuleViews] = useState([]);
-    const [isChatOpen, setIsChatOpen] = useState(false);
-
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Custom DGX Colors
   const DGX_COLORS = {
@@ -411,6 +411,7 @@ const SubModuleCard = () => {
               );
               const totalTimeSpent = subModuleView?.totalTimeSpent || 0;
               const totalViews = subModuleView?.totalViews || 0;
+              const rating = subModule.Rating ?? 0; // ⭐ SAFE OPTIONAL RATING
               const progressPercentage = getProgressPercentage(totalTimeSpent);
 
               return (
@@ -463,6 +464,14 @@ const SubModuleCard = () => {
                           <FaClock className="text-green-400" />
                           <span className="font-medium">
                             {formatTime(totalTimeSpent)}
+                          </span>
+                        </div>
+
+                        {/* ⭐ Rating */}
+                        <div className="flex items-center gap-1">
+                          <FaStar className="text-yellow-400" />
+                          <span className="font-semibold">
+                            {Number(rating).toFixed(1)}
                           </span>
                         </div>
                       </div>

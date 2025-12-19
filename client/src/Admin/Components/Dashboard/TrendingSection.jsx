@@ -40,7 +40,7 @@ const RankBadge = ({ rank, size = "sm" }) => {
 };
 
 /* -------------------------------
-   DETAIL MODAL COMPONENT
+   DETAIL MODAL COMPONENT - Mobile Optimized
 -------------------------------- */
 const DetailModal = ({ item, type, isOpen, onClose }) => {
   if (!isOpen) return null;
@@ -117,64 +117,100 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-3 md:p-4 z-50"
         onClick={onClose}
       >
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200"
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 w-full max-w-4xl mx-auto max-h-[95vh] md:max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
           onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: "calc(100vw - 1rem)" }}
         >
           {/* Header Section */}
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-center gap-4">
+          <div className="flex justify-between items-start mb-4 md:mb-6">
+            <div className="flex items-center gap-3 md:gap-4">
               <RankBadge rank={item.rank} size="lg" />
 
-              <div>
-                <h3 className="font-bold text-2xl text-gray-900">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-lg md:text-2xl text-gray-900 line-clamp-2">
                   {item.title}
                 </h3>
 
-                <p className="text-gray-600 mt-1">
-                  by {item.author || "Unknown"}
-                </p>
-
-                <span className="font-medium text-gray-800 text-sm">
-                  {new Date(item.addedOn || item.AddOnDt).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "long",
-                      day: "2-digit",
-                    }
-                  )}
-                </span>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <p className="text-gray-600 text-sm md:text-base">
+                    by {item.author || "Unknown"}
+                  </p>
+                  <span className="hidden md:inline text-gray-400">•</span>
+                  <span className="font-medium text-gray-800 text-xs md:text-sm">
+                    {new Date(item.addedOn || item.AddOnDt).toLocaleDateString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "short",
+                        day: "2-digit",
+                      }
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 text-2xl p-1 transition"
+              className="text-gray-400 hover:text-gray-600 text-2xl p-1 md:p-2 -mt-1 -mr-1 transition active:scale-95"
+              aria-label="Close modal"
             >
               ✕
             </button>
           </div>
 
+          {/* Stats Grid - Mobile Compact */}
+          <div className="mb-4 md:mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+              {engagementStats.map((stat, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-50 rounded-lg md:rounded-xl p-2 md:p-3 text-center border border-gray-100"
+                >
+                  <div
+                    className={`text-sm md:text-base font-semibold ${stat.color}`}
+                  >
+                    {stat.icon}{" "}
+                    {stat.value > 1000
+                      ? `${(stat.value / 1000).toFixed(1)}k`
+                      : stat.value}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Content Section */}
-          <div className="space-y-6 p-6 bg-gray-50 rounded-2xl shadow-inner border border-gray-200">
+          <div className="space-y-4 md:space-y-6 p-4 md:p-6 bg-gray-50 rounded-xl md:rounded-2xl shadow-inner border border-gray-200">
             <div className="flex items-center justify-between pb-2 border-b border-gray-300">
-              <h4 className="text-xl font-semibold text-gray-900">
+              <h4 className="text-lg md:text-xl font-semibold text-gray-900">
                 {type === "blog" ? "Content" : "Discussion"}
               </h4>
             </div>
 
-            <div className="bg-white p-5 rounded-xl leading-relaxed text-gray-700 shadow-sm border border-gray-100">
-              <p className="whitespace-pre-line text-[15px]">
+            <div className="bg-white p-4 md:p-5 rounded-lg md:rounded-xl leading-relaxed text-gray-700 shadow-sm border border-gray-100">
+              <p className="whitespace-pre-line text-sm md:text-[15px]">
                 {stripHtmlTags(item.content)}
               </p>
             </div>
+          </div>
+
+          {/* Mobile Bottom Close Button */}
+          <div className="md:hidden mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={onClose}
+              className="w-full py-3 bg-gray-900 text-white rounded-lg font-medium active:scale-[0.98] transition"
+            >
+              Close
+            </button>
           </div>
         </motion.div>
       </motion.div>
@@ -183,7 +219,7 @@ const DetailModal = ({ item, type, isOpen, onClose }) => {
 };
 
 /* -------------------------------
-   CARD SUB-COMPONENT
+   CARD SUB-COMPONENT - Mobile Optimized
 -------------------------------- */
 const Card = ({ item, type }) => {
   const [showModal, setShowModal] = useState(false);
@@ -260,51 +296,57 @@ const Card = ({ item, type }) => {
     <>
       <motion.div
         whileHover={{ scale: 1.02, y: -4 }}
+        whileTap={{ scale: 0.98 }}
         transition={{ type: "spring", stiffness: 200, damping: 18 }}
-        className={`bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:shadow-xl transition-all duration-300 ${shadowColor}`}
+        className={`bg-white border border-gray-200 rounded-xl p-3 md:p-4 cursor-pointer hover:shadow-xl transition-all duration-300 ${shadowColor} active:shadow-lg`}
       >
         <div className="flex gap-3">
           {/* Rank Badge */}
-          <RankBadge rank={item.rank} />
+          <div className="flex-shrink-0">
+            <RankBadge rank={item.rank} />
+          </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
             {/* Header with single line title */}
-            <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-start justify-between gap-2 mb-2 md:mb-3">
               <h4 className="font-inter font-semibold text-gray-900 text-sm line-clamp-1 hover:text-blue-600 transition flex-1 pr-2">
                 {item.title}
               </h4>
             </div>
 
-            {/* Meta Info */}
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-              <span>by {item.author || "Unknown"}</span>
+            {/* Meta Info - Stacked on mobile */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between text-xs text-gray-500 mb-2 md:mb-3 space-y-1 md:space-y-0">
+              <span className="truncate">by {item.author || "Unknown"}</span>
               <div className="flex items-center gap-2">
                 <span className="text-gray-400">
-                  {moment(item.addedOn || item.AddOnDt).format("MMMM D, YYYY")}
+                  {moment(item.addedOn || item.AddOnDt).format("MMM D, YYYY")}
                 </span>
               </div>
             </div>
 
             {/* Content Preview */}
-            <div className="mb-3">
-              <p className="text-xs text-gray-600 line-clamp-2">
+            <div className="mb-2 md:mb-3">
+              <p className="text-xs text-gray-600 line-clamp-2 md:line-clamp-2">
                 {stripHtmlTags(item.content)}
               </p>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-4 gap-2 mb-3">
+            {/* Stats Grid - Compact on mobile */}
+            <div className="grid grid-cols-4 gap-1 md:gap-2 mb-2 md:mb-3">
               {engagementStats.map((stat, index) => (
                 <div
                   key={index}
-                  className="text-center p-2 bg-gray-50 rounded-lg"
+                  className="text-center p-1 md:p-2 bg-gray-50 rounded-lg"
                 >
                   <div className={`text-xs font-semibold ${stat.color}`}>
                     {stat.icon}{" "}
                     {stat.value > 1000
                       ? `${(stat.value / 1000).toFixed(1)}k`
                       : stat.value}
+                  </div>
+                  <div className="hidden md:block text-[10px] text-gray-500 mt-0.5">
+                    {stat.label}
                   </div>
                 </div>
               ))}
@@ -316,11 +358,11 @@ const Card = ({ item, type }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowModal(true)}
-                className={`text-xs font-medium px-3 py-1 rounded-lg ${
+                className={`text-xs font-medium px-3 py-1.5 md:py-1 rounded-lg ${
                   type === "blog"
-                    ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                    : "bg-green-50 text-green-600 hover:bg-green-100"
-                } transition`}
+                    ? "bg-blue-50 text-blue-600 hover:bg-blue-100 active:bg-blue-200"
+                    : "bg-green-50 text-green-600 hover:bg-green-100 active:bg-green-200"
+                } transition active:scale-95`}
               >
                 See More →
               </motion.button>
@@ -341,7 +383,7 @@ const Card = ({ item, type }) => {
 };
 
 /* -------------------------------
-   MAIN TRENDING SECTION
+   MAIN TRENDING SECTION - Mobile Responsive
 -------------------------------- */
 const TrendingSection = ({ dateFilter }) => {
   const { fetchData } = useContext(ApiContext);
@@ -505,9 +547,10 @@ const TrendingSection = ({ dateFilter }) => {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 mb-4 md:mb-6 font-inter min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-sm">Loading trending content...</p>
         </div>
       </div>
     );
@@ -515,9 +558,17 @@ const TrendingSection = ({ dateFilter }) => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
-        <div className="text-center text-red-500">
-          Error loading trending content: {error}
+      <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 mb-4 md:mb-6 font-inter">
+        <div className="text-center text-red-500 p-4">
+          <div className="text-xl mb-2">⚠️</div>
+          <p className="font-medium">Error loading trending content</p>
+          <p className="text-sm mt-1">{error}</p>
+          <button
+            onClick={fetchAllData}
+            className="mt-4 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition active:scale-95"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -531,9 +582,13 @@ const TrendingSection = ({ dateFilter }) => {
     !dateFilter.to
   ) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter">
-        <div className="text-center text-yellow-600">
-          Please select a valid date range to view trending content.
+      <div className="bg-white rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 mb-4 md:mb-6 font-inter">
+        <div className="text-center text-yellow-600 p-4">
+          <div className="text-xl mb-2">📅</div>
+          <p className="font-medium">Select Date Range</p>
+          <p className="text-sm mt-1">
+            Please select a valid date range to view trending content
+          </p>
         </div>
       </div>
     );
@@ -541,116 +596,153 @@ const TrendingSection = ({ dateFilter }) => {
 
   return (
     <motion.div
-      className="bg-white rounded-2xl shadow-lg p-6 mb-6 font-inter sh"
+      className="bg-white rounded-xl md:rounded-2xl shadow-lg p-4 md:p-6 mb-4 md:mb-6 font-inter"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* Date Range Display */}
-      <div className="mb-6 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-blue-700 font-medium">
-            📅 Showing data for: {dateFilter.displayText}
-            <span className="ml-3 text-xs bg-blue-100 px-2 py-1 rounded">
+      {/* Date Range Display - Mobile Optimized */}
+      <div className="mb-4 md:mb-6 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg md:rounded-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-blue-600">📅</span>
+              <span className="text-sm md:text-base text-blue-700 font-medium">
+                {dateFilter.displayText}
+              </span>
+            </div>
+            <div className="text-xs md:text-sm text-blue-600 bg-blue-100 px-2 py-1 rounded-full inline-block">
               Sorted by:{" "}
-              {activeTab === "blogs"
-                ? blogSortBy.charAt(0).toUpperCase() + blogSortBy.slice(1)
-                : discussionSortBy.charAt(0).toUpperCase() +
-                  discussionSortBy.slice(1)}
-            </span>
-          </span>
+              <span className="font-semibold">
+                {activeTab === "blogs"
+                  ? blogSortBy.charAt(0).toUpperCase() + blogSortBy.slice(1)
+                  : discussionSortBy.charAt(0).toUpperCase() +
+                    discussionSortBy.slice(1)}
+              </span>
+            </div>
+          </div>
           <button
             onClick={fetchAllData}
-            className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-lg transition"
+            className="mt-2 md:mt-0 text-xs md:text-sm bg-white hover:bg-blue-50 text-blue-700 px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition shadow-sm hover:shadow active:scale-95 border border-blue-200"
           >
-            Refresh
+            🔄 Refresh
           </button>
         </div>
       </div>
 
-      <div className="md:hidden flex space-x-2 bg-gray-100 p-1 rounded-xl mb-6">
+      {/* Mobile Tab Switcher */}
+      <div className="md:hidden flex gap-1 bg-gray-100 p-1.5 rounded-2xl mb-4">
+        {/* Blogs Tab */}
         <motion.button
           onClick={() => setActiveTab("blogs")}
-          className={`w-1/2 py-2 rounded-lg text-sm font-medium ${
-            activeTab === "blogs"
-              ? "bg-white text-blue-600 shadow"
-              : "text-gray-600"
-          }`}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.96 }}
+          className={`
+      flex-1 min-h-[44px]
+      flex items-center justify-center gap-1.5
+      rounded-xl text-sm font-semibold transition-all
+      ${
+        activeTab === "blogs"
+          ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+          : "text-gray-600 hover:text-gray-900"
+      }
+    `}
         >
-          Blogs
+          <span className="text-base sm:text-lg">📝</span>
+          <span className="truncate">Blogs</span>
         </motion.button>
 
+        {/* Discussions Tab */}
         <motion.button
           onClick={() => setActiveTab("discussions")}
-          className={`w-1/2 py-2 rounded-lg text-sm font-medium ${
-            activeTab === "discussions"
-              ? "bg-white text-green-600 shadow"
-              : "text-gray-600"
-          }`}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.96 }}
+          className={`
+      flex-1 min-h-[44px]
+      flex items-center justify-center gap-1.5
+      rounded-xl text-sm font-semibold transition-all
+      ${
+        activeTab === "discussions"
+          ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"
+          : "text-gray-600 hover:text-gray-900"
+      }
+    `}
         >
-          Discussions
+          <span className="text-base sm:text-lg">💬</span>
+          <span className="truncate">Discussions</span>
         </motion.button>
       </div>
 
       {/* ---------- DESKTOP SIDE BY SIDE WITH SEPARATE FILTERS ---------- */}
-      <div className="hidden md:grid grid-cols-2 gap-6">
+      <div className="hidden md:grid md:grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* BLOGS SECTION */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <span className="w-2 h-4 bg-blue-500 rounded"></span>
-              Trending Blogs
-              <span className="text-xs font-normal text-gray-500 ml-2">
-                (Top {blogsWithRank.length})
-              </span>
-            </h3>
+        <div className="bg-gradient-to-br from-white to-blue-50 rounded-2xl p-4 md:p-5 border border-blue-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Trending Blogs
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Top {blogsWithRank.length} • Sorted by {blogSortBy}
+                </p>
+              </div>
+            </div>
             <select
               value={blogSortBy}
               onChange={(e) => setBlogSortBy(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
             >
-              <option value="claps">Claps</option>
-              <option value="reposts">Repost</option>
-              <option value="views">Views</option>
-              <option value="rating">Rating</option>
+              <option value="claps">👏 Claps</option>
+              <option value="reposts">🔁 Reposts</option>
+              <option value="views">👀 Views</option>
+              <option value="rating">⭐ Rating</option>
             </select>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {blogsWithRank.length > 0 ? (
               blogsWithRank.map((blog) => (
                 <Card key={blog.reference} item={blog} type="blog" />
               ))
             ) : (
-              <div className="text-center text-gray-500 py-8">
-                No trending blogs found for the selected date range
+              <div className="text-center p-8">
+                <div className="text-4xl mb-3">📝</div>
+                <p className="text-gray-500 font-medium">No trending blogs</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Try a different date range
+                </p>
               </div>
             )}
           </div>
         </div>
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <span className="w-2 h-4 bg-green-500 rounded"></span>
-              Trending Discussions
-              <span className="text-xs font-normal text-gray-500 ml-2">
-                (Top {discussionsWithRank.length})
-              </span>
-            </h3>
+
+        {/* DISCUSSIONS SECTION */}
+        <div className="bg-gradient-to-br from-white to-green-50 rounded-2xl p-4 md:p-5 border border-green-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-8 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Trending Discussions
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Top {discussionsWithRank.length} • Sorted by{" "}
+                  {discussionSortBy}
+                </p>
+              </div>
+            </div>
             <select
               value={discussionSortBy}
               onChange={(e) => setDiscussionSortBy(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white shadow-sm"
             >
-              <option value="likes">Likes</option>
-              <option value="comments">Comments</option>
-              <option value="reposts">Reposts</option>
-              <option value="views">Views</option>
+              <option value="likes">👍 Likes</option>
+              <option value="comments">💬 Comments</option>
+              <option value="reposts">🔁 Reposts</option>
+              <option value="views">👀 Views</option>
             </select>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {discussionsWithRank.length > 0 ? (
               discussionsWithRank.map((discussion) => (
                 <Card
@@ -660,8 +752,14 @@ const TrendingSection = ({ dateFilter }) => {
                 />
               ))
             ) : (
-              <div className="text-center text-gray-500 py-8">
-                No trending discussions found for the selected date range
+              <div className="text-center p-8">
+                <div className="text-4xl mb-3">💬</div>
+                <p className="text-gray-500 font-medium">
+                  No trending discussions
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Try a different date range
+                </p>
               </div>
             )}
           </div>
@@ -671,70 +769,116 @@ const TrendingSection = ({ dateFilter }) => {
       {/* ---------- MOBILE SWITCH VIEW ---------- */}
       <div className="md:hidden">
         {activeTab === "blogs" ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-md font-semibold flex items-center gap-2">
-                <span className="w-2 h-4 bg-blue-500 rounded"></span>
-                Trending Blogs
-                <span className="text-xs font-normal text-gray-500 ml-2">
-                  (Top {blogsWithRank.length})
-                </span>
-              </h3>
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 bg-blue-50 rounded-xl p-3">
+              {/* Left Section */}
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-6 bg-blue-500 rounded-full"></div>
+
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                    Trending Blogs
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Top {blogsWithRank.length} posts
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Section */}
               <select
                 value={blogSortBy}
                 onChange={(e) => setBlogSortBy(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="
+      w-full sm:w-32
+      border border-gray-300 rounded-lg
+      px-3 py-2 sm:py-1.5
+      text-sm
+      focus:outline-none focus:ring-2 focus:ring-blue-500
+      bg-white shadow-sm
+    "
               >
-                <option value="claps">Sort by Claps</option>
-                <option value="reposts">Sort by Repost</option>
-                <option value="views">Sort by Views</option>
-                <option value="rating">Sort by Rating</option>
+                <option value="claps">👏 Claps</option>
+                <option value="reposts">🔁 Reposts</option>
+                <option value="views">👀 Views</option>
+                <option value="rating">⭐ Rating</option>
               </select>
             </div>
-            {blogsWithRank.length > 0 ? (
-              blogsWithRank.map((blog) => (
-                <Card key={blog.reference} item={blog} type="blog" />
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                No trending blogs found for the selected date range
-              </div>
-            )}
+
+            <div className="space-y-3">
+              {blogsWithRank.length > 0 ? (
+                blogsWithRank.map((blog) => (
+                  <Card key={blog.reference} item={blog} type="blog" />
+                ))
+              ) : (
+                <div className="text-center p-6 bg-gray-50 rounded-xl">
+                  <div className="text-3xl mb-2">📝</div>
+                  <p className="text-gray-500 font-medium">No trending blogs</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Try a different date range
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-md font-semibold flex items-center gap-2">
-                <span className="w-2 h-4 bg-green-500 rounded"></span>
-                Trending Discussions
-                <span className="text-xs font-normal text-gray-500 ml-2">
-                  (Top {discussionsWithRank.length})
-                </span>
-              </h3>
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 bg-green-50 rounded-xl p-3">
+              {/* Left Section */}
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-6 bg-green-500 rounded-full"></div>
+
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                    Trending Discussions
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Top {discussionsWithRank.length} posts
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Section */}
               <select
                 value={discussionSortBy}
                 onChange={(e) => setDiscussionSortBy(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="
+      w-full sm:w-32
+      border border-gray-300 rounded-lg
+      px-3 py-2 sm:py-1.5
+      text-sm
+      focus:outline-none focus:ring-2 focus:ring-green-500
+      bg-white shadow-sm
+    "
               >
-                <option value="likes">Sort by Likes</option>
-                <option value="comments">Sort by Comments</option>
-                <option value="reposts">Sort by Reposts</option>
-                <option value="views">Sort by Views</option>
+                <option value="likes">👍 Likes</option>
+                <option value="comments">💬 Comments</option>
+                <option value="reposts">🔁 Reposts</option>
+                <option value="views">👀 Views</option>
               </select>
             </div>
-            {discussionsWithRank.length > 0 ? (
-              discussionsWithRank.map((discussion) => (
-                <Card
-                  key={discussion.reference}
-                  item={discussion}
-                  type="discussion"
-                />
-              ))
-            ) : (
-              <div className="text-center text-gray-500 py-8">
-                No trending discussions found for the selected date range
-              </div>
-            )}
+
+            <div className="space-y-3">
+              {discussionsWithRank.length > 0 ? (
+                discussionsWithRank.map((discussion) => (
+                  <Card
+                    key={discussion.reference}
+                    item={discussion}
+                    type="discussion"
+                  />
+                ))
+              ) : (
+                <div className="text-center p-6 bg-gray-50 rounded-xl">
+                  <div className="text-3xl mb-2">💬</div>
+                  <p className="text-gray-500 font-medium">
+                    No trending discussions
+                  </p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Try a different date range
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
