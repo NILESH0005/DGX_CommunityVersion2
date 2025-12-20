@@ -13,8 +13,4 @@ router.get("/deviceAnalytics", getDeviceAnalytics);
 router.get("/getMostActiveUsers", getMostActiveUsers);
 
 
-
-
-
-
 export default router;

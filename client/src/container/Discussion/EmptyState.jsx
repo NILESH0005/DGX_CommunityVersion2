@@ -1,10 +1,7 @@
 import React from "react";
 import { FaSearch, FaPlusCircle } from "react-icons/fa";
 
-/**
- * EmptyState Component
- * Shown when no discussions are found or list is empty
- */
+
 const EmptyState = ({
   searchQuery,
   setSearchQuery,

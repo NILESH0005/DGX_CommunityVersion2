@@ -154,3 +154,19 @@
 .jodit-wysiwyg li {
   display: list-item !important;
 }
+
+
+@keyframes sleigh-move {
+  0% {
+    transform: translateX(-200px) translateY(-50%);
+  }
+  100% {
+    transform: translateX(110vw) translateY(-50%);
+  }
+}
+
+.animate-sleigh {
+  animation: sleigh-move 15s linear infinite;
+  z-index: 10;
+}
+

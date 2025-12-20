@@ -11,10 +11,7 @@ const DiscussionList = ({
   updateLikeCount,
   updateCommentCount,
 }) => {
-  // Local state copy to allow updates
   const [discussionList, setDiscussionList] = useState(discussions);
-
-  // If parent provides new discussions, sync them
   useEffect(() => {
     setDiscussionList(discussions);
   }, [discussions]);
@@ -34,7 +31,6 @@ const DiscussionList = ({
     );
   };
 
-  // Record discussion view - let backend handle duplicates
   const recordDiscussionView = async (discussionID) => {
     if (!userToken) return;
     
