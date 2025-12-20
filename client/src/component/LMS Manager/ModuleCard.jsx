@@ -2,7 +2,14 @@ import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import ApiContext from "../../context/ApiContext";
 import ByteArrayImage from "../../utils/ByteArrayImage";
-import { FaAngleDown, FaAngleUp, FaEye, FaClock, FaPlayCircle } from "react-icons/fa";
+import {
+  FaAngleDown,
+  FaAngleUp,
+  FaEye,
+  FaClock,
+  FaPlayCircle,
+  FaStar,
+} from "react-icons/fa";
 import Swal from "sweetalert2";
 import images from "../../../public/images";
 
@@ -38,7 +45,7 @@ const ModuleCard = () => {
           return {
             ...module,
             totalViews: viewEntry ? viewEntry.totalViews : 0,
-            totalTimeSpent: viewEntry ? Number(viewEntry.totalTimeSpent) : 0, 
+            totalTimeSpent: viewEntry ? Number(viewEntry.totalTimeSpent) : 0,
           };
         });
 
@@ -67,7 +74,7 @@ const ModuleCard = () => {
 
   const formatTime = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return "Not started";
-    
+
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -83,7 +90,7 @@ const ModuleCard = () => {
 
   const formatTimeCompact = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return "0s";
-    
+
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
@@ -99,7 +106,7 @@ const ModuleCard = () => {
 
   const getTimeSpentColor = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return "text-gray-500 bg-gray-100";
-    
+
     if (totalSeconds < 60) {
       return "text-yellow-700 bg-yellow-100"; // Less than 1 minute
     } else if (totalSeconds < 300) {
@@ -108,8 +115,6 @@ const ModuleCard = () => {
       return "text-green-700 bg-green-100"; // 5 minutes or more
     }
   };
-
-
 
   const handleModuleClick = (moduleId, moduleName) => {
     if (!userToken) {
@@ -160,8 +165,7 @@ const ModuleCard = () => {
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = images.Noimage;
-            e.target.className =
-              "w-full h-full object-contain bg-gray-200 p-4";
+            e.target.className = "w-full h-full object-contain bg-gray-200 p-4";
           }}
         />
       );
@@ -244,11 +248,17 @@ const ModuleCard = () => {
                     <span className="font-medium">{module.totalViews}</span>
                     <span>views</span>
                   </div>
-                  
+
                   <div className="flex items-center gap-1.5">
                     <FaClock className="text-purple-400" />
                     <span className="font-medium">
                       {formatTime(module.totalTimeSpent)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <FaStar className="text-yellow-400" />
+                    <span className="font-semibold">
+                      {(module.Rating ?? 0).toFixed(1)}
                     </span>
                   </div>
                 </div>
@@ -273,12 +283,12 @@ const ModuleCard = () => {
                   >
                     {expandedDescriptions[module.ModuleID] ? (
                       <>
-                        <FaAngleUp className="mr-1 group-hover/button:-translate-y-0.5 transition-transform" /> 
+                        <FaAngleUp className="mr-1 group-hover/button:-translate-y-0.5 transition-transform" />
                         Show Less
                       </>
                     ) : (
                       <>
-                        <FaAngleDown className="mr-1 group-hover/button:translate-y-0.5 transition-transform" /> 
+                        <FaAngleDown className="mr-1 group-hover/button:translate-y-0.5 transition-transform" />
                         Read More
                       </>
                     )}

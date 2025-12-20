@@ -20,8 +20,8 @@ const DashboardPage = () => {
 
   const formatDateForDisplay = (date) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
@@ -30,7 +30,7 @@ const DashboardPage = () => {
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
-      year: "numeric"
+      year: "numeric",
     });
   };
 
@@ -45,25 +45,25 @@ const DashboardPage = () => {
         fromDate = today;
         toDate = today;
         break;
-      
+
       case "7d":
         // Last 7 days
         fromDate = new Date(today);
         fromDate.setDate(today.getDate() - 7);
         break;
-      
+
       case "30d":
         // Last 30 days
         fromDate = new Date(today);
         fromDate.setDate(today.getDate() - 30);
         break;
-      
+
       case "60d":
         // Last 60 days
         fromDate = new Date(today);
         fromDate.setDate(today.getDate() - 60);
         break;
-      
+
       case "custom":
         // Use custom dates if both are provided and valid
         if (customFrom && customTo) {
@@ -74,7 +74,7 @@ const DashboardPage = () => {
           return null;
         }
         break;
-      
+
       default:
         // Default to 30 days
         fromDate = new Date(today);
@@ -83,33 +83,37 @@ const DashboardPage = () => {
 
     return {
       from: formatDateForDisplay(fromDate),
-      to: formatDateForDisplay(toDate)
+      to: formatDateForDisplay(toDate),
     };
   };
 
   const validateCustomRange = (from, to) => {
     if (!from || !to) return false;
-    
+
     const fromDate = new Date(from);
     const toDate = new Date(to);
-    
+
     return fromDate <= toDate;
   };
 
   const handleCustomRangeChange = (field, value) => {
     const newCustomRange = {
       ...customRange,
-      [field]: value
+      [field]: value,
     };
-    
+
     setCustomRange(newCustomRange);
-    
+
     const isValid = validateCustomRange(newCustomRange.from, newCustomRange.to);
     setIsCustomRangeValid(isValid);
-    
+
     // Only update calculated range if both dates are valid
     if (isValid && filterType === "custom") {
-      const range = calculateDateRange("custom", newCustomRange.from, newCustomRange.to);
+      const range = calculateDateRange(
+        "custom",
+        newCustomRange.from,
+        newCustomRange.to
+      );
       if (range) {
         setCalculatedRange(range);
       }
@@ -119,7 +123,7 @@ const DashboardPage = () => {
   const handleFilterChange = (e) => {
     const newFilterType = e.target.value;
     setFilterType(newFilterType);
-    
+
     // For preset filters, immediately calculate and update
     if (newFilterType !== "custom") {
       const range = calculateDateRange(newFilterType);
@@ -132,9 +136,13 @@ const DashboardPage = () => {
       // For custom filter, check if we have valid dates
       const isValid = validateCustomRange(customRange.from, customRange.to);
       setIsCustomRangeValid(isValid);
-      
+
       if (isValid) {
-        const range = calculateDateRange("custom", customRange.from, customRange.to);
+        const range = calculateDateRange(
+          "custom",
+          customRange.from,
+          customRange.to
+        );
         if (range) {
           setCalculatedRange(range);
         }
@@ -154,9 +162,13 @@ const DashboardPage = () => {
       // For custom filter, only update if we have valid dates
       const isValid = validateCustomRange(customRange.from, customRange.to);
       setIsCustomRangeValid(isValid);
-      
+
       if (isValid) {
-        const range = calculateDateRange("custom", customRange.from, customRange.to);
+        const range = calculateDateRange(
+          "custom",
+          customRange.from,
+          customRange.to
+        );
         if (range) {
           setCalculatedRange(range);
         }
@@ -195,10 +207,16 @@ const DashboardPage = () => {
   // For custom filter, only pass if range is valid
   const filterData = {
     type: filterType,
-    from: isCustomRangeValid || filterType !== "custom" ? calculatedRange.from : "",
+    from:
+      isCustomRangeValid || filterType !== "custom" ? calculatedRange.from : "",
     to: isCustomRangeValid || filterType !== "custom" ? calculatedRange.to : "",
-    displayText: getDateRangeDisplayText(filterType, calculatedRange.from, calculatedRange.to, isCustomRangeValid),
-    isValid: filterType !== "custom" ? true : isCustomRangeValid
+    displayText: getDateRangeDisplayText(
+      filterType,
+      calculatedRange.from,
+      calculatedRange.to,
+      isCustomRangeValid
+    ),
+    isValid: filterType !== "custom" ? true : isCustomRangeValid,
   };
 
   // Function to get display text for date range
@@ -206,7 +224,7 @@ const DashboardPage = () => {
     if (type === "custom" && !isValid) {
       return "Select both dates (from ≤ to)";
     }
-    
+
     if (type === "today") {
       return `Today (${formatDateReadable(from)})`;
     } else if (type === "custom") {
@@ -234,7 +252,7 @@ const DashboardPage = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header Section */}
         <motion.div className="mb-8" variants={itemVariants}>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center ">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Admin Dashboard
@@ -246,141 +264,137 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* 🌟 GLOBAL DATE FILTER */}
+        {/* 🌟 GLOBAL DATE FILTER - Fixed Section */}
         <motion.div variants={itemVariants}>
-          <div
-            className="
-      bg-white 
-      border border-gray-200 
-      shadow-[0_2px_6px_rgba(0,0,0,0.05)] 
-      rounded-2xl 
-      p-5 
-      flex flex-wrap items-center justify-between gap-5
-      transition-all
-    "
-          >
-            {/* LEFT SIDE: Filter Controls */}
-            <div className="flex items-center gap-5 flex-wrap">
-              {/* Filter Type */}
-              <select
-                value={filterType}
-                onChange={handleFilterChange}
-                className="
-          rounded-lg 
-          px-4 py-2 
-          text-sm
-          bg-gradient-to-br from-gray-50 to-white 
-          border border-gray-300
-          shadow-sm
-          focus:ring-2 focus:ring-blue-400 focus:border-blue-400
-          transition-all
-          cursor-pointer
-        "
+          <div className="bg-white border border-gray-200 shadow-[0_2px_6px_rgba(0,0,0,0.05)] rounded-2xl p-5 transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Date Range Filter
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Select a time period to filter dashboard data
+                </p>
+              </div>
+
+              {/* Date Range Display Badge */}
+              <div
+                className={`px-4 py-2 rounded-full border ${getBadgeColor()} text-sm font-medium transition-all duration-300`}
               >
-                <option value="today">Today</option>
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="60d">Last 60 days</option>
-                <option value="custom">Custom Range</option>
-              </select>
-
-              {/* Always show date inputs */}
-              <div className="flex items-center gap-4">
-                {/* From Date */}
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 mb-1 font-medium">From</label>
-                  <input
-                    type="date"
-                    className={`
-                      px-3 py-2 
-                      text-sm
-                      border ${filterType === "custom" && !customRange.from ? "border-yellow-300" : "border-gray-300"} 
-                      rounded-lg 
-                      bg-white 
-                      shadow-sm
-                      focus:ring-2 focus:ring-blue-400 focus:border-blue-400
-                      transition-all
-                      min-w-[150px]
-                    `}
-                    value={filterType === "custom" ? customRange.from : calculatedRange.from}
-                    onChange={(e) => {
-                      if (filterType === "custom") {
-                        handleCustomRangeChange("from", e.target.value);
-                      } else {
-                        // If not in custom mode, switch to custom mode with this date
-                        setFilterType("custom");
-                        handleCustomRangeChange("from", e.target.value);
-                      }
-                    }}
-                    max={filterType === "custom" ? customRange.to || undefined : undefined}
-                  />
-                </div>
-
-                {/* To Date */}
-                <div className="flex flex-col">
-                  <label className="text-xs text-gray-500 mb-1 font-medium">To</label>
-                  <input
-                    type="date"
-                    className={`
-                      px-3 py-2 
-                      text-sm
-                      border ${filterType === "custom" && !customRange.to ? "border-yellow-300" : "border-gray-300"} 
-                      rounded-lg 
-                      bg-white 
-                      shadow-sm
-                      focus:ring-2 focus:ring-blue-400 focus:border-blue-400
-                      transition-all
-                      min-w-[150px]
-                    `}
-                    value={filterType === "custom" ? customRange.to : calculatedRange.to}
-                    onChange={(e) => {
-                      if (filterType === "custom") {
-                        handleCustomRangeChange("to", e.target.value);
-                      } else {
-                        setFilterType("custom");
-                        handleCustomRangeChange("to", e.target.value);
-                      }
-                    }}
-                    min={filterType === "custom" ? customRange.from || undefined : undefined}
-                  />
-                </div>
-
-                <div className={`
-                  px-3 py-1.5 
-                  ${getBadgeColor()}
-                  rounded-lg 
-                  text-sm 
-                  font-medium 
-                  shadow-sm 
-                  border
-                  min-w-[200px]
-                  text-center
-                `}>
-                  {filterType === "custom" && !isCustomRangeValid ? "⚠️ " : "📅 "}
-                  {getDateRangeDisplayText(filterType, calculatedRange.from, calculatedRange.to, isCustomRangeValid)}
-                </div>
+                {filterData.displayText}
               </div>
             </div>
 
-            {/* RIGHT SIDE: Today's Date Display */}
-            <div
-              className="
-        px-4 py-2 
-        bg-blue-50 
-        text-blue-700 
-        rounded-lg 
-        text-sm 
-        font-medium 
-        shadow-sm 
-        border border-blue-200
-      "
-            >
-              📅 Today: {today}
+            <div className="flex flex-wrap items-end gap-4 pt-4 border-t border-gray-100">
+              {/* Filter Type */}
+              <div className="flex flex-col min-w-[140px]">
+                <label className="text-xs text-gray-500 mb-1 font-medium">
+                  Filter Type
+                </label>
+                <select
+                  value={filterType}
+                  onChange={handleFilterChange}
+                  className="rounded-lg px-4 py-2.5 text-sm bg-white border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all cursor-pointer hover:border-gray-400"
+                >
+                  <option value="today">Today</option>
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="60d">Last 60 days</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              {/* From Date */}
+              <div className="flex flex-col min-w-[160px]">
+                <label className="text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
+                  {filterType === "custom" && !customRange.from && (
+                    <span className="text-yellow-500">*</span>
+                  )}
+                </label>
+                <input
+                  type="date"
+                  className={`px-3 py-2.5 text-sm border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all ${
+                    filterType === "custom" && !customRange.from
+                      ? "border-yellow-300 focus:ring-yellow-300 focus:border-yellow-400"
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}
+                  value={
+                    filterType === "custom"
+                      ? customRange.from
+                      : calculatedRange.from
+                  }
+                  onChange={(e) => {
+                    if (filterType === "custom") {
+                      handleCustomRangeChange("from", e.target.value);
+                    } else {
+                      setFilterType("custom");
+                      handleCustomRangeChange("from", e.target.value);
+                    }
+                  }}
+                />
+              </div>
+
+              {/* To Date */}
+              <div className="flex flex-col min-w-[160px]">
+                <label className="text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
+                  {filterType === "custom" && !customRange.to && (
+                    <span className="text-yellow-500">*</span>
+                  )}
+                </label>
+                <input
+                  type="date"
+                  className={`px-3 py-2.5 text-sm border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all ${
+                    filterType === "custom" && !customRange.to
+                      ? "border-yellow-300 focus:ring-yellow-300 focus:border-yellow-400"
+                      : "border-gray-300 hover:border-gray-400"
+                  }`}
+                  value={
+                    filterType === "custom"
+                      ? customRange.to
+                      : calculatedRange.to
+                  }
+                  onChange={(e) => {
+                    if (filterType === "custom") {
+                      handleCustomRangeChange("to", e.target.value);
+                    } else {
+                      setFilterType("custom");
+                      handleCustomRangeChange("to", e.target.value);
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Reset Button */}
+              <button
+                onClick={() => {
+                  setFilterType("30d");
+                  const range = calculateDateRange("30d");
+                  if (range) {
+                    setCalculatedRange(range);
+                    setCustomRange(range);
+                    setIsCustomRangeValid(true);
+                  }
+                }}
+                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 hover:border-gray-400 transition-all duration-200"
+              >
+                Reset Filter
+              </button>
             </div>
+
+            {/* Validation Message */}
+            {filterType === "custom" && !isCustomRangeValid && (
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></div>
+                <span className="text-yellow-600">
+                  Please select both dates and ensure "From" date is before or
+                  equal to "To" date
+                </span>
+              </div>
+            )}
           </div>
         </motion.div>
 
-        {/* Pass filterData to all components */}
+        {/* Dashboard Sections */}
         <motion.div variants={itemVariants}>
           <TrendingSection dateFilter={filterData} />
         </motion.div>
@@ -392,7 +406,7 @@ const DashboardPage = () => {
           <div className="lg:col-span-2 space-y-6">
             <motion.div
               whileHover={{ y: -1 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sh "
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md"
             >
               <ApprovalSection dateFilter={filterData} />
             </motion.div>
@@ -401,7 +415,7 @@ const DashboardPage = () => {
           <div className="space-y-6">
             <motion.div
               whileHover={{ y: -1 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sh"
+              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md"
             >
               <TopContentSection dateFilter={filterData} />
             </motion.div>
@@ -411,7 +425,7 @@ const DashboardPage = () => {
         <motion.div variants={itemVariants}>
           <motion.div
             whileHover={{ y: -1 }}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sh "
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md"
           >
             <UserInsightsSection dateFilter={filterData} />
           </motion.div>

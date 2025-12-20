@@ -5,11 +5,13 @@ import LoadPage from "../../component/LoadPage";
 import { FaTrash, FaSearch, FaTimes, FaEye } from "react-icons/fa";
 import { debounce } from "lodash";
 
-
 const Discussions = () => {
   const { fetchData, userToken, user } = useContext(ApiContext);
   console.log("Full user object:", user);
-  console.log("Available user properties:", user ? Object.keys(user) : "User is null/undefined");
+  console.log(
+    "Available user properties:",
+    user ? Object.keys(user) : "User is null/undefined"
+  );
   const [discussions, setDiscussions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -155,7 +157,9 @@ const Discussions = () => {
       <div className="flex justify-between items-start">
         <div>
           <h3 className="font-bold text-lg">{discussion.Title}</h3>
-          <p className="text-sm text-gray-600">By: {discussion.UserName || "Unknown"}</p>
+          <p className="text-sm text-gray-600">
+            By: {discussion.UserName || "Unknown"}
+          </p>
         </div>
         {!discussion.approved && (
           <button
@@ -241,26 +245,46 @@ const Discussions = () => {
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-DGXgreen text-white">
                     <th className="p-2 border text-center w-12">#</th>
-                    <th className="p-2 border text-center min-w-[150px]">Title</th>
-                    <th className="p-2 border text-center min-w-[120px]">Name</th>
-                    <th className="p-2 border text-center min-w-[200px]">Content</th>
-                    <th className="p-2 border text-center min-w-[80px]">Likes</th>
-                    <th className="p-2 border text-center min-w-[100px]">Comments</th>
-                    <th className="p-2 border text-center min-w-[80px]">Actions</th>
+                    <th className="p-2 border text-center min-w-[150px]">
+                      Title
+                    </th>
+                    <th className="p-2 border text-center min-w-[120px]">
+                      Name
+                    </th>
+                    <th className="p-2 border text-center min-w-[200px]">
+                      Content
+                    </th>
+                    <th className="p-2 border text-center min-w-[80px]">
+                      Likes
+                    </th>
+                    <th className="p-2 border text-center min-w-[100px]">
+                      Comments
+                    </th>
+                    <th className="p-2 border text-center min-w-[80px]">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredDiscussions.map((discussion, index) => (
-                    <tr key={discussion.DiscussionID} className="hover:bg-gray-50">
-                      <td className="p-2 border text-center w-12">{index + 1}</td>
+                    <tr
+                      key={discussion.DiscussionID}
+                      className="hover:bg-gray-50"
+                    >
+                      <td className="p-2 border text-center w-12">
+                        {index + 1}
+                      </td>
                       <td className="p-2 border text-center min-w-[150px]">
                         {discussion.Title}
                       </td>
                       <td className="p-2 border text-center min-w-[120px]">
-                        {discussion.User.Name || "Unknown"}
+                      {discussion.User?.Name || discussion.UserName || "Unknown"}
                       </td>
                       <td className="p-2 border text-center min-w-[200px]">
-                        {stripHtmlTags((discussion.Content || "").substring(0, 50))}...
+                        {stripHtmlTags(
+                          (discussion.Content || "").substring(0, 50)
+                        )}
+                        ...
                       </td>
                       <td className="p-2 border text-center min-w-[80px]">
                         {discussion.likeCount || 0}
@@ -271,7 +295,9 @@ const Discussions = () => {
                       <td className="p-2 border text-center min-w-[80px]">
                         {!discussion.approved && (
                           <button
-                            onClick={() => handleDeleteDiscussion(discussion.DiscussionID)}
+                            onClick={() =>
+                              handleDeleteDiscussion(discussion.DiscussionID)
+                            }
                             className="bg-red-500 text-white p-2 rounded hover:bg-red-600 transition"
                             title="Delete"
                           >
