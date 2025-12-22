@@ -1,9 +1,11 @@
 import path from "path";
 import fs from "fs";
-import db from "../models/index.js";
+// import db from "../models/index.js";
 import { logInfo, logWarning, logError } from "../helper/index.js";
 import { Op } from "sequelize";
 import UserLmsProgress from "../models/UserLmsProgress.js";
+import db, { sequelize } from "../models/index.js";
+
 
 const User = db.User;
 const ModuleDetails = db.LMSModulesDetails;
@@ -293,8 +295,6 @@ export const deleteModuleService = async (userEmail, moduleId) => {
         },
       };
     }
-
-    // 🔹 Step 3: Move image to deleted-files folder (if exists)
     if (
       existingModule.ModuleImagePath &&
       typeof existingModule.ModuleImagePath === "string"
@@ -358,6 +358,125 @@ export const deleteModuleService = async (userEmail, moduleId) => {
     };
   }
 };
+
+// export const deleteModuleService = async (userEmail, moduleId) => {
+//   const transaction = await sequelize.transaction();
+
+//   try {
+//     const user = await User.findOne({
+//       where: {
+//         EmailId: userEmail,
+//         delStatus: { [Op.or]: [0, null] },
+//       },
+//       transaction,
+//     });
+
+//     if (!user) {
+//       await transaction.rollback();
+//       return {
+//         status: 404,
+//         response: { success: false, message: "User not found" },
+//       };
+//     }
+//     const module = await ModuleDetails.findOne({
+//       where: { ModuleID: moduleId, delStatus: 0 },
+//       transaction,
+//     });
+
+//     if (!module) {
+//       await transaction.rollback();
+//       return {
+//         status: 404,
+//         response: {
+//           success: false,
+//           message: "Module not found or already deleted",
+//         },
+//       };
+//     }
+//     const subModules = await SubModulesDetails.findAll({
+//       where: { ModuleID: moduleId, delStatus: 0 },
+//       transaction,
+//     });
+
+//     const subModuleIds = subModules.map((s) => s.SubModuleID);
+//     const units = await LMSUnitsDetails.findAll({
+//       where: { SubModuleID: subModuleIds, delStatus: 0 },
+//       transaction,
+//     });
+
+//     const unitIds = units.map((u) => u.UnitID);
+//     const files = await LMSFilesDetails.findAll({
+//       where: { UnitID: unitIds, delStatus: 0 },
+//       transaction,
+//     });
+
+//     moveToDeletedFolder(module.ModuleImagePath, "module image");
+
+//     subModules.forEach((sub) =>
+//       moveToDeletedFolder(sub.SubModuleImagePath, "submodule image")
+//     );
+
+//     units.forEach((unit) => moveToDeletedFolder(unit.UnitImg, "unit image"));
+
+//     files.forEach((file) => moveToDeletedFolder(file.FilePath, "file"));
+
+//     await LMSFilesDetails.update(
+//       {
+//         delStatus: 1,
+//         delOnDt: new Date(),
+//         AddDel: user.UserID,
+//       },
+//       { where: { UnitID: unitIds }, transaction }
+//     );
+
+//     await LMSUnitsDetails.update(
+//       {
+//         delStatus: 1,
+//         delOnDt: new Date(),
+//         AuthDel: user.UserID,
+//       },
+//       { where: { SubModuleID: subModuleIds }, transaction }
+//     );
+
+//     await SubModulesDetails.update(
+//       {
+//         delStatus: 1,
+//         delOnDt: new Date(),
+//         AddDel: user.UserID,
+//       },
+//       { where: { ModuleID: moduleId }, transaction }
+//     );
+
+//     await module.update(
+//       {
+//         delStatus: 1,
+//         delOnDt: new Date(),
+//         AddDel: user.UserID,
+//       },
+//       { transaction }
+//     );
+
+//     await transaction.commit();
+
+//     return {
+//       status: 200,
+//       response: {
+//         success: true,
+//         message: "Module and all related data deleted successfully",
+//       },
+//     };
+//   } catch (error) {
+//     await transaction.rollback();
+//     return {
+//       status: 500,
+//       response: {
+//         success: false,
+//         message: "Module deletion failed",
+//         error,
+//       },
+//     };
+//   }
+// };
 
 export const deleteSubModuleService = async (subModuleId, adminId) => {
   try {
