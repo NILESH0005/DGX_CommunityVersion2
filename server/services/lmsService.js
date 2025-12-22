@@ -842,3 +842,46 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
     throw error;
   }
 };
+
+export const getModuleRatingService = async (moduleId) => {
+  if (!moduleId) {
+    throw new Error("Module reference is required");
+  }
+
+  const ratingStats = await ContentInteraction.findOne({
+    attributes: [
+      [Sequelize.fn("AVG", Sequelize.col("Rating")), "avgRating"],
+      [Sequelize.fn("COUNT", Sequelize.col("Rating")), "ratingCount"],
+    ],
+    include: [
+      {
+        model: LMSSubModulesDetails, // ✅ FIXED
+        attributes: [],
+        where: {
+          ModuleID: moduleId,
+          delStatus: 0,
+        },
+        required: true,
+      },
+    ],
+    where: {
+      Type: "LMS",
+      Rating: { [Op.ne]: null },
+      delStatus: 0,
+    },
+    raw: true,
+  });
+
+  const avgRating = ratingStats?.avgRating
+    ? Number(ratingStats.avgRating)
+    : 0;
+
+  const ratingCount = ratingStats?.ratingCount
+    ? Number(ratingStats.ratingCount)
+    : 0;
+
+  return {
+    avgRating: Number(avgRating.toFixed(1)),
+    totalRatings: ratingCount,
+  };
+};

@@ -8,6 +8,7 @@ import {
   LMSViewsService,
   handleLmsSubmoduleRateAction as rateSubmoduleService,
   getSubModuleRatingService,
+  getModuleRatingService,
 } from "../services/lmsService.js";
 import fs from "fs";
 import path from "path";
@@ -433,8 +434,6 @@ export const handleLmsSubmoduleRateAction = async (req, res) => {
   }
 };
 
-
-
 export const getSubModuleRating = async (req, res) => {
   try {
     const { subModuleId } = req.params;
@@ -453,6 +452,26 @@ export const getSubModuleRating = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message || "Failed to fetch rating",
+    });
+  }
+};
+
+export const getModuleRating = async (req, res) => {
+  try {
+    const { moduleId } = req.params;
+
+    const data = await getModuleRatingService(moduleId);
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Get Module Rating Error:", error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to fetch module rating",
     });
   }
 };

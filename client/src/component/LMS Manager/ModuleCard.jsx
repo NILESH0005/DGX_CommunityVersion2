@@ -9,6 +9,7 @@ import {
   FaClock,
   FaPlayCircle,
   FaStar,
+  FaUsers,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 import images from "../../../public/images";
@@ -26,6 +27,7 @@ const ModuleCard = () => {
       try {
         setLoading(true);
 
+        // 1️⃣ Fetch modules + views
         const [modulesResponse, viewsResponse] = await Promise.all([
           fetchData("dropdown/getModules", "GET"),
           fetchData("lms/module-views", "GET"),
@@ -38,20 +40,33 @@ const ModuleCard = () => {
         const modulesData = modulesResponse.data || [];
         const viewsData = viewsResponse?.data || [];
 
-        const mergedModules = modulesData.map((module) => {
+        // 2️⃣ Fetch ratings (IMPORTANT: before map)
+        const ratingRequests = modulesData.map((module) =>
+          fetchData(`lms/module-rating/${module.ModuleID}`, "GET")
+        );
+
+        const ratingResponses = await Promise.all(ratingRequests);
+
+        // 3️⃣ Merge modules + views + ratings
+        const mergedModules = modulesData.map((module, index) => {
           const viewEntry = viewsData.find(
             (v) => v.moduleID === module.ModuleID
           );
+
+          const ratingData = ratingResponses[index]?.data || {};
+
           return {
             ...module,
             totalViews: viewEntry ? viewEntry.totalViews : 0,
             totalTimeSpent: viewEntry ? Number(viewEntry.totalTimeSpent) : 0,
+            Rating: ratingData.avgRating ?? 0,
+            totalRatings: ratingData.totalRatings ?? 0,
           };
         });
 
         setModules(mergedModules);
 
-        // Set initial expand states
+        // 4️⃣ Expand state
         const initialExpandedState = {};
         mergedModules.forEach(
           (m) => (initialExpandedState[m.ModuleID] = false)
@@ -215,12 +230,34 @@ const ModuleCard = () => {
     );
   }
 
+  const formatTimeSmart = (totalSeconds) => {
+    if (!totalSeconds || totalSeconds <= 0) return "0m";
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+      return `${days}d ${hours % 24}h`;
+    }
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m`;
+    }
+
+    if (minutes > 0) {
+      return `${minutes}m`;
+    }
+
+    return `${totalSeconds}s`;
+  };
+
   // =========================
   // Render Actual Modules
   // =========================
   return (
-    <div className="min-h-[60vh] p-6">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="min-h-[60vh] p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {modules.map((module) => (
           <div
             key={module.ModuleID}
@@ -229,37 +266,57 @@ const ModuleCard = () => {
             }
             className="backdrop-blur-lg bg-white/60 border border-white/40 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
           >
-            {/* Module Image with Time Overlay */}
-            <div className="h-48 overflow-hidden relative">
+            {/* Module Image */}
+            <div className="h-44 sm:h-48 overflow-hidden relative">
               {renderModuleImage(module)}
             </div>
 
             {/* Content */}
-            <div className="p-6">
-              <h3 className="text-xl font-bold text-indigo-900 mb-2 hover:text-indigo-600 transition-colors duration-300 break-words group-hover:text-indigo-700">
+            <div className="p-5 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-bold text-indigo-900 mb-2 hover:text-indigo-600 transition-colors duration-300 break-words group-hover:text-indigo-700">
                 {module.ModuleName}
               </h3>
 
-              {/* Stats Row */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1.5">
+              {/* Stats Row (RESPONSIVE) */}
+              <div className="mb-4">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                  {/* 👁 Views */}
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
                     <FaEye className="text-indigo-400" />
                     <span className="font-medium">{module.totalViews}</span>
-                    <span>views</span>
+                    <span className="hidden sm:inline">views</span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  {/* ⏱ Time */}
+                  <div className="flex items-center gap-1.5 whitespace-nowrap">
                     <FaClock className="text-purple-400" />
                     <span className="font-medium">
-                      {formatTime(module.totalTimeSpent)}
+                      {formatTimeSmart(module.totalTimeSpent)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <FaStar className="text-yellow-400" />
-                    <span className="font-semibold">
-                      {(module.Rating ?? 0).toFixed(1)}
-                    </span>
+
+                  {/* 👥 Average Rating */}
+                  <div className="flex items-center gap-2 whitespace-nowrap cursor-pointer hover:text-blue-600 transition-colors">
+                    <FaUsers className="text-purple-400" />
+
+                    <div className="flex items-center gap-1">
+                      <span className="font-bold text-gray-700">
+                        {(module.Rating ?? 0).toFixed(1)}
+                      </span>
+
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FaStar
+                            key={star}
+                            className={`text-xs ${
+                              star <= module.Rating
+                                ? "text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -267,7 +324,7 @@ const ModuleCard = () => {
               {/* Description */}
               <div className="mb-4">
                 <p
-                  className={`text-gray-700 text-base leading-relaxed ${
+                  className={`text-gray-700 text-sm sm:text-base leading-relaxed ${
                     expandedDescriptions[module.ModuleID]
                       ? "overflow-y-auto max-h-32"
                       : "line-clamp-2"
