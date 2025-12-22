@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
+import { FaStar, FaUsers } from "react-icons/fa";
 import { TbUserSquareRounded, TbClock, TbSearch } from "react-icons/tb";
 import BlogImage from "../component/BlogImage";
 import ApiContext from "../context/ApiContext";
@@ -610,16 +611,35 @@ const BlogPage = () => {
 
             {/* RIGHT: Rating Badge */}
             {/* ⭐ Rating + 👁 Views */}
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-4 mt-1">
               {/* ⭐ Average Rating */}
-              <div className="flex items-center gap-1">
-                <span className="text-yellow-500 text-sm">⭐</span>
-                <span className="text-gray-700 text-sm font-semibold">
-                  {blogStats.averageRating?.toFixed(1) || "0.0"}
-                </span>
+              <div className="flex items-center gap-2">
+                <FaUsers className="text-purple-400" size={14} />
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-gray-700 text-sm">
+                    {blogStats.averageRating?.toFixed(1) || "0.0"}
+                  </span>
+
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <FaStar
+                        key={star}
+                        className={`text-xs ${
+                          star <= blogStats.averageRating
+                            ? "text-yellow-400"
+                            : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  <span className="text-xs text-gray-500">
+                    ({blogStats.totalRatings || 0})
+                  </span>
+                </div>
               </div>
 
-              {/* 👁 Total Views */}
+              {/* 👁 Views */}
               <div className="flex items-center gap-1">
                 <FiEye className="text-blue-600" size={14} />
                 <span className="text-gray-700 text-sm font-semibold">

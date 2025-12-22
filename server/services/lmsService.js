@@ -10,6 +10,7 @@ const {
   Group_Master,
   LMSUserProgress,
   User,
+  ContentInteraction,
   ContentInteractionLog,
 } = db;
 
@@ -636,5 +637,208 @@ export const getFileByIdService = async (FileID) => {
       success: false,
       message: "Database query failed while fetching file details",
     };
+  }
+};
+
+export const getSubModuleRatingService = async (userEmail, subModuleId) => {
+  if (!subModuleId) {
+    throw new Error("SubModule reference is required");
+  }
+
+  // ---------- 1. Average rating + count ----------
+  const ratingStats = await ContentInteraction.findOne({
+    attributes: [
+      [Sequelize.fn("AVG", Sequelize.col("Rating")), "avgRating"],
+      [Sequelize.fn("COUNT", Sequelize.col("Rating")), "ratingCount"],
+    ],
+    where: {
+      Type: "LMS",
+      ReferenceId: subModuleId,
+      Rating: { [Sequelize.Op.ne]: null },
+      delStatus: 0,
+    },
+    raw: true,
+  });
+
+  const avgRating = ratingStats?.avgRating
+    ? Number(ratingStats.avgRating)
+    : 0;
+
+  const ratingCount = ratingStats?.ratingCount
+    ? Number(ratingStats.ratingCount)
+    : 0;
+
+  // ---------- 2. Logged-in user rating ----------
+  let myRating = null;
+
+  if (userEmail) {
+    const user = await User.findOne({
+      where: { EmailId: userEmail, delStatus: 0 },
+      attributes: ["UserID"],
+      raw: true,
+    });
+
+    if (user) {
+      const userRating = await ContentInteraction.findOne({
+        attributes: ["Rating"],
+        where: {
+          Type: "LMS",
+          ReferenceId: subModuleId,
+          UserID: user.UserID,
+          Rating: { [Sequelize.Op.ne]: null },
+          delStatus: 0,
+        },
+        raw: true,
+      });
+
+      myRating = userRating?.Rating ?? null;
+    }
+  }
+
+  return {
+    avgRating: Number(avgRating.toFixed(1)),
+    totalRatings: ratingCount, // ✅ MATCH FRONTEND
+    myRating,                  // ✅ REQUIRED
+  };
+};
+
+
+export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
+  try {
+    const subModuleId = postData.reference || postData.subModuleId;
+    const ratingValue = postData.rating;
+
+    if (!subModuleId) throw new Error("Invalid submodule reference");
+    if (ratingValue === undefined || ratingValue < 0 || ratingValue > 5) {
+      throw new Error("Invalid rating value. Must be between 0 and 5");
+    }
+
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: 0,
+      },
+      attributes: ["UserID", "Name", "EmailId"],
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const userId = user.UserID;
+    const currentDate = new Date();
+
+    const transaction = await User.sequelize.transaction();
+
+    try {
+      // ===== 1. Check if user already rated this submodule =====
+      const existingRating = await ContentInteraction.findOne({
+        where: {
+          Type: "LMS",
+          ReferenceId: subModuleId,
+          UserID: userId,
+          Rating: { [Sequelize.Op.ne]: null },
+          delStatus: 0,
+        },
+        transaction,
+      });
+
+      if (existingRating) {
+        await transaction.rollback();
+        throw new Error(
+          "You have already rated this submodule. You can rate only once."
+        );
+      }
+
+      // ===== 2. Find existing interaction row =====
+      let mainInteraction = await ContentInteraction.findOne({
+        where: {
+          Type: "LMS",
+          ReferenceId: subModuleId,
+          UserID: userId,
+          delStatus: 0,
+        },
+        transaction,
+      });
+
+      if (mainInteraction) {
+        // Update rating
+        await ContentInteraction.update(
+          {
+            Rating: ratingValue,
+            AuthLstEdt: userId,
+            editOnDt: currentDate,
+          },
+          {
+            where: { Id: mainInteraction.Id },
+            transaction,
+          }
+        );
+      } else {
+        // Create new interaction
+        mainInteraction = await ContentInteraction.create(
+          {
+            Type: "LMS",
+            ReferenceId: subModuleId,
+            UserID: userId,
+            Likes: 0,
+            Dislikes: 0,
+            Rating: ratingValue,
+            View: 0,
+            Repost: null,
+            Comments: null,
+            AuthAdd: userId,
+            AuthDel: null,
+            AuthLstEdt: null,
+            delOnDt: null,
+            AddOnDt: currentDate,
+            editOnDt: null,
+            delStatus: 0,
+          },
+          { transaction }
+        );
+      }
+
+      // ===== 3. Create log entry =====
+      await ContentInteractionLog.create(
+        {
+          ProcessName: "LMS",
+          reference: subModuleId,
+          UserID: userId,
+          Likes: null,
+          Dislike: null,
+          Rating: ratingValue,
+          View: null,
+          Comments: null,
+          Repost: null,
+          AuthAdd: userId,
+          AuthDel: null,
+          AuthLstEdt: null,
+          delOnDt: null,
+          AddOnDt: currentDate,
+          editOnDt: null,
+          delStatus: 0,
+        },
+        { transaction }
+      );
+
+      await transaction.commit();
+
+      return {
+        success: true,
+        data: {
+          rated: true,
+          rating: ratingValue,
+          subModuleId,
+          userId,
+          interactionId: mainInteraction?.Id,
+        },
+        message: "Submodule rated successfully",
+      };
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  } catch (error) {
+    console.error("LMS Rating Error:", error);
+    throw error;
   }
 };

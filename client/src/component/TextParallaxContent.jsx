@@ -33,6 +33,25 @@ const TextParallaxContent = () => {
         setLoading(true);
         const result = await fetchData(endpoint, method, body, headers);
 
+        function formatEventTime(startDate, endDate) {
+          if (!startDate) return "Time not available";
+
+          const start = new Date(startDate);
+          const end = endDate ? new Date(endDate) : start;
+
+          return (
+            start.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }) +
+            " - " +
+            end.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          );
+        }
+
         if (result?.success) {
           // Map backend response to frontend expected structure
           setHomeData({
@@ -263,7 +282,16 @@ const TextParallaxContent = () => {
 };
 
 // Section Component
-const Section = ({ title, subtitle, theme, items, type, icon, AuthAdd, UPLOADS_BASE_URL }) => {
+const Section = ({
+  title,
+  subtitle,
+  theme,
+  items,
+  type,
+  icon,
+  AuthAdd,
+  UPLOADS_BASE_URL,
+}) => {
   const classes = {
     DGXgreen: {
       text: "text-DGXgreen",
@@ -359,12 +387,9 @@ const Card = ({ item, type, theme, UPLOADS_BASE_URL }) => {
 
   const getUserImage = () => {
     // Get user image from various possible field names
-    const userImage = 
-      item.UserImage || 
-      item.userImage || 
-      item.authorImage || 
-      item.profileImage;
-    
+    const userImage =
+      item.UserImage || item.userImage || item.authorImage || item.profileImage;
+
     // Return user image only if available and not empty
     return userImage && userImage.trim() !== "" ? userImage : null;
   };
@@ -372,7 +397,7 @@ const Card = ({ item, type, theme, UPLOADS_BASE_URL }) => {
   const getUserImageUrl = () => {
     const userImage = getUserImage();
     if (!userImage) return null;
-    
+
     // Construct full URL using UPLOADS_BASE_URL (same as DiscussionCard)
     return `${UPLOADS_BASE_URL}/${userImage}`;
   };
@@ -496,9 +521,7 @@ const Card = ({ item, type, theme, UPLOADS_BASE_URL }) => {
                     {authorName}
                   </div>
                   {type === "blog" && item.Category && (
-                    <div className="text-xs text-gray-500">
-                      {item.Category}
-                    </div>
+                    <div className="text-xs text-gray-500">{item.Category}</div>
                   )}
                 </div>
               </div>

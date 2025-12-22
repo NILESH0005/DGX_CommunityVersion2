@@ -16,11 +16,15 @@ import {
   FaEye,
   FaStar,
   FaPlayCircle,
+  FaCheckCircle,
+  FaUser,
+  FaUsers,
 } from "react-icons/fa";
 import images from "../../../public/images";
 import { motion, AnimatePresence } from "framer-motion";
 import HeroModel from "./ChatBot";
 import ChatBotModal from "./ChatBotModal";
+import Swal from "sweetalert2";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -58,6 +62,10 @@ const SubModuleCard = () => {
   const [viewedSubModules, setViewedSubModules] = useState(new Set());
   const [subModuleViews, setSubModuleViews] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [subModuleRatings, setSubModuleRatings] = useState({});
+  const [hoverRatings, setHoverRatings] = useState({});
+  const [ratingsLoaded, setRatingsLoaded] = useState(false);
 
   // Custom DGX Colors
   const DGX_COLORS = {
@@ -74,6 +82,36 @@ const SubModuleCard = () => {
       700: "#1d4ed8",
     },
   };
+
+  const fetchSubModuleRatings = async (subModuleIds) => {
+    try {
+      const responses = await Promise.all(
+        subModuleIds.map((id) =>
+          fetchData(
+            `lms/submodule-rating/${id}`,
+            "GET",
+            {},
+            { "auth-token": userToken }
+          )
+        )
+      );
+
+      const ratings = {};
+      responses.forEach((res, index) => {
+        if (res?.success) {
+          ratings[subModuleIds[index]] = res.data;
+        }
+      });
+
+      setSubModuleRatings(ratings);
+      setRatingsLoaded(true); // ✅ correct place
+    } catch (err) {
+      console.error("Failed to fetch ratings", err);
+      setRatingsLoaded(true);
+    }
+  };
+
+
 
   const recordSubModuleView = async (subModuleId) => {
     try {
@@ -111,11 +149,212 @@ const SubModuleCard = () => {
     }
   };
 
+  // Rate submodule with SweetAlert integration
+  const rateSubModule = async (subModuleId, ratingValue, subModuleName) => {
+    try {
+      if (!userToken) {
+        Swal.fire({
+          icon: "warning",
+          title: "Login Required",
+          text: "Please login to rate this submodule",
+          confirmButtonColor: "#3b82f6",
+        });
+        return;
+      }
+
+      // Check if already rated
+      if (Number.isFinite(subModuleRatings[subModuleId]?.myRating)) {
+        Swal.fire({
+          icon: "info",
+          title: "Already Rated",
+          text: "You have already rated this submodule. Rating can only be done once.",
+          confirmButtonColor: "#6b7280",
+          showConfirmButton: true,
+          timer: 3000,
+        });
+        return;
+      }
+
+      // Confirmation dialog before rating
+      const result = await Swal.fire({
+        title: "Rate Submodule",
+        html: `
+          <div class="text-center">
+            <p class="mb-3">You are about to rate:</p>
+            <p class="font-bold text-lg text-blue-600 mb-4">${subModuleName}</p>
+            <div class="flex justify-center gap-2 mb-4">
+              ${[1, 2, 3, 4, 5]
+                .map(
+                  (star) => `
+                <span class="text-3xl ${
+                  star <= ratingValue ? "text-yellow-400" : "text-gray-300"
+                }">★</span>
+              `
+                )
+                .join("")}
+            </div>
+            <p class="text-gray-600 text-sm">Rating: <span class="font-bold">${ratingValue} out of 5</span></p>
+            <p class="text-gray-500 text-xs mt-2">Note: Rating can only be done once per submodule</p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: "Submit Rating",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#10b981",
+        cancelButtonColor: "#6b7280",
+        reverseButtons: true,
+        customClass: {
+          confirmButton: "px-6 py-2 rounded-lg",
+          cancelButton: "px-6 py-2 rounded-lg",
+        },
+      });
+
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      setRatingLoading(true);
+
+      const payload = {
+        reference: subModuleId,
+        rating: ratingValue,
+      };
+
+      const response = await fetchData("lms/rate-submodule", "POST", payload, {
+        "Content-Type": "application/json",
+        "auth-token": userToken,
+      });
+
+      if (response?.success) {
+        // Fetch updated ratings data from server
+        const updatedRatingResponse = await fetchData(
+          `lms/submodule-rating/${subModuleId}`,
+          "GET",
+          {},
+          {
+            "auth-token": userToken,
+          }
+        );
+
+        if (updatedRatingResponse?.success) {
+          // Update local state with fresh data from server
+          setSubModuleRatings((prev) => ({
+            ...prev,
+            [subModuleId]: {
+              ...prev[subModuleId],
+              myRating: ratingValue,
+              avgRating: updatedRatingResponse.data.avgRating,
+              totalRatings: updatedRatingResponse.data.totalRatings,
+            },
+          }));
+
+          // Show success message with updated average rating
+          const newAvgRating = updatedRatingResponse.data?.avgRating || 0;
+
+          Swal.fire({
+            icon: "success",
+            title: "Rating Submitted!",
+            html: `
+              <div class="text-center">
+                <div class="flex justify-center gap-1 mb-3">
+                  ${[1, 2, 3, 4, 5]
+                    .map(
+                      (star) => `
+                    <span class="text-2xl ${
+                      star <= ratingValue ? "text-yellow-400" : "text-gray-200"
+                    }">★</span>
+                  `
+                    )
+                    .join("")}
+                </div>
+                <p class="text-gray-700">Your rating: <span class="font-bold text-green-600">${ratingValue}/5</span></p>
+                <p class="text-gray-700">Average rating: <span class="font-bold text-blue-600">${newAvgRating.toFixed(
+                  1
+                )}/5</span></p>
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <p class="text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Thank you for your feedback! This helps improve our content quality.
+                  </p>
+                </div>
+              </div>
+            `,
+            confirmButtonColor: "#10b981",
+            showConfirmButton: true,
+            timer: 5000,
+          });
+        } else {
+          // Fallback if fetching updated data fails
+          const updatedRatings = {
+            ...subModuleRatings,
+            [subModuleId]: {
+              ...(subModuleRatings[subModuleId] || {}),
+              myRating: ratingValue,
+              avgRating:
+                response.data?.newAverageRating ||
+                subModuleRatings[subModuleId]?.avgRating ||
+                0,
+              totalRatings:
+                (subModuleRatings[subModuleId]?.totalRatings || 0) + 1,
+            },
+          };
+
+          setSubModuleRatings(updatedRatings);
+
+          const newAvgRating = updatedRatings[subModuleId]?.avgRating || 0;
+
+          Swal.fire({
+            icon: "success",
+            title: "Rating Submitted!",
+            html: `
+              <div class="text-center">
+                <div class="flex justify-center gap-1 mb-3">
+                  ${[1, 2, 3, 4, 5]
+                    .map(
+                      (star) => `
+                    <span class="text-2xl ${
+                      star <= ratingValue ? "text-yellow-400" : "text-gray-200"
+                    }">★</span>
+                  `
+                    )
+                    .join("")}
+                </div>
+                <p class="text-gray-700">Your rating: <span class="font-bold text-green-600">${ratingValue}/5</span></p>
+                <p class="text-gray-700">Average rating: <span class="font-bold text-blue-600">${newAvgRating.toFixed(
+                  1
+                )}/5</span></p>
+              </div>
+            `,
+            confirmButtonColor: "#10b981",
+            showConfirmButton: true,
+            timer: 5000,
+          });
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Failed to Rate",
+          text:
+            response?.message || "Failed to submit rating. Please try again.",
+          confirmButtonColor: "#ef4444",
+        });
+      }
+    } catch (error) {
+      console.error("Rate submodule error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Something went wrong while rating. Please try again.",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      setRatingLoading(false);
+    }
+  };
+
   // Handle submodule click
   const handleSubModuleClick = async (subModule) => {
-    // Record the view (service will handle the "only once" logic)
     await recordSubModuleView(subModule.SubModuleID);
-
     navigate(`/submodule/${subModule.SubModuleID}`, {
       state: {
         moduleId,
@@ -129,16 +368,22 @@ const SubModuleCard = () => {
     try {
       setLoading(true);
       setError(null);
+
       const subModulesResponse = await fetchData(
         `dropdown/getSubModules?moduleId=${moduleId}`,
         "GET"
       );
+
       if (!subModulesResponse?.success) {
         setError(subModulesResponse?.message || "Failed to fetch submodules");
         return;
       }
 
       setSubModules(subModulesResponse.data);
+
+      const subModuleIds = subModulesResponse.data.map((s) => s.SubModuleID);
+
+      await fetchSubModuleRatings(subModuleIds);
 
       const progressResponse = await fetchData(
         "progressTrack/getModuleSubmoduleProgress",
@@ -149,6 +394,7 @@ const SubModuleCard = () => {
           "auth-token": userToken,
         }
       );
+
       if (progressResponse?.success) {
         setProgressData(progressResponse.data);
       }
@@ -228,7 +474,6 @@ const SubModuleCard = () => {
   };
 
   const getProgressPercentage = (totalSeconds) => {
-    // Assuming a submodule typically takes 15 minutes (900 seconds) to complete
     const typicalSubModuleTime = 900;
     const percentage = Math.min(
       (totalSeconds / typicalSubModuleTime) * 100,
@@ -287,6 +532,120 @@ const SubModuleCard = () => {
     );
   };
 
+  // Function to show rating info popup
+  const showRatingInfo = (subModuleId, subModuleName, myRating) => {
+    const ratingData = subModuleRatings[subModuleId] || {};
+    const avgRating = ratingData.avgRating || 0;
+    const totalRatings = ratingData.totalRatings || 0;
+
+    let html = `
+      <div class="text-left">
+        <p class="font-bold text-lg text-blue-600 mb-2">${subModuleName}</p>
+        
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 mb-1">Average Rating</p>
+          <div class="flex items-center gap-2">
+            <div class="flex">
+              ${[1, 2, 3, 4, 5]
+                .map(
+                  (star) => `
+                <span class="text-xl ${
+                  star <= avgRating ? "text-yellow-400" : "text-gray-300"
+                }">★</span>
+              `
+                )
+                .join("")}
+            </div>
+            <span class="text-gray-700 font-bold">${avgRating.toFixed(
+              1
+            )}/5</span>
+            <span class="text-gray-500 text-sm">(${totalRatings} rating${
+      totalRatings !== 1 ? "s" : ""
+    })</span>
+          </div>
+        </div>
+    `;
+
+    if (Number.isFinite(myRating)) {
+      html += `
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 mb-1">Your Rating</p>
+          <div class="flex items-center gap-2">
+            <div class="flex">
+              ${[1, 2, 3, 4, 5]
+                .map(
+                  (star) => `
+                <span class="text-xl ${
+                  star <= myRating ? "text-yellow-400" : "text-gray-300"
+                }">★</span>
+              `
+                )
+                .join("")}
+            </div>
+            <span class="text-gray-700 font-bold">${myRating}/5</span>
+            <span class="text-green-500">
+              <i class="fas fa-check-circle"></i>
+            </span>
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+          <p class="text-blue-800 text-sm">
+            <i class="fas fa-info-circle mr-1"></i>
+            You haven't rated this submodule yet. Click on the stars to rate!
+          </p>
+        </div>
+      `;
+    }
+
+    html += `
+        <div class="text-sm text-gray-500 mt-3 pt-3 border-t">
+          <p><i class="fas fa-exclamation-circle mr-1"></i> Rating can only be done once per submodule</p>
+          <p class="mt-1"><i class="fas fa-star mr-1"></i> Your feedback helps improve content quality</p>
+        </div>
+      </div>
+    `;
+
+    Swal.fire({
+      title: "Rating Details",
+      html: html,
+      confirmButtonColor: "#3b82f6",
+      confirmButtonText: "Got it",
+      showCloseButton: true,
+    });
+  };
+
+  // Helper function to handle star click when already rated
+  const handleStarClickWhenRated = (subModuleId, subModuleName, myRating) => {
+    Swal.fire({
+      icon: "info",
+      title: "Already Rated",
+      html: `
+        <div class="text-center">
+          <p class="mb-3">You have already rated this submodule:</p>
+          <p class="font-bold text-lg text-blue-600 mb-4">${subModuleName}</p>
+          <div class="flex justify-center gap-2 mb-4">
+            ${[1, 2, 3, 4, 5]
+              .map(
+                (star) => `
+              <span class="text-3xl ${
+                star <= myRating ? "text-yellow-400" : "text-gray-300"
+              }">★</span>
+            `
+              )
+              .join("")}
+          </div>
+          <p class="text-gray-700">Your rating: <span class="font-bold text-green-600">${myRating}/5</span></p>
+          <p class="text-gray-500 text-sm mt-2">Rating can only be done once per submodule</p>
+        </div>
+      `,
+      confirmButtonColor: "#6b7280",
+      confirmButtonText: "Got it",
+    });
+  };
+
   useEffect(() => {
     const nameFromParams = searchParams.get("moduleName");
     if (nameFromParams) {
@@ -296,15 +655,7 @@ const SubModuleCard = () => {
     }
 
     fetchAllData();
-  }, [
-    location.state,
-    searchParams,
-    moduleId,
-    fetchData,
-    navigate,
-    moduleName,
-    userToken,
-  ]);
+  }, [moduleId, userToken]);
 
   const toggleDescription = (subModuleId, event) => {
     event.stopPropagation();
@@ -411,8 +762,13 @@ const SubModuleCard = () => {
               );
               const totalTimeSpent = subModuleView?.totalTimeSpent || 0;
               const totalViews = subModuleView?.totalViews || 0;
-              const rating = subModule.Rating ?? 0; // ⭐ SAFE OPTIONAL RATING
+              const ratingData = subModuleRatings[subModule.SubModuleID] || {};
+              const avgRating = ratingData.avgRating || 0;
+              const myRating = ratingData.myRating;
+              const totalRatings = ratingData.totalRatings || 0;
               const progressPercentage = getProgressPercentage(totalTimeSpent);
+              const isRated =
+                ratingsLoaded && myRating !== null && myRating !== undefined;
 
               return (
                 <motion.div
@@ -451,8 +807,9 @@ const SubModuleCard = () => {
                       {subModule.SubModuleName}
                     </h3>
 
-                    {/* Stats Row */}
+                    {/* Stats Row - Now with Average Rating on the right */}
                     <div className="flex items-center justify-between mb-4">
+                      {/* Left side: Views and Time */}
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1.5">
                           <FaEye className="text-blue-400" />
@@ -466,15 +823,137 @@ const SubModuleCard = () => {
                             {formatTime(totalTimeSpent)}
                           </span>
                         </div>
+                      </div>
 
-                        {/* ⭐ Rating */}
+                      {/* Right side: Average Rating */}
+                      <div
+                        className="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showRatingInfo(
+                            subModule.SubModuleID,
+                            subModule.SubModuleName,
+                            myRating
+                          );
+                        }}
+                        title="Click for rating details"
+                      >
+                        <FaUsers className="text-purple-400" />
                         <div className="flex items-center gap-1">
-                          <FaStar className="text-yellow-400" />
-                          <span className="font-semibold">
-                            {Number(rating).toFixed(1)}
+                          <span className="font-bold text-gray-700">
+                            {avgRating.toFixed(1)}
+                          </span>
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <FaStar
+                                key={star}
+                                className={`text-xs ${
+                                  star <= avgRating
+                                    ? "text-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            ({totalRatings})
                           </span>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Your Rating Section - ALWAYS VISIBLE */}
+                    <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => {
+                              const displayRating = isRated
+                                ? myRating
+                                : hoverRatings[subModule.SubModuleID] || 0;
+
+                              const filled = star <= displayRating;
+
+                              return (
+                                <motion.button
+                                  key={star}
+                                  whileHover={
+                                    !isRated && !ratingLoading
+                                      ? { scale: 1.2 }
+                                      : {}
+                                  }
+                                  whileTap={
+                                    !isRated && !ratingLoading
+                                      ? { scale: 0.9 }
+                                      : {}
+                                  }
+                                  className={`transition-colors duration-200 ${
+                                    isRated || ratingLoading
+                                      ? "cursor-default"
+                                      : "cursor-pointer"
+                                  } ${
+                                    filled ? "text-yellow-400" : "text-gray-300"
+                                  }`}
+                                  onMouseEnter={() => {
+                                    if (!isRated && !ratingLoading) {
+                                      setHoverRatings((prev) => ({
+                                        ...prev,
+                                        [subModule.SubModuleID]: star,
+                                      }));
+                                    }
+                                  }}
+                                  onMouseLeave={() => {
+                                    if (!isRated && !ratingLoading) {
+                                      setHoverRatings((prev) => ({
+                                        ...prev,
+                                        [subModule.SubModuleID]: 0,
+                                      }));
+                                    }
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+
+                                    if (isRated) {
+                                      handleStarClickWhenRated(
+                                        subModule.SubModuleID,
+                                        subModule.SubModuleName,
+                                        myRating
+                                      );
+                                      return;
+                                    }
+
+                                    if (!ratingLoading) {
+                                      rateSubModule(
+                                        subModule.SubModuleID,
+                                        star,
+                                        subModule.SubModuleName
+                                      );
+                                    }
+                                  }}
+                                  disabled={isRated || ratingLoading}
+                                >
+                                  <FaStar className="text-xl" />
+                                </motion.button>
+                              );
+                            })}
+                          </div>
+
+                          {isRated && (
+                            <>
+                              <span className="font-bold text-gray-700">
+                                {myRating}/5
+                              </span>
+                              <FaCheckCircle className="text-green-500" />
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {!isRated && (
+                        <div className="mt-2 text-xs text-gray-500">
+                          Rating can only be done once per submodule
+                        </div>
+                      )}
                     </div>
 
                     {/* Description */}

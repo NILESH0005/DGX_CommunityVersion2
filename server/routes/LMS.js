@@ -1,7 +1,7 @@
 // routes/lmsRoutes.js
 import express from "express";
 import { fetchUser } from "../middleware/fetchUser.js";
-import { checkModuleExist, getModuleViews, LMS,  getSubModuleViews, getAllActiveFiles, getFileById, downloadFileById } from "../controllers/lms.js";
+import { checkModuleExist, getModuleViews, LMS,  getSubModuleViews, getAllActiveFiles, getFileById, downloadFileById, getSubModuleRating , handleLmsSubmoduleRateAction} from "../controllers/lms.js";
 
 const router = express.Router();
 
@@ -33,6 +33,8 @@ router.get("/module-views", getModuleViews);
 router.get("/getAllActiveFiles", getAllActiveFiles);
 router.post("/getFileById", getFileById);
 router.get("/download/:FileID", downloadFileById);
+router.post("/rate-submodule",fetchUser, handleLmsSubmoduleRateAction);
+router.get(  "/submodule-rating/:subModuleId",fetchUser, getSubModuleRating);
 
 
 export default router;

@@ -6,6 +6,8 @@ import {
   LMSService,
   getFileByIdService,
   LMSViewsService,
+  handleLmsSubmoduleRateAction as rateSubmoduleService,
+  getSubModuleRatingService,
 } from "../services/lmsService.js";
 import fs from "fs";
 import path from "path";
@@ -397,5 +399,60 @@ export const downloadFileById = async (req, res) => {
   } catch (error) {
     console.error("Download error:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const handleLmsSubmoduleRateAction = async (req, res) => {
+  try {
+    // 🔥 EMAIL IS STORED IN req.user.id
+    const userEmail = req.user?.id;
+
+    if (!userEmail) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized user",
+      });
+    }
+
+    const postData = req.body;
+
+    const response = await rateSubmoduleService(userEmail, postData);
+
+    return res.status(200).json({
+      success: true,
+      message: response.message,
+      data: response.data,
+    });
+  } catch (error) {
+    console.error("LMS Submodule Rating Error:", error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to rate submodule",
+    });
+  }
+};
+
+
+
+export const getSubModuleRating = async (req, res) => {
+  try {
+    const { subModuleId } = req.params;
+
+    const userEmail = req.user?.id || null; // 🔥 FIXED
+
+    const data = await getSubModuleRatingService(userEmail, subModuleId);
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Get SubModule Rating Error:", error);
+
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to fetch rating",
+    });
   }
 };

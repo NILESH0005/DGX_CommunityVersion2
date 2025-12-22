@@ -504,12 +504,12 @@ const EventDetailsPage = ({ events = [events] }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2 }}
               >
-                <button
+                {/* <button
                   onClick={downloadICS}
                   className="bg-DGXgreen text-white px-6 py-3 rounded-lg hover:bg-green-600 transition font-medium"
                 >
                   Add to Calendar
-                </button>
+                </button> */}
                 <button
                   onClick={async () => {
                     const eventUrl = getEventUrl();
