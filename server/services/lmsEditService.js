@@ -1,9 +1,11 @@
 import path from "path";
 import fs from "fs";
-import db from "../models/index.js";
+// import db from "../models/index.js";
 import { logInfo, logWarning, logError } from "../helper/index.js";
 import { Op } from "sequelize";
 import UserLmsProgress from "../models/UserLmsProgress.js";
+import db, { sequelize } from "../models/index.js";
+
 
 const User = db.User;
 const ModuleDetails = db.LMSModulesDetails;
@@ -293,8 +295,6 @@ export const deleteModuleService = async (userEmail, moduleId) => {
         },
       };
     }
-
-    // 🔹 Step 3: Move image to deleted-files folder (if exists)
     if (
       existingModule.ModuleImagePath &&
       typeof existingModule.ModuleImagePath === "string"
@@ -358,6 +358,7 @@ export const deleteModuleService = async (userEmail, moduleId) => {
     };
   }
 };
+
 
 export const deleteSubModuleService = async (subModuleId, adminId) => {
   try {

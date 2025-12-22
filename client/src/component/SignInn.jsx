@@ -107,7 +107,6 @@ const SignIn = () => {
             transition={{ duration: 0.5 }}
             className="grid grid-cols-1 lg:grid-cols-2 bg-DGXblue rounded-2xl overflow-hidden shadow-xl min-h-[600px]"
           >
-            {/* Left Section - Visual */}
             <motion.div
               className="hidden lg:flex bg-gradient-to-br from-DGXgreen to-DGXblue p-8 md:p-12 h-full"
               initial={{ opacity: 0 }}
@@ -146,8 +145,6 @@ const SignIn = () => {
                 </motion.div>
               </div>
             </motion.div>
-
-            {/* Right Section - Form */}
             <div className="bg-white flex items-center justify-center h-full p-6 sm:p-8 md:p-10">
               <motion.div
                 initial={{ opacity: 0 }}

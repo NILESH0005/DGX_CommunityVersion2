@@ -30,7 +30,7 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const [imageVersion, setImageVersion] = useState(0); // Add version state for cache busting
+  const [imageVersion, setImageVersion] = useState(0); 
 
   const toggleDropdown = () => {
     setDropdownOpen(!isDropdownOpen);

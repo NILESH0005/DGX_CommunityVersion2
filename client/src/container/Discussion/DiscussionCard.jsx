@@ -201,8 +201,6 @@ const DiscussionCard = ({
           )}
           <div>
             <p className="font-semibold text-gray-800">{userName}</p>
-
-            {/* Repost List (from code 1) */}
             {discussion.reposts && discussion.reposts.length > 0 && (
               <p className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
                 <FiRepeat className="w-3 h-3" />

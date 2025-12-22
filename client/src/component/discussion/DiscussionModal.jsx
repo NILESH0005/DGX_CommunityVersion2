@@ -639,8 +639,6 @@ const DiscussionModal = ({
               &times;
             </button>
           </div>
-
-          {/* Mobile Tabs */}
           <div className="md:hidden flex border-b border-gray-200">
             <button
               className={`flex-1 py-2 text-sm font-medium ${
@@ -738,14 +736,11 @@ const DiscussionModal = ({
                 </div>
               )}
             </div>
-
-            {/* Comments Section */}
             <div
               className={`${
                 activeTab === "comments" ? "block" : "hidden"
               } md:block md:w-1/2 flex flex-col`}
             >
-              {/* Comment Input */}
               <div className="p-3 sm:p-4 border-b border-gray-200">
                 <div className="flex space-x-2">
                   <ProfileImage
@@ -782,8 +777,6 @@ const DiscussionModal = ({
                   </div>
                 </div>
               </div>
-
-              {/* Comments List */}
               <div
                 className="flex-1 overflow-y-auto p-3 sm:p-4 hide-scrollbar"
                 style={{
