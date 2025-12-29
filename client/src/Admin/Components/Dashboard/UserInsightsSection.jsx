@@ -18,10 +18,10 @@ const UserInsightsDashboard = () => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener("resize", checkMobile);
-    
+
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
@@ -162,7 +162,9 @@ const UserInsightsDashboard = () => {
         hover:shadow-xl transition-all`}
       >
         {/* Rank Badge */}
-        <div className="absolute -top-3 -right-3 text-2xl sm:text-3xl">{medals[index]}</div>
+        <div className="absolute -top-3 -right-3 text-2xl sm:text-3xl">
+          {medals[index]}
+        </div>
 
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
@@ -171,7 +173,9 @@ const UserInsightsDashboard = () => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <h4 className="font-bold text-base sm:text-lg text-gray-900 truncate">{user.name}</h4>
+            <h4 className="font-bold text-base sm:text-lg text-gray-900 truncate">
+              {user.name}
+            </h4>
             <p className="text-xs text-gray-500 truncate">{user.email}</p>
           </div>
 
@@ -187,17 +191,23 @@ const UserInsightsDashboard = () => {
         <div className="grid grid-cols-3 gap-2 sm:gap-3 text-center mb-4">
           <div className="bg-gray-50 rounded-lg p-2">
             <p className="text-xs text-gray-500">Logins</p>
-            <p className="font-bold text-sm sm:text-base text-gray-900">{user.loginCount}</p>
+            <p className="font-bold text-sm sm:text-base text-gray-900">
+              {user.loginCount}
+            </p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-2">
             <p className="text-xs text-gray-500">Active Days</p>
-            <p className="font-bold text-sm sm:text-base text-gray-900">{user.activeDays}</p>
+            <p className="font-bold text-sm sm:text-base text-gray-900">
+              {user.activeDays}
+            </p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-2">
             <p className="text-xs text-gray-500">Interactions</p>
-            <p className="font-bold text-sm sm:text-base text-gray-900">{user.interaction}</p>
+            <p className="font-bold text-sm sm:text-base text-gray-900">
+              {user.interaction}
+            </p>
           </div>
         </div>
 
@@ -246,7 +256,9 @@ const UserInsightsDashboard = () => {
             <span className="text-white">{device.icon}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{device.device}</h3>
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">
+              {device.device}
+            </h3>
             <p className="text-sm text-gray-600">
               {device.users.toLocaleString()} users
             </p>
@@ -308,7 +320,11 @@ const UserInsightsDashboard = () => {
     >
       {/* Header */}
       <div className="max-w-7xl mx-auto">
-        <motion.div initial={{ y: -20 }} animate={{ y: 0 }} className="mb-8 sm:mb-10">
+        <motion.div
+          initial={{ y: -20 }}
+          animate={{ y: 0 }}
+          className="mb-8 sm:mb-10"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 mb-6">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -333,14 +349,16 @@ const UserInsightsDashboard = () => {
               </div>
             )}
           </div>
-          
+
           {/* Mobile-only total users display */}
           {isMobile && (
             <div className="mt-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Logged Devices</p>
-                  <p className="text-lg font-bold text-gray-900">{totalUsers.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {totalUsers.toLocaleString()}
+                  </p>
                 </div>
                 <div className="text-green-600">
                   <span className="text-sm font-medium">Active</span>
@@ -406,11 +424,6 @@ const UserInsightsDashboard = () => {
                     Top contributors by engagement score
                   </p>
                 </div>
-                {activeUsers.length > 3 && !isMobile && (
-                  <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    View All →
-                  </button>
-                )}
               </div>
 
               <div className="space-y-3 sm:space-y-4">
@@ -425,7 +438,7 @@ const UserInsightsDashboard = () => {
                     No activity data available
                   </p>
                 )}
-                
+
                 {/* Mobile view all button */}
                 {activeUsers.length > 2 && isMobile && (
                   <button className="w-full py-3 text-sm text-blue-600 hover:text-blue-700 font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">

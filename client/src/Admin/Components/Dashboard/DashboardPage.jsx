@@ -4,6 +4,9 @@ import ApprovalSection from "./ApprovalSection";
 import TrendingSection from "./TrendingSection";
 import UserInsightsSection from "./UserInsightsSection";
 import TopContentSection from "./TopContentSection";
+import LMSDashboard from "./LMSDashboardSection";
+import LMSDashboardSection from "./LMSDashboardSection";
+
 
 const today = new Date().toLocaleDateString("en-US", {
   weekday: "short",
@@ -428,6 +431,16 @@ const DashboardPage = () => {
             className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md"
           >
             <UserInsightsSection dateFilter={filterData} />
+          </motion.div>
+        </motion.div>
+
+
+        <motion.div variants={itemVariants}>
+          <motion.div
+            whileHover={{ y: -1 }}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md"
+          >
+            <LMSDashboardSection dateFilter={filterData} />
           </motion.div>
         </motion.div>
       </div>
