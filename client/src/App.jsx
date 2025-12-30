@@ -274,7 +274,6 @@ function App() {
 
             <Route path="/CreateQuiz" element={<CreateQuiz />} />
             <Route path="/QuestionBank" element={<QuestionBank />} />
-            {/*-----------ADMIN----------- */}
             <Route
               path="/AdminDashboard"
               element={

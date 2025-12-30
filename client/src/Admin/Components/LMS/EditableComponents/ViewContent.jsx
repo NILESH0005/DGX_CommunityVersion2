@@ -64,30 +64,6 @@ const ViewContent = ({ submodule, onBack }) => {
     return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} min`;
   };
 
-  const fetchFilesForUnit = useCallback(
-    async (unitId) => {
-      try {
-        const response = await fetchData(
-          `dropdown/getUnitsWithFiles/${submodule.SubModuleID}`,
-          "GET",
-          null, // No body for GET request
-          { "auth-token": userToken } // Headers go in the 4th parameter
-        );
-        if (response?.success) {
-          setFiles(response.data);
-          setEditingFile(null);
-          setEditedFileData({ fileName: "", description: "", link: "", estimatedTime: 0 });
-        } else {
-          setFiles([]);
-        }
-      } catch (err) {
-        console.error("Error fetching files:", err);
-        setFiles([]);
-      }
-    },
-    [fetchData, userToken]
-  );
-
   useEffect(() => {
     const fetchUnits = async () => {
       try {
