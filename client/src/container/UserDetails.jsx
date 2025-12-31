@@ -361,7 +361,14 @@ export default function UserDetails() {
                         <Calendar className="w-5 h-5" />
                         Joined{" "}
                         {userData.AddOnDt
-                          ? new Date(userData.AddOnDt).toLocaleDateString()
+                          ? new Date(userData.AddOnDt).toLocaleDateString(
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "2-digit",
+                              }
+                            )
                           : "Unknown date"}
                       </div>
                     </div>
@@ -805,7 +812,6 @@ function ContentCard({
 
       {/* Content Section */}
       <div className="p-7 flex flex-col justify-between h-[350px] overflow-hidden">
-
         {/* Title */}
         <div>
           <div className="flex items-start justify-between gap-3 mb-4">
@@ -879,9 +885,6 @@ function ContentCard({
               )}
             </div>
           )}
-
-        
-         
         </div>
       </div>
     </div>

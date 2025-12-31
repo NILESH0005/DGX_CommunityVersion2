@@ -697,10 +697,10 @@ export const getPublicDiscussionsService = async (email) => {
         {
           model: TableDDReference,
           as: "visibilityRef",
-          required: true, // ✅ INNER JOIN → filters at DB level
+          required: true, 
           where: {
             ddCategory: "Privacy",
-            ddValue: "Public", // ✅ SAFE CHECK
+            ddValue: "Public", 
             delStatus: { [Op.or]: [0, null] },
           },
           attributes: ["idCode", "ddValue"],
