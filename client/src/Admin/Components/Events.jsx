@@ -11,7 +11,8 @@ const Events = ({ events, setEvents }) => {
   const [showEventForm, setShowEventForm] = useState(false);
 
   const [showTable, setShowTable] = useState(() => {
-    return sessionStorage.getItem("showTable") === "true";
+    const storedValue = sessionStorage.getItem("showTable");
+    return storedValue !== null ? storedValue === "true" : true;
   });
 
   const fetchEventData = async () => {
@@ -55,7 +56,7 @@ const Events = ({ events, setEvents }) => {
 
   const handleReloadEvents = () => {
     console.log("Triggering events reload...");
-    setReloadEvents(prev => !prev);
+    setReloadEvents((prev) => !prev);
   };
 
   const handleAddEventSuccess = () => {
@@ -73,8 +74,6 @@ const Events = ({ events, setEvents }) => {
           {showTable ? "Show Calendar" : "Show Table"}
           {showTable ? <FaCalendarAlt /> : <MdTableChart />}
         </button>
-        
-       
       </div>
 
       {showEventForm ? (
@@ -85,20 +84,18 @@ const Events = ({ events, setEvents }) => {
           onSuccess={handleAddEventSuccess}
           onCancel={() => setShowEventForm(false)}
         />
+      ) : showTable ? (
+        <EventTable
+          events={events}
+          setEvents={setEvents}
+          reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
+        />
       ) : (
-        showTable ? (
-          <EventTable
-            events={events}
-            setEvents={setEvents}
-            reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
-          />
-        ) : (
-          <GeneralUserCalendar
-            events={events}
-            setEvents={setEvents}
-            reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
-          />
-        )
+        <GeneralUserCalendar
+          events={events}
+          setEvents={setEvents}
+          reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
+        />
       )}
     </div>
   );
