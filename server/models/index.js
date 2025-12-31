@@ -22,12 +22,10 @@ import ContentEngagementModel from "./ContentEngagement.js";
 import ContactUsModel from "../models/Contact_Us.js";
 import ContentInteractionLogModel from "./Content_Interaction_Log.js";
 import userLoginLogModel from "./Community_User_Login_Log.js";
-import ContentInteractionModel from "./Content_Interaction.js"
-
-
+import ContentInteractionModel from "./Content_Interaction.js";
 
 const User = UserModel(sequelize, DataTypes);
-const UserLoginLog = userLoginLogModel(sequelize, DataTypes); 
+const UserLoginLog = userLoginLogModel(sequelize, DataTypes);
 const LMSUserProgress = UserLmsProgress(sequelize, DataTypes);
 const CommunityBlog = Community_Blog(sequelize, DataTypes);
 const CommunityDiscussion = Community_Discussion(sequelize, DataTypes);
@@ -74,7 +72,7 @@ const db = {
   LMSUserProgress,
   UserActivity,
   ContentEngagement,
-  ContactUs
+  ContactUs,
 };
 
 Object.values(db).forEach((model) => {
@@ -151,44 +149,43 @@ CommunityBlog.hasMany(CommunityBlog, {
 });
 
 ContentInteractionLog.belongsTo(User, {
-  foreignKey: 'UserID',
-  targetKey: 'UserID',
-  as: 'User'
+  foreignKey: "UserID",
+  targetKey: "UserID",
+  as: "User",
 });
 
 CommunityBlog.hasMany(ContentInteractionLog, {
-  foreignKey: 'reference',
-  sourceKey: 'BlogID',
-  as: 'ContentInteractions',
-  constraints: false
+  foreignKey: "reference",
+  sourceKey: "BlogID",
+  as: "ContentInteractions",
+  constraints: false,
 });
 
 User.hasMany(ContentInteractionLog, {
-  foreignKey: 'UserID',
-  sourceKey: 'UserID',
-  as: 'ContentInteractions'
+  foreignKey: "UserID",
+  sourceKey: "UserID",
+  as: "ContentInteractions",
 });
 
 ContentInteractionLog.belongsTo(CommunityDiscussion, {
-  foreignKey: 'reference',
-  targetKey: 'DiscussionID',
-  as: 'Discussion',
-  constraints: false
+  foreignKey: "reference",
+  targetKey: "DiscussionID",
+  as: "Discussion",
+  constraints: false,
 });
 
 ContentInteractionLog.belongsTo(CommunityBlog, {
-  foreignKey: 'reference',
-  targetKey: 'BlogID',
-  as: 'Blog',
-  constraints: false
+  foreignKey: "reference",
+  targetKey: "BlogID",
+  as: "Blog",
+  constraints: false,
 });
 
-
 CommunityDiscussion.hasMany(ContentInteractionLog, {
-  foreignKey: 'reference',
-  sourceKey: 'DiscussionID',
-  as: 'ContentInteractions',
-  constraints: false
+  foreignKey: "reference",
+  sourceKey: "DiscussionID",
+  as: "ContentInteractions",
+  constraints: false,
 });
 
 CommunityDiscussion.belongsTo(TableDDReference, {
@@ -197,6 +194,18 @@ CommunityDiscussion.belongsTo(TableDDReference, {
   as: "VisibilityRef",
 });
 
+// ⭐ REQUIRED FOR MODULE RATING ⭐
+db.LMSSubModulesDetails.hasMany(db.ContentInteraction, {
+  foreignKey: "ReferenceId",
+  sourceKey: "SubModuleID",
+  constraints: false,
+});
+
+db.ContentInteraction.belongsTo(db.LMSSubModulesDetails, {
+  foreignKey: "ReferenceId",
+  targetKey: "SubModuleID",
+  constraints: false,
+});
 
 export default db;
 export { sequelize };

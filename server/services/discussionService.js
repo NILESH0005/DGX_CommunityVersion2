@@ -686,7 +686,7 @@ export const getPublicDiscussionsService = async (email) => {
 
     const discussions = await CommunityDiscussion.findAll({
       where: {
-        delStatus: { [Op.or]: [{ [Op.eq]: 0 }, { [Op.is]: null }] },
+        delStatus: { [Op.or]: [0, null] },
         Reference: 0,
       },
       include: [
@@ -694,13 +694,23 @@ export const getPublicDiscussionsService = async (email) => {
           model: User,
           attributes: ["UserID", "Name", "ProfilePicture"],
         },
+        {
+          model: TableDDReference,
+          as: "visibilityRef",
+          required: true, // ✅ INNER JOIN → filters at DB level
+          where: {
+            ddCategory: "Privacy",
+            ddValue: "Public", // ✅ SAFE CHECK
+            delStatus: { [Op.or]: [0, null] },
+          },
+          attributes: ["idCode", "ddValue"],
+        },
       ],
       order: [["AddOnDt", "DESC"]],
-      logging: (sql) => console.log("📝 SQL Executed:", sql),
     });
+
     console.log("✅ Discussions fetched:", discussions.length);
 
-    // Step 3: Process discussions
     const updatedDiscussions = await Promise.all(
       discussions.map(async (discussion) => {
         const comments = await getCommentsRecursive(
@@ -739,14 +749,14 @@ export const getPublicDiscussionsService = async (email) => {
           order: [["AddOnDt", "DESC"]],
         });
 
-          const likeCount = await ContentInteraction.count({
-            where: {
-              Type: "Discussion",
-              ReferenceId: discussion.DiscussionID,
-              Likes: 1,
-              delStatus: { [Op.or]: [0, null] },
-            },
-          });
+        const likeCount = await ContentInteraction.count({
+          where: {
+            Type: "Discussion",
+            ReferenceId: discussion.DiscussionID,
+            Likes: 1,
+            delStatus: { [Op.or]: [0, null] },
+          },
+        });
 
         const userLike = await ContentInteraction.findOne({
           where: {

@@ -436,7 +436,7 @@ export class LMSViewsService {
 
       const results = await Promise.all(
         modules.map(async (module) => {
-          // Find all submodules under this module
+          // 1️⃣ Get submodules for this module
           const subModules = await LMSSubModulesDetails.findAll({
             where: { ModuleID: module.ModuleID, delStatus: 0 },
             attributes: ["SubModuleID"],
@@ -445,25 +445,38 @@ export class LMSViewsService {
 
           const subModuleIDs = subModules.map((s) => s.SubModuleID);
 
-          if (subModuleIDs.length === 0)
-            return { ...module, totalViews: 0, totalTimeSpent: 0 };
+          if (subModuleIDs.length === 0) {
+            return {
+              moduleID: module.ModuleID,
+              moduleName: module.ModuleName,
+              totalViews: 0,
+              totalTimeSpent: 0,
+              effectiveTimeSpent: 0,
+              estimatedTimeTotal: 0,
+              totalFiles: 0,
+              completedFiles: 0,
+              engagementPercentage: 0,
+              avgRating: 0,
+              ratingCount: 0,
+            };
+          }
 
-          // Count unique UserIDs across all submodules (distinct users)
+          // 2️⃣ Total Views (unique users)
           const [viewsResult] = await ContentInteractionLog.sequelize.query(
             `
           SELECT COUNT(DISTINCT UserID) AS uniqueUsers
           FROM Content_Interaction_Log
           WHERE ProcessName = 'LMS'
-          AND delStatus = 0
-          AND View = 1
-          AND reference IN (:subModuleIDs)
-        `,
+            AND delStatus = 0
+            AND View = 1
+            AND reference IN (:subModuleIDs)
+          `,
             { replacements: { subModuleIDs } }
           );
 
           const totalViews = viewsResult?.[0]?.uniqueUsers || 0;
 
-          // Get all units of the submodules
+          // 3️⃣ Get units for these submodules
           const units = await LMSUnitsDetails.findAll({
             where: { SubModuleID: subModuleIDs, delStatus: 0 },
             attributes: ["UnitID"],
@@ -473,37 +486,117 @@ export class LMSViewsService {
           const unitIDs = units.map((u) => u.UnitID);
 
           let totalTimeSpent = 0;
+          let effectiveTimeSpent = 0;
+          let totalEstimatedTime = 0;
+          let totalFiles = 0;
+          let completedFiles = 0;
+
           if (unitIDs.length > 0) {
-            // Get all files of the units
+            // 4️⃣ Get all files with their estimated time
             const files = await LMSFilesDetails.findAll({
-              where: { UnitID: unitIDs, delStatus: 0 },
-              attributes: ["FileID"],
+              where: {
+                UnitID: unitIDs,
+                delStatus: 0,
+                EstimatedTime: { [Sequelize.Op.not]: null },
+              },
+              attributes: ["FileID", "EstimatedTime"],
               raw: true,
             });
 
             const fileIDs = files.map((f) => f.FileID);
+            totalFiles = files.length;
+
+            // 5️⃣ Calculate estimated time total for module
+            totalEstimatedTime = files.reduce((sum, file) => {
+              return sum + (Number(file.EstimatedTime) || 0);
+            }, 0);
 
             if (fileIDs.length > 0) {
-              const timeResult = await LMSUserProgress.findAll({
-                where: { FileID: fileIDs },
+              // 6️⃣ Get time spent per file from userlmsprogress
+              const timeResults = await LMSUserProgress.findAll({
+                where: { FileID: fileIDs, delStatus: 0 },
                 attributes: [
+                  "FileID",
                   [
                     Sequelize.fn("SUM", Sequelize.col("TimeSpentSeconds")),
-                    "totalTime",
+                    "fileTimeSpent",
                   ],
                 ],
+                group: ["FileID"],
                 raw: true,
               });
 
-              totalTimeSpent = timeResult[0].totalTime || 0;
+              // Create a map of file times for quick lookup
+              const fileTimeMap = {};
+              timeResults.forEach((result) => {
+                fileTimeMap[result.FileID] = Number(result.fileTimeSpent) || 0;
+              });
+
+              // 7️⃣ Calculate total and effective time spent
+              files.forEach((file) => {
+                const fileEstimatedTimeSeconds =
+                  (Number(file.EstimatedTime) || 0) * 60;
+                const userTimeSpent = fileTimeMap[file.FileID] || 0;
+
+                totalTimeSpent += userTimeSpent;
+
+                // Effective time = min(user time, estimated time)
+                const effectiveTime = Math.min(
+                  userTimeSpent,
+                  fileEstimatedTimeSeconds
+                );
+                effectiveTimeSpent += effectiveTime;
+
+                // Check if file is completed (at least 80% of estimated time)
+                if (userTimeSpent >= fileEstimatedTimeSeconds * 0.8) {
+                  completedFiles++;
+                }
+              });
             }
           }
+
+          // 8️⃣ Calculate engagement percentage
+          const totalEstimatedTimeSeconds = totalEstimatedTime * 60;
+          const engagementPercentage =
+            totalEstimatedTimeSeconds > 0
+              ? (effectiveTimeSpent / totalEstimatedTimeSeconds) * 100
+              : 0;
+
+          // 9️⃣ Get ratings
+          const [ratingResult] = await ContentInteractionLog.sequelize.query(
+            `SELECT 
+            AVG(Rating) AS avgRating,
+            COUNT(Rating) AS ratingCount
+          FROM content_interaction
+          WHERE Type = 'LMS'
+            AND delStatus = 0
+            AND Rating IS NOT NULL
+            AND ReferenceId IN (:subModuleIDs)
+          `,
+            {
+              replacements: { subModuleIDs },
+              type: Sequelize.QueryTypes.SELECT,
+            }
+          );
+
+          const avgRating = ratingResult?.avgRating
+            ? Number(parseFloat(ratingResult.avgRating).toFixed(2))
+            : 0;
+
+          const ratingCount = ratingResult?.ratingCount || 0;
 
           return {
             moduleID: module.ModuleID,
             moduleName: module.ModuleName,
             totalViews,
-            totalTimeSpent, // <-- include total time here
+            totalTimeSpent, // Raw total time spent
+            effectiveTimeSpent, // Capped time (max = estimated time per file)
+            estimatedTimeTotal: totalEstimatedTime, // in minutes
+            totalFiles,
+            completedFiles,
+            engagementPercentage: Number(engagementPercentage.toFixed(2)),
+            avgRating,
+            ratingCount,
           };
         })
       );
@@ -548,13 +641,10 @@ export const getAllActiveFilesService = async () => {
     `;
 
     const [results] = await sequelize.query(query);
-
-    // Use server environment variable
     const BASE_URL = process.env.API_BASE_URL;
     const UPLOADS_URL = process.env.API_UPLOADS_URL || BASE_URL;
 
     const updatedResults = results.map((file) => {
-      // If it's an external link, leave as is
       if (file.FileType === "link" || file.FilePath?.startsWith("http")) {
         return {
           ...file,
@@ -562,12 +652,10 @@ export const getAllActiveFilesService = async () => {
         };
       }
 
-      // For local files, create the proper download URL
-      // Use the download endpoint instead of direct file path
       return {
         ...file,
-        FileURL: `${BASE_URL}/lms/download/${file.FileID}`, // Use download endpoint
-        DirectFileURL: `${UPLOADS_URL}/${file.FilePath}`, // Direct file access (if files are served statically)
+        FileURL: `${BASE_URL}/lms/download/${file.FileID}`,
+        DirectFileURL: `${UPLOADS_URL}/${file.FilePath}`,
       };
     });
 
@@ -660,9 +748,7 @@ export const getSubModuleRatingService = async (userEmail, subModuleId) => {
     raw: true,
   });
 
-  const avgRating = ratingStats?.avgRating
-    ? Number(ratingStats.avgRating)
-    : 0;
+  const avgRating = ratingStats?.avgRating ? Number(ratingStats.avgRating) : 0;
 
   const ratingCount = ratingStats?.ratingCount
     ? Number(ratingStats.ratingCount)
@@ -698,10 +784,9 @@ export const getSubModuleRatingService = async (userEmail, subModuleId) => {
   return {
     avgRating: Number(avgRating.toFixed(1)),
     totalRatings: ratingCount, // ✅ MATCH FRONTEND
-    myRating,                  // ✅ REQUIRED
+    myRating, // ✅ REQUIRED
   };
 };
-
 
 export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
   try {
@@ -841,4 +926,45 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
     console.error("LMS Rating Error:", error);
     throw error;
   }
+};
+
+export const getModuleRatingService = async (moduleId) => {
+  if (!moduleId) {
+    throw new Error("Module reference is required");
+  }
+
+  const ratingStats = await ContentInteraction.findOne({
+    attributes: [
+      [Sequelize.fn("AVG", Sequelize.col("Rating")), "avgRating"],
+      [Sequelize.fn("COUNT", Sequelize.col("Rating")), "ratingCount"],
+    ],
+    include: [
+      {
+        model: LMSSubModulesDetails, // ✅ FIXED
+        attributes: [],
+        where: {
+          ModuleID: moduleId,
+          delStatus: 0,
+        },
+        required: true,
+      },
+    ],
+    where: {
+      Type: "LMS",
+      Rating: { [Op.ne]: null },
+      delStatus: 0,
+    },
+    raw: true,
+  });
+
+  const avgRating = ratingStats?.avgRating ? Number(ratingStats.avgRating) : 0;
+
+  const ratingCount = ratingStats?.ratingCount
+    ? Number(ratingStats.ratingCount)
+    : 0;
+
+  return {
+    avgRating: Number(avgRating.toFixed(1)),
+    totalRatings: ratingCount,
+  };
 };
