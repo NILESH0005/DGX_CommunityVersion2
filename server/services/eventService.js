@@ -259,7 +259,6 @@ export const updateEventService = async (eventId, user, payload) => {
   }
 };
 
-// Add this to your event service
 export const getEventByIdService = async (eventId) => {
   const event = await CommunityEvents.findOne({
     where: {
@@ -300,9 +299,7 @@ export const getEventByIdService = async (eventId) => {
 };
 
 export const EventViewService = {
-  /**
-   * Fetch total views for each event
-   */
+
   async getTotalEventViews() {
     try {
       // Fetch all events (assuming you have a CommunityEvents table)

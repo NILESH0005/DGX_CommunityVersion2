@@ -36,25 +36,24 @@ const EventTable = ({ events, setEvents, reloadEvents }) => {
 
   const formatDateTime = (dateString) => {
     if (!dateString) return "N/A";
-    try {
-      const date = new Date(dateString);
-      const adjustedDate = new Date(
-        date.getTime() - 5 * 60 * 60 * 1000 - 30 * 60 * 1000
-      );
-      return adjustedDate
-        .toLocaleString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })
-        .replace(" at ", " ");
-    } catch (e) {
-      console.error("Date formatting error:", e);
-      return "Invalid Date";
-    }
+
+    // The date string from backend is in IST (since DB_TIMEZONE=+05:30)
+    // Parse it and format for IST timezone
+    const date = new Date(dateString);
+
+    // Since MySQL stores in IST, we need to show IST time
+    // JavaScript Date automatically converts to local timezone
+    // But we want to show IST (+05:30) time
+
+    // Get local date components
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
   const fetchDropdownValues = async (category) => {

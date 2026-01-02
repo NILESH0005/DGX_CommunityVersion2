@@ -215,8 +215,6 @@ const Discussion = () => {
             />
           )}
         </section>
-
-        {/* RIGHT - Community Highlights */}
         <aside className="hidden lg:block lg:w-1/4 px-4 space-y-8">
           <CommunityHighlights
             key={demoDiscussions.length}

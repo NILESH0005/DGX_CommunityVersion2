@@ -45,16 +45,20 @@ const EventTable = () => {
 
   const formatDateTime = (dateString) => {
     if (!dateString) return "N/A";
+
+    // Parse the date string (backend returns in ISO format with UTC time)
     const date = new Date(dateString);
-    const options = {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    };
-    return date.toLocaleString("en-US", options);
+
+    // Extract UTC components
+    const year = date.getUTCFullYear();
+    const month = (date.getUTCMonth() + 1).toString().padStart(2, "0"); // Months are 0-indexed
+    const day = date.getUTCDate().toString().padStart(2, "0");
+    const hours = date.getUTCHours().toString().padStart(2, "0");
+    const minutes = date.getUTCMinutes().toString().padStart(2, "0");
+    const seconds = date.getUTCSeconds().toString().padStart(2, "0");
+
+    // Format: YYYY-MM-DD HH:MM:SS
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
   useEffect(() => {
@@ -130,7 +134,7 @@ const EventTable = () => {
         const body = { eventId };
 
         const response = await fetchData(endpoint, method, body, headers);
-        console.log('hello')
+        console.log("hello");
         if (response.success) {
           setEvents((prev) => prev.filter((event) => event._id !== eventId));
           setFilteredEvents((prev) =>

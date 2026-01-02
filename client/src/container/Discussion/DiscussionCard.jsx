@@ -271,8 +271,6 @@ const DiscussionCard = ({
           )}
         </div>
       </div>
-
-      {/* Banner Image */}
       {(discussion.DiscussionImagePath || discussion.Image) && (
         <div className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
           <img
@@ -291,7 +289,6 @@ const DiscussionCard = ({
         </div>
       )}
 
-      {/* Tags (from code 1) */}
       {discussion.Tag && (
         <div className="flex flex-wrap gap-2 mb-3">
           {(typeof discussion.Tag === "string"
@@ -316,10 +313,8 @@ const DiscussionCard = ({
         </div>
       )}
 
-      {/* Footer (Enhanced from code 1) */}
       <div className="flex flex-wrap items-center justify-between pt-4 border-t border-gray-100 gap-4">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          {/* Like Button (Enhanced from code 1) */}
           <button
             onClick={handleLike}
             className="flex items-center gap-2 group"
@@ -345,8 +340,6 @@ const DiscussionCard = ({
               {likeCount}
             </span>
           </button>
-
-          {/* Comment Button (Enhanced from code 1) */}
           <button
             onClick={handleComment}
             className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen"
@@ -356,16 +349,12 @@ const DiscussionCard = ({
             </div>
             <span className="font-medium">{discussion.commentCount || 0}</span>
           </button>
-
-          {/* Views (from code 1) */}
           <div className="flex items-center gap-2 text-gray-500">
             <div className="p-2 rounded-full bg-gray-100">
               <FiEye className="w-5 h-5" />
             </div>
             <span className="font-medium">{discussion.viewCount || 0}</span>
           </div>
-
-          {/* Repost Button with Tooltip (Enhanced from code 1) */}
           <div className="relative group">
             <button
               onClick={handleRepost}
@@ -402,8 +391,6 @@ const DiscussionCard = ({
             )}
           </div>
         </div>
-
-        {/* Date (from code 1) */}
         <div className="text-xs text-gray-500">
           {new Date(discussion.AddOnDt).toLocaleDateString("en-US", {
             year: "numeric",

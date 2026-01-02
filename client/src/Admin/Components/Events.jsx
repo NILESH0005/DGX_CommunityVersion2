@@ -21,13 +21,11 @@ const Events = ({ events, setEvents }) => {
         console.log("No user token, skipping events fetch");
         return;
       }
-
       const endpoint = "eventandworkshop/getEvent";
       const headers = {
         "Content-Type": "application/json",
         "auth-token": userToken,
       };
-
       console.log("Fetching events...");
       const eventData = await fetchData(endpoint, "GET", null, headers);
 

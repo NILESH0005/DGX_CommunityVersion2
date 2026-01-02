@@ -150,15 +150,6 @@ const DiscussionModal = ({
     }
   };
 
-  const handleProfileClick = (userId, e) => {
-    e.stopPropagation();
-    if (userId && userId !== "undefined") {
-      handleProfileRedirect(userId, navigate);
-    } else {
-      console.error("Invalid User ID:", userId);
-    }
-  };
-
   const handleDeleteComment = async (commentId) => {
     const result = await Swal.fire({
       title: "Are you sure?",
