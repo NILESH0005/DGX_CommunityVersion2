@@ -48,7 +48,6 @@ const DiscussionList = ({
     try {
       const response = await fetchData(endpoint, method, body, headers);
       
-      // Only increment local count if it's a new view
       if (response.success && !response.data.alreadyViewed) {
         setDiscussionList(prevList =>
           prevList.map(d =>
@@ -65,9 +64,7 @@ const DiscussionList = ({
     }
   };
 
-  // Handle card click to open modal
   const handleCardClick = async (discussion, e) => {
-    // Check if click is on interactive elements
     if (
       e.target.closest("button") ||
       e.target.closest("a") ||
@@ -76,14 +73,11 @@ const DiscussionList = ({
       return;
     }
 
-    // Record view (backend will handle duplicates)
     await recordDiscussionView(discussion.DiscussionID);
 
-    // Open modal
     openModal(discussion);
   };
 
-  // Render Section
   if (!discussionList.length) {
     return (
       <div className="text-center text-gray-500 mt-8">

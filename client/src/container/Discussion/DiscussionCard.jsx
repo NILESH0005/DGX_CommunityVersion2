@@ -26,7 +26,6 @@ const DiscussionCard = ({
   const currentUserId = user?.uniqueId || user?.UserID;
   const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
 
-  // 🔥 Correct profile image sources - from code 2
   const profilePic =
     discussion.ProfilePicture ||
     discussion.UserImage ||
@@ -39,9 +38,6 @@ const DiscussionCard = ({
     setReposted(hasReposted);
   }, [discussion.reposts, currentUserId]);
 
-  // ---------------------------
-  // LIKE HANDLER (from code 2)
-  // ---------------------------
   const handleLike = async (e) => {
     e.stopPropagation();
 
@@ -88,9 +84,7 @@ const DiscussionCard = ({
     }
   };
 
-  // ---------------------------
-  // REPOST HANDLER (from code 2)
-  // ---------------------------
+
   const handleRepost = async (e) => {
     e.stopPropagation();
 
@@ -161,9 +155,7 @@ const DiscussionCard = ({
     }
   };
 
-  // ---------------------------
-  // COMMENT HANDLER
-  // ---------------------------
+
   const handleComment = (e) => {
     e.stopPropagation();
     openModal(discussion);
@@ -176,12 +168,8 @@ const DiscussionCard = ({
     return "Repost Allowed";
   };
 
-  // ---------------------------
-  // COMPONENT UI (Visuals from code 1, functionality from code 2)
-  // ---------------------------
   return (
     <div className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-      {/* Author Section */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           {profilePic ? (
@@ -239,7 +227,6 @@ const DiscussionCard = ({
         )}
       </div>
 
-      {/* Title & Content */}
       <div className="mb-4">
         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-DGXgreen">
           {discussion.Title}

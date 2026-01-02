@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef, useCallback   } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ApiContext from "../../context/ApiContext.jsx";
@@ -28,11 +28,34 @@ const Discussion = () => {
   const [selectedDiscussion, setSelectedDiscussion] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchScope, setSearchScope] = useState("all");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observer = useRef();
+  const lastDiscussionRef = useCallback(
+    (node) => {
+      if (isLoadingMore) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMoreDiscussions();
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [hasMore, isLoadingMore, loading]
+  );
 
   const currentUserId = user?.uniqueId || user?.UserID;
 
   // ===== Update Comment Count =====
-  const handleUpdateCommentCount = (discussionId, newCount, updatedComments) => {
+  const handleUpdateCommentCount = (
+    discussionId,
+    newCount,
+    updatedComments
+  ) => {
     setDemoDiscussions((prev) =>
       prev.map((d) =>
         d.DiscussionID === discussionId
@@ -67,20 +90,29 @@ const Discussion = () => {
     );
   };
 
-  // ✅ Fetch discussions
-  const fetchDiscussionData = async (userEmail) => {
+  const fetchDiscussionData = async (userEmail, pageNum = 1, limit = 10) => {
     try {
       const endpoint = "discussion/getdiscussion";
       const method = "POST";
-      const body = { email: userEmail || null };
+      const body = {
+        email: userEmail || null,
+        page: pageNum,
+        limit: limit,
+      };
       const headers = { "Content-Type": "application/json" };
 
-      setLoading(true);
+      if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
+
       const result = await fetchData(endpoint, method, body, headers);
       const allDiscussions = result?.data?.updatedDiscussions || [];
       const reposts = allDiscussions.filter((d) => d.RepostID);
       const discussions = allDiscussions.filter((d) => !d.RepostID);
 
+      // Process reposts
       reposts.forEach((r) => {
         const target = discussions.find(
           (orig) => orig.DiscussionID === r.RepostID
@@ -94,9 +126,8 @@ const Discussion = () => {
         }
       });
 
-      // 📊 3. Attach stats
-      const stats = await fetchDiscussionStats(fetchData);
-      setDiscussionStats(stats);
+      // 📊 3. Attach stats (you might want to optimize this for pagination)
+      const stats = pageNum === 1 ? await fetchDiscussionStats(fetchData) : {};
 
       const discussionsWithStats = discussions.map((d) => ({
         ...d,
@@ -105,15 +136,53 @@ const Discussion = () => {
         viewCount: stats[d.DiscussionID]?.TotalViews || 0,
       }));
 
-      setDemoDiscussions(discussionsWithStats);
-      setFilteredDiscussions(discussionsWithStats);
-      setIsLoading(false);
-      setLoading(false);
+      // Update state based on page
+      if (pageNum === 1) {
+        setDemoDiscussions(discussionsWithStats);
+        setFilteredDiscussions(discussionsWithStats);
+      } else {
+        setDemoDiscussions((prev) => [...prev, ...discussionsWithStats]);
+        setFilteredDiscussions((prev) => [...prev, ...discussionsWithStats]);
+      }
+
+      // Update pagination state
+      setHasMore(result?.data?.hasMore || false);
+      setPage(pageNum);
+
+      return discussionsWithStats;
     } catch (error) {
       console.error("Error fetching discussions:", error);
-      setLoading(false);
+      return [];
+    } finally {
+      if (pageNum === 1) {
+        setLoading(false);
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
   };
+
+  const loadMoreDiscussions = () => {
+    if (!hasMore || isLoadingMore) return;
+
+    const nextPage = page + 1;
+    fetchDiscussionData(user?.EmailId || null, nextPage, 10);
+  };
+
+  useEffect(() => {
+    if (searchQuery || searchScope !== "all") {
+      setPage(1);
+      setHasMore(true);
+    }
+  }, [searchQuery, searchScope]);
+
+  useEffect(() => {
+    const initFetch = async () => {
+      await fetchDiscussionData(user?.EmailId || null, 1, 10);
+    };
+    if (userToken !== undefined) initFetch();
+  }, [user, userToken]);
 
   const getTopUsersByDiscussions = (discussions) => {
     const userMap = {};
@@ -203,6 +272,10 @@ const Discussion = () => {
               user={user}
               updateLikeCount={handleUpdateLikeCount}
               updateCommentCount={handleUpdateCommentCount}
+              isLoadingMore={isLoadingMore}
+              hasMore={hasMore}
+              lastDiscussionRef={lastDiscussionRef}
+              loadMore={loadMoreDiscussions}
             />
           ) : (
             <EmptyState
@@ -214,7 +287,20 @@ const Discussion = () => {
               onStartNew={() => setIsFormOpen(true)}
             />
           )}
+          {isLoadingMore && (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-DGXgreen"></div>
+            </div>
+          )}
+
+          {/* End of list message */}
+          {!hasMore && filteredDiscussions.length > 0 && (
+            <div className="text-center py-8 text-gray-500">
+              You've reached the end of the discussion list
+            </div>
+          )}
         </section>
+
         <aside className="hidden lg:block lg:w-1/4 px-4 space-y-8">
           <CommunityHighlights
             key={demoDiscussions.length}
