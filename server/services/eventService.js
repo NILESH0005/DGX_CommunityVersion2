@@ -299,7 +299,7 @@ export const getEventByIdService = async (eventId) => {
 };
 
 export const EventViewService = {
-
+ 
   async getTotalEventViews() {
     try {
       // Fetch all events (assuming you have a CommunityEvents table)

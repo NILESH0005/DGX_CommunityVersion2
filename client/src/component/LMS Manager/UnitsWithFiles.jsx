@@ -232,7 +232,6 @@ const UnitsWithFiles = () => {
 
   const recordFileView = async (fileId, unitId) => {
     try {
-      // First, end the current file view if any
       if (currentFileIdRef.current) {
         await sendFileViewEndTime(currentFileIdRef.current);
       }
@@ -251,7 +250,6 @@ const UnitsWithFiles = () => {
         if (response.message !== "File view already recorded for this user") {
           setViewedFiles((prev) => new Set(prev).add(fileId));
         }
-        // Set the current file ID
         currentFileIdRef.current = fileId;
       } else {
         console.error("Error recording file view:", response?.message);
@@ -262,7 +260,6 @@ const UnitsWithFiles = () => {
   };
 
   const handleFileSelect = (file, unit) => {
-    // End current file view if any
     if (currentFileIdRef.current) {
       sendFileViewEndTime(currentFileIdRef.current);
     }
@@ -275,7 +272,6 @@ const UnitsWithFiles = () => {
       unitDescription: unit.UnitDescription,
     });
 
-    // Auto-collapse sidebar on mobile when content is selected
     if (isMobile) {
       setIsSidebarCollapsed(true);
     }
@@ -355,7 +351,6 @@ const UnitsWithFiles = () => {
   };
 
   const isExternalLink = (file) => {
-    // Exclude YouTube links from being treated as regular external links
     if (
       file.FilePath &&
       (file.FilePath.includes("youtube.com") ||

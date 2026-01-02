@@ -111,8 +111,6 @@ const SubModuleCard = () => {
     }
   };
 
-
-
   const recordSubModuleView = async (subModuleId) => {
     try {
       if (!userToken) {
@@ -787,10 +785,9 @@ const SubModuleCard = () => {
                     }
                   }}
                 >
-                  {/* Image Section with Overlays */}
+                  {" "}
                   <div className="h-48 sm:h-44 md:h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden relative">
                     {renderSubModuleImage(subModule)}
-                    {/* Progress Bar Overlay */}
                     {totalTimeSpent > 0 && (
                       <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30">
                         <div
@@ -800,16 +797,12 @@ const SubModuleCard = () => {
                       </div>
                     )}
                   </div>
-
-                  {/* Content Section */}
                   <div className="p-6 flex flex-col flex-grow">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 break-words hover:text-blue-600 dark:hover:text-green-400 transition-colors duration-200 select-text group-hover:text-blue-700">
                       {subModule.SubModuleName}
                     </h3>
 
-                    {/* Stats Row - Now with Average Rating on the right */}
                     <div className="flex items-center justify-between mb-4">
-                      {/* Left side: Views and Time */}
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1.5">
                           <FaEye className="text-blue-400" />
@@ -825,7 +818,6 @@ const SubModuleCard = () => {
                         </div>
                       </div>
 
-                      {/* Right side: Average Rating */}
                       <div
                         className="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors"
                         onClick={(e) => {
@@ -844,16 +836,46 @@ const SubModuleCard = () => {
                             {avgRating.toFixed(1)}
                           </span>
                           <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <FaStar
-                                key={star}
-                                className={`text-xs ${
-                                  star <= avgRating
-                                    ? "text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
+                            {[1, 2, 3, 4, 5].map((star) => {
+                              const rating = avgRating;
+                              // Check if this star should be fully yellow
+                              if (star <= Math.floor(rating)) {
+                                return (
+                                  <FaStar
+                                    key={star}
+                                    className="text-xs text-yellow-400"
+                                  />
+                                );
+                              }
+                              // Check if it's a partial star (e.g., 3.5 -> show 4th star as partial)
+                              else if (
+                                star === Math.ceil(rating) &&
+                                rating % 1 > 0
+                              ) {
+                                return (
+                                  <div key={star} className="relative">
+                                    <FaStar className="text-xs text-gray-300 absolute" />
+                                    <FaStar
+                                      className="text-xs text-yellow-400"
+                                      style={{
+                                        clipPath: `inset(0 ${
+                                          100 - (rating % 1) * 100
+                                        }% 0 0)`,
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              }
+                              // Empty star
+                              else {
+                                return (
+                                  <FaStar
+                                    key={star}
+                                    className="text-xs text-gray-300"
+                                  />
+                                );
+                              }
+                            })}
                           </div>
                           <span className="text-xs text-gray-500">
                             ({totalRatings})
@@ -862,7 +884,6 @@ const SubModuleCard = () => {
                       </div>
                     </div>
 
-                    {/* Your Rating Section - ALWAYS VISIBLE */}
                     <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -872,7 +893,13 @@ const SubModuleCard = () => {
                                 ? myRating
                                 : hoverRatings[subModule.SubModuleID] || 0;
 
-                              const filled = star <= displayRating;
+                              // Check if this star should be filled
+                              const isFilled = star <= displayRating;
+
+                              // Check if it's a partial fill (for decimal ratings)
+                              const isPartial =
+                                star > displayRating &&
+                                star - 1 < displayRating;
 
                               return (
                                 <motion.button
@@ -892,7 +919,11 @@ const SubModuleCard = () => {
                                       ? "cursor-default"
                                       : "cursor-pointer"
                                   } ${
-                                    filled ? "text-yellow-400" : "text-gray-300"
+                                    isFilled
+                                      ? "text-yellow-400"
+                                      : isPartial
+                                      ? "text-yellow-400 opacity-70"
+                                      : "text-gray-300"
                                   }`}
                                   onMouseEnter={() => {
                                     if (!isRated && !ratingLoading) {
@@ -932,7 +963,17 @@ const SubModuleCard = () => {
                                   }}
                                   disabled={isRated || ratingLoading}
                                 >
-                                  <FaStar className="text-xl" />
+                                  {isPartial ? (
+                                    <div className="relative">
+                                      <FaStar className="text-xl text-gray-300 absolute" />
+                                      <FaStar
+                                        className="text-xl text-yellow-400"
+                                        style={{ clipPath: "inset(0 50% 0 0)" }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <FaStar className="text-xl" />
+                                  )}
                                 </motion.button>
                               );
                             })}
