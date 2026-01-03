@@ -66,9 +66,8 @@ const PublicBlogModal = ({
     }
   }, [blog?.reposts, user?.UserID]);
 
-  // Also update your canRepost logic
   const isMyBlog = blog?.UserID === user?.UserID;
-  const alreadyReposted = hasAlreadyReposted; // Use the state instead
+  const alreadyReposted = hasAlreadyReposted;
   const canRepost =
     blog?.allowRepost && !isMyBlog && !alreadyReposted && Status === "Approved";
 

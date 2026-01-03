@@ -1,84 +1,104 @@
-import React, { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { compressImage } from '../../../../utils/compressImage';
-import { motion } from 'framer-motion';
+import React, { useState, useContext } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { motion } from "framer-motion";
+import ApiContext from "../../../../context/ApiContext"; // Adjust path as needed
+import FileUploader from "../../../../container/FileUploader"; // Adjust path as needed
 
 const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
   const [isCreated, setIsCreated] = useState(false);
   const [newModule, setNewModule] = useState({
     id: uuidv4(),
-    name: '',
-    description: '',
-    banner: null
+    name: "",
+    description: "",
+    banner: null,
+    bannerPath: null,
+    bannerUrl: null,
   });
   const [errors, setErrors] = useState({});
-  const [isCompressing, setIsCompressing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const { userToken } = useContext(ApiContext); 
 
   const handleCreate = async () => {
     if (!newModule.name.trim()) {
-      setErrors({ name: 'Module name is required' });
+      setErrors({ name: "Module name is required" });
       return;
     }
 
     try {
-      setIsCompressing(true);
-      let compressedBanner = null;
-      if (newModule.banner) {
-        try {
-          compressedBanner = await compressImage(newModule.banner);
-        } catch (error) {
-          console.error('Image compression failed:', error);
-          compressedBanner = await convertFileToBase64(newModule.banner);
-        }
-      }
-
       const module = {
         ModuleName: newModule.name.trim(),
-        ModuleImage: compressedBanner,
         ModuleDescription: newModule.description.trim(),
+        ModuleImage: newModule.banner || null, 
+        ModuleImagePath: newModule.bannerPath || null, 
+        ModuleImageUrl: newModule.bannerUrl || null,
         subModules: [],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
+      console.log("Creating module with:", {
+        ...module,
+        ModuleImagePathType: typeof module.ModuleImagePath,
+        ModuleImagePathValue: module.ModuleImagePath,
+      });
 
       onCreate(module);
       setIsCreated(true);
     } catch (error) {
-      console.error('Error creating module:', error);
-    } finally {
-      setIsCompressing(false);
+      console.error("Error creating module:", error);
+      setErrors({ submit: "Failed to create module" });
     }
   };
 
-  const convertFileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 200 * 1024) {
+  const handleImageUpload = (uploadResult) => {
+    if (!uploadResult || !uploadResult.success) {
       setErrors({
         ...errors,
-        banner: 'Image size must be 200KB or less'
+        banner: uploadResult?.message || "Image upload failed",
       });
-      e.target.value = '';
+      setIsUploading(false);
       return;
     }
 
-    if (errors.banner) {
-      setErrors({
-        ...errors,
-        banner: null
-      });
+    const { filePath } = uploadResult;
+
+    if (!filePath) {
+      setErrors({ ...errors, banner: "No file path received from server" });
+      setIsUploading(false);
+      return;
     }
 
-    setNewModule({ ...newModule, banner: file });
+    // Clean and construct URL
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+    const cleanFilePath = filePath.replace(/^\/+/, "");
+    const imageUrl = `${baseUploadsUrl}/${cleanFilePath}`;
+
+    // Store ONLY the file path string, not the entire object
+    setNewModule((prev) => ({
+      ...prev,
+      bannerPath: cleanFilePath, // Store as string
+      bannerUrl: imageUrl,
+      banner: {
+        // Optional: store the object if needed elsewhere
+        success: uploadResult.success,
+        filePath: cleanFilePath,
+        fileName: uploadResult.fileName,
+        fileSize: uploadResult.fileSize,
+      },
+    }));
+
+    if (errors.banner) {
+      setErrors((prev) => ({ ...prev, banner: null }));
+    }
+
+    setIsUploading(false);
+  };
+
+  const handleRemoveImage = () => {
+    setNewModule((prev) => ({
+      ...prev,
+      banner: null,
+      bannerPath: null,
+      bannerUrl: null,
+    }));
   };
 
   if (isCreated) {
@@ -86,10 +106,12 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
       ...existingModules,
       {
         ...newModule,
-        banner: newModule.banner ? URL.createObjectURL(newModule.banner) : null,
+        banner:
+          newModule.bannerUrl ||
+          (newModule.banner ? URL.createObjectURL(newModule.banner) : null),
         subModules: [],
-        createdAt: new Date().toISOString()
-      }
+        createdAt: new Date().toISOString(),
+      },
     ];
 
     return (
@@ -136,9 +158,11 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
                   setIsCreated(false);
                   setNewModule({
                     id: uuidv4(),
-                    name: '',
-                    description: '',
-                    banner: null
+                    name: "",
+                    description: "",
+                    banner: null,
+                    bannerPath: null,
+                    bannerUrl: null,
                   });
                 }}
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-all duration-200 font-medium"
@@ -183,12 +207,21 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
               className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-200"
             >
               <div className="flex items-start gap-3">
-                {module.banner && (
+                {(module.bannerUrl || module.banner) && (
                   <div className="flex-shrink-0 w-16 h-16 overflow-hidden rounded-lg border">
                     <img
-                      src={module.banner}
+                      src={
+                        module.bannerUrl ||
+                        (module.banner && typeof module.banner !== "string"
+                          ? URL.createObjectURL(module.banner)
+                          : module.banner)
+                      }
                       alt={module.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/default-image.png"; // Add a fallback
+                      }}
                     />
                   </div>
                 )}
@@ -233,7 +266,12 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 4v16m8-8H4"
+          />
         </svg>
         Create New Module
       </h2>
@@ -247,7 +285,7 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
             type="text"
             placeholder="e.g., Introduction to React"
             className={`border w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
-              errors.name ? 'border-red-500' : 'border-gray-300'
+              errors.name ? "border-red-500" : "border-gray-300"
             }`}
             value={newModule.name}
             onChange={(e) => {
@@ -255,73 +293,111 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
               if (errors.name) setErrors({ ...errors, name: null });
             }}
           />
-          {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+          {errors.name && (
+            <p className="mt-1 text-sm text-red-500">{errors.name}</p>
+          )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Description
+          </label>
           <textarea
             placeholder="Brief description of what this module covers..."
             className="border w-full p-3 rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 transition"
             value={newModule.description}
-            onChange={(e) => setNewModule({ ...newModule, description: e.target.value })}
+            onChange={(e) =>
+              setNewModule({ ...newModule, description: e.target.value })
+            }
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Banner Image</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Banner Image
+          </label>
           <p className="text-xs text-blue-500 mb-2">
-            Recommended size: <strong>800×400px</strong> | Max: <strong>200KB</strong>
+            Recommended size: <strong>800×400px</strong> | Max:{" "}
+            <strong>200KB</strong>
           </p>
-          <div className="relative">
-            <div className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-              {newModule.banner ? (
-                <>
-                  <img
-                    src={URL.createObjectURL(newModule.banner)}
-                    alt="Preview"
-                    className="h-32 object-contain mb-3 rounded-lg"
+
+          {newModule.bannerUrl || newModule.banner ? (
+            <div className="relative">
+              <img
+                src={
+                  newModule.bannerUrl ||
+                  (newModule.banner && typeof newModule.banner !== "string"
+                    ? URL.createObjectURL(newModule.banner)
+                    : newModule.banner)
+                }
+                alt="Preview"
+                className="h-40 w-full object-contain border rounded-lg mb-3 bg-gray-50"
+              />
+              <button
+                onClick={handleRemoveImage}
+                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors"
+                title="Remove image"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
                   />
-                  <button
-                    onClick={() => setNewModule({ ...newModule, banner: null })}
-                    className="text-sm text-red-500 hover:text-red-600 font-medium"
-                  >
-                    Remove Image
-                  </button>
-                </>
-              ) : (
-                <label className="flex flex-col items-center justify-center w-full cursor-pointer">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    ></path>
-                  </svg>
-                  <p className="text-sm text-gray-500 mb-1 font-medium">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-400">PNG, JPG up to 200KB</p>
-                  <input
-                    type="file"
-                    className="hidden"
-                    id="module-banner-upload"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                </label>
-              )}
+                </svg>
+              </button>
             </div>
-            {errors.banner && <p className="mt-1 text-sm text-red-500">{errors.banner}</p>}
-          </div>
+          ) : (
+            <FileUploader
+              moduleName="LMS"
+              folderName="module-banners"
+              onUploadComplete={handleImageUpload}
+              accept="image/*"
+              maxSize={200 * 1024}
+              label="Upload Banner Image"
+              previewType="image"
+            />
+          )}
+
+          {errors.banner && (
+            <p className="mt-1 text-sm text-red-500">{errors.banner}</p>
+          )}
+
+          {isUploading && (
+            <div className="flex items-center gap-2 text-blue-600 text-sm mt-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                />
+              </svg>
+              Uploading image...
+            </div>
+          )}
         </div>
       </div>
+
+      {errors.submit && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{errors.submit}</p>
+        </div>
+      )}
 
       <div className="flex justify-end gap-4 pt-8 border-t mt-8">
         <button
@@ -332,40 +408,14 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
         </button>
         <button
           onClick={handleCreate}
-          disabled={isCompressing || (newModule.banner && newModule.banner.size > 200 * 1024)}
+          disabled={isUploading || !newModule.name.trim()}
           className={`px-6 py-2.5 rounded-lg text-white font-medium transition-all duration-200 ${
-            isCompressing || (newModule.banner && newModule.banner.size > 200 * 1024)
-              ? 'bg-blue-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
+            isUploading || !newModule.name.trim()
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 active:scale-95"
           }`}
         >
-          {isCompressing ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-              Creating...
-            </span>
-          ) : (
-            'Create Module'
-          )}
+          Create Module
         </button>
       </div>
     </motion.div>

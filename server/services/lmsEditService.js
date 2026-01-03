@@ -628,9 +628,7 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
   const transaction = await sequelize.transaction();
 
   try {
-    /* ============================
-       1️⃣ Find SubModule
-    ============================ */
+   
     const existingSubModule = await SubModulesDetails.findOne({
       where: { SubModuleID: subModuleId, delStatus: 0 },
       transaction,
@@ -647,9 +645,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
       };
     }
 
-    /* ============================
-       2️⃣ Fetch Units
-    ============================ */
     const units = await LMSUnitsDetails.findAll({
       where: {
         SubModuleID: subModuleId,
@@ -659,10 +654,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
     });
 
     const unitIds = units.map((u) => u.UnitID);
-
-    /* ============================
-       3️⃣ Fetch Files
-    ============================ */
     const files = await LMSFilesDetails.findAll({
       where: {
         UnitID: { [Op.in]: unitIds },
@@ -676,10 +667,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
     if (!fs.existsSync(deletedFolder)) {
       fs.mkdirSync(deletedFolder, { recursive: true });
     }
-
-    /* ============================
-       4️⃣ Move FILES to Trash
-    ============================ */
     for (const file of files) {
       if (file.FilePath) {
         const originalPath = path.join(process.cwd(), file.FilePath);
@@ -692,10 +679,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
         }
       }
     }
-
-    /* ============================
-       5️⃣ Soft Delete FILES
-    ============================ */
     const [filesDeleted] = await LMSFilesDetails.update(
       {
         delStatus: 1,
@@ -710,10 +693,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
         transaction,
       }
     );
-
-    /* ============================
-       6️⃣ Soft Delete UNITS
-    ============================ */
     const [unitsDeleted] = await LMSUnitsDetails.update(
       {
         delStatus: 1,
@@ -728,10 +707,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
         transaction,
       }
     );
-
-    /* ============================
-       7️⃣ Move SubModule Image
-    ============================ */
     if (existingSubModule.SubModuleImagePath) {
       const originalPath = path.join(
         process.cwd(),
@@ -745,10 +720,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
         );
       }
     }
-
-    /* ============================
-       8️⃣ Soft Delete SUBMODULE
-    ============================ */
     await existingSubModule.update(
       {
         delStatus: 1,
