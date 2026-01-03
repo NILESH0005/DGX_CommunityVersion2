@@ -71,9 +71,9 @@ const getProfileUrl = (path) => {
   return `${base}/${path.replace(/^\/+/, "")}`;
 };
 
-// Fixed RepostCard Component for horizontal scrollable users
 const RepostCard = ({ reposts = [] }) => {
-  console.log("ccccccccccccccccc", reposts);
+  console.log("Reposts data analysis:", reposts);
+
   if (!reposts || reposts.length === 0) return null;
 
   // Sort reposts by AddOnDt descending (latest first)
@@ -96,35 +96,81 @@ const RepostCard = ({ reposts = [] }) => {
       {/* Horizontal Scrollable Users */}
       <div className="overflow-x-auto">
         <div className="flex space-x-4 pb-2 min-w-max">
-          {sortedReposts.map((repost, index) => (
-            <div
-              key={`${repost.UserID}-${index}`}
-              className="flex flex-col items-center text-center min-w-[80px]"
-            >
-              {/* User Avatar */}
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-sm font-bold mb-2 shadow-sm">
-                {repost.RepostUser.Name
-                  ? repost.RepostUser.Name.split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                  : "U"}
-              </div>
+          {sortedReposts.map((repost, index) => {
+            // DEBUG: Log what data we have
+            console.log(`Repost ${index}:`, {
+              authorField: repost.author,
+              userId: repost.UserID,
+              repostUserId: repost.RepostUserID,
+              repostUserData: repost.RepostUser,
+            });
 
-              {/* User Name */}
-              <div className="text-xs font-medium text-gray-900 truncate max-w-[70px]">
-                {repost.RepostUser.Name || "Unknown User"}
-              </div>
+            // Extract the correct repost author information
+            // Use 'author' field first, fallback to RepostUser.Name
+            let userName =
+              repost.author || repost.RepostUser?.Name || "Unknown User";
+            let userProfile = repost.RepostUser?.ProfilePicture || null;
+            const userId = repost.UserID || repost.RepostUser?.UserID;
 
-              {/* Repost Date */}
-              <div className="text-xs text-gray-500 mt-1">
-                {new Date(repost.AddOnDt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
+            // If author field has the correct name but User object has wrong one
+            // Create a clean user object
+            const repostUser = {
+              UserID: userId,
+              Name: userName,
+              ProfilePicture: userProfile,
+            };
+
+            return (
+              <div
+                key={`${userId}-${index}`}
+                className="flex flex-col items-center text-center min-w-[80px]"
+              >
+                {/* User Avatar with fallback */}
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-sm font-bold mb-2 shadow-sm">
+                  {userProfile ? (
+                    <img
+                      src={getProfileUrl(userProfile)}
+                      alt={userName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        // Show initials as fallback
+                        const initials = userName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .substring(0, 2);
+                        e.target.parentElement.textContent = initials;
+                      }}
+                    />
+                  ) : (
+                    <span>
+                      {userName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .substring(0, 2)}
+                    </span>
+                  )}
+                </div>
+
+                {/* User Name */}
+                <div className="text-xs font-medium text-gray-900 truncate max-w-[70px]">
+                  {userName}
+                </div>
+
+                {/* Repost Date */}
+                <div className="text-xs text-gray-500 mt-1">
+                  {new Date(repost.AddOnDt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

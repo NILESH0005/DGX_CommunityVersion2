@@ -48,9 +48,6 @@ const Discussion = () => {
     [hasMore, isLoadingMore, loading]
   );
 
-  const currentUserId = user?.uniqueId || user?.UserID;
-
-  // ===== Update Comment Count =====
   const handleUpdateCommentCount = (
     discussionId,
     newCount,
@@ -72,7 +69,6 @@ const Discussion = () => {
     );
   };
 
-  // ===== Like Count Update =====
   const handleUpdateLikeCount = (discussionId, newCount, userLikeState) => {
     setDemoDiscussions((prev) =>
       prev.map((d) =>
@@ -212,14 +208,12 @@ const Discussion = () => {
     }
   }, [demoDiscussions]);
 
-  // ===== Modal Helpers =====
   const openModal = (discussion) => {
     setSelectedDiscussion(discussion);
     setModalIsOpen(true);
   };
   const closeModal = () => setModalIsOpen(false);
 
-  // ===== Render =====
   return (
     <div className="h-screen flex flex-col bg-white">
       <ToastContainer />
@@ -233,12 +227,10 @@ const Discussion = () => {
       )}
 
       <div className="flex-1 flex flex-col lg:flex-row w-full mx-auto bg-white rounded-md border border-gray-200 shadow-md mt-4 mb-4 p-4 overflow-hidden">
-        {/* LEFT - Top Contributors */}
         <aside className="hidden lg:block lg:w-1/6 px-4 space-y-8">
           <TopContributors topUsers={topUsers} />
         </aside>
 
-        {/* CENTER - Discussion List */}
         <section className="w-full lg:w-5/6 px-4 flex flex-col overflow-y-scroll h-[80vh]">
           <SearchBar
             searchQuery={searchQuery}
@@ -293,7 +285,6 @@ const Discussion = () => {
             </div>
           )}
 
-          {/* End of list message */}
           {!hasMore && filteredDiscussions.length > 0 && (
             <div className="text-center py-8 text-gray-500">
               You've reached the end of the discussion list
