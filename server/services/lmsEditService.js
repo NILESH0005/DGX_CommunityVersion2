@@ -628,7 +628,6 @@ export const deleteSubModuleService = async (subModuleId, adminId) => {
   const transaction = await sequelize.transaction();
 
   try {
-   
     const existingSubModule = await SubModulesDetails.findOne({
       where: { SubModuleID: subModuleId, delStatus: 0 },
       transaction,
@@ -1138,10 +1137,7 @@ export const deleteUnitService = async (userEmail, unitId) => {
       transaction,
     });
 
-    const deletedFolder = path.join(
-      process.cwd(),
-      "uploads/deleted-files"
-    );
+    const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
 
     if (!fs.existsSync(deletedFolder)) {
       fs.mkdirSync(deletedFolder, { recursive: true });
@@ -1326,6 +1322,48 @@ export const deleteFileService = async (userEmail, fileId) => {
         success: false,
         message: "Something went wrong during file deletion",
         data: error,
+      },
+    };
+  }
+};
+
+export const updateUnitOrderService = async (units) => {
+  const transaction = await db.sequelize.transaction();
+
+  try {
+    for (const unit of units) {
+      await LMSUnitsDetails.update(
+        {
+          SortingOrder: unit.SortingOrder,
+          editOnDt: new Date(),
+        },
+        {
+          where: { UnitID: unit.UnitID },
+          transaction,
+        }
+      );
+    }
+
+    await transaction.commit();
+
+    logInfo("Unit order updated successfully");
+    return {
+      status: 200,
+      response: {
+        success: true,
+        message: "Unit order updated successfully",
+      },
+    };
+  } catch (error) {
+    await transaction.rollback();
+    logError("Failed to update unit order", error);
+
+    return {
+      status: 500,
+      response: {
+        success: false,
+        message: "Error updating unit order",
+        error: error.message,
       },
     };
   }

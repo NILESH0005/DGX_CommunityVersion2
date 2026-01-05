@@ -86,13 +86,13 @@ const Events = ({ events, setEvents }) => {
         <EventTable
           events={events}
           setEvents={setEvents}
-          reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
+          reloadEvents={handleReloadEvents} 
         />
       ) : (
         <GeneralUserCalendar
           events={events}
           setEvents={setEvents}
-          reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
+          reloadEvents={handleReloadEvents} 
         />
       )}
     </div>

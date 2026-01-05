@@ -6,7 +6,6 @@ import AddUnitModal from "./AddUnitModal";
 import UnitOrder from "./UnitOrder";
 import FileManagement from "./FileManagement";
 
-
 const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
   const [units, setUnits] = useState([]);
   const [filteredUnits, setFilteredUnits] = useState([]);
@@ -18,7 +17,6 @@ const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
   const [showAddUnitModal, setShowAddUnitModal] = useState(false);
   const [showUnitOrder, setShowUnitOrder] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null); // Add selectedUnit state
-
 
   useEffect(() => {
     const fetchUnits = async () => {
@@ -33,9 +31,11 @@ const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
         if (response?.success) {
           const validUnits = response.data.filter((unit) => unit);
           setUnits(validUnits);
-          setFilteredUnits(validUnits.filter(
-            (unit) => unit.SubModuleID === submodule.SubModuleID
-          ));
+          setFilteredUnits(
+            validUnits.filter(
+              (unit) => unit.SubModuleID === submodule.SubModuleID
+            )
+          );
         }
       } catch (err) {
         // console.error("Error refetching units:", err);
@@ -89,12 +89,20 @@ const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
       );
 
       if (response?.success) {
-        setUnits(prev => prev.map(unit =>
-          unit.UnitID === editingUnit.UnitID ? { ...unit, ...response.data } : unit
-        ));
-        setFilteredUnits(prev => prev.map(unit =>
-          unit.UnitID === editingUnit.UnitID ? { ...unit, ...response.data } : unit
-        ));
+        setUnits((prev) =>
+          prev.map((unit) =>
+            unit.UnitID === editingUnit.UnitID
+              ? { ...unit, ...response.data }
+              : unit
+          )
+        );
+        setFilteredUnits((prev) =>
+          prev.map((unit) =>
+            unit.UnitID === editingUnit.UnitID
+              ? { ...unit, ...response.data }
+              : unit
+          )
+        );
         handleCancelEditUnit();
         Swal.fire("Success!", "Unit updated successfully", "success");
       } else {
@@ -130,24 +138,28 @@ const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
       );
 
       if (response?.success) {
-        setUnits(prev => prev.filter(unit => unit.UnitID !== unitId));
-        setFilteredUnits(prev => prev.filter(unit => unit.UnitID !== unitId));
+        setUnits((prev) => prev.filter((unit) => unit.UnitID !== unitId));
+        setFilteredUnits((prev) =>
+          prev.filter((unit) => unit.UnitID !== unitId)
+        );
         Swal.fire("Deleted!", "Unit has been deleted.", "success");
       } else {
         throw new Error(response?.message || "Failed to delete unit");
       }
     } catch (err) {
-      // console.error("Delete error:", err);
       Swal.fire("Error!", `Failed to delete unit: ${err.message}`, "error");
     }
   };
 
   const handleSaveUnitOrder = async (orderedUnits) => {
     try {
+      // Create the payload exactly as backend expects
       const unitsWithOrder = orderedUnits.map((unit, index) => ({
         UnitID: unit.UnitID,
         SortingOrder: index + 1,
       }));
+
+      console.log("Sending payload:", { units: unitsWithOrder });
 
       const response = await fetchData(
         "lmsEdit/updateUnitOrder",
@@ -156,47 +168,76 @@ const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
         { "Content-Type": "application/json", "auth-token": userToken }
       );
 
+      console.log("Response:", response);
+
       if (response?.success) {
-        const updatedUnits = [...units].map(unit => {
-          const updatedUnit = unitsWithOrder.find(u => u.UnitID === unit.UnitID);
-          return updatedUnit ? { ...unit, SortingOrder: updatedUnit.SortingOrder } : unit;
-        }).sort((a, b) => {
-          const orderA = a.SortingOrder || Number.MAX_SAFE_INTEGER;
-          const orderB = b.SortingOrder || Number.MAX_SAFE_INTEGER;
-          return orderA - orderB || a.UnitID - b.UnitID;
+        const updatedUnits = [...orderedUnits].map((unit, index) => ({
+          ...unit,
+          SortingOrder: index + 1,
+        }));
+
+        setUnits((prevUnits) => {
+          const newUnits = [...prevUnits];
+          updatedUnits.forEach((updatedUnit) => {
+            const index = newUnits.findIndex(
+              (u) => u.UnitID === updatedUnit.UnitID
+            );
+            if (index !== -1) {
+              newUnits[index] = {
+                ...newUnits[index],
+                SortingOrder: updatedUnit.SortingOrder,
+              };
+            }
+          });
+          return newUnits.sort(
+            (a, b) => (a.SortingOrder || 999) - (b.SortingOrder || 999)
+          );
         });
 
-        setUnits(updatedUnits);
-        setFilteredUnits(updatedUnits.filter(
-          unit => unit.SubModuleID === submodule.SubModuleID
-        ));
+        setFilteredUnits(
+          updatedUnits.filter(
+            (unit) => unit.SubModuleID === submodule.SubModuleID
+          )
+        );
+
         setShowUnitOrder(false);
-        Swal.fire("Success!", "Unit order has been updated.", "success");
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: "Unit order has been updated.",
+        });
       } else {
         throw new Error(response?.message || "Failed to update unit order");
       }
     } catch (err) {
-      // console.error("Error updating unit order:", err);
-      Swal.fire("Error!", `Failed to update unit order: ${err.message}`, "error");
+      console.error("Error updating unit order:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error!",
+        text: `Failed to update unit order: ${err.message}`,
+      });
     }
   };
 
   const handleAddUnitSuccess = (newUnit) => {
-    setUnits(prev => [...prev, newUnit]);
+    setUnits((prev) => [...prev, newUnit]);
     if (newUnit.SubModuleID === submodule.SubModuleID) {
-      setFilteredUnits(prev => [...prev, newUnit]);
+      setFilteredUnits((prev) => [...prev, newUnit]);
     }
     setShowAddUnitModal(false);
   };
 
   if (loading) return <div className="text-center py-10">Loading units...</div>;
-  if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
-  
+  if (error)
+    return <div className="text-center py-10 text-red-500">{error}</div>;
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Units</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            Units
+          </h2>
           <div className="flex gap-2">
             <button
               onClick={() => setShowAddUnitModal(true)}
@@ -219,12 +260,13 @@ const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
           filteredUnits.map((unit) => (
             <div
               key={unit.UnitID}
-              className={`p-4 cursor-pointer transition-colors duration-200 ${editingUnit?.UnitID === unit.UnitID
-                ? "bg-blue-50 dark:bg-gray-700"
-                : selectedUnit?.UnitID === unit.UnitID
+              className={`p-4 cursor-pointer transition-colors duration-200 ${
+                editingUnit?.UnitID === unit.UnitID
+                  ? "bg-blue-50 dark:bg-gray-700"
+                  : selectedUnit?.UnitID === unit.UnitID
                   ? "bg-gray-100 dark:bg-gray-700"
                   : "hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
+              }`}
               onClick={() => handleUnitSelect(unit)}
             >
               {editingUnit?.UnitID === unit.UnitID ? (
@@ -232,13 +274,23 @@ const UnitManagement = ({ submodule, onBack, fetchData, userToken }) => {
                   <input
                     type="text"
                     value={editedUnitData.UnitName || ""}
-                    onChange={(e) => setEditedUnitData({ ...editedUnitData, UnitName: e.target.value })}
+                    onChange={(e) =>
+                      setEditedUnitData({
+                        ...editedUnitData,
+                        UnitName: e.target.value,
+                      })
+                    }
                     className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
                     required
                   />
                   <textarea
                     value={editedUnitData.UnitDescription || ""}
-                    onChange={(e) => setEditedUnitData({ ...editedUnitData, UnitDescription: e.target.value })}
+                    onChange={(e) =>
+                      setEditedUnitData({
+                        ...editedUnitData,
+                        UnitDescription: e.target.value,
+                      })
+                    }
                     className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-md"
                     rows={2}
                   />
