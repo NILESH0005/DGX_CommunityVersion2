@@ -296,10 +296,40 @@ const EventWorkshopPage = ({ events, setEvents }) => {
         return;
       }
 
+      // Enhanced duplicate prevention with session storage
+      const sessionKey = `view_recorded_${eventId}`;
+      const permanentKey = `view_permanent_${eventId}`;
+      const now = Date.now();
+
+      // Check if already recorded in this session (prevents quick double-clicks)
+      if (sessionStorage.getItem(sessionKey)) {
+        console.log(
+          "View already recorded in this session for event:",
+          eventId
+        );
+        return;
+      }
+
+      // Check permanent storage with longer timeout (30 minutes)
+      const lastRecordedPermanent = localStorage.getItem(permanentKey);
+      if (lastRecordedPermanent) {
+        const timeDiff = now - parseInt(lastRecordedPermanent);
+        const THIRTY_MINUTES = 30 * 60 * 1000;
+        if (timeDiff < THIRTY_MINUTES) {
+          console.log(
+            "View recorded recently (within 30 minutes) for event:",
+            eventId
+          );
+          return;
+        }
+      }
+
       const viewData = {
         ProcessName: "Event",
         reference: eventId,
       };
+
+      console.log("Recording view for event:", eventId);
 
       const response = await fetchData(
         "progressTrack/recordView",
@@ -313,14 +343,23 @@ const EventWorkshopPage = ({ events, setEvents }) => {
 
       if (response?.success) {
         if (response.data.alreadyViewed) {
-          console.log("Event view was already recorded previously");
+          console.log("Event view was already recorded previously in database");
         } else {
           console.log(
             "First-time event view recorded successfully:",
             response.data
           );
-          await fetchEventViewCounts(eventId);
+          await fetchEventViewCounts(); // Fetch updated counts
         }
+
+        // Set flags to prevent duplicates
+        sessionStorage.setItem(sessionKey, "true");
+        localStorage.setItem(permanentKey, now.toString());
+
+        // Clean up session storage after 5 seconds (for same-session protection)
+        setTimeout(() => {
+          sessionStorage.removeItem(sessionKey);
+        }, 5000);
       } else {
         console.error("Error recording event view:", response?.message);
       }
@@ -329,7 +368,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     }
   };
 
-  const handleMoreInfoClick = (event) => {
+  const handleEventClick = async (event) => {
     if (!userToken) {
       Swal.fire({
         icon: "warning",
@@ -350,9 +389,22 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       return;
     }
 
-    // Record view and navigate to event page
-    recordEventView(event.EventID);
-    navigate(`/event/${event.EventID}`);
+    // Disable button temporarily to prevent double-clicks
+    const button = event.target;
+    if (button) {
+      button.disabled = true;
+      setTimeout(() => {
+        button.disabled = false;
+      }, 1000);
+    }
+
+    // Record view only once
+    await recordEventView(event.EventID);
+
+    // Navigate after a small delay
+    setTimeout(() => {
+      navigate(`/event/${event.EventID}`);
+    }, 100);
   };
 
   const fetchEventViewCounts = async () => {
@@ -387,32 +439,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
-  };
-
-  const handleViewDetails = (event) => {
-    if (!userToken) {
-      Swal.fire({
-        icon: "warning",
-        title: "Login Required",
-        text: "Please sign in to view event details.",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#aaa",
-        confirmButtonText: "Sign In",
-        cancelButtonText: "Cancel",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          setTimeout(() => {
-            navigate("/SignInn");
-          }, 100);
-        }
-      });
-      return;
-    }
-
-    // Record view and navigate to event page
-    recordEventView(event.EventID);
-    navigate(`/event/${event.EventID}`);
   };
 
   const handleCloseModal = () => {
@@ -611,10 +637,11 @@ const EventWorkshopPage = ({ events, setEvents }) => {
                           transition={{ delay: 0.2 }}
                         >
                           <motion.button
-                            onClick={() => handleViewDetails(event)}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent event bubbling
+                              handleEventClick(event);
+                            }}
                             className="flex-1 bg-DGXblue hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
                           >
                             Details
                           </motion.button>
@@ -640,7 +667,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
         </div>
       </section>
 
-      {/* Calendar Section */}
       <motion.section
         className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white rounded-xl shadow-sm mb-12"
         initial={{ opacity: 0, y: 20 }}
@@ -785,13 +811,11 @@ const EventWorkshopPage = ({ events, setEvents }) => {
                     </motion.div>
 
                     <motion.button
-                      onClick={() => handleMoreInfoClick(event)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEventClick(event);
+                      }}
                       className="mt-6 inline-flex items-center text-DGXblue hover:text-DGXgreen font-medium"
-                      whileHover={{ x: 5 }}
-                      whileTap={{ scale: 0.95 }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
                     >
                       View Event Details
                       <ArrowRight className="w-4 h-4 ml-2" />

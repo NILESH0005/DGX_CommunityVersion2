@@ -4,6 +4,7 @@ import ApiContext from "../../context/ApiContext";
 import EventTable from "../../component/EventTable";
 import { MdTableChart } from "react-icons/md";
 import { FaCalendarAlt, FaPlus } from "react-icons/fa";
+import EventForm from "../../component/eventAndWorkshop/EventForm";
 
 const Events = ({ events, setEvents }) => {
   const { fetchData, userToken } = useContext(ApiContext);
@@ -72,27 +73,42 @@ const Events = ({ events, setEvents }) => {
           {showTable ? "Show Calendar" : "Show Table"}
           {showTable ? <FaCalendarAlt /> : <MdTableChart />}
         </button>
+
+        {/* Add Event button for both views */}
+        <button
+          onClick={() => setShowEventForm(!showEventForm)}
+          className="flex items-center gap-2 bg-DGXblue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+        >
+          {showEventForm ? "Cancel" : "Add New Event"}
+          <FaPlus />
+        </button>
       </div>
 
+      {/* Show form when button clicked */}
       {showEventForm ? (
         <EventForm
           events={events}
           setEvents={setEvents}
           reloadEvents={handleReloadEvents}
-          onSuccess={handleAddEventSuccess}
+          onSuccess={() => {
+            setShowEventForm(false);
+            handleReloadEvents(); // Refresh data
+          }}
           onCancel={() => setShowEventForm(false)}
         />
       ) : showTable ? (
         <EventTable
           events={events}
           setEvents={setEvents}
-          reloadEvents={handleReloadEvents} 
+          reloadEvents={handleReloadEvents}
+          onAddEventClick={() => setShowEventForm(true)}
         />
       ) : (
         <GeneralUserCalendar
           events={events}
           setEvents={setEvents}
-          reloadEvents={handleReloadEvents} 
+          reloadEvents={handleReloadEvents}
+          onAddEventClick={() => setShowEventForm(true)}
         />
       )}
     </div>

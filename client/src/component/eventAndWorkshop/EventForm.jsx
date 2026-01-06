@@ -310,14 +310,26 @@ const EventForm = (props) => {
           EventImage: newEvent.poster,
           EventDescription: newEvent.description,
           UserName: user.Name,
-          UserID: user.UserID, // 🔥 REQUIRED
+          UserID: user.UserID,
           Status: eventStatus,
+          // Convert to Date objects for calendar
           start: new Date(newEvent.start),
           end: new Date(newEvent.end),
         };
 
+        // Always update local state regardless of admin status
         if (typeof props.setEvents === "function") {
           props.setEvents((prevEvents) => [addedEvent, ...prevEvents]);
+        }
+
+        // Call reloadEvents prop to trigger parent refresh
+        if (typeof props.reloadEvents === "function") {
+          props.reloadEvents();
+        }
+
+        // Call onSuccess callback if provided
+        if (typeof props.onSuccess === "function") {
+          props.onSuccess();
         }
 
         Swal.fire({
