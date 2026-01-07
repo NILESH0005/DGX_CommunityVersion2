@@ -18,8 +18,6 @@ import {
   FaClock,
 } from "react-icons/fa";
 import { Tooltip as ReactTooltip } from "react-tooltip";
-import { Link } from "react-router-dom";
-import EditModule from "./EditModule";
 
 const ViewContent = ({ submodule, onBack }) => {
   const [showUnitOrder, setShowUnitOrder] = useState(false);

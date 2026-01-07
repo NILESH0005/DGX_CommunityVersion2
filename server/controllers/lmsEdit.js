@@ -26,6 +26,7 @@ import {
   updateModuleService,
   updateSubModuleService,
   updateUnitOrderService,
+  updateUnitService,
 } from "../services/lmsEditService.js";
 
 dotenv.config();
@@ -507,140 +508,45 @@ export const deleteUnit = async (req, res) => {
 };
 
 export const updateUnit = async (req, res) => {
-  let success = false;
+  const userEmail = req.user?.EmailId || req.user?.email || req.user?.id;
+  const unitId = parseInt(req.params.id, 10);
 
-  const userId = req.user?.UserID || req.user?.id;
-  if (!userId) {
-    return res.status(401).json({ success, message: "User not authenticated" });
+  if (!userEmail) {
+    return res.status(401).json({
+      success: false,
+      message: "User not authenticated",
+    });
+  }
+
+  if (isNaN(unitId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid unit ID",
+    });
   }
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     logWarning("Data validation failed", errors.array());
     return res.status(400).json({
-      success,
+      success: false,
       data: errors.array(),
       message: "Data is not in the right format",
     });
   }
 
-  // 2. Parameter extraction
-  const unitId = parseInt(req.params.id, 10);
-  if (isNaN(unitId)) {
-    return res.status(400).json({ success, message: "Invalid unit ID" });
-  }
+  const { UnitName, UnitDescription, UnitImagePath, UnitImg, SortingOrder } =
+    req.body;
 
-  // 3. Extract body fields
-  const { UnitName, UnitDescription } = req.body;
+  const result = await updateUnitService(userEmail, unitId, {
+    UnitName,
+    UnitDescription,
+    UnitImagePath,
+    UnitImg,
+    SortingOrder,
+  });
 
-  try {
-    connectToDatabase(async (err, conn) => {
-      if (err) {
-        logError("Database connection failed", err);
-        return res.status(500).json({
-          success,
-          message: "Failed to connect to database",
-        });
-      }
-
-      try {
-        let userQuery, userRows;
-
-        if (!isNaN(Number(userId))) {
-          userQuery = `
-                        SELECT UserID, Name, isAdmin FROM Community_User 
-                        WHERE ISNULL(delStatus, 0) = 0 AND UserID = ?
-                    `;
-          userRows = await queryAsync(conn, userQuery, [Number(userId)]);
-        }
-        if (
-          (!userRows || userRows.length === 0) &&
-          typeof userId === "string" &&
-          userId.includes("@")
-        ) {
-          userQuery = `
-                        SELECT UserID, Name, isAdmin FROM Community_User 
-                        WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?
-                    `;
-          userRows = await queryAsync(conn, userQuery, [userId]);
-        }
-
-        if (!userRows || userRows.length === 0) {
-          closeConnection(conn);
-          return res.status(404).json({ success, message: "User not found" });
-        }
-
-        const user = userRows[0];
-        const updateQuery = `
-                    UPDATE UnitsDetails
-                    SET 
-                        UnitName = ?,
-                        UnitDescription = ?,
-                        AuthLstEdt = ?,
-                        editOnDt = ?
-                    WHERE UnitID = ? AND ISNULL(delStatus, 0) = 0
-                `;
-
-        const updateParams = [
-          UnitName || null,
-          UnitDescription || null,
-          user.Name,
-          new Date(),
-          unitId,
-        ];
-
-        const result = await queryAsync(conn, updateQuery, updateParams);
-
-        if (result.affectedRows === 0) {
-          closeConnection(conn);
-          return res.status(404).json({
-            success,
-            message: "Unit not found or already deleted",
-          });
-        }
-
-        const fetchQuery = `
-                    SELECT 
-                        UnitID, 
-                        UnitName, 
-                        UnitDescription,
-                        AuthLstEdt, 
-                        editOnDt
-                    FROM UnitsDetails
-                    WHERE UnitID = ? AND ISNULL(delStatus, 0) = 0
-                `;
-
-        const updatedUnit = await queryAsync(conn, fetchQuery, [unitId]);
-
-        success = true;
-        closeConnection(conn);
-        logInfo("Unit updated successfully");
-
-        return res.status(200).json({
-          success,
-          data: updatedUnit[0],
-          message: "Unit updated successfully",
-        });
-      } catch (queryErr) {
-        closeConnection(conn);
-        logError("Database query failed", queryErr);
-        return res.status(500).json({
-          success,
-          message: "Database operation failed",
-          details: queryErr.message.includes("Conversion failed")
-            ? "Invalid data type in database operation"
-            : queryErr.message,
-        });
-      }
-    });
-  } catch (error) {
-    logError("Unexpected error", error);
-    return res.status(500).json({
-      success,
-      message: "Unexpected server error",
-      details: error.message,
-    });
-  }
+  return res.status(result.status).json(result.response);
 };
 
 export const deleteFile = async (req, res) => {
@@ -715,7 +621,7 @@ export const deleteMultipleFiles = (req, res) => {
         }
 
         const validFileIds = existingFiles.map((file) => file.FileID);
-        const unitIds = [...new Set(existingFiles.map((file) => file.UnitID))]; // Get unique unit IDs
+        const unitIds = [...new Set(existingFiles.map((file) => file.UnitID))];
 
         const validPlaceholders = validFileIds.map(() => "?").join(", ");
         const deleteQuery = `

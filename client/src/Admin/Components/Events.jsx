@@ -58,11 +58,6 @@ const Events = ({ events, setEvents }) => {
     setReloadEvents((prev) => !prev);
   };
 
-  const handleAddEventSuccess = () => {
-    setShowEventForm(false);
-    handleReloadEvents();
-  };
-
   return (
     <div className="p-4 w-full">
       <div className="flex justify-between items-center mb-4">
@@ -74,7 +69,6 @@ const Events = ({ events, setEvents }) => {
           {showTable ? <FaCalendarAlt /> : <MdTableChart />}
         </button>
 
-        {/* Add Event button for both views */}
         <button
           onClick={() => setShowEventForm(!showEventForm)}
           className="flex items-center gap-2 bg-DGXblue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
@@ -84,7 +78,6 @@ const Events = ({ events, setEvents }) => {
         </button>
       </div>
 
-      {/* Show form when button clicked */}
       {showEventForm ? (
         <EventForm
           events={events}
@@ -92,7 +85,7 @@ const Events = ({ events, setEvents }) => {
           reloadEvents={handleReloadEvents}
           onSuccess={() => {
             setShowEventForm(false);
-            handleReloadEvents(); // Refresh data
+            handleReloadEvents(); 
           }}
           onCancel={() => setShowEventForm(false)}
         />

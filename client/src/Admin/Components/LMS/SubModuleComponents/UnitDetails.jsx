@@ -14,6 +14,38 @@ const UnitDetails = ({ subModule }) => {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  // Function to get image source
+  const getImageSrc = () => {
+    // Check for different possible image properties
+    if (subModule.SubModuleImageUrl) {
+      return subModule.SubModuleImageUrl;
+    }
+    if (subModule.SubModuleImagePath) {
+      const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL || '';
+      const cleanPath = subModule.SubModuleImagePath.replace(/^\/+/, '');
+      return `${baseUploadsUrl}/${cleanPath}`;
+    }
+    if (subModule.SubModuleImage) {
+      // If it's a string URL
+      if (typeof subModule.SubModuleImage === 'string') {
+        // Check if it's already a URL or needs base URL
+        if (subModule.SubModuleImage.startsWith('http') || subModule.SubModuleImage.startsWith('data:')) {
+          return subModule.SubModuleImage;
+        } else {
+          const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL || '';
+          const cleanPath = subModule.SubModuleImage.replace(/^\/+/, '');
+          return `${baseUploadsUrl}/${cleanPath}`;
+        }
+      }
+      // If it's an object with data property (base64)
+      if (subModule.SubModuleImage.data && subModule.SubModuleImage.contentType) {
+        return `data:${subModule.SubModuleImage.contentType};base64,${subModule.SubModuleImage.data}`;
+      }
+    }
+    // Return a placeholder if no image
+    return 'https://via.placeholder.com/200x200?text=No+Image';
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full hover:shadow-md transition-shadow duration-200">
       {/* Header with gradient background */}
@@ -41,30 +73,29 @@ const UnitDetails = ({ subModule }) => {
                   )}
                 </div>
               </div>
-
-          
             </div>
 
-            {/* Image Section */}
-            {subModule.SubModuleImage && (
-              <div className="flex-shrink-0">
-                <div className="relative group cursor-pointer">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden border-2 border-gray-100 shadow-sm group-hover:border-green-400 transition-colors duration-200">
-                    <img 
-                      src={subModule.SubModuleImage} 
-                      alt={subModule.SubModuleName}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 flex items-end justify-center pb-2 rounded-xl transition-all duration-200">
-                    <div className="flex items-center gap-1 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <ImageIcon className="w-3 h-3" />
-                      <span>View</span>
-                    </div>
+            <div className="flex-shrink-0">
+              <div className="relative group cursor-pointer">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden border-2 border-gray-100 shadow-sm group-hover:border-green-400 transition-colors duration-200">
+                  <img 
+                    src={getImageSrc()} 
+                    alt={subModule.SubModuleName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://via.placeholder.com/200x200?text=Image+Error';
+                    }}
+                  />
+                </div>
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 flex items-end justify-center pb-2 rounded-xl transition-all duration-200">
+                  <div className="flex items-center gap-1 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <ImageIcon className="w-3 h-3" />
+                    <span>View</span>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

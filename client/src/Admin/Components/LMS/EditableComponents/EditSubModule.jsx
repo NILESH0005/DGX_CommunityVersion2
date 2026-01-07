@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import ApiContext from "../../../../context/ApiContext";
-import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import ViewContent from "./ViewContent";
 import AddSubmodulePopup from "./AddSubmodulePopup";
@@ -10,20 +9,22 @@ import {
   FaFolder,
   FaSave,
   FaTimes,
-  FaUpload,
   FaImage,
-  FaChevronRight,
   FaPlus,
   FaAngleDown,
   FaAngleUp,
+  FaExclamationTriangle,
+  FaPlusCircle,
+  FaListOl,
+  FaArrowLeft,
+  FaSearch,
+  FaFilter,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import SubmoduleOrder from "./SubmoduleOrder";
 import CreateQuiz from "../../Quiz/CreateQuiz";
-import ByteArrayImage from "../../../../utils/ByteArrayImage";
 import FileUploader from "../../../../container/FileUploader";
-
-const MAX_FILE_SIZE_KB = 200; // 200KB maximum file size
 
 const EditSubModule = ({ module, onBack }) => {
   const [submodules, setSubmodules] = useState([]);
@@ -36,10 +37,9 @@ const EditSubModule = ({ module, onBack }) => {
   const [showCreateQuiz, setShowCreateQuiz] = useState(false);
   const [quizSubmodule, setQuizSubmodule] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [newImageFile, setNewImageFile] = useState(null);
-  const [isCompressing, setIsCompressing] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
-  const fileInputRef = useRef(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredSubmodules, setFilteredSubmodules] = useState([]);
   const textareaRef = useRef(null);
   const descriptionRef = useRef(null);
   const [isDescriptionClamped, setIsDescriptionClamped] = useState(false);
@@ -47,11 +47,80 @@ const EditSubModule = ({ module, onBack }) => {
   const [isImageEditing, setIsImageEditing] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const { fetchData, userToken } = useContext(ApiContext);
+
+  // Validation state
+  const [validationErrors, setValidationErrors] = useState({});
   const [editedData, setEditedData] = useState({
     SubModuleName: "",
     SubModuleDescription: "",
   });
-  const navigate = useNavigate();
+
+  // Validation rules
+  const validationRules = {
+    SubModuleName: {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+      pattern: /^[a-zA-Z0-9\s\-_&@.,!?()]+$/,
+      message: {
+        required: "Submodule name is required",
+        minLength: "Must be at least 2 characters",
+        maxLength: "Cannot exceed 100 characters",
+        pattern: "Contains invalid characters",
+      },
+    },
+    SubModuleDescription: {
+      required: true,
+      minLength: 10,
+      maxLength: 1000,
+      pattern: /^[a-zA-Z0-9\s\-_&@.,!?()\n\r]*$/,
+      message: {
+        required: "Description is required",
+        minLength: "Must be at least 10 characters",
+        maxLength: "Cannot exceed 1000 characters",
+        pattern: "Contains invalid characters",
+      },
+    },
+  };
+
+  const validateField = (name, value) => {
+    const rules = validationRules[name];
+    if (!rules) return "";
+
+    if (rules.required && (!value || value.trim() === "")) {
+      return rules.message.required;
+    }
+
+    if (rules.minLength && value && value.length < rules.minLength) {
+      return rules.message.minLength;
+    }
+
+    if (rules.maxLength && value && value.length > rules.maxLength) {
+      return rules.message.maxLength;
+    }
+
+    if (rules.pattern && value && !rules.pattern.test(value)) {
+      return rules.message.pattern;
+    }
+
+    return "";
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+
+    Object.keys(validationRules).forEach((field) => {
+      const error = validateField(field, editedData[field] || "");
+      if (error) {
+        errors[field] = error;
+        isValid = false;
+      }
+    });
+
+    setValidationErrors(errors);
+    return isValid;
+  };
 
   useEffect(() => {
     const fetchSubmodules = async () => {
@@ -63,14 +132,20 @@ const EditSubModule = ({ module, onBack }) => {
           { "auth-token": userToken }
         );
         if (response?.success) {
-          setSubmodules(
-            response.data.filter((sub) => sub.ModuleID === module.ModuleID)
+          const filtered = response.data.filter(
+            (sub) => sub.ModuleID === module.ModuleID
           );
+          setSubmodules(filtered);
+          setFilteredSubmodules(filtered);
         } else {
           setError(response?.message || "Failed to fetch submodules");
+          setSubmodules([]);
+          setFilteredSubmodules([]);
         }
       } catch (err) {
         setError(err.message);
+        setSubmodules([]);
+        setFilteredSubmodules([]);
       } finally {
         setLoading(false);
       }
@@ -78,6 +153,21 @@ const EditSubModule = ({ module, onBack }) => {
 
     fetchSubmodules();
   }, [module.ModuleID, fetchData, userToken]);
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredSubmodules(submodules);
+    } else {
+      const filtered = submodules.filter(
+        (sub) =>
+          sub.SubModuleName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          sub.SubModuleDescription?.toLowerCase().includes(
+            searchTerm.toLowerCase()
+          )
+      );
+      setFilteredSubmodules(filtered);
+    }
+  }, [searchTerm, submodules]);
 
   useEffect(() => {
     if (textareaRef.current && isEditing) {
@@ -104,12 +194,14 @@ const EditSubModule = ({ module, onBack }) => {
         SubModuleDescription: submodule.SubModuleDescription || "",
       });
 
-      // Set image preview properly
+      setValidationErrors({});
       if (submodule.SubModuleImageUrl) {
         setImagePreview(submodule.SubModuleImageUrl);
       } else if (submodule.SubModuleImage?.data) {
         setImagePreview(
-          `data:${submodule.SubModuleImage.contentType || "image/jpeg"};base64,${
+          `data:${
+            submodule.SubModuleImage.contentType || "image/jpeg"
+          };base64,${
             typeof submodule.SubModuleImage.data === "string"
               ? submodule.SubModuleImage.data
               : btoa(
@@ -136,13 +228,14 @@ const EditSubModule = ({ module, onBack }) => {
 
   const handleDeleteSubmodule = async (SubModuleID) => {
     const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      title: "Delete Submodule?",
+      text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "OK",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
     });
 
     if (!result.isConfirmed) return;
@@ -162,16 +255,23 @@ const EditSubModule = ({ module, onBack }) => {
         setSubmodules((prev) =>
           prev.filter((sub) => sub.SubModuleID !== SubModuleID)
         );
-        Swal.fire("Deleted!", "Submodule has been deleted.", "success");
+        Swal.fire({
+          title: "Deleted!",
+          text: "Submodule deleted successfully.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
       } else {
         throw new Error(response?.message || "Failed to delete submodule");
       }
     } catch (err) {
-      Swal.fire(
-        "Error!",
-        `Failed to delete submodule: ${err.message}`,
-        "error"
-      );
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to delete: ${err.message}`,
+        icon: "error",
+        confirmButtonColor: "#3085d6",
+      });
     }
   };
 
@@ -213,14 +313,23 @@ const EditSubModule = ({ module, onBack }) => {
 
         setSubmodules(updatedSubmodules);
         setShowSubmoduleOrder(false);
-        Swal.fire("Success!", "Submodule order updated!", "success");
+        Swal.fire({
+          title: "Success!",
+          text: "Order updated successfully.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
       } else {
-        throw new Error(
-          response?.message || "Failed to update submodule order"
-        );
+        throw new Error(response?.message || "Failed to update order");
       }
     } catch (err) {
-      Swal.fire("Error!", err.message, "error");
+      Swal.fire({
+        title: "Error!",
+        text: err.message,
+        icon: "error",
+        confirmButtonColor: "#3085d6",
+      });
     }
   };
 
@@ -277,6 +386,13 @@ const EditSubModule = ({ module, onBack }) => {
           }/${formData.SubModuleImagePath}`;
         }
         setSubmodules((prev) => [...prev, newSubmodule]);
+        Swal.fire({
+          title: "Success!",
+          text: "Submodule added successfully.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
         return newSubmodule;
       } else {
         throw new Error(response?.message || "Failed to add submodule");
@@ -285,8 +401,6 @@ const EditSubModule = ({ module, onBack }) => {
       throw err;
     }
   };
-
- 
 
   const handleImageUpload = (uploadResult) => {
     const { filePath } = uploadResult;
@@ -333,47 +447,27 @@ const EditSubModule = ({ module, onBack }) => {
     }
   };
 
-  const handleSaveChanges = async () => {
-    try {
-      const response = await fetchData(
-        `lmsEdit/updateSubModule/${editingSubmodule.SubModuleID}`,
-        "POST",
-        {
-          SubModuleName: editingSubmodule.SubModuleName,
-          SubModuleDescription: editingSubmodule.SubModuleDescription,
-          SubModuleImageUrl: editingSubmodule.SubModuleImageUrl,
-          SubModuleImagePath: editingSubmodule.SubModuleImagePath,
-          SortingOrder: editingSubmodule.SortingOrder || 1,
-        },
-        {
-          "Content-Type": "application/json",
-          "auth-token": userToken,
-        }
-      );
-
-      if (response?.success) {
-        setSubmodules((prev) =>
-          prev.map((sub) =>
-            sub.SubModuleID === editingSubmodule.SubModuleID
-              ? { ...sub, ...response.data }
-              : sub
-          )
-        );
-        setIsEditing(false);
-      }
-    } catch (error) {
-      console.error("Update error:", error);
-    }
-  };
-
   const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditingSubmodule(null);
-    setEditedData({});
-    setImagePreview(null);
-    setNewImageFile(null);
-    setIsImageEditing(false);
-    setShowFullDescription(false);
+    Swal.fire({
+      title: "Discard Changes?",
+      text: "Are you sure you want to discard your changes?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Discard",
+      cancelButtonText: "Continue",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setIsEditing(false);
+        setEditingSubmodule(null);
+        setEditedData({});
+        setImagePreview(null);
+        setIsImageEditing(false);
+        setShowFullDescription(false);
+        setValidationErrors({});
+      }
+    });
   };
 
   const handleChange = (e) => {
@@ -382,54 +476,54 @@ const EditSubModule = ({ module, onBack }) => {
       ...prev,
       [name]: value,
     }));
+    if (validationErrors[name]) {
+      const error = validateField(name, value);
+      setValidationErrors((prev) => ({
+        ...prev,
+        [name]: error,
+      }));
+    }
   };
 
-  const handleDeleteImage = () => {
-    setNewImageFile(null);
-    setImagePreview(null);
-  };
-
-  const toggleDescription = () => {
-    setShowFullDescription(!showFullDescription);
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    setValidationErrors((prev) => ({
+      ...prev,
+      [name]: error,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const isValid = validateForm();
+    if (!isValid) {
+      Swal.fire({
+        title: "Validation Error",
+        text: "Please fix the errors before saving.",
+        icon: "error",
+        confirmButtonColor: "#3085d6",
+      });
+      return;
+    }
+
+    const confirmResult = await Swal.fire({
+      title: "Update Submodule",
+      text: "Are you sure you want to update this submodule?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Update",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
     setIsSaving(true);
     setError(null);
 
     try {
-      if (!editedData.SubModuleName?.trim()) {
-        throw new Error("Submodule name is required");
-      }
-      if (newImageFile) {
-        const base64Length = newImageFile.data.length;
-        const padding = newImageFile.data.endsWith("==")
-          ? 2
-          : newImageFile.data.endsWith("=")
-          ? 1
-          : 0;
-        const fileSizeBytes = Math.floor(base64Length * 0.75) - padding;
-
-        if (fileSizeBytes > MAX_FILE_SIZE_KB * 1024) {
-          throw new Error(`Image size exceeds ${MAX_FILE_SIZE_KB}KB limit`);
-        }
-      }
-
-      const confirmResult = await Swal.fire({
-        title: "Confirm Update",
-        text: "Are you sure you want to update this submodule?",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "OK",
-        cancelButtonText: "Cancel",
-      });
-
-      if (!confirmResult.isConfirmed) {
-        setIsSaving(false);
-        return;
-      }
-
       const payload = {
         SubModuleID: editingSubmodule.SubModuleID,
         ModuleID: editingSubmodule.ModuleID,
@@ -438,15 +532,6 @@ const EditSubModule = ({ module, onBack }) => {
         SubModuleImageUrl: editingSubmodule.SubModuleImageUrl,
         SubModuleImagePath: editingSubmodule.SubModuleImagePath,
       };
-
-      if (newImageFile) {
-        payload.SubModuleImagePath = {
-          data: newImageFile.data,
-          contentType: newImageFile.contentType,
-        };
-      } else if (imagePreview === null) {
-        payload.SubModuleImagePath = null;
-      }
 
       const response = await fetchData(
         `lmsEdit/updateSubModule/${editingSubmodule.SubModuleID}`,
@@ -462,14 +547,8 @@ const EditSubModule = ({ module, onBack }) => {
         const updatedSubmodule = {
           ...editingSubmodule,
           ...response.data,
-          SubModuleImagePath: newImageFile
-            ? {
-                data: newImageFile.data,
-                contentType: newImageFile.contentType,
-              }
-            : imagePreview === null
-            ? null
-            : editingSubmodule.SubModuleImage,
+          SubModuleName: editedData.SubModuleName.trim(),
+          SubModuleDescription: editedData.SubModuleDescription?.trim() || "",
         };
 
         setSubmodules((prev) =>
@@ -481,8 +560,8 @@ const EditSubModule = ({ module, onBack }) => {
         );
 
         Swal.fire({
-          title: "Success",
-          text: "Submodule updated successfully",
+          title: "Success!",
+          text: "Submodule updated successfully.",
           icon: "success",
           timer: 1500,
           showConfirmButton: false,
@@ -490,14 +569,19 @@ const EditSubModule = ({ module, onBack }) => {
 
         setIsEditing(false);
         setEditingSubmodule(null);
-        setNewImageFile(null);
         setShowFullDescription(false);
+        setValidationErrors({});
       } else {
         throw new Error(response?.message || "Failed to update submodule");
       }
     } catch (err) {
       setError(err.message);
-      Swal.fire("Error", err.message, "error");
+      Swal.fire({
+        title: "Error",
+        text: err.message,
+        icon: "error",
+        confirmButtonColor: "#3085d6",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -513,10 +597,6 @@ const EditSubModule = ({ module, onBack }) => {
     setQuizSubmodule(null);
   };
 
-  const navigateToQuizTable = () => {
-    handleBackFromQuiz();
-  };
-
   const handleViewContent = (submodule) => {
     setViewingContent(submodule);
   };
@@ -525,54 +605,68 @@ const EditSubModule = ({ module, onBack }) => {
     setViewingContent(null);
   };
 
+  const toggleDescription = () => {
+    setShowFullDescription(!showFullDescription);
+  };
+
+  const CharacterCounter = ({ value, maxLength, fieldName }) => {
+    if (!maxLength) return null;
+
+    const currentLength = value?.length || 0;
+    const isExceeding = currentLength > maxLength;
+
+    return (
+      <div
+        className={`text-xs mt-1 ${
+          isExceeding ? "text-red-500" : "text-gray-500"
+        }`}
+      >
+        {currentLength}/{maxLength}
+      </div>
+    );
+  };
+
   const renderImageSection = (submodule) => {
     if (
       isImageEditing &&
       editingSubmodule?.SubModuleID === submodule.SubModuleID
     ) {
       return (
-        <div className="min-h-40 sm:min-h-48 flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-900 space-y-4 w-full relative">
-          {/* IMAGE PREVIEW SECTION */}
-          <div className="flex-1 flex items-center justify-center w-full mb-4">
+        <div className="min-h-40 sm:min-h-48 flex flex-col items-center justify-center p-4 bg-gray-100 dark:bg-gray-900 space-y-4">
+          <div className="flex-1 flex items-center justify-center w-full">
             {imagePreview ? (
               <div className="relative w-full h-40 flex items-center justify-center">
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="max-h-40 max-w-full object-contain rounded-lg shadow-md"
+                  className="max-h-40 max-w-full object-contain rounded-lg"
                 />
               </div>
             ) : (
-              <div className="h-40 flex items-center justify-center w-full">
-                <p className="text-gray-500 dark:text-gray-400 text-center">
-                  No Image Available
+              <div className="h-40 flex flex-col items-center justify-center">
+                <FaImage className="text-gray-400 text-4xl" />
+                <p className="text-gray-500 dark:text-gray-400 mt-2">
+                  No Image
                 </p>
               </div>
             )}
           </div>
 
-          {/* UPLOAD AND CANCEL BUTTONS - Properly aligned */}
-          <div className="w-full flex flex-col sm:flex-row justify-center items-center gap-3 mt-4">
-            <div className="w-full sm:w-auto">
-              <FileUploader
-                moduleName="LMS"
-                folderName="submodule-banners"
-                onUploadComplete={handleImageUpload}
-                accept="image/*"
-                maxSize={200 * 1024}
-                label="Upload Banner Image"
-                className="w-full sm:w-auto"
-              />
-            </div>
-            
+          <div className="w-full flex flex-col sm:flex-row gap-3">
+            <FileUploader
+              moduleName="LMS"
+              folderName="submodule-banners"
+              onUploadComplete={handleImageUpload}
+              accept="image/*"
+              maxSize={200 * 1024}
+              label="Upload Image"
+              className="w-full"
+            />
+
             <button
               type="button"
               onClick={handleCancelImageEdit}
-              className="px-4 py-2 bg-gray-300 dark:bg-gray-700 
-                         text-gray-700 dark:text-gray-200 rounded-lg 
-                         hover:bg-gray-400 dark:hover:bg-gray-600 
-                         text-sm transition-colors duration-200 
-                         flex items-center justify-center w-full sm:w-auto"
+              className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-600 text-sm flex items-center justify-center"
             >
               <FaTimes className="mr-2" />
               Cancel
@@ -584,77 +678,17 @@ const EditSubModule = ({ module, onBack }) => {
 
     if (submodule.SubModuleImageUrl) {
       return (
-        <div className="h-40 sm:h-48 relative">
+        <div className="h-40 sm:h-48 relative group">
           <img
             src={submodule.SubModuleImageUrl}
             alt={submodule.SubModuleName}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src =
-                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            }}
+            className="w-full h-full object-cover"
           />
           {isEditing &&
             editingSubmodule?.SubModuleID === submodule.SubModuleID && (
               <button
                 onClick={() => setIsImageEditing(true)}
-                className="absolute top-2 right-2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow transition-all duration-200 hover:scale-110"
-                data-tooltip-id="edit-image-tooltip"
-                data-tooltip-content="Edit Image"
-              >
-                <FaEdit size={14} />
-              </button>
-            )}
-        </div>
-      );
-    }
-
-    if (submodule.SubModuleImage?.data) {
-      return (
-        <div className="h-40 sm:h-48 relative">
-          <ByteArrayImage
-            byteArray={submodule.SubModuleImage.data}
-            contentType={submodule.SubModuleImage.contentType}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          />
-          {isEditing &&
-            editingSubmodule?.SubModuleID === submodule.SubModuleID && (
-              <button
-                onClick={() => setIsImageEditing(true)}
-                className="absolute top-2 right-2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow transition-all duration-200 hover:scale-110"
-                data-tooltip-id="edit-image-tooltip"
-                data-tooltip-content="Edit Image"
-              >
-                <FaEdit size={14} />
-              </button>
-            )}
-        </div>
-      );
-    }
-
-    if (submodule.SubModuleImagePath) {
-      const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-      const imageUrl = submodule.SubModuleImagePath.startsWith("http")
-        ? submodule.SubModuleImagePath
-        : `${baseUploadsUrl}/${submodule.SubModuleImagePath}`;
-      return (
-        <div className="h-40 sm:h-48 relative">
-          <img
-            src={imageUrl}
-            alt={submodule.SubModuleName}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src =
-                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-            }}
-          />
-          {isEditing &&
-            editingSubmodule?.SubModuleID === submodule.SubModuleID && (
-              <button
-                onClick={() => setIsImageEditing(true)}
-                className="absolute top-2 right-2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow transition-all duration-200 hover:scale-110"
+                className="absolute top-2 right-2 bg-white/90 p-2 rounded-full shadow-lg hover:scale-110 transition-all"
                 data-tooltip-id="edit-image-tooltip"
                 data-tooltip-content="Edit Image"
               >
@@ -669,37 +703,74 @@ const EditSubModule = ({ module, onBack }) => {
       <div className="h-40 sm:h-48 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800">
         {isEditing &&
         editingSubmodule?.SubModuleID === submodule.SubModuleID ? (
-          <div className="text-center p-4">
-            <p className="text-gray-200 mb-3 text-sm">No Image Available</p>
+          <div className="text-center">
+            <FaImage className="text-gray-300 text-4xl mx-auto mb-3" />
             <button
               onClick={() => setIsImageEditing(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-colors duration-200 shadow-md hover:shadow-lg flex items-center mx-auto"
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm flex items-center mx-auto"
             >
               <FaImage className="mr-2" />
               Add Image
             </button>
           </div>
         ) : (
-          <p className="text-gray-200">No Image Available</p>
+          <FaImage className="text-gray-300 text-4xl" />
         )}
       </div>
     );
   };
 
-  if (loading) {
-    return <div className="text-center py-10">Loading submodules...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-red-500 mb-4">{error}</p>
+  const renderEmptyState = () => (
+    <div className="col-span-full">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center border border-gray-200 dark:border-gray-700">
+        <div className="w-24 h-24 mx-auto mb-6 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+          <FaFolder className="text-4xl text-blue-500 dark:text-blue-400" />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">
+          No Submodules Yet
+        </h3>
+        <p className="text-gray-600 dark:text-gray-300 mb-8">
+          Start by adding your first submodule.
+        </p>
         <button
-          onClick={onBack}
-          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+          onClick={handleAddSubmodule}
+          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all flex items-center justify-center mx-auto shadow-lg hover:shadow-xl"
         >
-          Back to Modules
+          <FaPlusCircle className="mr-3" />
+          <span className="font-semibold">Add First Submodule</span>
         </button>
+      </div>
+    </div>
+  );
+
+  const renderErrorState = () => (
+    <div className="col-span-full">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center border border-red-200 dark:border-red-800">
+        <div className="w-24 h-24 mx-auto mb-6 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+          <FaExclamationTriangle className="text-4xl text-red-500 dark:text-red-400" />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">
+          Unable to Load
+        </h3>
+        <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
+        <button
+          onClick={handleAddSubmodule}
+          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all flex items-center justify-center mx-auto"
+        >
+          <FaPlusCircle className="mr-3" />
+          <span className="font-semibold">Add New Submodule</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -715,7 +786,7 @@ const EditSubModule = ({ module, onBack }) => {
       <CreateQuiz
         moduleId={quizSubmodule.id}
         moduleName={quizSubmodule.name}
-        navigateToQuizTable={navigateToQuizTable}
+        navigateToQuizTable={handleBackFromQuiz}
         onBack={handleBackFromQuiz}
         isSubmodule={true}
       />
@@ -724,22 +795,75 @@ const EditSubModule = ({ module, onBack }) => {
 
   return (
     <div className="min-h-screen p-4 sm:p-6">
-      <div className="space-y-4 sm:space-y-6">
-        <div className="border-b border-gray-200 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">
-              {module.ModuleName} Submodules
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
-              Manage all submodules
-            </p>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <button
+                  onClick={onBack}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  data-tooltip-id="back-tooltip"
+                  data-tooltip-content="Back to Modules"
+                >
+                  <FaArrowLeft className="text-gray-600 dark:text-gray-300" />
+                </button>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">
+                    {module.ModuleName} - Submodules
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-300 mt-1">
+                    Manage your submodules
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 mt-3 text-sm text-gray-500 dark:text-gray-400">
+                <FaFolder className="text-blue-500" />
+                <span>{submodules.length} Submodules</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowSubmoduleOrder(true)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl transition-all flex items-center justify-center"
+              >
+                <FaListOl className="mr-2" />
+                Manage Order
+              </button>
+              <button
+                onClick={handleAddSubmodule}
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl transition-all flex items-center justify-center"
+              >
+                <FaPlus className="mr-2" />
+                Add Submodule
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => setShowSubmoduleOrder(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200 w-full sm:w-auto text-sm sm:text-base"
-          >
-            Manage Submodule Order
-          </button>
+
+          {submodules.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="relative flex-1">
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search submodules..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl transition-colors flex items-center"
+                >
+                  <FaFilter className="mr-2" />
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {showSubmoduleOrder && (
@@ -750,223 +874,223 @@ const EditSubModule = ({ module, onBack }) => {
           />
         )}
 
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
-            <div>
-              <button
-                onClick={onBack}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-              >
-                <FaChevronRight className="mr-1 text-xs transform rotate-180" />
-                Back to {module.ModuleName}
-              </button>
-            </div>
-            <button
-              onClick={handleAddSubmodule}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center w-full sm:w-auto text-sm sm:text-base"
-            >
-              <FaPlus className="mr-2" />
-              Add New Submodule
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {submodules.length > 0 ? (
-              submodules.map((submodule) => (
-                <div
-                  key={submodule.SubModuleID}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-all duration-300 w-full border border-gray-200 dark:border-gray-700"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {error ? (
+            renderErrorState()
+          ) : filteredSubmodules.length === 0 && submodules.length === 0 ? (
+            renderEmptyState()
+          ) : filteredSubmodules.length === 0 ? (
+            <div className="col-span-full">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center border border-gray-200 dark:border-gray-700">
+                <FaSearch className="text-4xl text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
+                  No Results
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  No submodules match your search.
+                </p>
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-colors"
                 >
-                  {renderImageSection(submodule)}
+                  Clear Search
+                </button>
+              </div>
+            </div>
+          ) : (
+            filteredSubmodules.map((submodule) => (
+              <div
+                key={submodule.SubModuleID}
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-all hover:shadow-2xl hover:-translate-y-1 border border-gray-200 dark:border-gray-700"
+              >
+                {renderImageSection(submodule)}
 
-                  <div className="p-4 sm:p-6">
-                    {isEditing &&
-                    editingSubmodule?.SubModuleID === submodule.SubModuleID ? (
-                      <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                          <label
-                            htmlFor="SubModuleName"
-                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                          >
-                            Submodule Name
-                          </label>
-                          <input
-                            type="text"
-                            id="SubModuleName"
-                            name="SubModuleName"
-                            value={editedData.SubModuleName || ""}
-                            onChange={handleChange}
-                            className="w-full border border-DGXgreen dark:border-DGXgreen dark:bg-DGXblue dark:text-DGXwhite p-2 rounded-md focus:ring-2 focus:ring-DGXgreen focus:border-DGXgreen transition-all duration-200 text-sm sm:text-base"
-                            placeholder="Submodule Name"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label
-                            htmlFor="SubModuleDescription"
-                            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                          >
-                            Description
-                          </label>
-                          <textarea
-                            ref={textareaRef}
-                            id="SubModuleDescription"
-                            name="SubModuleDescription"
-                            value={editedData.SubModuleDescription || ""}
-                            onChange={handleChange}
-                            className="w-full border border-DGXgreen dark:border-DGXgreen dark:bg-DGXblue dark:text-DGXwhite p-2 rounded-md focus:ring-2 focus:ring-DGXgreen focus:border-DGXgreen transition-all duration-200 text-sm sm:text-base"
-                            placeholder="Submodule Description"
-                            style={{ minHeight: "100px" }}
-                          />
-                        </div>
-                        {error && (
-                          <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-md text-sm animate-fade-in border border-red-200 dark:border-red-700">
-                            <strong>Error:</strong> {error}
+                <div className="p-6">
+                  {isEditing &&
+                  editingSubmodule?.SubModuleID === submodule.SubModuleID ? (
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          Submodule Name *
+                        </label>
+                        <input
+                          type="text"
+                          name="SubModuleName"
+                          value={editedData.SubModuleName || ""}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                            validationErrors.SubModuleName
+                              ? "border-red-500 focus:border-red-500"
+                              : "border-gray-300 dark:border-gray-600"
+                          }`}
+                          placeholder="Enter submodule name"
+                        />
+                        {validationErrors.SubModuleName && (
+                          <div className="flex items-center mt-1 text-red-500 text-xs">
+                            <FaExclamationCircle className="mr-1" size={10} />
+                            {validationErrors.SubModuleName}
                           </div>
                         )}
-                        <div className="flex gap-2 flex-wrap">
+                        <CharacterCounter
+                          value={editedData.SubModuleName}
+                          maxLength={validationRules.SubModuleName.maxLength}
+                          fieldName="SubModuleName"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                          Description *
+                        </label>
+                        <textarea
+                          ref={textareaRef}
+                          name="SubModuleDescription"
+                          value={editedData.SubModuleDescription || ""}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${
+                            validationErrors.SubModuleDescription
+                              ? "border-red-500 focus:border-red-500"
+                              : "border-gray-300 dark:border-gray-600"
+                          }`}
+                          placeholder="Enter description"
+                          rows="3"
+                        />
+                        {validationErrors.SubModuleDescription && (
+                          <div className="flex items-center mt-1 text-red-500 text-xs">
+                            <FaExclamationCircle className="mr-1" size={10} />
+                            {validationErrors.SubModuleDescription}
+                          </div>
+                        )}
+                        <CharacterCounter
+                          value={editedData.SubModuleDescription}
+                          maxLength={
+                            validationRules.SubModuleDescription.maxLength
+                          }
+                          fieldName="SubModuleDescription"
+                        />
+                      </div>
+
+                      {error && (
+                        <div className="p-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 rounded-xl border border-red-200 dark:border-red-700">
+                          <strong>Error:</strong> {error}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="submit"
+                          disabled={
+                            isSaving ||
+                            Object.keys(validationErrors).some(
+                              (key) => validationErrors[key]
+                            )
+                          }
+                          className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isSaving ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <FaSave className="mr-2" />
+                              Save
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEdit}
+                          className="flex-1 px-4 py-3 bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white rounded-xl transition-all flex items-center justify-center"
+                        >
+                          <FaTimes className="mr-2" />
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3 line-clamp-2">
+                        {submodule.SubModuleName}
+                      </h3>
+                      <div className="mb-4">
+                        <div
+                          ref={descriptionRef}
+                          className={`text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm sm:text-base ${
+                            !showFullDescription ? "line-clamp-3" : ""
+                          }`}
+                        >
+                          {submodule.SubModuleDescription || "No description"}
+                        </div>
+                        {(isDescriptionClamped || showFullDescription) && (
                           <button
-                            type="submit"
-                            disabled={isSaving || isCompressing}
-                            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 flex items-center justify-center min-w-32 disabled:opacity-50 text-sm sm:text-base flex-1"
+                            onClick={toggleDescription}
+                            className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm mt-2 flex items-center"
                           >
-                            {isSaving ? (
+                            {showFullDescription ? (
                               <>
-                                <svg
-                                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <circle
-                                    className="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    strokeWidth="4"
-                                  ></circle>
-                                  <path
-                                    className="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                  ></path>
-                                </svg>
-                                Saving...
+                                <FaAngleUp className="mr-1" />
+                                Show Less
                               </>
                             ) : (
                               <>
-                                <FaSave className="mr-2" />
-                                Save Changes
+                                <FaAngleDown className="mr-1" />
+                                Read More
                               </>
                             )}
                           </button>
-                          <button
-                            type="button"
-                            onClick={handleCancelEdit}
-                            className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200 flex items-center justify-center flex-1 text-sm sm:text-base"
-                          >
-                            <FaTimes className="mr-2" />
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <>
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-2 line-clamp-2">
-                          {submodule.SubModuleName}
-                        </h3>
-                        <div className="prose dark:prose-invert max-w-none mb-2">
-                          <div
-                            ref={descriptionRef}
-                            className={`text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm sm:text-base ${
-                              !showFullDescription ? "line-clamp-3" : ""
-                            }`}
-                          >
-                            {submodule.SubModuleDescription ||
-                              "No description provided"}
-                          </div>
-                          {(isDescriptionClamped || showFullDescription) && (
-                            <button
-                              onClick={toggleDescription}
-                              className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm mt-1 flex items-center"
-                            >
-                              {showFullDescription ? (
-                                <>
-                                  <FaAngleUp className="mr-1" />
-                                  Show Less
-                                </>
-                              ) : (
-                                <>
-                                  <FaAngleDown className="mr-1" />
-                                  Read More
-                                </>
-                              )}
-                            </button>
-                          )}
-                        </div>
+                        )}
+                      </div>
 
-                        <div className="flex justify-end gap-2 mt-4 sm:mt-6">
-                          <button
-                            onClick={() =>
-                              handleCreateQuiz(
-                                submodule.SubModuleID,
-                                submodule.SubModuleName
-                              )
-                            }
-                            className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors duration-200"
-                            data-tooltip-id="create-quiz-tooltip"
-                            data-tooltip-content="Create Quiz"
-                          >
-                            <FaPlus size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleEditSubmoduleInit(submodule)}
-                            className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors duration-200"
-                            data-tooltip-id="edit-tooltip"
-                            data-tooltip-content="Edit Submodule"
-                          >
-                            <FaEdit size={14} />
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleDeleteSubmodule(submodule.SubModuleID)
-                            }
-                            className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors duration-200"
-                            data-tooltip-id="delete-tooltip"
-                            data-tooltip-content="Delete Submodule"
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleViewContent(submodule)}
-                            className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors duration-200"
-                            data-tooltip-id="view-content-tooltip"
-                            data-tooltip-content="View Content"
-                          >
-                            <FaFolder size={14} />
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
+                        <button
+                          onClick={() =>
+                            handleCreateQuiz(
+                              submodule.SubModuleID,
+                              submodule.SubModuleName
+                            )
+                          }
+                          className="p-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all shadow hover:shadow-lg"
+                          data-tooltip-id="create-quiz-tooltip"
+                          data-tooltip-content="Create Quiz"
+                        >
+                          <FaPlus size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleEditSubmoduleInit(submodule)}
+                          className="p-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow hover:shadow-lg"
+                          data-tooltip-id="edit-tooltip"
+                          data-tooltip-content="Edit"
+                        >
+                          <FaEdit size={16} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeleteSubmodule(submodule.SubModuleID)
+                          }
+                          className="p-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all shadow hover:shadow-lg"
+                          data-tooltip-id="delete-tooltip"
+                          data-tooltip-content="Delete"
+                        >
+                          <FaTrash size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleViewContent(submodule)}
+                          className="p-2.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow hover:shadow-lg"
+                          data-tooltip-id="view-content-tooltip"
+                          data-tooltip-content="View Content"
+                        >
+                          <FaFolder size={16} />
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              ))
-            ) : (
-              <div className="col-span-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center border border-gray-200 dark:border-gray-700">
-                <p className="text-gray-600 dark:text-gray-300">
-                  No submodules found for this module
-                </p>
-                <button
-                  onClick={handleAddSubmodule}
-                  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center mx-auto text-sm sm:text-base"
-                >
-                  <FaPlus className="mr-2" />
-                  Add New Submodule
-                </button>
               </div>
-            )}
-          </div>
+            ))
+          )}
         </div>
 
         <ReactTooltip id="create-quiz-tooltip" place="top" effect="solid" />
@@ -974,6 +1098,7 @@ const EditSubModule = ({ module, onBack }) => {
         <ReactTooltip id="edit-image-tooltip" place="top" effect="solid" />
         <ReactTooltip id="delete-tooltip" place="top" effect="solid" />
         <ReactTooltip id="view-content-tooltip" place="top" effect="solid" />
+        <ReactTooltip id="back-tooltip" place="top" effect="solid" />
 
         {showAddSubmodulePopup && (
           <AddSubmodulePopup

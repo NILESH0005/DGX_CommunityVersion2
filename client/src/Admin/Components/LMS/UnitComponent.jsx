@@ -23,7 +23,7 @@ const UnitComponent = ({
             onClick={onBack}
             className="px-3 py-1 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition"
           >
-            Back to UnitsSSS
+            Back to Units
           </button>
         </div>
 

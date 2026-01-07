@@ -1368,3 +1368,143 @@ export const updateUnitOrderService = async (units) => {
     };
   }
 };
+
+export const updateUnitService = async (userEmail, unitId, payload) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        EmailId: userEmail,
+        delStatus: { [Op.or]: [0, null] },
+      },
+    });
+
+    if (!user) {
+      logWarning("User not found during unit update");
+      return {
+        status: 404,
+        response: {
+          success: false,
+          data: {},
+          message: "User not found",
+        },
+      };
+    }
+
+    const unit = await LMSUnitsDetails.findOne({
+      where: {
+        UnitID: unitId,
+        delStatus: 0,
+      },
+    });
+
+    if (!unit) {
+      return {
+        status: 404,
+        response: {
+          success: false,
+          data: {},
+          message: "Unit not found or already deleted",
+        },
+      };
+    }
+    if (
+      payload.UnitImagePath &&
+      typeof unit.UnitImagePath === "string" &&
+      unit.UnitImagePath !== payload.UnitImagePath
+    ) {
+      const oldImagePath = path.join(process.cwd(), unit.UnitImagePath);
+
+      if (fs.existsSync(oldImagePath)) {
+        const deletedFolder = path.join(process.cwd(), "uploads/deleted-files");
+        if (!fs.existsSync(deletedFolder)) {
+          fs.mkdirSync(deletedFolder, { recursive: true });
+        }
+
+        const oldFileName = path.basename(unit.UnitImagePath);
+        const newTrashPath = path.join(deletedFolder, oldFileName);
+
+        try {
+          fs.renameSync(oldImagePath, newTrashPath);
+          logInfo(`Moved old unit image → ${newTrashPath}`);
+        } catch (err) {
+          logError("Failed to move old unit image", err);
+        }
+      }
+    }
+
+    const updateData = {
+      UnitName: payload.UnitName,
+      UnitDescription:
+        payload.UnitDescription === "" ? null : payload.UnitDescription,
+      AuthLstEdt: user.Name, 
+      editOnDt: new Date(),
+    };
+    if (payload.UnitImagePath !== undefined) {
+      updateData.UnitImagePath = payload.UnitImagePath;
+    }
+
+    if (payload.UnitImg !== undefined) {
+      updateData.UnitImg = payload.UnitImg;
+    }
+    if (payload.SortingOrder !== undefined) {
+      updateData.SortingOrder = payload.SortingOrder;
+    }
+
+    await unit.update(updateData);
+
+    logInfo("Unit updated successfully");
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: unit,
+        message: "Unit updated successfully",
+      },
+    };
+  } catch (error) {
+    logError("Unit update failed", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: error,
+        message: "Something went wrong during unit update",
+      },
+    };
+  }
+};
+
+const getUserByIdOrEmail = async (userId) => {
+  const connection = await connectToDatabase();
+
+  try {
+    let userQuery, userRows;
+
+    if (!isNaN(Number(userId))) {
+      userQuery = `
+        SELECT UserID, Name, isAdmin FROM Community_User 
+        WHERE ISNULL(delStatus, 0) = 0 AND UserID = ?
+      `;
+      userRows = await queryAsync(connection, userQuery, [Number(userId)]);
+    }
+
+    if (
+      (!userRows || userRows.length === 0) &&
+      typeof userId === "string" &&
+      userId.includes("@")
+    ) {
+      userQuery = `
+        SELECT UserID, Name, isAdmin FROM Community_User 
+        WHERE ISNULL(delStatus, 0) = 0 AND EmailId = ?
+      `;
+      userRows = await queryAsync(connection, userQuery, [userId]);
+    }
+
+    closeConnection(connection);
+    return userRows && userRows.length > 0 ? userRows[0] : null;
+  } catch (error) {
+    closeConnection(connection);
+    logError("Error fetching user", error);
+    return null;
+  }
+};
