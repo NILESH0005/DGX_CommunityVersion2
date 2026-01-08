@@ -22,8 +22,8 @@ import {
 } from "react-icons/fa";
 import images from "../../../public/images";
 import { motion, AnimatePresence } from "framer-motion";
-import HeroModel from "./ChatBot";
-import ChatBotModal from "./ChatBotModal";
+// import HeroModel from "./ChatBot";
+// import ChatBotModal from "./ChatBotModal";
 import Swal from "sweetalert2";
 
 const containerVariants = {
@@ -1065,13 +1065,13 @@ const SubModuleCard = () => {
         onClick={() => setIsChatOpen(true)}
         className="fixed bottom-6 right-6 z-50"
       >
-        <div className="w-[120px] h-[120px] flex justify-center items-center">
+        {/* <div className="w-[120px] h-[120px] flex justify-center items-center">
           <HeroModel />
-        </div>
+        </div> */}
       </button>
 
       {/* 👇 Chat Modal */}
-      <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      {/* <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} /> */}
     </div>
   );
 };
