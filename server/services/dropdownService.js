@@ -476,7 +476,7 @@ export const getQuizDropdownService = async () => {
   }
 };
 
-export const getDiscussionStatsService = async () => {
+export const getDiscussionStatsService = async (userId) => {
   try {
     const discussions = await CommunityDiscussion.findAll({
       where: {
@@ -488,7 +488,7 @@ export const getDiscussionStatsService = async () => {
 
     const results = await Promise.all(
       discussions.map(async (discussion) => {
-        // ✅ Count only top-level comments
+        // ✅ Total comments
         const commentCount = await CommunityDiscussion.count({
           where: {
             Reference: discussion.DiscussionID,
@@ -500,6 +500,7 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
+        // ✅ Total likes
         const likeCount = await ContentInteraction.count({
           where: {
             Type: "Discussion",
@@ -509,14 +510,32 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
-        const viewCount = await ContentInteractionLog.count({
+        // ✅ Total views
+        const viewCount = await ContentInteraction.count({
           where: {
-            ProcessName: "Discussion",
-            reference: discussion.DiscussionID,
-            delStatus: 0,
+            Type: "Discussion",
+            ReferenceId: discussion.DiscussionID,
             View: 1,
+            delStatus: { [Op.or]: [0, null] },
           },
         });
+
+        // ✅ Check if THIS USER has viewed it
+        let userHasViewed = false;
+
+        if (userId) {
+          const userView = await ContentInteraction.findOne({
+            where: {
+              Type: "Discussion",
+              ReferenceId: discussion.DiscussionID,
+              UserID: userId,
+              View: 1,
+              delStatus: { [Op.or]: [0, null] },
+            },
+          });
+
+          userHasViewed = !!userView;
+        }
 
         return {
           DiscussionID: discussion.DiscussionID,
@@ -524,6 +543,7 @@ export const getDiscussionStatsService = async () => {
           TotalLikes: likeCount,
           TotalComments: commentCount,
           TotalViews: viewCount,
+          HasUserViewed: userHasViewed, // ✅ NEW FIELD
         };
       })
     );

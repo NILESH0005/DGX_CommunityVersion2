@@ -200,7 +200,9 @@ export const getUnitsWithFiles = async (req, res) => {
   const { subModuleId } = req.params;
 
   if (!req.user || !req.user.uniqueId) {
-    return res.status(401).json({ success: false, message: "User not authenticated" });
+    return res
+      .status(401)
+      .json({ success: false, message: "User not authenticated" });
   }
 
   const userId = req.user.uniqueId; // <-- numeric ID
@@ -220,11 +222,17 @@ export const getUnitsWithFiles = async (req, res) => {
 };
 
 export const getDiscussionStats = async (req, res) => {
-  const result = await getDiscussionStatsService();
-  if (result.success) {
-    res.status(200).json(result);
-  } else {
-    res.status(500).json(result);
+  try {
+    const userId = req.user?.uniqueId; // from JWT
+
+    const result = await getDiscussionStatsService(userId);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch discussion stats",
+    });
   }
 };
 

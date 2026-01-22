@@ -157,22 +157,40 @@ export const getEventById = async (req, res) => {
 };
 
 export const EventViewController = {
-  /**
-   * Get total views for all events
-   */
   async getAllEventViews(req, res) {
-    const result = await EventViewService.getTotalEventViews();
-    if (!result.success) return res.status(500).json(result);
-    res.json(result);
+    try {
+      const userId = req.user?.uniqueId; // from JWT
+
+      const result = await EventViewService.getTotalEventViews(userId);
+      if (!result.success) {
+        return res.status(500).json(result);
+      }
+
+      res.json(result);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch event views",
+      });
+    }
   },
 
-  /**
-   * Get total views for a single event (by ID)
-   */
   async getEventViewById(req, res) {
-    const { eventId } = req.params;
-    const result = await EventViewService.getEventViewById(eventId);
-    if (!result.success) return res.status(500).json(result);
-    res.json(result);
+    try {
+      const userId = req.user?.uniqueId;
+      const { eventId } = req.params;
+
+      const result = await EventViewService.getEventViewById(eventId, userId);
+      if (!result.success) {
+        return res.status(500).json(result);
+      }
+
+      res.json(result);
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch event view",
+      });
+    }
   },
 };

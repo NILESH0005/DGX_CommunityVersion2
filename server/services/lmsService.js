@@ -46,7 +46,7 @@ export class LMSService {
           AddOnDt: new Date(),
           delStatus: 0,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // ✅ Insert into GroupMaster for Module
@@ -58,7 +58,7 @@ export class LMSService {
           AddOnDt: new Date(),
           delStatus: 0,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // === Loop Submodules ===
@@ -77,7 +77,7 @@ export class LMSService {
             AddOnDt: new Date(),
             delStatus: 0,
           },
-          { transaction: t }
+          { transaction: t },
         );
 
         // ✅ Insert into GroupMaster for SubModule
@@ -90,7 +90,7 @@ export class LMSService {
             AddOnDt: new Date(),
             delStatus: 0,
           },
-          { transaction: t }
+          { transaction: t },
         );
 
         // === Loop Units ===
@@ -105,7 +105,7 @@ export class LMSService {
               AddOnDt: new Date(),
               delStatus: 0,
             },
-            { transaction: t }
+            { transaction: t },
           );
 
           // === Loop Files ===
@@ -122,7 +122,7 @@ export class LMSService {
                 Percentage: file.Percentage || 0,
                 EstimatedTime: file.EstimatedTime || 0,
               },
-              { transaction: t }
+              { transaction: t },
             );
           }
         }
@@ -159,7 +159,7 @@ export class LMSService {
       // ✅ Step 3: Update existing files with new percentage
       await db.LMSFilesDetails.update(
         { Percentage: equalPercentage },
-        { where: { UnitID: unitId, delStatus: 0 }, transaction: t }
+        { where: { UnitID: unitId, delStatus: 0 }, transaction: t },
       );
 
       // ✅ Step 4: Create new file or link
@@ -190,7 +190,7 @@ export class LMSService {
     file,
     description,
     sortingOrder,
-    estimatedTime
+    estimatedTime,
   ) {
     return await db.sequelize.transaction(async (t) => {
       const user = await db.User.findOne({
@@ -216,7 +216,7 @@ export class LMSService {
           SortingOrder: sortingOrder || 0,
           EstimatedTime: estimatedTime || 0,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // ✅ Step 3: Fetch all active files for the unit
@@ -327,7 +327,7 @@ export class LMSViewsService {
             totalViews,
             totalTimeSpent,
           };
-        })
+        }),
       );
 
       return results;
@@ -471,7 +471,7 @@ export class LMSViewsService {
             AND View = 1
             AND reference IN (:subModuleIDs)
           `,
-            { replacements: { subModuleIDs } }
+            { replacements: { subModuleIDs } },
           );
 
           const totalViews = viewsResult?.[0]?.uniqueUsers || 0;
@@ -543,7 +543,7 @@ export class LMSViewsService {
                 // Effective time = min(user time, estimated time)
                 const effectiveTime = Math.min(
                   userTimeSpent,
-                  fileEstimatedTimeSeconds
+                  fileEstimatedTimeSeconds,
                 );
                 effectiveTimeSpent += effectiveTime;
 
@@ -576,7 +576,7 @@ export class LMSViewsService {
             {
               replacements: { subModuleIDs },
               type: Sequelize.QueryTypes.SELECT,
-            }
+            },
           );
 
           const avgRating = ratingResult?.avgRating
@@ -598,7 +598,7 @@ export class LMSViewsService {
             avgRating,
             ratingCount,
           };
-        })
+        }),
       );
 
       return results;
@@ -829,7 +829,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
       if (existingRating) {
         await transaction.rollback();
         throw new Error(
-          "You have already rated this submodule. You can rate only once."
+          "You have already rated this submodule. You can rate only once.",
         );
       }
 
@@ -855,7 +855,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
           {
             where: { Id: mainInteraction.Id },
             transaction,
-          }
+          },
         );
       } else {
         // Create new interaction
@@ -878,7 +878,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
             editOnDt: null,
             delStatus: 0,
           },
-          { transaction }
+          { transaction },
         );
       }
 
@@ -902,7 +902,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
           editOnDt: null,
           delStatus: 0,
         },
-        { transaction }
+        { transaction },
       );
 
       await transaction.commit();

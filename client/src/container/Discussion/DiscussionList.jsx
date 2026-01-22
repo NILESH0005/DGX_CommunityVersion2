@@ -22,9 +22,7 @@ const DiscussionList = ({
         d.DiscussionID === discussionId
           ? {
               ...d,
-              reposts: d.reposts
-                ? [...d.reposts, newRepost]
-                : [newRepost],
+              reposts: d.reposts ? [...d.reposts, newRepost] : [newRepost],
             }
           : d
       )
@@ -33,7 +31,7 @@ const DiscussionList = ({
 
   const recordDiscussionView = async (discussionID) => {
     if (!userToken) return;
-    
+
     const endpoint = "progressTrack/recordView";
     const method = "POST";
     const headers = {
@@ -44,20 +42,24 @@ const DiscussionList = ({
       ProcessName: "Discussion",
       reference: discussionID,
     };
-    
+
     try {
       const response = await fetchData(endpoint, method, body, headers);
-      
+
       if (response.success && !response.data.alreadyViewed) {
-        setDiscussionList(prevList =>
-          prevList.map(d =>
+        setDiscussionList((prevList) =>
+          prevList.map((d) =>
             d.DiscussionID === discussionID
-              ? { ...d, viewCount: (d.viewCount || 0) + 1 }
+              ? {
+                  ...d,
+                  viewCount: (d.viewCount || 0) + 1,
+                  hasUserViewed: true, 
+                }
               : d
           )
         );
       }
-      
+
       console.log("View response:", response);
     } catch (err) {
       console.error("Error recording discussion view:", err);

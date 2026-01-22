@@ -22,6 +22,7 @@ import {
   getAllUsersService,
   deleteUserService,
   resetPasswordService,
+  addRoleService,
 } from "../services/userService.js";
 
 dotenv.config();
@@ -347,5 +348,296 @@ export const sendContactEmail = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, message: "Internal server error", data: err });
+  }
+};
+
+export const addRole = async (req, res) => {
+  let success = false;
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    const warningMessage =
+      "Invalid input format. Please check your details and try again.";
+    logWarning(warningMessage);
+    return res.status(400).json({
+      success,
+      data: errors.array(),
+      message: warningMessage,
+    });
+  }
+
+  try {
+    const result = await addRoleService(req.body, req.user);
+
+    if (!result.success) {
+      logWarning(result.message);
+      return res.status(200).json(result);
+    }
+
+    logInfo(result.message);
+    return res.status(200).json(result);
+  } catch (err) {
+    logError(err);
+    return res.status(500).json({
+      success: false,
+      message: "Error adding role",
+      data: err,
+    });
+  }
+};
+
+export const getRoles = async (req, res) => {
+  try {
+    const result = await UserService.getRolesService();
+
+    if (!result.success) {
+      logWarning(result.message);
+      return res.status(200).json(result);
+    }
+
+    logInfo("Roles fetched successfully from controller");
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("GET ROLES CONTROLLER ERROR 👉", err);
+    logError(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error",
+      data: [],
+    });
+  }
+};
+
+export const getPages = async (req, res) => {
+  try {
+    const result = await UserService.getPagesService();
+
+    if (!result.success) {
+      logWarning(result.message);
+      return res.status(200).json(result);
+    }
+
+    logInfo("Pages fetched successfully from controller");
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("GET Pages CONTROLLER ERROR 👉", err);
+    logError(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Internal server error",
+      data: [],
+    });
+  }
+};
+
+export const assignPagesToRole = async (req, res) => {
+  let success = false;
+
+  try {
+    const { roleId, pageIds } = req.body;
+    const userInfo = req.user; // This should contain user info including uniqueId
+
+    // Basic validation
+    if (!roleId || !pageIds || !Array.isArray(pageIds)) {
+      const warningMessage = "Role ID and page IDs array are required";
+      logWarning(warningMessage);
+      return res.status(400).json({
+        success,
+        message: warningMessage,
+      });
+    }
+
+    // Validate pageIds array
+    if (pageIds.length === 0) {
+      const warningMessage = "At least one page must be selected";
+      logWarning(warningMessage);
+      return res.status(400).json({
+        success,
+        message: warningMessage,
+      });
+    }
+
+    const result = await UserService.assignPagesToRoleService(
+      roleId,
+      pageIds,
+      userInfo
+    );
+
+    if (!result.success) {
+      logWarning(result.message);
+      return res.status(200).json(result);
+    }
+
+    logInfo(result.message);
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error("ASSIGN PAGES TO ROLE ERROR 👉", err);
+    logError(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Error assigning pages to role",
+      data: err,
+    });
+  }
+};
+
+export const getRolePageAccess = async (req, res) => {
+  try {
+    const result = await UserService.getRolePageAccessReportService();
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in getRolePageAccessReport:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate role-page access report",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+export const assignSingleRole = async (req, res) => {
+  try {
+    const { userId, roleId } = req.body;
+    const currentUser = req.user;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+        data: {},
+      });
+    }
+
+    if (!roleId) {
+      return res.status(400).json({
+        success: false,
+        message: "Role ID is required",
+        data: {},
+      });
+    }
+
+    if (!currentUser || !currentUser.id) {
+      return res.status(400).json({
+        success: false,
+        message: "Current user information is required",
+        data: {},
+      });
+    }
+
+    const result = await UserService.assignSingleRoleService(
+      userId,
+      roleId,
+      currentUser.id
+    );
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in assignSingleRole controller:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to assign role",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+export const getUserRole = async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+        data: null,
+      });
+    }
+
+    const result = await UserService.getUserRoleService(userId);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in getUserRole controller:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve user role",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+export const removeUserRole = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const currentUser = req.user;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+        data: {},
+      });
+    }
+
+    if (!currentUser || !currentUser.id) {
+      return res.status(400).json({
+        success: false,
+        message: "Current user information is required",
+        data: {},
+      });
+    }
+
+    const result = await UserService.removeUserRoleService(
+      userId,
+      currentUser.id
+    );
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in removeUserRole controller:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to remove user role",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+export const getPagesByRole = async (req, res) => {
+  try {
+    const roleId = req.user.isAdmin; // coming from auth middleware
+
+    const pages = await UserService.getPagesByRoleService(roleId);
+
+    return res.status(200).json({
+      success: true,
+      data: pages,
+      message: "Accessible pages fetched",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch pages",
+    });
   }
 };

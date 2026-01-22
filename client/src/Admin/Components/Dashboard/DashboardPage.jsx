@@ -7,7 +7,6 @@ import TopContentSection from "./TopContentSection";
 import LMSDashboard from "./LMSDashboardSection";
 import LMSDashboardSection from "./LMSDashboardSection";
 
-
 const today = new Date().toLocaleDateString("en-US", {
   weekday: "short",
   month: "short",
@@ -115,7 +114,7 @@ const DashboardPage = () => {
       const range = calculateDateRange(
         "custom",
         newCustomRange.from,
-        newCustomRange.to
+        newCustomRange.to,
       );
       if (range) {
         setCalculatedRange(range);
@@ -144,7 +143,7 @@ const DashboardPage = () => {
         const range = calculateDateRange(
           "custom",
           customRange.from,
-          customRange.to
+          customRange.to,
         );
         if (range) {
           setCalculatedRange(range);
@@ -170,7 +169,7 @@ const DashboardPage = () => {
         const range = calculateDateRange(
           "custom",
           customRange.from,
-          customRange.to
+          customRange.to,
         );
         if (range) {
           setCalculatedRange(range);
@@ -217,7 +216,7 @@ const DashboardPage = () => {
       filterType,
       calculatedRange.from,
       calculatedRange.to,
-      isCustomRangeValid
+      isCustomRangeValid,
     ),
     isValid: filterType !== "custom" ? true : isCustomRangeValid,
   };
@@ -308,64 +307,51 @@ const DashboardPage = () => {
               </div>
 
               {/* From Date */}
-              <div className="flex flex-col min-w-[160px]">
-                <label className="text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
-                  {filterType === "custom" && !customRange.from && (
-                    <span className="text-yellow-500">*</span>
-                  )}
-                </label>
-                <input
-                  type="date"
-                  className={`px-3 py-2.5 text-sm border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all ${
-                    filterType === "custom" && !customRange.from
-                      ? "border-yellow-300 focus:ring-yellow-300 focus:border-yellow-400"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
-                  value={
-                    filterType === "custom"
-                      ? customRange.from
-                      : calculatedRange.from
-                  }
-                  onChange={(e) => {
-                    if (filterType === "custom") {
-                      handleCustomRangeChange("from", e.target.value);
-                    } else {
-                      setFilterType("custom");
-                      handleCustomRangeChange("from", e.target.value);
-                    }
-                  }}
-                />
-              </div>
+              {filterType === "custom" && (
+                <>
+                  <div className="flex flex-col min-w-[160px]">
+                    <label className="text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
+                      {!customRange.from && (
+                        <span className="text-yellow-500">*</span>
+                      )}
+                      From
+                    </label>
+                    <input
+                      type="date"
+                      className={`px-3 py-2.5 text-sm border rounded-lg bg-white shadow-sm focus:ring-2 transition-all ${
+                        !customRange.from
+                          ? "border-yellow-300 focus:ring-yellow-300 focus:border-yellow-400"
+                          : "border-gray-300 hover:border-gray-400 focus:ring-blue-400 focus:border-blue-400"
+                      }`}
+                      value={customRange.from}
+                      onChange={(e) =>
+                        handleCustomRangeChange("from", e.target.value)
+                      }
+                    />
+                  </div>
 
-              {/* To Date */}
-              <div className="flex flex-col min-w-[160px]">
-                <label className="text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
-                  {filterType === "custom" && !customRange.to && (
-                    <span className="text-yellow-500">*</span>
-                  )}
-                </label>
-                <input
-                  type="date"
-                  className={`px-3 py-2.5 text-sm border rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all ${
-                    filterType === "custom" && !customRange.to
-                      ? "border-yellow-300 focus:ring-yellow-300 focus:border-yellow-400"
-                      : "border-gray-300 hover:border-gray-400"
-                  }`}
-                  value={
-                    filterType === "custom"
-                      ? customRange.to
-                      : calculatedRange.to
-                  }
-                  onChange={(e) => {
-                    if (filterType === "custom") {
-                      handleCustomRangeChange("to", e.target.value);
-                    } else {
-                      setFilterType("custom");
-                      handleCustomRangeChange("to", e.target.value);
-                    }
-                  }}
-                />
-              </div>
+                  <div className="flex flex-col min-w-[160px]">
+                    <label className="text-xs text-gray-500 mb-1 font-medium flex items-center gap-1">
+                      {!customRange.to && (
+                        <span className="text-yellow-500">*</span>
+                      )}
+                      To
+                    </label>
+                    <input
+                      type="date"
+                      className={`px-3 py-2.5 text-sm border rounded-lg bg-white shadow-sm focus:ring-2 transition-all ${
+                        !customRange.to
+                          ? "border-yellow-300 focus:ring-yellow-300 focus:border-yellow-400"
+                          : "border-gray-300 hover:border-gray-400 focus:ring-blue-400 focus:border-blue-400"
+                      }`}
+                      value={customRange.to}
+                      onChange={(e) =>
+                        handleCustomRangeChange("to", e.target.value)
+                      }
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Reset Button */}
               <button
@@ -397,7 +383,7 @@ const DashboardPage = () => {
           </div>
         </motion.div>
 
-        {/* Dashboard Sections */}
+
         <motion.div variants={itemVariants}>
           <TrendingSection dateFilter={filterData} />
         </motion.div>
@@ -433,7 +419,6 @@ const DashboardPage = () => {
             <UserInsightsSection dateFilter={filterData} />
           </motion.div>
         </motion.div>
-
 
         <motion.div variants={itemVariants}>
           <motion.div

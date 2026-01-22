@@ -12,7 +12,7 @@ router.get('/getModules', getModules);
 router.get('/getSubModules', getSubModules);
 router.get('/getModuleById', getModuleById); 
 router.get('/getUnitsWithFiles/:subModuleId', fetchUser,  getUnitsWithFiles); 
-router.get("/discussionStats", getDiscussionStats);
+router.get("/discussionStats", fetchUser, getDiscussionStats);
 router.get("/blogStats", getBlogStats);
 
 

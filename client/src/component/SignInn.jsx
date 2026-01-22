@@ -78,7 +78,7 @@ const SignIn = () => {
         logIn(data.data.authtoken);
         setLoading(false);
         if (data.data.flag === 0) navigate("/ChangePassword");
-        else if (data.data.isAdmin) navigate("/AdminDashboard");
+        else if (data.data.isAdmin == 1) navigate("/AdminDashboard");
         else navigate("/");
       }
     } catch (error) {

@@ -2,7 +2,7 @@ import { useState, useContext, useEffect, useMemo, useCallback } from "react";
 import Swal from "sweetalert2";
 import ApiContext from "../../context/ApiContext";
 import LoadPage from "../../component/LoadPage";
-import { FaTrash, FaSearch, FaTimes, FaEye } from "react-icons/fa";
+import { FaTrash, FaSearch, FaTimes, FaEye, FaComment, FaHeart, FaUser } from "react-icons/fa";
 import { debounce } from "lodash";
 
 const Discussions = () => {
@@ -34,8 +34,8 @@ const Discussions = () => {
     try {
       setLoading(true);
       setError(null);
-      const payload = { email: user.EmailId }; // or user.email
-      console.log("Sending payload:", payload); // ← Add this
+      const payload = { email: user.EmailId };
+      console.log("Sending payload:", payload);
 
       const result = await fetchData(
         "discussion/getdiscussion",
@@ -57,7 +57,6 @@ const Discussions = () => {
 
   useEffect(() => {
     console.log("User ID:", user?.id);
-
     fetchDiscussions();
   }, [fetchDiscussions]);
 
@@ -152,172 +151,254 @@ const Discussions = () => {
   const renderMobileDiscussionCard = (discussion, index) => (
     <div
       key={discussion.DiscussionID}
-      className="p-4 mb-4 rounded-lg shadow bg-white"
+      className="p-5 mb-4 rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-bold text-lg">{discussion.Title}</h3>
-          <p className="text-sm text-gray-600">
-            By: {discussion.UserName || "Unknown"}
-          </p>
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex-1">
+          <h3 className="font-bold text-lg text-gray-900 mb-1">
+            {discussion.Title}
+          </h3>
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <FaUser size={12} />
+            <span>{discussion.UserName || "Unknown"}</span>
+          </div>
         </div>
         {!discussion.approved && (
           <button
             onClick={() => handleDeleteDiscussion(discussion.DiscussionID)}
-            className="bg-red-500 text-white p-2 rounded hover:bg-red-600 transition"
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
             title="Delete"
           >
-            <FaTrash size={14} />
+            <FaTrash size={16} />
           </button>
         )}
       </div>
 
-      <div className="mt-2">
-        <p className="text-sm text-gray-700">
-          {stripHtmlTags((discussion.Content || "").substring(0, 100))}...
+      <div className="mb-4">
+        <p className="text-sm text-gray-700 line-clamp-2">
+          {stripHtmlTags(discussion.Content || "")}
         </p>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="flex items-center gap-1">
-          <span className="font-medium">Likes:</span>
-          <span>{discussion.likeCount || 0}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="font-medium">Comments:</span>
-          <span>{discussion.comment?.length || 0}</span>
-        </div>
-      </div>
-
-      <div className="mt-3 flex justify-end">
-        {/* <button
-          onClick={() => {
-            // You can add a view details functionality here if needed
-          }}
-          className="bg-DGXblue text-white px-3 py-1 rounded hover:bg-blue-600 transition text-sm flex items-center gap-1"
-        >
-          <FaEye size={12} />
-          <span>View</span>
-        </button> */}
-      </div>
-    </div>
-  );
-
-  if (loading) return <LoadPage />;
-  if (error) return <p className="text-red-500">{error}</p>;
-
-  return (
-    <div className="mt-6 p-4 bg-white rounded-lg shadow">
-      <div className="flex justify-between items-center mb-4">
-        <div className="relative w-full md:w-1/2">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="text-gray-400" />
+      <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <FaHeart className="text-red-500" size={14} />
+            <span className="text-sm font-medium text-gray-700">
+              {discussion.likeCount || 0}
+            </span>
           </div>
-          <input
-            type="text"
-            placeholder="Search by title, name, content, etc..."
-            className="pl-10 pr-10 py-2 border rounded w-full"
-            value={searchTerm}
-            onChange={handleSearchChange}
-          />
-          {searchTerm && (
+          <div className="flex items-center gap-2">
+            <FaComment className="text-blue-500" size={14} />
+            <span className="text-sm font-medium text-gray-700">
+              {discussion.comment?.length || 0}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {!discussion.approved && (
             <button
-              onClick={clearSearch}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              onClick={() => handleDeleteDiscussion(discussion.DiscussionID)}
+              className="px-3 py-1.5 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-sm"
             >
-              <FaTimes className="text-gray-400 hover:text-gray-600" />
+              Delete
             </button>
           )}
         </div>
       </div>
+    </div>
+  );
 
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-10 bg-gray-200 rounded-lg mb-6 w-1/4"></div>
+          <div className="h-12 bg-gray-200 rounded-lg mb-6"></div>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-6 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <p className="text-red-600 text-center font-medium mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-DGXblue text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium mx-auto block shadow-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 p-4 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Discussions</h2>
+          <p className="text-gray-600 text-sm">
+            Total Discussions: <span className="font-semibold">{discussions.length}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative mb-6">
+        <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search discussions by title, author, content..."
+          className="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent placeholder-gray-500"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+        {searchTerm && (
+          <button
+            onClick={clearSearch}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <FaTimes />
+          </button>
+        )}
+      </div>
+
+      {/* Discussions Table/Cards */}
       {filteredDiscussions.length > 0 ? (
         isMobileView ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredDiscussions.map((discussion, index) =>
               renderMobileDiscussionCard(discussion, index)
             )}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-300">
-            <div className="overflow-auto" style={{ maxHeight: "600px" }}>
-              <table className="w-full">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-DGXgreen text-white">
-                    <th className="p-2 border text-center w-12">#</th>
-                    <th className="p-2 border text-center min-w-[150px]">
-                      Title
-                    </th>
-                    <th className="p-2 border text-center min-w-[120px]">
-                      Name
-                    </th>
-                    <th className="p-2 border text-center min-w-[200px]">
-                      Content
-                    </th>
-                    <th className="p-2 border text-center min-w-[80px]">
-                      Likes
-                    </th>
-                    <th className="p-2 border text-center min-w-[100px]">
-                      Comments
-                    </th>
-                    <th className="p-2 border text-center min-w-[80px]">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredDiscussions.map((discussion, index) => (
-                    <tr
-                      key={discussion.DiscussionID}
-                      className="hover:bg-gray-50"
-                    >
-                      <td className="p-2 border text-center w-12">
-                        {index + 1}
-                      </td>
-                      <td className="p-2 border text-center min-w-[150px]">
-                        {discussion.Title}
-                      </td>
-                      <td className="p-2 border text-center min-w-[120px]">
-                      {discussion.User?.Name || discussion.UserName || "Unknown"}
-                      </td>
-                      <td className="p-2 border text-center min-w-[200px]">
-                        {stripHtmlTags(
-                          (discussion.Content || "").substring(0, 50)
-                        )}
-                        ...
-                      </td>
-                      <td className="p-2 border text-center min-w-[80px]">
-                        {discussion.likeCount || 0}
-                      </td>
-                      <td className="p-2 border text-center min-w-[100px]">
-                        {discussion.comment?.length || 0}
-                      </td>
-                      <td className="p-2 border text-center min-w-[80px]">
-                        {!discussion.approved && (
-                          <button
-                            onClick={() =>
-                              handleDeleteDiscussion(discussion.DiscussionID)
-                            }
-                            className="bg-red-500 text-white p-2 rounded hover:bg-red-600 transition"
-                            title="Delete"
-                          >
-                            <FaTrash className="inline-block" />
-                          </button>
-                        )}
-                      </td>
+          <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+            <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+              <div className="min-w-full">
+                <table className="w-full">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-DGXgreen">
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700 sticky left-0 z-20">
+                        #
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700 min-w-[200px]">
+                        Title
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700 min-w-[150px]">
+                        Author
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700 min-w-[250px]">
+                        Content
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700">
+                        <div className="flex items-center gap-1">
+                          <FaHeart className="text-red-500" size={12} />
+                          <span>Likes</span>
+                        </div>
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700">
+                        <div className="flex items-center gap-1">
+                          <FaComment className="text-blue-500" size={12} />
+                          <span>Comments</span>
+                        </div>
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredDiscussions.map((discussion, index) => (
+                      <tr
+                        key={discussion.DiscussionID}
+                        className="hover:bg-gray-50 transition-colors duration-150"
+                      >
+                        <td className="p-4 text-sm text-gray-600 font-medium sticky left-0 bg-white z-10">
+                          {index + 1}
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm font-bold text-gray-900">
+                            {discussion.Title}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <FaUser className="text-gray-400" size={14} />
+                            <span className="text-sm text-gray-700">
+                              {discussion.User?.Name || discussion.UserName || "Unknown"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm text-gray-600 line-clamp-2">
+                            {stripHtmlTags(discussion.Content || "")}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <FaHeart className="text-red-500" size={14} />
+                            <span className="text-sm font-medium text-gray-700">
+                              {discussion.likeCount || 0}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <FaComment className="text-blue-500" size={14} />
+                            <span className="text-sm font-medium text-gray-700">
+                              {discussion.comment?.length || 0}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {!discussion.approved && (
+                            <button
+                              onClick={() =>
+                                handleDeleteDiscussion(discussion.DiscussionID)
+                              }
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                              title="Delete"
+                            >
+                              <FaTrash size={16} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )
       ) : (
-        <p className="text-center text-gray-500">
-          {searchTerm
-            ? "No discussions match your search"
-            : "No discussions foundddd"}
-        </p>
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-3">
+            <FaComment size={48} className="mx-auto" />
+          </div>
+          <p className="text-gray-500 text-lg font-medium mb-2">
+            {searchTerm
+              ? "No discussions match your search"
+              : "No discussions found"}
+          </p>
+          {searchTerm && (
+            <button
+              onClick={clearSearch}
+              className="text-DGXblue hover:text-blue-700 font-medium"
+            >
+              Clear search
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

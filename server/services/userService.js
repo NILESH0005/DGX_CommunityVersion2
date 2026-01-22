@@ -1,13 +1,17 @@
-import db from "../models/index.js";
+import db, { sequelize } from "../models/index.js";
 import bcrypt from "bcryptjs";
 import { generatePassword, referCodeGenerator } from "../utility/index.js";
 import { mailSender } from "../helper/index.js";
 import { logWarning, logInfo, logError } from "../helper/index.js";
 import jwt from "jsonwebtoken";
-import { Op } from "sequelize"; // ✅ direct import
+import { Op, Sequelize } from "sequelize"; // ✅ direct import
 import { encrypt } from "../utility/encrypt.js";
 
 const User = db.User;
+const RoleMaster = db.Role_Master;
+const PageMaster = db.Page_Master;
+const RolePageAccess = db.Role_Page_Access;
+
 const JWT_SECRET = process.env.JWTSECRET;
 const BASE_LINK = process.env.RegistrationLink;
 const SIGNATURE = process.env.SIGNATURE;
@@ -546,33 +550,34 @@ export const changeUserPassword = async (
 
 export const getAllUsersService = async () => {
   try {
-    const users = await User.findAll({
-      where: {
-        [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
-      },
-      attributes: [
-        "UserID",
-        "Name",
-        "EmailId",
-        "CollegeName",
-        "MobileNumber",
-        "Category",
-        "Designation",
-        "FlagPasswordChange",
-        "AddOnDt",
-        "isAdmin",
-        "delStatus",
-      ],
-    });
+    const [users] = await sequelize.query(`
+      SELECT 
+        u.UserID,
+        u.Name,
+        u.EmailId,
+        u.CollegeName,
+        u.MobileNumber,
+        u.Category,
+        u.Designation,
+        u.FlagPasswordChange,
+        u.AddOnDt,
+        u.isAdmin as RoleID,
+        u.delStatus,
+        COALESCE(r.RoleName, 'No Role Assigned') as RoleName
+      FROM Community_User u
+      LEFT JOIN RoleMaster r ON u.isAdmin = r.RoleID AND r.delStatus = 0
+      WHERE (u.delStatus IS NULL OR u.delStatus = 0)
+      ORDER BY u.UserID
+    `);
 
     if (users.length > 0) {
-      logInfo("User data retrieved");
+      logInfo("User data retrieved with role information");
       return {
         status: 200,
         response: {
           success: true,
           data: users,
-          message: "User data retrieved",
+          message: "User data retrieved with role information",
         },
       };
     } else {
@@ -586,7 +591,11 @@ export const getAllUsersService = async () => {
     logError(error);
     return {
       status: 500,
-      response: { success: false, message: "Something went wrong" },
+      response: {
+        success: false,
+        message: "Something went wrong",
+        error: error.message,
+      },
     };
   }
 };
@@ -825,11 +834,17 @@ export const deleteUser = async (userId, adminName) => {
 };
 
 export const addUserService = async (userData, userInfo) => {
-  const { Name, EmailId, CollegeName, MobileNumber, Category, Designation } =
-    userData;
+  const {
+    Name,
+    EmailId,
+    CollegeName,
+    MobileNumber,
+    Category,
+    Designation,
+    roleId,
+  } = userData;
   const referalNumberCount = Category === "F" ? 10 : 2;
 
-  // Check if email exists
   const existing = await User.count({
     where: {
       EmailId,
@@ -845,6 +860,22 @@ export const addUserService = async (userData, userInfo) => {
     };
   }
 
+  if (roleId) {
+    const roleExists = await RoleMaster.findOne({
+      where: {
+        RoleID: roleId,
+        delStatus: 0,
+      },
+    });
+
+    if (!roleExists) {
+      return {
+        success: false,
+        message: "Selected role does not exist",
+        data: {},
+      };
+    }
+  }
   // Generate password & hash
   const plainPassword = await generatePassword(10);
   const hashedPassword = await bcrypt.hash(plainPassword, 10);
@@ -862,9 +893,8 @@ export const addUserService = async (userData, userInfo) => {
     if (codeExists === 0) break;
   }
 
-  // ✅ Properly record who added & last edited
-  const addedBy = userInfo?.id || "System"; // admin email or system
-  const editedBy = userInfo?.uniqueId; // numeric uniqueId preferred
+  const addedBy = userInfo?.id || "System";
+  const editedBy = userInfo?.uniqueId;
 
   // ✅ Create new user
   const newUser = await User.create({
@@ -874,6 +904,7 @@ export const addUserService = async (userData, userInfo) => {
     MobileNumber,
     Category,
     Designation,
+    isAdmin: roleId || null,
     ReferalNumberCount: referalNumberCount,
     ReferalNumber: referCode,
     Password: hashedPassword,
@@ -888,6 +919,14 @@ export const addUserService = async (userData, userInfo) => {
   const encryptedEmail = await encrypt(EmailId);
   const verificationLink = `${BASE_LINK}VerifyEmail?email=${encryptedEmail}&signature=${SIGNATURE}`;
 
+  let roleName = "No role assigned";
+  if (roleId) {
+    const role = await RoleMaster.findOne({
+      where: { RoleID: roleId },
+      attributes: ["RoleName"],
+    });
+    roleName = role?.RoleName || "Assigned role";
+  }
   // Email content (unchanged)
   const plainTextMessage = `Congratulations ${Name} 🎉
 
@@ -916,14 +955,14 @@ The DGX Community Team`;
     return {
       success: true,
       message: "User added and verification mail sent successfully",
-      data: { EmailId, plainPassword, verificationLink },
+      data: { EmailId, plainPassword, verificationLink, roleId, roleName },
     };
   } else {
     logError(new Error("User created but mail not sent"));
     return {
       success: true,
       message: "User created but mail not sent",
-      data: { EmailId, plainPassword },
+      data: { EmailId, plainPassword, roleId, roleName },
     };
   }
 };
@@ -1123,5 +1162,728 @@ The DGX Community Team`;
         data: {},
       },
     };
+  }
+};
+
+export const addRoleService = async (roleData, userInfo) => {
+  const { name } = roleData;
+
+  if (!name) {
+    return {
+      success: false,
+      message: "Role name is required",
+      data: {},
+    };
+  }
+
+  const existingRole = await RoleMaster.count({
+    where: {
+      RoleName: name.trim(),
+      [Op.or]: [{ delStatus: null }, { delStatus: 0 }],
+    },
+  });
+
+  if (existingRole > 0) {
+    return {
+      success: false,
+      message: "Role with this name already exists",
+      data: {},
+    };
+  }
+  const addedBy = userInfo?.uniqueId; // numeric UserID
+
+  if (!addedBy) {
+    return {
+      success: false,
+      message: "Invalid user session",
+      data: {},
+    };
+  }
+
+  const newRole = await RoleMaster.create({
+    RoleName: name.trim(),
+    AuthAdd: addedBy,
+    AuthLstEdt: null,
+    AddDel: null,
+    delOnDt: null,
+    editOnDt: null,
+    AddOnDt: new Date(),
+    delStatus: 0,
+  });
+
+  return {
+    success: true,
+    message: "Role added successfully",
+    data: newRole,
+  };
+};
+
+export const getRolesService = async () => {
+  try {
+    // Fetch all roles where delStatus is 0 or null (not deleted)
+    const roles = await RoleMaster.findAll({
+      where: {
+        [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+      },
+      attributes: ["RoleID", "RoleName", "AuthAdd", "AddOnDt"],
+      order: [["RoleName", "ASC"]], // Order by RoleName alphabetically
+    });
+
+    if (!roles || roles.length === 0) {
+      logInfo("No roles found in the database");
+      return {
+        success: true,
+        message: "No roles found",
+        data: [],
+      };
+    }
+
+    logInfo(`Fetched ${roles.length} roles successfully`);
+    return {
+      success: true,
+      message: "Roles fetched successfully",
+      data: roles,
+    };
+  } catch (err) {
+    console.error("GET ROLES SERVICE ERROR 👉", err);
+    logError(err);
+
+    return {
+      success: false,
+      message: err.message || "Error fetching roles",
+      data: [],
+    };
+  }
+};
+
+export const getPagesService = async () => {
+  try {
+    const pages = await PageMaster.findAll({
+      where: {
+        [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+      },
+      attributes: ["PageID", "PageName", "DisplayName", "MenuType" , ],
+      order: [["PageName", "ASC"]],
+    });
+
+    if (!pages || pages.length === 0) {
+      logInfo("No Pages found in the database");
+      return {
+        success: true,
+        message: "No Pages found",
+        data: [],
+      };
+    }
+
+    logInfo(`Fetched ${pages.length} Pages successfully`);
+    return {
+      success: true,
+      message: "Pages fetched successfully",
+      data: pages,
+    };
+  } catch (err) {
+    console.error("GET Pages SERVICE ERROR 👉", err);
+    logError(err);
+
+    return {
+      success: false,
+      message: err.message || "Error fetching roles",
+      data: [],
+    };
+  }
+};
+
+export const assignPagesToRoleService = async (roleId, pageIds, userInfo) => {
+  try {
+    // Validate input
+    if (!roleId || !pageIds || !Array.isArray(pageIds)) {
+      return {
+        success: false,
+        message: "Role ID and page IDs array are required",
+        data: {},
+      };
+    }
+
+    // Validate pageIds array
+    if (pageIds.length === 0) {
+      return {
+        success: false,
+        message: "At least one page must be selected",
+        data: {},
+      };
+    }
+
+    const addedBy = userInfo?.uniqueId; // numeric UserID from userInfo
+
+    if (!addedBy) {
+      return {
+        success: false,
+        message: "Invalid user session",
+        data: {},
+      };
+    }
+
+    console.log("Service received:", { roleId, pageIds, addedBy });
+
+    // Validate role exists
+    const role = await RoleMaster.findOne({
+      where: {
+        RoleID: roleId,
+        delStatus: 0,
+      },
+    });
+
+    if (!role) {
+      return {
+        success: false,
+        message: "Role not found",
+        data: {},
+      };
+    }
+
+    console.log("Role found:", role.RoleName);
+
+    // Validate all pages exist
+    const pages = await PageMaster.findAll({
+      where: {
+        PageID: pageIds,
+        delStatus: 0,
+      },
+    });
+
+    if (pages.length !== pageIds.length) {
+      const foundPageIds = pages.map((p) => p.PageID);
+      const missingPages = pageIds.filter((id) => !foundPageIds.includes(id));
+      return {
+        success: false,
+        message: `Some pages not found: ${missingPages.join(", ")}`,
+        data: {},
+      };
+    }
+
+    console.log("All pages validated");
+
+    // Use transaction for bulk operations
+    const transaction = await sequelize.transaction();
+
+    try {
+      // First, check if there are existing records for this role
+      const existingRecords = await RolePageAccess.findAll({
+        where: {
+          RoleID: roleId,
+          delStatus: 0,
+        },
+        transaction,
+      });
+
+      console.log("Existing records found:", existingRecords.length);
+
+      if (existingRecords.length > 0) {
+        // Soft delete existing records
+        await RolePageAccess.update(
+          {
+            Access: 0,
+            editOnDt: new Date(),
+            AuthLstEdt: addedBy.toString(), // Convert to string to match AuthAdd type
+            delStatus: 1, // Soft delete old records
+          },
+          {
+            where: {
+              RoleID: roleId,
+              delStatus: 0,
+            },
+            transaction,
+          }
+        );
+        console.log("Soft deleted existing records");
+      }
+
+      // Create new access records for selected pages
+      const accessRecords = pageIds.map((pageId) => ({
+        RoleID: roleId,
+        PageID: pageId,
+        Access: 1,
+        AuthAdd: addedBy.toString(), // Convert to string
+        AuthLstEdt: null, // Initially null
+        AuthDel: null, // Initially null
+        delOnDt: null, // Initially null
+        AddOnDt: new Date(),
+        editOnDt: null, // Initially null
+        delStatus: 0,
+      }));
+
+      console.log("Creating access records:", accessRecords.length);
+
+      // Check if any records already exist (even with delStatus = 1)
+      const existingPageAccess = await RolePageAccess.findAll({
+        where: {
+          RoleID: roleId,
+          PageID: pageIds,
+        },
+        transaction,
+      });
+
+      console.log("Existing page access found:", existingPageAccess.length);
+
+      const existingMap = new Map();
+      existingPageAccess.forEach((record) => {
+        existingMap.set(`${record.RoleID}-${record.PageID}`, record);
+      });
+
+      for (const record of accessRecords) {
+        const key = `${record.RoleID}-${record.PageID}`;
+        const existingRecord = existingMap.get(key);
+
+        if (existingRecord) {
+          await RolePageAccess.update(
+            {
+              Access: 1,
+              AuthAdd: addedBy.toString(), // Convert to string
+              AuthLstEdt: addedBy.toString(), // Convert to string
+              editOnDt: new Date(),
+              delStatus: 0,
+            },
+            {
+              where: {
+                id: existingRecord.id,
+              },
+              transaction,
+            }
+          );
+          console.log(`Updated existing record for page ${record.PageID}`);
+        } else {
+          await RolePageAccess.create(record, { transaction });
+          console.log(`Created new record for page ${record.PageID}`);
+        }
+      }
+
+      await transaction.commit();
+      console.log("Transaction committed");
+
+      // Get all pages with their access status for this role
+      const allPages = await PageMaster.findAll({
+        where: { delStatus: 0 },
+        attributes: ["PageID", "PageName"],
+        order: [["PageName", "ASC"]],
+      });
+
+      const roleAccess = await RolePageAccess.findAll({
+        where: {
+          RoleID: roleId,
+          delStatus: 0,
+          Access: 1,
+        },
+        attributes: ["PageID"],
+      });
+
+      const accessiblePageIds = roleAccess.map((ra) => ra.PageID);
+
+      const pagesWithAccess = allPages.map((page) => ({
+        PageID: page.PageID,
+        PageName: page.PageName,
+        Access: accessiblePageIds.includes(page.PageID) ? 1 : 0,
+      }));
+
+      return {
+        success: true,
+        message: "Pages assigned to role successfully",
+        data: {
+          role: {
+            RoleID: role.RoleID,
+            RoleName: role.RoleName,
+          },
+          pages: pagesWithAccess,
+          accessiblePages: accessiblePageIds.length,
+          totalPages: allPages.length,
+        },
+      };
+    } catch (error) {
+      await transaction.rollback();
+      console.error("Transaction rolled back:", error);
+      return {
+        success: false,
+        message: "Database error while assigning pages to role",
+        data: { error: error.message },
+      };
+    }
+  } catch (error) {
+    console.error("Service error:", error);
+    return {
+      success: false,
+      message: error.message || "Error assigning pages to role",
+      data: {},
+    };
+  }
+};
+
+export const getRolePageAccessReportService = async () => {
+  try {
+    // Get all records from rolepageaccess (including Access = 0 for removed access)
+    const rolePageAccess = await RolePageAccess.findAll({
+      where: { delStatus: 0 }, // Only get non-deleted records
+      attributes: [
+        "id",
+        "RoleID",
+        "PageID",
+        "Access", // Include Access field (0 or 1)
+        "AuthAdd",
+        "AddOnDt",
+        "AuthLstEdt",
+        "editOnDt",
+      ],
+      order: [
+        ["RoleID", "ASC"],
+        ["PageID", "ASC"],
+      ],
+      raw: true,
+    });
+
+    if (rolePageAccess.length === 0) {
+      return {
+        success: true,
+        message: "No role-page access records found",
+        data: [],
+        summary: {
+          totalRoles: 0,
+          totalAssignments: 0,
+          activeAccess: 0,
+          inactiveAccess: 0,
+        },
+      };
+    }
+
+    const roleIds = [...new Set(rolePageAccess.map((r) => r.RoleID))];
+    const pageIds = [...new Set(rolePageAccess.map((r) => r.PageID))];
+
+    const roles = await RoleMaster.findAll({
+      where: {
+        RoleID: roleIds,
+        delStatus: 0,
+      },
+      attributes: ["RoleID", "RoleName"],
+      raw: true,
+    });
+
+    const pages = await PageMaster.findAll({
+      where: {
+        PageID: pageIds,
+        delStatus: 0,
+      },
+      attributes: ["PageID", "PageName"],
+      raw: true,
+    });
+
+    const roleMap = {};
+    roles.forEach((role) => {
+      roleMap[role.RoleID] = role.RoleName;
+    });
+
+    const pageMap = {};
+    pages.forEach((page) => {
+      pageMap[page.PageID] = page.PageName;
+    });
+
+    // Group by RoleID
+    const groupedByRole = {};
+    rolePageAccess.forEach((record) => {
+      const roleId = record.RoleID;
+      const roleName = roleMap[roleId] || "Unknown Role";
+      const pageName = pageMap[record.PageID] || "Unknown Page";
+
+      if (!groupedByRole[roleId]) {
+        groupedByRole[roleId] = {
+          RoleID: roleId,
+          RoleName: roleName,
+          TotalPages: 0,
+          ActivePages: 0,
+          Pages: [],
+        };
+      }
+
+      groupedByRole[roleId].Pages.push({
+        RecordID: record.id,
+        PageID: record.PageID,
+        PageName: pageName,
+        Access: record.Access, // Include Access status
+        AssignedBy: record.AuthAdd,
+        AssignedOn: record.AddOnDt,
+        LastEditedBy: record.AuthLstEdt,
+        LastEditedOn: record.editOnDt,
+      });
+
+      groupedByRole[roleId].TotalPages++;
+      if (record.Access === 1) {
+        groupedByRole[roleId].ActivePages++;
+      }
+    });
+
+    const report = Object.values(groupedByRole).sort(
+      (a, b) => a.RoleID - b.RoleID
+    );
+
+    // Calculate summary statistics
+    const activeAccess = rolePageAccess.filter((r) => r.Access === 1).length;
+    const inactiveAccess = rolePageAccess.filter((r) => r.Access === 0).length;
+
+    return {
+      success: true,
+      message: "Role-page access report generated successfully",
+      data: report,
+      summary: {
+        totalRoles: report.length,
+        totalAssignments: rolePageAccess.length,
+        activeAccess: activeAccess,
+        inactiveAccess: inactiveAccess,
+        rolesNotFound: roleIds.filter((id) => !roleMap[id]).length,
+        pagesNotFound: pageIds.filter((id) => !pageMap[id]).length,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getRolePageAccessReportService:", error);
+    return {
+      success: false,
+      message: "Failed to generate role-page access report",
+      data: [],
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
+  }
+};
+
+export const assignSingleRoleService = async (
+  userId,
+  roleId,
+  currentUserId
+) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        UserID: userId,
+        delStatus: 0,
+      },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    // Validate roleId (should be a positive number)
+    if (!roleId || roleId <= 0) {
+      return {
+        success: false,
+        message: "Invalid role ID. Role ID must be a positive number.",
+        data: {},
+      };
+    }
+
+    // Update user with the role ID in isAdmin column
+    await User.update(
+      {
+        isAdmin: roleId, // Store role ID in isAdmin column
+        AuthLstEdt: currentUserId.toString(),
+        editOnDt: new Date(),
+      },
+      {
+        where: {
+          UserID: userId,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      message: "User role assigned successfully",
+      data: {
+        userId: userId,
+        roleId: roleId,
+        updatedBy: currentUserId,
+        updatedAt: new Date(),
+      },
+    };
+  } catch (error) {
+    console.error("Error in assignSingleRoleService:", error);
+    return {
+      success: false,
+      message: "Failed to assign role to user",
+      data: {},
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
+  }
+};
+
+export const getUserRoleService = async (userId) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        UserID: userId,
+        delStatus: 0,
+      },
+      attributes: [
+        "UserID",
+        "Name",
+        "EmailId",
+        "isAdmin", // This will store the role ID (1, 2, 3, 4, etc.)
+        "AuthLstEdt",
+        "editOnDt",
+      ],
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+        data: null,
+      };
+    }
+
+    // The isAdmin column now stores the role ID
+    // 0 = no role, 1 = Admin, 2 = Head Of Department, 3 = HOD, 4 = Faculty, etc.
+    const roleId = user.isAdmin || 0; // Default to 0 if null
+
+    return {
+      success: true,
+      message: "User role retrieved successfully",
+      data: roleId > 0 ? roleId : null, // Return null if no role assigned
+      userInfo: {
+        UserID: user.UserID,
+        Name: user.Name,
+        EmailId: user.EmailId,
+        roleId: roleId, // The role ID stored in isAdmin column
+        lastEditedBy: user.AuthLstEdt,
+        lastEditedOn: user.editOnDt,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getUserRoleService:", error);
+    return {
+      success: false,
+      message: "Failed to retrieve user role",
+      data: null,
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
+  }
+};
+
+export const removeUserRoleService = async (userId, currentUserId) => {
+  try {
+    const user = await User.findOne({
+      where: {
+        UserID: userId,
+        delStatus: 0,
+      },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+        data: {},
+      };
+    }
+
+    // Set isAdmin to 0 (no role)
+    await User.update(
+      {
+        isAdmin: 0, // 0 means no role assigned
+        AuthLstEdt: currentUserId.toString(),
+        editOnDt: new Date(),
+      },
+      {
+        where: {
+          UserID: userId,
+        },
+      }
+    );
+
+    return {
+      success: true,
+      message: "User role removed successfully",
+      data: {
+        userId: userId,
+        roleRemoved: true,
+        updatedBy: currentUserId,
+        updatedAt: new Date(),
+      },
+    };
+  } catch (error) {
+    console.error("Error in removeUserRoleService:", error);
+    return {
+      success: false,
+      message: "Failed to remove user role",
+      data: {},
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    };
+  }
+};
+
+export const removeUserRole = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const currentUser = req.user;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+        data: {},
+      });
+    }
+
+    if (!currentUser || !currentUser.id) {
+      return res.status(400).json({
+        success: false,
+        message: "Current user information is required",
+        data: {},
+      });
+    }
+
+    const result = await removeUserRoleService(userId, currentUser.id);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in removeUserRole controller:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to remove user role",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
+
+export const getPagesByRoleService = async (roleId) => {
+  try {
+    const mappings = await RolePageAccess.findAll({
+      where: {
+        RoleID: roleId,
+        Access: 1,
+        [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+      },
+      attributes: ["PageID"],
+    });
+
+    const pageIds = mappings.map((m) => m.PageID);
+
+    if (!pageIds.length) return [];
+
+    const pages = await PageMaster.findAll({
+      where: {
+        PageID: pageIds,
+        [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
+      },
+      attributes: ["PageID", "PageName", "DisplayName", "MenuType"],
+      order: [["PageID", "ASC"]],
+    });
+
+    return pages;
+  } catch (error) {
+    console.error("getPagesByRoleService Error:", error);
+    throw error;
   }
 };

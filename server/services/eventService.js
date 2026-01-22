@@ -299,10 +299,8 @@ export const getEventByIdService = async (eventId) => {
 };
 
 export const EventViewService = {
- 
-  async getTotalEventViews() {
+  async getTotalEventViews(userId) {
     try {
-      // Fetch all events (assuming you have a CommunityEvents table)
       const events = await CommunityEvents.findAll({
         where: { delStatus: 0 },
         attributes: ["EventID", "EventTitle"],
@@ -311,48 +309,87 @@ export const EventViewService = {
 
       const results = await Promise.all(
         events.map(async (event) => {
+          // ✅ Total views
           const totalViews = await ContentInteractionLog.count({
             where: {
               ProcessName: "Event",
               reference: event.EventID,
-              delStatus: 0,
               View: 1,
+              delStatus: 0,
             },
           });
+
+          // ✅ Has this user viewed?
+          let userHasViewed = false;
+
+          if (userId) {
+            const userView = await ContentInteractionLog.findOne({
+              where: {
+                ProcessName: "Event",
+                reference: event.EventID,
+                UserID: userId,
+                View: 1,
+                delStatus: 0,
+              },
+            });
+
+            userHasViewed = !!userView;
+          }
 
           return {
             eventID: event.EventID,
             eventTitle: event.EventTitle,
             totalViews,
+            HasUserViewed: userHasViewed, // ✅ SAME PATTERN AS DISCUSSION
           };
-        })
+        }),
       );
 
       return { success: true, data: results };
     } catch (error) {
       console.error("Error fetching total event views:", error);
-      return { success: false, message: "Error fetching total event views" };
+      return { success: false, message: error.message };
     }
   },
 
-  async getEventViewById(eventId) {
+  async getEventViewById(eventId, userId) {
     try {
       const totalViews = await ContentInteractionLog.count({
         where: {
           ProcessName: "Event",
           reference: eventId,
-          delStatus: 0,
           View: 1,
+          delStatus: 0,
         },
       });
 
+      let userHasViewed = false;
+
+      if (userId) {
+        const userView = await ContentInteractionLog.findOne({
+          where: {
+            ProcessName: "Event",
+            reference: eventId,
+            UserID: userId,
+            View: 1,
+            delStatus: 0,
+          },
+        });
+
+        userHasViewed = !!userView;
+      }
+
       return {
         success: true,
-        data: { reference: eventId, totalViews },
+        data: {
+          reference: eventId,
+          totalViews,
+          HasUserViewed: userHasViewed,
+        },
       };
     } catch (error) {
       console.error("Error fetching event view by ID:", error);
-      return { success: false, message: "Error fetching event view by ID" };
+      return { success: false, message: error.message };
     }
   },
 };

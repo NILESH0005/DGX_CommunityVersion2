@@ -1,10 +1,11 @@
 // utils/discussionStats.js
-export const fetchDiscussionStats = async (fetchData) => {
+export const fetchDiscussionStats = async (fetchData, userToken) => {
   try {
     const endpoint = "dropdown/discussionStats";
     const method = "GET";
     const headers = {
       "Content-Type": "application/json",
+      "auth-token": userToken,
     };
 
     const result = await fetchData(endpoint, method, {}, headers);
@@ -17,6 +18,7 @@ export const fetchDiscussionStats = async (fetchData) => {
           TotalLikes: discussion.TotalLikes,
           TotalComments: discussion.TotalComments,
           TotalViews: discussion.TotalViews,
+          HasUserViewed: discussion.HasUserViewed, // 🔥 THIS WAS MISSING
         };
       });
       return statsMap;

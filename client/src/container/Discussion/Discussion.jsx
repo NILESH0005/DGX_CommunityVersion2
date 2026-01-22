@@ -1,8 +1,7 @@
-import { useState, useEffect, useContext, useRef, useCallback   } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ApiContext from "../../context/ApiContext.jsx";
-import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { fetchDiscussionStats } from "../../utils/discussionStats.js";
 
@@ -108,7 +107,6 @@ const Discussion = () => {
       const reposts = allDiscussions.filter((d) => d.RepostID);
       const discussions = allDiscussions.filter((d) => !d.RepostID);
 
-      // Process reposts
       reposts.forEach((r) => {
         const target = discussions.find(
           (orig) => orig.DiscussionID === r.RepostID
@@ -122,17 +120,16 @@ const Discussion = () => {
         }
       });
 
-      // 📊 3. Attach stats (you might want to optimize this for pagination)
-      const stats = pageNum === 1 ? await fetchDiscussionStats(fetchData) : {};
-
+      const stats =
+        pageNum === 1 ? await fetchDiscussionStats(fetchData, userToken) : {};
       const discussionsWithStats = discussions.map((d) => ({
         ...d,
         likeCount: stats[d.DiscussionID]?.TotalLikes || 0,
         commentCount: stats[d.DiscussionID]?.TotalComments || 0,
         viewCount: stats[d.DiscussionID]?.TotalViews || 0,
+        hasUserViewed: stats[d.DiscussionID]?.HasUserViewed || false, 
       }));
 
-      // Update state based on page
       if (pageNum === 1) {
         setDemoDiscussions(discussionsWithStats);
         setFilteredDiscussions(discussionsWithStats);
@@ -141,7 +138,6 @@ const Discussion = () => {
         setFilteredDiscussions((prev) => [...prev, ...discussionsWithStats]);
       }
 
-      // Update pagination state
       setHasMore(result?.data?.hasMore || false);
       setPage(pageNum);
 

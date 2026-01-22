@@ -147,7 +147,6 @@ const SubModuleCard = () => {
     }
   };
 
-  // Rate submodule with SweetAlert integration
   const rateSubModule = async (subModuleId, ratingValue, subModuleName) => {
     try {
       if (!userToken) {
@@ -160,7 +159,6 @@ const SubModuleCard = () => {
         return;
       }
 
-      // Check if already rated
       if (Number.isFinite(subModuleRatings[subModuleId]?.myRating)) {
         Swal.fire({
           icon: "info",
@@ -173,7 +171,6 @@ const SubModuleCard = () => {
         return;
       }
 
-      // Confirmation dialog before rating
       const result = await Swal.fire({
         title: "Rate Submodule",
         html: `
@@ -224,7 +221,6 @@ const SubModuleCard = () => {
       });
 
       if (response?.success) {
-        // Fetch updated ratings data from server
         const updatedRatingResponse = await fetchData(
           `lms/submodule-rating/${subModuleId}`,
           "GET",
@@ -235,7 +231,6 @@ const SubModuleCard = () => {
         );
 
         if (updatedRatingResponse?.success) {
-          // Update local state with fresh data from server
           setSubModuleRatings((prev) => ({
             ...prev,
             [subModuleId]: {
@@ -246,7 +241,6 @@ const SubModuleCard = () => {
             },
           }));
 
-          // Show success message with updated average rating
           const newAvgRating = updatedRatingResponse.data?.avgRating || 0;
 
           Swal.fire({
@@ -282,7 +276,6 @@ const SubModuleCard = () => {
             timer: 5000,
           });
         } else {
-          // Fallback if fetching updated data fails
           const updatedRatings = {
             ...subModuleRatings,
             [subModuleId]: {
@@ -350,7 +343,6 @@ const SubModuleCard = () => {
     }
   };
 
-  // Handle submodule click
   const handleSubModuleClick = async (subModule) => {
     await recordSubModuleView(subModule.SubModuleID);
     navigate(`/submodule/${subModule.SubModuleID}`, {
@@ -426,7 +418,6 @@ const SubModuleCard = () => {
     }
   };
 
-  // Time formatting functions
   const formatTime = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return "Not started";
 
@@ -440,34 +431,6 @@ const SubModuleCard = () => {
       return `${minutes}m ${seconds}s`;
     } else {
       return `${seconds}s`;
-    }
-  };
-
-  const formatTimeCompact = (totalSeconds) => {
-    if (!totalSeconds || totalSeconds === 0) return "0s";
-
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    } else {
-      return `${seconds}s`;
-    }
-  };
-
-  const getTimeSpentColor = (totalSeconds) => {
-    if (!totalSeconds || totalSeconds === 0) return `text-gray-500 bg-gray-100`;
-
-    if (totalSeconds < 60) {
-      return `text-${DGX_COLORS.green[700]} bg-${DGX_COLORS.green[100]}`;
-    } else if (totalSeconds < 300) {
-      return `text-${DGX_COLORS.blue[700]} bg-${DGX_COLORS.blue[100]}`;
-    } else {
-      return `text-${DGX_COLORS.green[700]} bg-${DGX_COLORS.green[100]}`;
     }
   };
 
@@ -615,7 +578,6 @@ const SubModuleCard = () => {
     });
   };
 
-  // Helper function to handle star click when already rated
   const handleStarClickWhenRated = (subModuleId, subModuleName, myRating) => {
     Swal.fire({
       icon: "info",
@@ -838,7 +800,6 @@ const SubModuleCard = () => {
                           <div className="flex">
                             {[1, 2, 3, 4, 5].map((star) => {
                               const rating = avgRating;
-                              // Check if this star should be fully yellow
                               if (star <= Math.floor(rating)) {
                                 return (
                                   <FaStar
@@ -847,7 +808,6 @@ const SubModuleCard = () => {
                                   />
                                 );
                               }
-                              // Check if it's a partial star (e.g., 3.5 -> show 4th star as partial)
                               else if (
                                 star === Math.ceil(rating) &&
                                 rating % 1 > 0
@@ -866,7 +826,6 @@ const SubModuleCard = () => {
                                   </div>
                                 );
                               }
-                              // Empty star
                               else {
                                 return (
                                   <FaStar
@@ -893,10 +852,8 @@ const SubModuleCard = () => {
                                 ? myRating
                                 : hoverRatings[subModule.SubModuleID] || 0;
 
-                              // Check if this star should be filled
                               const isFilled = star <= displayRating;
 
-                              // Check if it's a partial fill (for decimal ratings)
                               const isPartial =
                                 star > displayRating &&
                                 star - 1 < displayRating;
@@ -997,7 +954,6 @@ const SubModuleCard = () => {
                       )}
                     </div>
 
-                    {/* Description */}
                     <motion.div
                       className="relative overflow-hidden text-gray-700 dark:text-gray-300 text-base mb-4 select-text"
                       initial={false}

@@ -4,7 +4,7 @@ import QuizQuestions from "./QuizQuestions";
 import Swal from "sweetalert2";
 import LoadPage from "../../../component/LoadPage";
 import EditQuestionModal from "./EditQuestionModal";
-import { FaEdit, FaTrash, FaSearch, FaTimes } from "react-icons/fa";
+import { FaEdit, FaTrash, FaSearch, FaTimes, FaPlus, FaListAlt } from "react-icons/fa";
 
 const QuizBank = () => {
   const { fetchData, userToken } = useContext(ApiContext);
@@ -283,51 +283,76 @@ const QuizBank = () => {
   const renderMobileQuestionCard = (question, index) => (
     <div
       key={`${question.id}_${index}`}
-      className="p-4 mb-4 rounded-lg shadow bg-white"
+      className="p-5 mb-4 rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
     >
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start mb-3">
         <div>
-          <h3 className="font-bold text-lg">Question {index + 1}</h3>
+          <h3 className="font-bold text-lg text-gray-900 mb-1">Question {index + 1}</h3>
           <p className="text-sm text-gray-600">{question.group}</p>
         </div>
-        <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+          question.Ques_level === 'Hard' 
+            ? 'bg-red-100 text-red-800' 
+            : question.Ques_level === 'Medium'
+            ? 'bg-yellow-100 text-yellow-800'
+            : 'bg-green-100 text-green-800'
+        }`}>
           {question.Ques_level || question.level}
         </span>
       </div>
 
-      <div className="mt-2">
-        <p className="text-sm font-medium">Question:</p>
-        <p className="text-sm">{question.question_text || question.text}</p>
+      <div className="mb-4">
+        <p className="text-sm font-medium text-gray-700 mb-1">Question:</p>
+        <p className="text-sm text-gray-900 line-clamp-2">{question.question_text || question.text}</p>
       </div>
 
-      <div className="mt-2">
-        <p className="text-sm font-medium">Correct Answer:</p>
-        <p className="text-sm">{question.correctAnswer}</p>
+      <div className="mb-4">
+        <p className="text-sm font-medium text-gray-700 mb-1">Correct Answer:</p>
+        <p className="text-sm text-gray-900 font-medium">{question.correctAnswer}</p>
       </div>
 
-      <div className="mt-3 flex justify-between items-center">
-        <span className="text-sm bg-gray-100 px-2 py-1 rounded">
-          Used: {question.count || 0} times
-        </span>
+      <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <span className="text-sm bg-gray-100 px-3 py-1.5 rounded-lg text-gray-700 font-medium">
+            Used: {question.count || 0} times
+          </span>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => handleEdit(question.id)}
-            className="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600 transition"
+            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors duration-200"
             title="Edit"
           >
-            <FaEdit size={14} />
+            <FaEdit size={16} />
           </button>
           <button
             onClick={() => handleDelete(question.id)}
-            className="bg-red-500 text-white p-2 rounded hover:bg-red-600 transition"
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
             title="Delete"
           >
-            <FaTrash size={14} />
+            <FaTrash size={16} />
           </button>
         </div>
       </div>
     </div>
   );
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-10 bg-gray-200 rounded-lg mb-6 w-1/4"></div>
+          <div className="h-12 bg-gray-200 rounded-lg mb-6"></div>
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (showQuizQuestions) {
     return (
@@ -338,52 +363,65 @@ const QuizBank = () => {
     );
   }
 
-  if (loading) {
-    return <LoadPage />;
-  }
-
   if (error) {
-    return <p className="text-red-500">{error}</p>;
+    return (
+      <div className="mt-6 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
+        <p className="text-red-600 text-center font-medium mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-DGXblue text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium mx-auto block shadow-sm"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="mt-6 p-4 bg-white rounded-lg shadow">
-      <div className="flex justify-end mb-4">
+    <div className="mt-6 p-4 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Question Bank</h2>
+          <p className="text-gray-600 text-sm">
+            Total Questions: <span className="font-semibold">{questionMap.length}</span>
+          </p>
+        </div>
         <button
           onClick={() => setShowQuizQuestions(true)}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition whitespace-nowrap"
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg transition-colors duration-200 font-medium shadow-sm"
         >
+          <FaPlus />
           Create Question
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row justify-between items-stretch gap-4 mb-4">
-        <div className="relative flex-grow min-w-0">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <FaSearch className="text-gray-400" />
-          </div>
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search questions..."
+            placeholder="Search questions by text..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            className="w-full pl-12 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent placeholder-gray-500"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              <FaTimes className="text-gray-400 hover:text-gray-600" />
+              <FaTimes />
             </button>
           )}
         </div>
 
-        <div className="w-full md:w-auto md:min-w-[200px]">
+        <div className="w-full md:w-64">
           <select
             value={selectedGroup}
             onChange={(e) => setSelectedGroup(e.target.value)}
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-DGXblue focus:border-transparent bg-white"
           >
             {groups.map((group, index) => (
               <option key={index} value={group}>
@@ -394,66 +432,129 @@ const QuizBank = () => {
         </div>
       </div>
 
+      {/* Questions Table/Cards */}
       {filteredQuestions.length > 0 ? (
         isMobileView ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {filteredQuestions.map((question, index) =>
               renderMobileQuestionCard(question, index)
             )}
           </div>
         ) : (
-          <div className="overflow-auto" style={{ maxHeight: "600px" }}>
-            <table className="w-full border-collapse border border-gray-300">
-              <thead className="sticky top-0 z-10">
-                <tr className="bg-DGXgreen text-white">
-                  <th className="border p-2">#</th>
-                  <th className="border p-2">Question</th>
-                  <th className="border p-2">Correct Answer</th>
-                  <th className="border p-2">Group</th>
-                  <th className="border p-2">Level</th>
-                  <th className="border p-2">Quiz Count</th>
-                  <th className="border p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredQuestions.map((q, index) => (
-                  <tr key={`${q.id}_${index}`} className="hover:bg-gray-50">
-                    <td className="border p-2 text-center">{index + 1}</td>
-                    <td className="border p-2">{q.question_text || q.text}</td>
-                    <td className="border p-2">{q.correctAnswer}</td>
-                    <td className="border p-2 text-center">{q.group}</td>
-                    <td className="border p-2 text-center">
-                      {q.Ques_level || q.level}
-                    </td>
-                    <td className="border p-2 text-center">{q.count}</td>
-                    <td className="border p-2 text-center">
-                      <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
-                        <button
-                          onClick={() => handleEdit(q.id)}
-                          className="bg-yellow-500 text-white p-1 sm:p-2 rounded hover:bg-yellow-600 transition"
-                          title="Edit"
-                          aria-label="Edit"
-                        >
-                          <FaEdit className="text-xs sm:text-sm" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(q.id)}
-                          className="bg-red-500 text-white p-1 sm:p-2 rounded hover:bg-red-600 transition"
-                          title="Delete"
-                          aria-label="Delete"
-                        >
-                          <FaTrash className="text-xs sm:text-sm" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+            <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+              <div className="min-w-full">
+                <table className="w-full">
+                  <thead className="sticky top-0 z-10">
+                    <tr className="bg-DGXgreen">
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700 sticky left-0  z-20">
+                        #
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700 min-w-[300px]">
+                        Question
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700 min-w-[200px]">
+                        Correct Answer
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700">
+                        Group
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700">
+                        Level
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700">
+                        Usage
+                      </th>
+                      <th className="p-4 border-b text-left font-semibold text-sm uppercase tracking-wider text-gray-700">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredQuestions.map((q, index) => (
+                      <tr key={`${q.id}_${index}`} className="hover:bg-gray-50 transition-colors duration-150">
+                        <td className="p-4 text-sm text-gray-600 font-medium sticky left-0 bg-white z-10">
+                          {index + 1}
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm font-bold text-gray-900 line-clamp-2">
+                            {q.question_text || q.text}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="text-sm text-gray-900 font-medium">
+                            {q.correctAnswer}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className="text-sm text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg">
+                            {q.group}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${
+                            q.Ques_level === 'Hard' 
+                              ? 'bg-red-100 text-red-800' 
+                              : q.Ques_level === 'Medium'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {q.Ques_level || q.level}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <FaListAlt className="text-gray-400" />
+                            <span className="text-sm text-gray-700 font-medium">
+                              {q.count || 0} times
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEdit(q.id)}
+                              className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors duration-200"
+                              title="Edit"
+                            >
+                              <FaEdit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(q.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                              title="Delete"
+                            >
+                              <FaTrash size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )
       ) : (
-        <p className="text-center text-gray-500">No questions found.</p>
+        <div className="text-center py-12">
+          <div className="text-gray-400 mb-3">
+            <FaSearch size={48} className="mx-auto" />
+          </div>
+          <p className="text-gray-500 text-lg font-medium mb-2">
+            {searchQuery || selectedGroup !== "All" 
+              ? "No questions match your filters" 
+              : "No questions found in the bank"}
+          </p>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="text-DGXblue hover:text-blue-700 font-medium"
+            >
+              Clear search
+            </button>
+          )}
+        </div>
       )}
 
       {showEditModal && selectedQuestion && (

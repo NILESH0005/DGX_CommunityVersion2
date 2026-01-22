@@ -34,7 +34,7 @@ router.get("/getAllActiveFiles", getAllActiveFiles);
 router.post("/getFileById", getFileById);
 router.get("/download/:FileID", downloadFileById);
 router.post("/rate-submodule",fetchUser, handleLmsSubmoduleRateAction);
-router.get(  "/submodule-rating/:subModuleId",fetchUser, getSubModuleRating);
+router.get("/submodule-rating/:subModuleId",fetchUser, getSubModuleRating);
 router.get(
   "/module-rating/:moduleId",
   getModuleRating

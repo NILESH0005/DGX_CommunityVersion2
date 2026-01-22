@@ -84,7 +84,6 @@ const DiscussionCard = ({
     }
   };
 
-
   const handleRepost = async (e) => {
     e.stopPropagation();
 
@@ -154,7 +153,6 @@ const DiscussionCard = ({
       setLoading(false);
     }
   };
-
 
   const handleComment = (e) => {
     e.stopPropagation();
@@ -336,12 +334,50 @@ const DiscussionCard = ({
             </div>
             <span className="font-medium">{discussion.commentCount || 0}</span>
           </button>
-          <div className="flex items-center gap-2 text-gray-500">
-            <div className="p-2 rounded-full bg-gray-100">
-              <FiEye className="w-5 h-5" />
+          <div className="relative flex items-center gap-2 group">
+            {/* Eye icon container */}
+            <div className="relative">
+              <div
+                className={`p-2 rounded-full transition-all ${
+                  discussion.hasUserViewed
+                    ? "bg-green-100 text-green-600 ring-2 ring-green-400"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                <FiEye className="w-5 h-5" />
+              </div>
+
+              {/* Tooltip for icon */}
+              {discussion.hasUserViewed && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+                  Viewed
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                </div>
+              )}
             </div>
-            <span className="font-medium">{discussion.viewCount || 0}</span>
+
+            {/* View count */}
+            <div className="relative">
+              <span
+                className={`font-medium ${
+                  discussion.hasUserViewed
+                    ? "text-green-600 font-semibold"
+                    : "text-gray-500"
+                }`}
+              >
+                {discussion.viewCount || 0}
+              </span>
+
+              {/* Tooltip for count */}
+              {discussion.hasUserViewed && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+                  You've viewed this
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                </div>
+              )}
+            </div>
           </div>
+
           <div className="relative group">
             <button
               onClick={handleRepost}

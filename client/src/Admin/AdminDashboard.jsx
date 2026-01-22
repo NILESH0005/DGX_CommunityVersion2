@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Users from "./Components/Users";
@@ -36,6 +36,8 @@ import LearningMaterialManager from "./Components/LMS/LearningMaterialManager";
 import LearningMaterialList from "./Components/LMS/LearningMaterialList";
 import ModuleBuilder from "./Components/LMS/ModuleBuilder/ModuleBuilder";
 import DashboardPage from "./Components/Dashboard/DashboardPage";
+import ApiContext from "../context/ApiContext";
+
 const AdminDashboard = (props) => {
   const location = useLocation();
   const [activeComp, setActiveComp] = useState("DashboardPage");
@@ -43,12 +45,52 @@ const AdminDashboard = (props) => {
   const [isMobile, setIsMobile] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const overlayRef = useRef(null);
+  const { userToken, fetchData } = useContext(ApiContext);
+  const [allowedPages, setAllowedPages] = useState([]);
 
   useEffect(() => {
     if (location.state?.open) {
       setActiveComp(location.state.open);
     }
   }, [location]);
+
+  useEffect(() => {
+    const fetchMenuPages = async () => {
+      try {
+        if (!userToken) return;
+
+        const result = await fetchData(
+          "user/pages-by-role",
+          "GET",
+          {},
+          { "auth-token": userToken },
+        );
+
+        console.log("Admin Sidebar Pages:", result);
+
+        if (result?.success) {
+          setAllowedPages(result.data || []);
+        }
+      } catch (error) {
+        console.error("Failed to load admin sidebar pages", error);
+      }
+    };
+
+    fetchMenuPages();
+  }, [userToken]);
+
+  const hasAccessById = (pageId) => {
+    return allowedPages.some((p) => p.PageID === pageId);
+  };
+
+  const hasAnyAccessById = (pageIds = []) => {
+    return pageIds.some((id) => hasAccessById(id));
+  };
+
+  const hasAnyAccess = (pageNames = []) => {
+    return pageNames.some((name) => hasAccess(name));
+  };
+
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -94,6 +136,9 @@ const AdminDashboard = (props) => {
   const toggleDropdown = (menu) => {
     setOpenDropdown(openDropdown === menu ? null : menu);
   };
+
+  const getPageLabel = (pageId) =>
+    allowedPages.find((p) => p.PageID === pageId)?.DisplayName;
 
   const getComp = (comp) => {
     switch (comp) {
@@ -153,8 +198,6 @@ const AdminDashboard = (props) => {
     closed: { x: "-100%" },
   };
 
-
-
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-100 relative">
       {/* Mobile Header */}
@@ -188,235 +231,244 @@ const AdminDashboard = (props) => {
       >
         <nav className="overflow-y-auto h-full w-full md:w-64 pt-16 z-10 fixed md:static bg-black">
           <ul>
-            {/* Admin Dashboard */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "DashboardPage"
-                    ? "bg-gray-700 text-yellow-300"
-                    : ""
-                }`}
-                onClick={() => handleMenuItemClick("DashboardPage")}
-              >
-                <FaHome className="mr-4" />
-                Dashboard
-              </div>
-            </li>
-
-            {/* Home */}
-            <li>
-              <div
-                className={` UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "Home" ? "bg-gray-700 text-yellow-300" : ""
-                }`}
-                onClick={() => handleMenuItemClick("Home")}
-              >
-                <FaHome className="mr-4" />
-                Home
-              </div>
-            </li>
+            {hasAccessById(11) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
+                    activeComp === "DashboardPage"
+                      ? "bg-gray-700 text-yellow-300"
+                      : ""
+                  }`}
+                  onClick={() => handleMenuItemClick("DashboardPage")}
+                >
+                  <FaHome className="mr-4" />
+                  {getPageLabel(11)}
+                </div>
+              </li>
+            )}
+            {hasAccessById(22) && (
+              <li>
+                <div
+                  className={` UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                    activeComp === "Home" ? "bg-gray-700 text-yellow-300" : ""
+                  }`}
+                  onClick={() => handleMenuItemClick("Home")}
+                >
+                  <FaHome className="mr-4" />
+                  Home
+                </div>
+              </li>
+            )}
 
             {/* Users */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "users" ? "bg-gray-700 text-yellow-300" : ""
-                }`}
-                onClick={() => handleMenuItemClick("users")}
-              >
-                <FaUsers className="mr-4" />
-                Users
-              </div>
-            </li>
+            {hasAccessById(12) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
+                    activeComp === "users" ? "bg-gray-700 text-yellow-300" : ""
+                  }`}
+                  onClick={() => handleMenuItemClick("users")}
+                >
+                  <FaUsers className="mr-4" />
+                  Users
+                </div>
+              </li>
+            )}
 
             {/* LMS Section */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  ["select_module", "edit_module"].includes(activeComp)
-                    ? "bg-gray-700 text-yellow-300"
-                    : ""
-                }`}
-                onClick={() => toggleDropdown("lms")}
-              >
-                <FaGraduationCap className="mr-4" />
-                LMS
-                {openDropdown === "lms" ? (
-                  <FaAngleUp className="ml-auto" />
-                ) : (
-                  <FaAngleDown className="ml-auto" />
-                )}
-              </div>
+            {hasAccessById(6) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
+                    ["select_module", "edit_module"].includes(activeComp)
+                      ? "bg-gray-700 text-yellow-300"
+                      : ""
+                  }`}
+                  onClick={() => toggleDropdown("lms")}
+                >
+                  <FaGraduationCap className="mr-4" />
+                  {getPageLabel(6)}
+                  {openDropdown === "lms" ? (
+                    <FaAngleUp className="ml-auto" />
+                  ) : (
+                    <FaAngleDown className="ml-auto" />
+                  )}
+                </div>
 
-              <AnimatePresence>
-                {openDropdown === "lms" && (
-                  <motion.ul
-                    className="bg-gray-800 overflow-hidden"
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                    variants={dropdownVariants}
-                  >
-                    <li>
-                      <div
-                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
-                          activeComp === "select_module"
-                            ? "bg-gray-700 text-yellow-300"
-                            : ""
-                        }`}
-                        onClick={() => handleMenuItemClick("select_module")}
-                      >
-                        <FaLayerGroup className="mr-4" />
-                        Upload learning Kit
-                      </div>
-                    </li>
-                    <li>
-                      <div
-                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
-                          activeComp === "edit_module"
-                            ? "bg-gray-700 text-yellow-300"
-                            : ""
-                        }`}
-                        onClick={() => handleMenuItemClick("edit_module")}
-                      >
-                        <FaLayerGroup className="mr-4" />
-                        Edit Existing Module
-                      </div>
-                    </li>
-                  </motion.ul>
-                )}
-              </AnimatePresence>
-            </li>
+                <AnimatePresence>
+                  {openDropdown === "lms" && (
+                    <motion.ul className="bg-gray-800 overflow-hidden">
+                      {hasAccessById(17) && (
+                        <li>
+                          <div
+                            className="py-2 px-6 cursor-pointer"
+                            onClick={() => handleMenuItemClick("select_module")}
+                          >
+                            {getPageLabel(17)}
+                          </div>
+                        </li>
+                      )}
+
+                      {hasAccessById(18) && (
+                        <li>
+                          <div
+                            className="py-2 px-6 cursor-pointer"
+                            onClick={() => handleMenuItemClick("edit_module")}
+                          >
+                            {getPageLabel(17)}
+                          </div>
+                        </li>
+                      )}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
+              </li>
+            )}
 
             {/* Quiz Section */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  ["quizpanel", "quiz_bank", "quiz_mapping"].includes(
-                    activeComp
-                  )
-                    ? "bg-gray-700 text-yellow-300"
-                    : ""
-                }`}
-                onClick={() => toggleDropdown("quiz")}
-              >
-                <FaBrain className="mr-4" />
-                Quiz
-                {openDropdown === "quiz" ? (
-                  <FaAngleUp className="ml-auto" />
-                ) : (
-                  <FaAngleDown className="ml-auto" />
-                )}
-              </div>
+            {/* Quiz Section */}
+            {hasAnyAccessById([19, 20, 21]) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
+                    ["quizpanel", "quiz_bank", "quiz_mapping"].includes(
+                      activeComp,
+                    )
+                      ? "bg-gray-700 text-yellow-300"
+                      : ""
+                  }`}
+                  onClick={() => toggleDropdown("quiz")}
+                >
+                  <FaBrain className="mr-4" />
+                  {getPageLabel(5)}
+                  {openDropdown === "quiz" ? (
+                    <FaAngleUp className="ml-auto" />
+                  ) : (
+                    <FaAngleDown className="ml-auto" />
+                  )}
+                </div>
 
-              <AnimatePresence>
-                {openDropdown === "quiz" && (
-                  <motion.ul
-                    className="bg-gray-800 overflow-hidden"
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                    variants={dropdownVariants}
-                  >
-                    <li>
-                      <div
-                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
-                          activeComp === "quizpanel"
-                            ? "bg-gray-700 text-yellow-300"
-                            : ""
-                        }`}
-                        onClick={() => handleMenuItemClick("quizpanel")}
-                      >
-                        <FaQuestionCircle className="mr-4" />
-                        Quiz Panel
-                      </div>
-                    </li>
-                    <li>
-                      <div
-                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
-                          activeComp === "quiz_bank"
-                            ? "bg-gray-700 text-yellow-300"
-                            : ""
-                        }`}
-                        onClick={() => handleMenuItemClick("quiz_bank")}
-                      >
-                        <FaList className="mr-4" />
-                        Question Bank
-                      </div>
-                    </li>
-                    <li>
-                      <div
-                        className={` py-2 px-6 cursor-pointer flex items-center text-base md:text-lg ${
-                          activeComp === "quiz_mapping"
-                            ? "bg-gray-700 text-yellow-300"
-                            : ""
-                        }`}
-                        onClick={() => handleMenuItemClick("quiz_mapping")}
-                      >
-                        <FaChartPie className="mr-4" />
-                        Quiz Mapping
-                      </div>
-                    </li>
-                  </motion.ul>
-                )}
-              </AnimatePresence>
-            </li>
+                <AnimatePresence>
+                  {openDropdown === "quiz" && (
+                    <motion.ul
+                      className="bg-gray-800 overflow-hidden"
+                      initial="closed"
+                      animate="open"
+                      exit="closed"
+                      variants={dropdownVariants}
+                    >
+                      {hasAccessById(19) && (
+                        <li>
+                          <div
+                            className={`py-2 px-6 cursor-pointer ${
+                              activeComp === "quizpanel"
+                                ? "bg-gray-700 text-yellow-300"
+                                : ""
+                            }`}
+                            onClick={() => handleMenuItemClick("quizpanel")}
+                          >
+                            <FaQuestionCircle className="mr-4" />
+                            {getPageLabel(19)}
+                          </div>
+                        </li>
+                      )}
+
+                      {hasAccessById(20) && (
+                        <li>
+                          <div
+                            className={`py-2 px-6 cursor-pointer ${
+                              activeComp === "quiz_bank"
+                                ? "bg-gray-700 text-yellow-300"
+                                : ""
+                            }`}
+                            onClick={() => handleMenuItemClick("quiz_bank")}
+                          >
+                            <FaList className="mr-4" />
+                            {getPageLabel(20)}
+                          </div>
+                        </li>
+                      )}
+
+                      {hasAccessById(21) && (
+                        <li>
+                          <div
+                            className={`py-2 px-6 cursor-pointer ${
+                              activeComp === "quiz_mapping"
+                                ? "bg-gray-700 text-yellow-300"
+                                : ""
+                            }`}
+                            onClick={() => handleMenuItemClick("quiz_mapping")}
+                          >
+                            <FaChartPie className="mr-4" />
+                            {getPageLabel(21)}
+                          </div>
+                        </li>
+                      )}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
+              </li>
+            )}
 
             {/* Discussions */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "discussions"
-                    ? "bg-gray-700 text-yellow-300"
-                    : ""
-                }`}
-                onClick={() => handleMenuItemClick("discussions")}
-              >
-                <FaComments className="mr-4" />
-                Discussions
-              </div>
-            </li>
-
-            {/* Blogs */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "blog_manager"
-                    ? "bg-gray-700 text-yellow-300"
-                    : ""
-                }`}
-                onClick={() => handleMenuItemClick("blog_manager")}
-              >
-                <FaBlog className="mr-4" />
-                Blogs
-              </div>
-            </li>
-
-            {/* Events */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "events" ? "bg-gray-700 text-yellow-300" : ""
-                }`}
-                onClick={() => handleMenuItemClick("events")}
-              >
-                <FaCalendarAlt className="mr-4" />
-                Events
-              </div>
-            </li>
-
-            {/* ContactUs */}
-            <li>
-              <div
-                className={`UnderLine py-3 px-4 cursor-pointer flex items-center text-lg md:text-xl ${
-                  activeComp === "contact" ? "bg-gray-700 text-yellow-300" : ""
-                }`}
-                onClick={() => handleMenuItemClick("contact")}
-              >
-                <FaEnvelope className="mr-4" />
-                Contact Us
-              </div>
-            </li>
+            {hasAccessById(13) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
+                    activeComp === "discussions"
+                      ? "bg-gray-700 text-yellow-300"
+                      : ""
+                  }`}
+                  onClick={() => handleMenuItemClick("discussions")}
+                >
+                  <FaComments className="mr-4" />
+                  {getPageLabel(13)}
+                </div>
+              </li>
+            )}
+            {hasAccessById(14) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
+                    activeComp === "blog_manager"
+                      ? "bg-gray-700 text-yellow-300"
+                      : ""
+                  }`}
+                  onClick={() => handleMenuItemClick("blog_manager")}
+                >
+                  <FaBlog className="mr-4" />
+                  {getPageLabel(14)}
+                </div>
+              </li>
+            )}
+            {hasAccessById(15) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
+                    activeComp === "events" ? "bg-gray-700 text-yellow-300" : ""
+                  }`}
+                  onClick={() => handleMenuItemClick("events")}
+                >
+                  <FaCalendarAlt className="mr-4" />
+                  {getPageLabel(15)}
+                </div>
+              </li>
+            )}
+            {hasAccessById(16) && (
+              <li>
+                <div
+                  className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
+                    activeComp === "contact"
+                      ? "bg-gray-700 text-yellow-300"
+                      : ""
+                  }`}
+                  onClick={() => handleMenuItemClick("contact")}
+                >
+                  <FaEnvelope className="mr-4" />
+                  {getPageLabel(16)}
+                </div>
+              </li>
+            )}
           </ul>
         </nav>
       </motion.div>

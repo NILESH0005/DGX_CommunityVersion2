@@ -21,20 +21,27 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { FaBrain } from "react-icons/fa";
 import Swal from "sweetalert2";
+import { navbarRouteMap } from "../utils/pageRouteMap.js";
 
 const Navbar = () => {
   const [isSideMenuOpen, setMenu] = useState(false);
-  const { user, userToken, setUserToken, logOut } = useContext(ApiContext);
+  const [allowedPages, setAllowedPages] = useState([]);
+  const { user, userToken, setUserToken, logOut, fetchData } =
+    useContext(ApiContext);
+  console.log("Navbar userToken:", userToken);
+
   const isLoggedIn = !!(userToken && user);
   const location = useLocation();
   const navigate = useNavigate();
 
   const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const [imageVersion, setImageVersion] = useState(0); 
+  const [imageVersion, setImageVersion] = useState(0);
 
   const toggleDropdown = () => {
     setDropdownOpen(!isDropdownOpen);
   };
+
+  const normalize = (name) => name?.toLowerCase().replace(/\s+/g, "").trim();
 
   const handleLogout = () => {
     Swal.fire({
@@ -54,90 +61,120 @@ const Navbar = () => {
     });
   };
 
-  const navLinks = [
-    { label: "Home", to: "/", icon: faHome },
-    { label: "Discussions", to: "/Discussion", icon: faComments },
-    { label: "Events", to: "/EventWorkshopPage", icon: faCalendar },
-    { label: "Blog", to: "/Blog", icon: faBlog },
-    { label: "Quiz", to: "/QuizInterface", icon: FaBrain },
-    { label: "LMS", to: "/LearningPath", icon: faChalkboardTeacher },
-    { label: "Contact", to: "/ContactUs", icon: faEnvelope },
-    { label: "Guidelines", to: "/CommunityGuidelines", icon: faBook },
-  ];
+  useEffect(() => {
+    const fetchMenuPages = async () => {
+      try {
+        if (!userToken) return;
 
-  const mobileMenuLinks = [
-    { label: "Home", to: "/", icon: faHome },
-    { label: "Discussions", to: "/Discussion", icon: faComments },
-    { label: "Events", to: "/EventWorkshopPage", icon: faCalendar },
-    { label: "Blog", to: "/Blog", icon: faBlog },
-    { label: "LMS", to: "/LearningPath", icon: faChalkboardTeacher },
-    { label: "Quiz", to: "/QuizInterface", icon: FaBrain },
-    { label: "Guidelines", to: "/CommunityGuidelines", icon: faBook },
-    { label: "Contact", to: "/ContactUs", icon: faEnvelope },
-  ];
+        const result = await fetchData(
+          "user/pages-by-role",
+          "GET",
+          {},
+          {
+            "auth-token": userToken,
+          },
+        );
+        console.log("Pages from API:", result);
+
+        if (result?.success) {
+          setAllowedPages(result.data || []);
+        }
+      } catch (error) {
+        console.error("Failed to load menu pages", error);
+      }
+    };
+
+    console.log("Calling pages-by-role API...");
+
+    fetchMenuPages();
+  }, [userToken]);
+
+  const navLinks = allowedPages
+
+    .filter((page) => page.MenuType === "NAVBAR")
+    .map((page) => {
+      const config = navbarRouteMap[page.PageID];
+
+      if (!config) {
+        console.warn("No navbar mapping for PageID:", page.PageID);
+        return null;
+      }
+
+      return {
+        label: page.DisplayName, // UI text from DB
+        to: config.to, // Route from map
+        icon: config.icon,
+      };
+    })
+    .filter(Boolean);
+
+  const mobileMenuLinks = navLinks;
 
   const getProfileImage = () => {
     if (user?.ProfilePicture) {
       const profilePic = user.ProfilePicture;
-      
-      // If it's already a full URL or data URL, return as is with version
-      if (profilePic.startsWith("http") || profilePic.startsWith("data:image")) {
-        return `${profilePic}${profilePic.includes('?') ? '&' : '?'}v=${imageVersion}`;
+      if (
+        profilePic.startsWith("http") ||
+        profilePic.startsWith("data:image")
+      ) {
+        return `${profilePic}${
+          profilePic.includes("?") ? "&" : "?"
+        }v=${imageVersion}`;
       }
-      
-      // Otherwise, construct the full URL with cache busting
-      return `${import.meta.env.VITE_API_UPLOADSURL}/${profilePic}?v=${imageVersion}&t=${new Date().getTime()}`;
+
+      return `${
+        import.meta.env.VITE_API_UPLOADSURL
+      }/${profilePic}?v=${imageVersion}&t=${new Date().getTime()}`;
     }
     return images.defaultProfile;
   };
 
-  // Listen for profile image updates
   useEffect(() => {
-    // Force image refresh when user data changes
     if (user?.ProfilePicture) {
-      setImageVersion(prev => prev + 1);
+      setImageVersion((prev) => prev + 1);
       console.log("Profile picture updated, version:", imageVersion + 1);
     }
   }, [user?.ProfilePicture]);
 
-  // Listen for storage events (from other tabs/windows)
   useEffect(() => {
     const handleStorageChange = (e) => {
-      if (e.key === 'profileImageUpdated' || e.key === 'userDataUpdated') {
-        setImageVersion(prev => prev + 1);
+      if (e.key === "profileImageUpdated" || e.key === "userDataUpdated") {
+        setImageVersion((prev) => prev + 1);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    
+    window.addEventListener("storage", handleStorageChange);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
-  // Add a global event listener for profile updates within same tab
+  const hasAccessById = (pageId) =>
+    allowedPages.some((p) => p.PageID === pageId);
+
   useEffect(() => {
     const handleProfileImageUpdate = () => {
-      setImageVersion(prev => prev + 1);
+      setImageVersion((prev) => prev + 1);
     };
 
-    // Listen for custom event from UserAvatar component
-    window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
-    
+    window.addEventListener("profileImageUpdated", handleProfileImageUpdate);
+
     return () => {
-      window.removeEventListener('profileImageUpdated', handleProfileImageUpdate);
+      window.removeEventListener(
+        "profileImageUpdated",
+        handleProfileImageUpdate,
+      );
     };
   }, []);
 
-  // Generate a unique key for the image to force re-render
   const getImageKey = () => {
-    return `profile-${user?.ProfilePicture || 'default'}-${imageVersion}`;
+    return `profile-${user?.ProfilePicture || "default"}-${imageVersion}`;
   };
 
   return (
     <main>
       <nav className="flex justify-between items-center py-2 px-4 md:px-6 lg:px-8 bg-DGXblue/10 shadow-lg">
-        {/* Left section - Logo and mobile menu button */}
         <div className="flex items-center gap-4">
           <AiOutlineMenu
             onClick={() => setMenu(true)}
@@ -152,7 +189,6 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Center section - Desktop Navigation Links */}
         <div className="hidden md:flex items-center justify-center flex-1 mx-4">
           <div className="flex flex-wrap justify-center gap-2 lg:gap-4 xl:gap-6">
             {navLinks.map((d, i) => (
@@ -163,7 +199,7 @@ const Navbar = () => {
                   "px-2 py-1 rounded-md hover:bg-DGXblue/20",
                   location.pathname === d.to
                     ? "text-DGXgreen font-bold"
-                    : "hover:text-DGXgreen"
+                    : "hover:text-DGXgreen",
                 )}
                 to={d.to}
               >
@@ -202,7 +238,6 @@ const Navbar = () => {
                 />
               </div>
 
-              {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-DGXblue overflow-hidden">
                   <Link
@@ -216,7 +251,7 @@ const Navbar = () => {
                     />
                     Profile
                   </Link>
-                  {user.isAdmin == "1" && (
+                  {hasAccessById(11) && (
                     <Link
                       to="/AdminDashboard"
                       className="flex items-center px-4 py-2 text-gray-800 hover:bg-DGXblue/10 hover:text-DGXgreen transition-all duration-200"
@@ -245,17 +280,16 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Mobile Side Menu */}
         <div
           className={clsx(
             "fixed inset-0 h-full w-screen lg:hidden bg-black/50 backdrop-blur-sm z-50 transition-opacity duration-300",
-            isSideMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            isSideMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none",
           )}
         >
           <section
             className={clsx(
               "absolute left-0 top-0 h-full w-3/4 sm:w-64 bg-DGXblue text-white p-6 transition-transform duration-300 ease-in-out flex flex-col",
-              isSideMenuOpen ? "translate-x-0" : "-translate-x-full"
+              isSideMenuOpen ? "translate-x-0" : "-translate-x-full",
             )}
           >
             <div className="flex justify-between items-center mb-6">
@@ -289,7 +323,7 @@ const Navbar = () => {
                     "flex items-center gap-4 py-3 px-4 rounded-md my-1 transition-all duration-200",
                     location.pathname === d.to
                       ? "bg-DGXblue/80 text-DGXgreen font-bold"
-                      : "text-white hover:bg-DGXblue/80 hover:text-DGXgreen"
+                      : "text-white hover:bg-DGXblue/80 hover:text-DGXgreen",
                   )}
                   to={d.to}
                   onClick={() => setMenu(false)}
@@ -304,7 +338,6 @@ const Navbar = () => {
               ))}
             </div>
 
-            {/* Mobile menu login/logout */}
             {!isLoggedIn ? (
               <Link
                 to="/SignInn"
