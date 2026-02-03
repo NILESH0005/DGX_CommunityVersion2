@@ -231,8 +231,6 @@ export class LMSService {
       for (const f of allFiles) {
         await f.update({ Percentage: percentage }, { transaction: t });
       }
-
-      // ✅ Step 5: Return useful info
       return {
         unitId,
         percentage,
@@ -461,7 +459,6 @@ export class LMSViewsService {
             };
           }
 
-          // 2️⃣ Total Views (unique users)
           const [viewsResult] = await ContentInteractionLog.sequelize.query(
             `
           SELECT COUNT(DISTINCT UserID) AS uniqueUsers
@@ -476,7 +473,6 @@ export class LMSViewsService {
 
           const totalViews = viewsResult?.[0]?.uniqueUsers || 0;
 
-          // 3️⃣ Get units for these submodules
           const units = await LMSUnitsDetails.findAll({
             where: { SubModuleID: subModuleIDs, delStatus: 0 },
             attributes: ["UnitID"],
@@ -492,7 +488,6 @@ export class LMSViewsService {
           let completedFiles = 0;
 
           if (unitIDs.length > 0) {
-            // 4️⃣ Get all files with their estimated time
             const files = await LMSFilesDetails.findAll({
               where: {
                 UnitID: unitIDs,
@@ -506,7 +501,6 @@ export class LMSViewsService {
             const fileIDs = files.map((f) => f.FileID);
             totalFiles = files.length;
 
-            // 5️⃣ Calculate estimated time total for module
             totalEstimatedTime = files.reduce((sum, file) => {
               return sum + (Number(file.EstimatedTime) || 0);
             }, 0);

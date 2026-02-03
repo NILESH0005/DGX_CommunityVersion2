@@ -18,9 +18,17 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
     UserName,
     allowRepost,
   } = blog || {};
+  console.log("BLOG IMAGE URL:", image);
+
   const { fetchData, userToken, user } = useContext(ApiContext);
   const modalRef = useRef(null);
   const editorRef = useRef(null);
+
+  const resolveImageUrl = (img) => {
+    if (!img) return null;
+    if (img.startsWith("http")) return img;
+    return `${import.meta.env.VITE_API_BASEURL}${img}`;
+  };
 
   // Handle click outside to close modal
   useEffect(() => {
@@ -148,53 +156,59 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex justify-center items-center z-50">
       <div
         ref={modalRef}
-        className="bg-white w-full h-full max-w-full flex flex-col"
+        className="bg-white w-full h-full max-w-6xl rounded-xl shadow-2xl flex flex-col overflow-hidden"
       >
-        {/* Header - Updated to show UserName */}
-        <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold">{title}</h2>
-            <div className="flex items-center gap-2">
-              <span className={`font-medium ${getStatusColor(Status)}`}>
+        {/* HEADER */}
+        <div className="flex justify-between items-center px-6 py-4 border-b sticky top-0 bg-white z-20">
+          <div className="flex flex-col">
+            <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+            <div className="flex items-center gap-2 mt-1 text-sm">
+              <span className={`font-semibold ${getStatusColor(Status)}`}>
                 {Status || "Pending"}
               </span>
-              <span className="text-gray-500">|</span>
+              <span className="text-gray-400">•</span>
               <span className="text-gray-600">{UserName || author}</span>
+              {published_date && (
+                <>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-500">{published_date}</span>
+                </>
+              )}
             </div>
           </div>
+
           <button
-            className="text-gray-500 hover:text-gray-700"
             onClick={closeModal}
+            className="p-2 rounded-full hover:bg-gray-100 transition"
           >
-            <FontAwesomeIcon icon={faXmark} className="text-xl" />
+            <FontAwesomeIcon icon={faXmark} className="text-xl text-gray-600" />
           </button>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-grow overflow-y-auto p-6">
+        {/* CONTENT */}
+        <div className="flex-grow overflow-y-auto px-6 py-6 space-y-6">
+          {/* IMAGE */}
           {image && (
-            <div className="w-full mb-6 flex justify-center">
+            <div className="w-full flex justify-center">
               <img
-                className="max-w-full max-h-96 object-contain rounded"
-                src={image}
+                src={resolveImageUrl(image)}
                 alt={title}
+                className="max-h-[420px] w-auto rounded-lg shadow-md object-contain"
               />
             </div>
           )}
 
-          <div className="flex flex-col items-center mb-6">
-            <div className="flex items-center gap-2">
-              <TbUserSquareRounded className="text-gray-600 text-2xl" />
-              <span className="text-gray-600">{UserName || author}</span>
-            </div>
-            {published_date && (
-              <p className="text-gray-500">{published_date}</p>
-            )}
+          {/* AUTHOR CARD */}
+          <div className="flex flex-col items-center text-center bg-gray-50 rounded-lg py-4 shadow-sm">
+            <TbUserSquareRounded className="text-3xl text-gray-500 mb-1" />
+            <span className="font-medium text-gray-700">
+              {UserName || author}
+            </span>
             <p
-              className={`mt-1 text-sm font-medium ${
+              className={`mt-1 text-sm font-semibold ${
                 allowRepost ? "text-green-600" : "text-red-600"
               }`}
             >
@@ -202,64 +216,62 @@ const BlogModal = ({ blog, closeModal, updateBlogState }) => {
             </p>
           </div>
 
-          <div className="prose max-w-none">
-            <JoditEditor
-              ref={editorRef}
-              value={content}
-              config={{
-                readonly: true,
-                toolbar: false,
-                statusbar: false,
-                buttons: [],
-                iframe: true,
-                height: "auto",
-                width: "auto",
-                removeButtons: [],
-                showXPathInStatusbar: false,
-                showCharsCounter: false,
-                showWordsCounter: false,
-                disablePlugins:
-                  "paste,sticky,drag-and-drop,drag-and-drop-element",
-              }}
-              tabIndex={1}
-              onBlur={() => {}}
-              onChange={() => {}}
-            />
+          {/* BLOG CONTENT */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="prose max-w-none">
+              <JoditEditor
+                ref={editorRef}
+                value={content}
+                config={{
+                  readonly: true,
+                  toolbar: false,
+                  statusbar: false,
+                  iframe: true,
+                  showCharsCounter: false,
+                  showWordsCounter: false,
+                }}
+                tabIndex={1}
+                onBlur={() => {}}
+                onChange={() => {}}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t sticky bottom-0 bg-white flex justify-between">
-          <div className="flex gap-4">
+        {/* FOOTER */}
+        <div className="px-6 py-4 border-t bg-white flex justify-between items-center">
+          <div className="flex gap-3">
             {user.isAdmin == "1" && Status === "Pending" && (
               <>
                 <button
-                  className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
                   onClick={() => handleAction("approve")}
+                  className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow"
                 >
                   Approve
                 </button>
                 <button
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
                   onClick={() => handleAction("reject")}
+                  className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow"
                 >
                   Reject
                 </button>
               </>
             )}
+
             {user.isAdmin == "1" &&
               (Status === "Approved" || Status === "Rejected") && (
                 <button
-                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
                   onClick={() => handleAction("delete")}
+                  className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow"
                 >
                   Delete
                 </button>
               )}
           </div>
+
           <button
             onClick={closeModal}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow"
           >
             Close
           </button>

@@ -51,7 +51,6 @@ export const getModuleSubmoduleProgressService = async (
 };
 
 export const getUserFileIDsService = async (userEmail) => {
-  // Find user by email
   const user = await db.User.findOne({
     where: { EmailId: userEmail, delStatus: 0 },
     attributes: ["UserID"],
