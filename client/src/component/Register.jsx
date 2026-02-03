@@ -93,7 +93,6 @@ const Register = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
-  // Real-time validation functions
   const validateField = (name, value) => {
     let error = "";
 

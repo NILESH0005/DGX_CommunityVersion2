@@ -48,7 +48,7 @@ export const verifyUserAndSendPassword = async (email) => {
     referCode = await referCodeGenerator(
       user.Name,
       user.EmailId,
-      user.MobileNumber
+      user.MobileNumber,
     );
     const count = await User.count({
       where: { ReferalNumber: referCode, delStatus: 0 },
@@ -64,7 +64,7 @@ export const verifyUserAndSendPassword = async (email) => {
           ReferalNumber: referCode,
           ReferalNumberCount: referCount,
         },
-        { where: { EmailId: email, delStatus: 0 } }
+        { where: { EmailId: email, delStatus: 0 } },
       );
 
       const message = `Hello, Welcome to the DGX Community! Your credentials:
@@ -180,7 +180,7 @@ export const verifyUserAndSendPassword = async (email) => {
 
 export const registerUser = async (
   {
-    ReferalNumber,
+    inviteCode,
     name,
     email,
     password,
@@ -189,7 +189,7 @@ export const registerUser = async (
     category,
     designation,
   },
-  userInfo // <-- newly added
+  userInfo, // <-- newly added
 ) => {
   const referalNumberCount = category === "F" ? 10 : 2;
   const FlagPasswordChange = 1;
@@ -208,7 +208,7 @@ export const registerUser = async (
 
   // 2. Validate referral
   const inviter = await User.findOne({
-    where: { ReferalNumber, delStatus: 0 },
+    where: { ReferalNumber: inviteCode, delStatus: 0 },
   });
   if (!inviter || inviter.ReferalNumberCount <= 0) {
     return {
@@ -289,7 +289,7 @@ export const registerUser = async (
 
         <div style="text-align:center;">
             <a href="https://your-domain.com/VerifyEmail?email=${encodeURIComponent(
-              email
+              email,
             )}" class="button">
                 Verify My Account
             </a>
@@ -365,7 +365,7 @@ export const loginUser = async (email, password, ipAddress, deviceInfo) => {
         LastLoginDtTime: now,
         LoginCount: (user.LoginCount || 0) + 1,
       },
-      { where: { UserID: user.UserID } }
+      { where: { UserID: user.UserID } },
     );
 
     await db.UserLoginLog.create({
@@ -391,7 +391,7 @@ export const loginUser = async (email, password, ipAddress, deviceInfo) => {
     logInfo(
       `User logged in successfully: ${email}. Login count: ${
         (user.LoginCount || 0) + 1
-      }`
+      }`,
     );
 
     return {
@@ -482,7 +482,7 @@ export const getUserByEmail = async (email) => {
 export const changeUserPassword = async (
   email,
   currentPassword,
-  newPassword
+  newPassword,
 ) => {
   try {
     const user = await User.findOne({
@@ -504,7 +504,7 @@ export const changeUserPassword = async (
     const isMatch = await bcrypt.compare(currentPassword, user.Password);
     if (!isMatch) {
       logWarning(
-        `Password change failed: Incorrect current password for ${email}`
+        `Password change failed: Incorrect current password for ${email}`,
       );
       return {
         status: 200,
@@ -609,7 +609,7 @@ export const deleteUserService = async (userId, adminName) => {
           UserID: userId,
           [Op.or]: [{ delStatus: null }, { delStatus: 0 }], // only delete if not already deleted
         },
-      }
+      },
     );
 
     if (updatedCount > 0) {
@@ -740,7 +740,7 @@ The DGX Community Team`;
     const mailSent = await mailSender(
       inviteeEmail,
       plainTextMessage,
-      htmlContent
+      htmlContent,
     );
 
     if (mailSent.success) {
@@ -774,7 +774,7 @@ export const resetPasswordService = async (
   email,
   signature,
   password,
-  SIGNATURE
+  SIGNATURE,
 ) => {
   try {
     const user = await User.findOne({
@@ -950,7 +950,7 @@ The DGX Community Team`;
 
   if (mailSent.success) {
     logInfo(
-      `User created and verification mail sent successfully to ${EmailId}`
+      `User created and verification mail sent successfully to ${EmailId}`,
     );
     return {
       success: true,
@@ -1262,7 +1262,7 @@ export const getPagesService = async () => {
       where: {
         [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
       },
-      attributes: ["PageID", "PageName", "DisplayName", "MenuType" , ],
+      attributes: ["PageID", "PageName", "DisplayName", "MenuType"],
       order: [["PageName", "ASC"]],
     });
 
@@ -1393,7 +1393,7 @@ export const assignPagesToRoleService = async (roleId, pageIds, userInfo) => {
               delStatus: 0,
             },
             transaction,
-          }
+          },
         );
         console.log("Soft deleted existing records");
       }
@@ -1448,7 +1448,7 @@ export const assignPagesToRoleService = async (roleId, pageIds, userInfo) => {
                 id: existingRecord.id,
               },
               transaction,
-            }
+            },
           );
           console.log(`Updated existing record for page ${record.PageID}`);
         } else {
@@ -1618,7 +1618,7 @@ export const getRolePageAccessReportService = async () => {
     });
 
     const report = Object.values(groupedByRole).sort(
-      (a, b) => a.RoleID - b.RoleID
+      (a, b) => a.RoleID - b.RoleID,
     );
 
     // Calculate summary statistics
@@ -1652,7 +1652,7 @@ export const getRolePageAccessReportService = async () => {
 export const assignSingleRoleService = async (
   userId,
   roleId,
-  currentUserId
+  currentUserId,
 ) => {
   try {
     const user = await User.findOne({
@@ -1690,7 +1690,7 @@ export const assignSingleRoleService = async (
         where: {
           UserID: userId,
         },
-      }
+      },
     );
 
     return {
@@ -1795,7 +1795,7 @@ export const removeUserRoleService = async (userId, currentUserId) => {
         where: {
           UserID: userId,
         },
-      }
+      },
     );
 
     return {
