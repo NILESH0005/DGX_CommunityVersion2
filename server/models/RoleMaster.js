@@ -7,51 +7,56 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
-        allowNull: false
+        allowNull: false,
       },
       RoleName: {
         type: DataTypes.STRING(500),
-        allowNull: false
+        allowNull: false,
+      },
+      CanRoleEdit: {
+        type: DataTypes.TINYINT, 
+        allowNull: false,
+        defaultValue: 0,
       },
       AuthAdd: {
         type: DataTypes.STRING(800),
-        allowNull: false
+        allowNull: false,
       },
       AuthDel: {
         type: DataTypes.STRING(800),
         allowNull: true,
-        defaultValue: null
+        defaultValue: null,
       },
       AuthLstEdt: {
         type: DataTypes.STRING(800),
         allowNull: true,
-        defaultValue: null
+        defaultValue: null,
       },
       delOnDt: {
         type: DataTypes.DATE,
         allowNull: true,
-        defaultValue: null
+        defaultValue: null,
       },
       AddOnDt: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: DataTypes.NOW
+        defaultValue: DataTypes.NOW,
       },
       editOnDt: {
         type: DataTypes.DATE,
         allowNull: true,
-        defaultValue: null
+        defaultValue: null,
       },
       delStatus: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 0
-      }
+        defaultValue: 0,
+      },
     },
     {
       tableName: "RoleMaster",
-      timestamps: false
-    }
+      timestamps: false,
+    },
   );
 
   return RoleMaster;

@@ -100,7 +100,7 @@ const AddRoleModal = ({
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (result.success) {
@@ -158,7 +158,7 @@ const AddRoleModal = ({
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (pagesResult.success) {
@@ -197,7 +197,7 @@ const AddRoleModal = ({
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (!pagesResult.success) {
@@ -217,7 +217,7 @@ const AddRoleModal = ({
           {
             "Content-Type": "application/json",
             "auth-token": userToken,
-          }
+          },
         );
 
         console.log("Full role access response:", roleAccessResult);
@@ -228,7 +228,7 @@ const AddRoleModal = ({
 
           // Find the specific role we're looking for
           const selectedRoleData = rolesData.find(
-            (role) => role.RoleID === roleId
+            (role) => role.RoleID === roleId,
           );
 
           console.log("Selected role data:", selectedRoleData);
@@ -236,21 +236,24 @@ const AddRoleModal = ({
           if (selectedRoleData && selectedRoleData.Pages) {
             // Get page IDs where Access === 1
             const accessiblePageIds = selectedRoleData.Pages.filter(
-              (page) => page.Access === 1
+              (page) => page.Access === 1,
             ).map((page) => page.PageID);
 
             console.log(
               "Accessible page IDs for role",
               roleId,
               ":",
-              accessiblePageIds
+              accessiblePageIds,
             );
             setSelectedPages(accessiblePageIds);
           } else {
             console.log("No page access data found for role ID:", roleId);
             console.log(
               "Available roles in response:",
-              rolesData.map((r) => ({ RoleID: r.RoleID, RoleName: r.RoleName }))
+              rolesData.map((r) => ({
+                RoleID: r.RoleID,
+                RoleName: r.RoleName,
+              })),
             );
             setSelectedPages([]);
           }
@@ -342,11 +345,11 @@ const AddRoleModal = ({
       html: `
         <div class="text-left">
           <p><strong>Role:</strong> ${selectedRole.RoleName} ${
-        selectedRole.isNew ? "(New)" : ""
-      }</p>
+            selectedRole.isNew ? "(New)" : ""
+          }</p>
           <p><strong>Pages Selected:</strong> ${selectedPages.length} of ${
-        pages.length
-      }</p>
+            pages.length
+          }</p>
           <p>Are you sure you want to assign these pages to this role?</p>
         </div>`,
       icon: "question",
@@ -372,7 +375,7 @@ const AddRoleModal = ({
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (result.success) {
@@ -382,8 +385,8 @@ const AddRoleModal = ({
           html: `
             <div class="text-center">
               <p><strong>${selectedRole.RoleName}</strong> role ${
-            selectedRole.isNew ? "created and " : ""
-          }configured successfully!</p>
+                selectedRole.isNew ? "created and " : ""
+              }configured successfully!</p>
               <p class="text-sm text-gray-600">${
                 selectedPages.length
               } pages enabled</p>
@@ -518,34 +521,74 @@ const AddRoleModal = ({
 
                       {availableRoles.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {availableRoles.map((role) => (
-                            <div
-                              key={role.RoleID}
-                              onClick={() => handleRoleSelect(role)}
-                              className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-DGXgreen hover:bg-gray-50 transition-all duration-200 group"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-DGXgreen/10 text-DGXgreen flex items-center justify-center group-hover:bg-DGXgreen group-hover:text-white transition-colors duration-200">
-                                    <span className="font-bold">
+                          {availableRoles.map((role) => {
+                            const isLocked = role.CanRoleEdit === 1;
+
+                            return (
+                              <div
+                                key={role.RoleID}
+                                onClick={() => {
+                                  if (isLocked) return;
+                                  handleRoleSelect(role);
+                                }}
+                                title={
+                                  isLocked
+                                    ? "This role is managed by the system and cannot be edited"
+                                    : "Click to edit this role"
+                                }
+                                className={`p-4 border rounded-lg transition-all duration-200 group relative
+            ${
+              isLocked
+                ? "bg-gray-100 border-gray-300 cursor-not-allowed opacity-70"
+                : "border-gray-200 cursor-pointer hover:border-DGXgreen hover:bg-gray-50"
+            }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors duration-200
+                  ${
+                    isLocked
+                      ? "bg-gray-300 text-gray-600"
+                      : "bg-DGXgreen/10 text-DGXgreen group-hover:bg-DGXgreen group-hover:text-white"
+                  }`}
+                                    >
                                       {role.RoleName.charAt(0)}
-                                    </span>
+                                    </div>
+
+                                    <div>
+                                      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                        {role.RoleName}
+
+                                        {isLocked && (
+                                          <span className="px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700 font-medium">
+                                            Locked
+                                          </span>
+                                        )}
+                                      </h4>
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        ID: {role.RoleID}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <h4 className="font-semibold text-gray-900">
-                                      {role.RoleName}
-                                    </h4>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      ID: {role.RoleID}
-                                    </p>
+
+                                  {!isLocked && (
+                                    <div className="text-DGXgreen opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                      <FaCheck size={16} />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {isLocked && (
+                                  <div className="mt-3 text-xs text-gray-600 flex items-center gap-2">
+                                    <FaInfoCircle className="text-gray-500" />
+                                    This role is locked by the system and cannot
+                                    be modified.
                                   </div>
-                                </div>
-                                <div className="text-DGXgreen opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  <FaCheck size={16} />
-                                </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="p-8 bg-gray-50 rounded-lg text-center">

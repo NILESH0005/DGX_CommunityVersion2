@@ -234,6 +234,16 @@ export const registerUser = async (
     if (count === 0) codeExists = false;
   }
   const authLstEdit = userInfo?.uniqueId || userInfo?.id || "System";
+  const referralRole = await RoleMaster.findOne({
+    where: {
+      RoleName: "Referal Role",
+      delStatus: 0,
+    },
+  });
+
+  if (!referralRole) {
+    throw new Error("Referral role not found");
+  }
 
   const newUser = await User.create({
     Name: name,
@@ -251,6 +261,8 @@ export const registerUser = async (
     AuthLstEdit: authLstEdit, // ✅ store admin ID here
     AddOnDt: new Date(),
     delStatus: 0,
+    isAdmin: referralRole.RoleID,
+
   });
   // 7. Prepare Email
   const message = `Hello ${name}, Welcome to the DGX Community! Your credentials:
@@ -306,7 +318,6 @@ export const registerUser = async (
 </body>
 </html>`;
 
-  // 8. Send Email
   const mailsent = await mailSender(email, message, htmlContent);
 
   if (mailsent.success) {
@@ -319,7 +330,7 @@ export const registerUser = async (
   } else {
     logError(new Error("Mail not sent after registration"));
     return {
-      success: true, // still registered
+      success: true, 
       message: "User created successfully but mail not sent.",
       data: { EmailId: newUser.EmailId },
     };
@@ -1220,13 +1231,12 @@ export const addRoleService = async (roleData, userInfo) => {
 
 export const getRolesService = async () => {
   try {
-    // Fetch all roles where delStatus is 0 or null (not deleted)
     const roles = await RoleMaster.findAll({
       where: {
         [Op.or]: [{ delStatus: 0 }, { delStatus: null }],
       },
-      attributes: ["RoleID", "RoleName", "AuthAdd", "AddOnDt"],
-      order: [["RoleName", "ASC"]], // Order by RoleName alphabetically
+      attributes: ["RoleID", "RoleName", "AuthAdd", "AddOnDt", "CanRoleEdit"],
+      order: [["RoleName", "ASC"]], 
     });
 
     if (!roles || roles.length === 0) {
