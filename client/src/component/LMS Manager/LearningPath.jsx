@@ -84,15 +84,15 @@ const LearningPath = () => {
 
 
         {/* Model */}
-        <div className="w-[120px] h-[120px] flex justify-center items-center">
+        {/* <div className="w-[120px] h-[120px] flex justify-center items-center">
           <HeroModel />
-        </div>
+        </div> */}
 
       
       </button>
 
       {/* Chat Modal*/}
-      <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      {/* <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} /> */}
     </div>
   );
 };
