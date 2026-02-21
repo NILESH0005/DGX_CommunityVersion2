@@ -1,29 +1,28 @@
-// models/FilesDetails.js
+// models/PageMaster.js
 export default (sequelize, DataTypes) => {
-  const FilesDetails = sequelize.define(
-    "FilesDetails",
+  const PageMaster = sequelize.define(
+    "PageMaster",
     {
-      FileID: {
+      PageID: {
         type: DataTypes.INTEGER,
-        autoIncrement: true, 
         primaryKey: true,
+        autoIncrement: true,
         allowNull: false,
       },
-      FilesName: {
-        type: DataTypes.STRING(500),
+
+      // 🔐 SYSTEM / ACCESS KEY (DO NOT CHANGE EXISTING USAGE)
+      PageName: {
+        type: DataTypes.STRING(200),
         allowNull: false,
       },
-      FilePath: {
-        type: DataTypes.STRING(800),
-        allowNull: true,
-      },
-      FileType: {
+      DisplayName: {
         type: DataTypes.STRING(200),
         allowNull: true,
       },
-      UnitID: {
-        type: DataTypes.INTEGER,
+      MenuType: {
+        type: DataTypes.STRING(20),
         allowNull: false,
+        defaultValue: "NONE", 
       },
       AuthAdd: {
         type: DataTypes.STRING(800),
@@ -32,49 +31,39 @@ export default (sequelize, DataTypes) => {
       AuthDel: {
         type: DataTypes.STRING(800),
         allowNull: true,
+        defaultValue: null,
       },
       AuthLstEdt: {
         type: DataTypes.STRING(800),
         allowNull: true,
+        defaultValue: null,
       },
       delOnDt: {
         type: DataTypes.DATE,
         allowNull: true,
+        defaultValue: null,
       },
       AddOnDt: {
         type: DataTypes.DATE,
         allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
       editOnDt: {
         type: DataTypes.DATE,
         allowNull: true,
+        defaultValue: null,
       },
       delStatus: {
         type: DataTypes.INTEGER,
         allowNull: false,
-      },
-      Percentage: {
-        type: DataTypes.DECIMAL(18, 2),
-        allowNull: true,
-      },
-      Description: {
-        type: DataTypes.STRING(800),
-        allowNull: true,
-      },
-      SortingOrder: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
-      EstimatedTime: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
+        defaultValue: 0,
       },
     },
     {
-      tableName: "FilesDetails",
+      tableName: "PageMaster",
       timestamps: false,
-    }
+    },
   );
 
-  return FilesDetails;
+  return PageMaster;
 };

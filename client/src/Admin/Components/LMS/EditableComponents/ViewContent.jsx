@@ -18,8 +18,6 @@ import {
   FaClock,
 } from "react-icons/fa";
 import { Tooltip as ReactTooltip } from "react-tooltip";
-import { Link } from "react-router-dom";
-import EditModule from "./EditModule";
 
 const ViewContent = ({ submodule, onBack }) => {
   const [showUnitOrder, setShowUnitOrder] = useState(false);
@@ -63,30 +61,6 @@ const ViewContent = ({ submodule, onBack }) => {
     if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
     return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} min`;
   };
-
-  const fetchFilesForUnit = useCallback(
-    async (unitId) => {
-      try {
-        const response = await fetchData(
-          `dropdown/getUnitsWithFiles/${submodule.SubModuleID}`,
-          "GET",
-          null, // No body for GET request
-          { "auth-token": userToken } // Headers go in the 4th parameter
-        );
-        if (response?.success) {
-          setFiles(response.data);
-          setEditingFile(null);
-          setEditedFileData({ fileName: "", description: "", link: "", estimatedTime: 0 });
-        } else {
-          setFiles([]);
-        }
-      } catch (err) {
-        console.error("Error fetching files:", err);
-        setFiles([]);
-      }
-    },
-    [fetchData, userToken]
-  );
 
   useEffect(() => {
     const fetchUnits = async () => {

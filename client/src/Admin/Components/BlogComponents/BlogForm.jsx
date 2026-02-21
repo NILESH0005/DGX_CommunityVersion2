@@ -23,7 +23,6 @@ const BlogForm = (props) => {
   const editor = useRef(null);
   const { fetchData, userToken, user } = useContext(ApiContext);
 
-  // ✅ ADD THIS BACK - Fetch categories from API
   useEffect(() => {
     const fetchCategories = async () => {
       const endpoint = `dropdown/getDropdownValues?category=blogCategory`;
@@ -51,7 +50,6 @@ const BlogForm = (props) => {
     fetchCategories();
   }, [fetchData, userToken]);
 
-  // Initialize form with editing blog data
   useEffect(() => {
     if (props.editingBlog) {
       setIsEditing(true);
@@ -65,11 +63,10 @@ const BlogForm = (props) => {
         props.editingBlog.isDraft || props.editingBlog.Status === "Draft"
       );
 
-      // Set image preview based on existing image - USE HELPER FUNCTION
       if (props.editingBlog.image) {
         const previewUrl = getImageUrl(props.editingBlog.image);
         setImagePreview(previewUrl);
-        setSelectedImage(props.editingBlog.image); // Store the original path
+        setSelectedImage(props.editingBlog.image); 
       }
     } else {
       setIsEditing(false);
@@ -77,27 +74,18 @@ const BlogForm = (props) => {
     }
   }, [props.editingBlog]);
 
-  // Helper function to get proper image URL for display
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
 
-    // If it's already a full URL, use it directly
     if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
       return imagePath;
-    }
-
-    // If it's a relative path, construct the full URL
-    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-
-    // Remove any leading slashes from the path
+    }    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
     const cleanPath = imagePath.replace(/^\/+/, "");
 
-    // Check if the path already includes the base URL
     if (cleanPath.startsWith("uploads/")) {
       return `${baseUploadsUrl}/${cleanPath}`;
     }
 
-    // For paths that are already relative but don't have 'uploads/'
     return `${baseUploadsUrl}/${cleanPath}`;
   };
 
@@ -114,19 +102,14 @@ const BlogForm = (props) => {
       return;
     }
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-    // Extract only the relative path without the base URL and IP address
     let relativePath = filePath;
-    // Remove the base uploads URL if it exists in the filePath
     if (filePath.includes(baseUploadsUrl)) {
       relativePath = filePath.replace(baseUploadsUrl, "").replace(/^\/+/, "");
     }
-    // Also handle case where full URL with IP is provided
     if (filePath.includes("http://") || filePath.includes("https://")) {
-      // Extract path after the domain
       const url = new URL(filePath);
       relativePath = url.pathname.replace(/^\/+/, "");
 
-      // Remove the base uploads folder from path if it's included
       if (relativePath.startsWith("uploads/")) {
         relativePath = relativePath.replace("uploads/", "");
       }
@@ -135,11 +118,9 @@ const BlogForm = (props) => {
     console.log("Original filePath:", filePath);
     console.log("Relative path to save:", relativePath);
 
-    // For preview, use the helper function to ensure proper URL
     const previewUrl = getImageUrl(filePath) || filePath;
     setImagePreview(previewUrl);
 
-    // But store only the relative path for backend
     setSelectedImage(relativePath);
     setIsImageEditing(false);
     setErrors((prev) => ({ ...prev, image: null }));

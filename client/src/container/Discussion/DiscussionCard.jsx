@@ -26,7 +26,6 @@ const DiscussionCard = ({
   const currentUserId = user?.uniqueId || user?.UserID;
   const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
 
-  // 🔥 Correct profile image sources - from code 2
   const profilePic =
     discussion.ProfilePicture ||
     discussion.UserImage ||
@@ -39,9 +38,6 @@ const DiscussionCard = ({
     setReposted(hasReposted);
   }, [discussion.reposts, currentUserId]);
 
-  // ---------------------------
-  // LIKE HANDLER (from code 2)
-  // ---------------------------
   const handleLike = async (e) => {
     e.stopPropagation();
 
@@ -88,9 +84,6 @@ const DiscussionCard = ({
     }
   };
 
-  // ---------------------------
-  // REPOST HANDLER (from code 2)
-  // ---------------------------
   const handleRepost = async (e) => {
     e.stopPropagation();
 
@@ -161,9 +154,6 @@ const DiscussionCard = ({
     }
   };
 
-  // ---------------------------
-  // COMMENT HANDLER
-  // ---------------------------
   const handleComment = (e) => {
     e.stopPropagation();
     openModal(discussion);
@@ -176,12 +166,8 @@ const DiscussionCard = ({
     return "Repost Allowed";
   };
 
-  // ---------------------------
-  // COMPONENT UI (Visuals from code 1, functionality from code 2)
-  // ---------------------------
   return (
     <div className="group bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-      {/* Author Section */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           {profilePic ? (
@@ -239,7 +225,6 @@ const DiscussionCard = ({
         )}
       </div>
 
-      {/* Title & Content */}
       <div className="mb-4">
         <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-DGXgreen">
           {discussion.Title}
@@ -271,8 +256,6 @@ const DiscussionCard = ({
           )}
         </div>
       </div>
-
-      {/* Banner Image */}
       {(discussion.DiscussionImagePath || discussion.Image) && (
         <div className="mb-4 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">
           <img
@@ -291,7 +274,6 @@ const DiscussionCard = ({
         </div>
       )}
 
-      {/* Tags (from code 1) */}
       {discussion.Tag && (
         <div className="flex flex-wrap gap-2 mb-3">
           {(typeof discussion.Tag === "string"
@@ -316,10 +298,8 @@ const DiscussionCard = ({
         </div>
       )}
 
-      {/* Footer (Enhanced from code 1) */}
       <div className="flex flex-wrap items-center justify-between pt-4 border-t border-gray-100 gap-4">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-          {/* Like Button (Enhanced from code 1) */}
           <button
             onClick={handleLike}
             className="flex items-center gap-2 group"
@@ -345,8 +325,6 @@ const DiscussionCard = ({
               {likeCount}
             </span>
           </button>
-
-          {/* Comment Button (Enhanced from code 1) */}
           <button
             onClick={handleComment}
             className="flex items-center gap-2 text-gray-600 hover:text-DGXgreen"
@@ -356,16 +334,50 @@ const DiscussionCard = ({
             </div>
             <span className="font-medium">{discussion.commentCount || 0}</span>
           </button>
+          <div className="relative flex items-center gap-2 group">
+            {/* Eye icon container */}
+            <div className="relative">
+              <div
+                className={`p-2 rounded-full transition-all ${
+                  discussion.hasUserViewed
+                    ? "bg-green-100 text-green-600 ring-2 ring-green-400"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                <FiEye className="w-5 h-5" />
+              </div>
 
-          {/* Views (from code 1) */}
-          <div className="flex items-center gap-2 text-gray-500">
-            <div className="p-2 rounded-full bg-gray-100">
-              <FiEye className="w-5 h-5" />
+              {/* Tooltip for icon */}
+              {discussion.hasUserViewed && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+                  Viewed
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                </div>
+              )}
             </div>
-            <span className="font-medium">{discussion.viewCount || 0}</span>
+
+            {/* View count */}
+            <div className="relative">
+              <span
+                className={`font-medium ${
+                  discussion.hasUserViewed
+                    ? "text-green-600 font-semibold"
+                    : "text-gray-500"
+                }`}
+              >
+                {discussion.viewCount || 0}
+              </span>
+
+              {/* Tooltip for count */}
+              {discussion.hasUserViewed && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+                  You've viewed this
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Repost Button with Tooltip (Enhanced from code 1) */}
           <div className="relative group">
             <button
               onClick={handleRepost}
@@ -402,8 +414,6 @@ const DiscussionCard = ({
             )}
           </div>
         </div>
-
-        {/* Date (from code 1) */}
         <div className="text-xs text-gray-500">
           {new Date(discussion.AddOnDt).toLocaleDateString("en-US", {
             year: "numeric",

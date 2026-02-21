@@ -1,84 +1,281 @@
-import React, { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { compressImage } from '../../../../utils/compressImage';
-import { motion } from 'framer-motion';
+import React, { useState, useContext, useEffect  } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { motion } from "framer-motion";
+import ApiContext from "../../../../context/ApiContext"; // Adjust path as needed
+import FileUploader from "../../../../container/FileUploader"; // Adjust path as needed
 
 const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
   const [isCreated, setIsCreated] = useState(false);
   const [newModule, setNewModule] = useState({
     id: uuidv4(),
-    name: '',
-    description: '',
-    banner: null
+    name: "",
+    description: "",
+    banner: null,
+    bannerPath: null,
+    bannerUrl: null,
   });
   const [errors, setErrors] = useState({});
-  const [isCompressing, setIsCompressing] = useState(false);
+  const [touched, setTouched] = useState({});
+  const [isUploading, setIsUploading] = useState(false);
+  const { userToken } = useContext(ApiContext);
 
-  const handleCreate = async () => {
-    if (!newModule.name.trim()) {
-      setErrors({ name: 'Module name is required' });
+  const validationRules = {
+    name: {
+      required: true,
+      minLength: 3,
+      maxLength: 100,
+      pattern: /^[a-zA-Z0-9\s\-_&@.,!?()]+$/,
+      message: {
+        required: "Module name is required",
+        minLength: "Module name must be at least 3 characters",
+        maxLength: "Module name cannot exceed 100 characters",
+        pattern: "Module name contains invalid characters",
+      },
+    },
+    description: {
+      required: true,
+      minLength: 10,
+      maxLength: 500,
+      message: {
+        required: "Description is required",
+        minLength: "Description must be at least 10 characters",
+        maxLength: "Description cannot exceed 500 characters",
+      },
+    },
+    banner: {
+      required: true,
+      message: {
+        required: "Banner image is required",
+      },
+    },
+  };
+
+  const validateField = (name, value) => {
+    const rules = validationRules[name];
+    if (!rules) return "";
+
+    const errors = [];
+
+    if (rules.required) {
+      if (name === "banner") {
+        // For banner, check if bannerUrl exists
+        if (!newModule.bannerUrl && !newModule.banner) {
+          errors.push(rules.message.required);
+        }
+      } else if (!value || value.trim() === "") {
+        errors.push(rules.message.required);
+      }
+    }
+
+    if (rules.minLength && value && value.trim().length < rules.minLength) {
+      errors.push(rules.message.minLength);
+    }
+
+    if (rules.maxLength && value && value.trim().length > rules.maxLength) {
+      errors.push(rules.message.maxLength);
+    }
+
+    if (rules.pattern && value && !rules.pattern.test(value)) {
+      errors.push(rules.message.pattern);
+    }
+
+    return errors.length > 0 ? errors[0] : "";
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    const nameError = validateField("name", newModule.name);
+    if (nameError) newErrors.name = nameError;
+    const descError = validateField("description", newModule.description);
+    if (descError) newErrors.description = descError;
+    const bannerError = validateField(
+      "banner",
+      newModule.bannerUrl || newModule.banner
+    );
+    if (bannerError) newErrors.banner = bannerError;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const isFormValid = () => {
+    return (
+      newModule.name.trim().length >= 3 &&
+      newModule.description.trim().length >= 10 &&
+      (newModule.bannerUrl || newModule.banner)
+    );
+  };
+
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      validateForm();
+    }
+  }, [newModule, touched]);
+
+  const handleCreate = () => {
+    // Mark all fields as touched
+    const allTouched = {
+      name: true,
+      description: true,
+      banner: true,
+    };
+    setTouched(allTouched);
+
+    // Validate form
+    const isValid = validateForm();
+
+    if (!isValid) {
+      // Show first error in alert
+      const firstErrorField = Object.keys(errors)[0];
+      const firstError = errors[firstErrorField];
+
+      // Create error message
+      let errorMessage = "Please fix the following errors:";
+      Object.entries(errors).forEach(([field, error]) => {
+        if (error) {
+          errorMessage += `\n• ${
+            field.charAt(0).toUpperCase() + field.slice(1)
+          }: ${error}`;
+        }
+      });
+
+      // Show alert
+      alert(errorMessage);
       return;
     }
 
     try {
-      setIsCompressing(true);
-      let compressedBanner = null;
-      if (newModule.banner) {
-        try {
-          compressedBanner = await compressImage(newModule.banner);
-        } catch (error) {
-          console.error('Image compression failed:', error);
-          compressedBanner = await convertFileToBase64(newModule.banner);
-        }
-      }
-
       const module = {
         ModuleName: newModule.name.trim(),
-        ModuleImage: compressedBanner,
         ModuleDescription: newModule.description.trim(),
+        ModuleImage: newModule.banner || null,
+        ModuleImagePath: newModule.bannerPath || null,
+        ModuleImageUrl: newModule.bannerUrl || null,
         subModules: [],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       onCreate(module);
       setIsCreated(true);
     } catch (error) {
-      console.error('Error creating module:', error);
-    } finally {
-      setIsCompressing(false);
+      console.error("Error creating module:", error);
+      setErrors({ submit: "Failed to create module" });
     }
   };
 
-  const convertFileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 200 * 1024) {
+  const handleImageUpload = (uploadResult) => {
+    if (!uploadResult || !uploadResult.success) {
       setErrors({
         ...errors,
-        banner: 'Image size must be 200KB or less'
+        banner: uploadResult?.message || "Image upload failed",
       });
-      e.target.value = '';
+      setIsUploading(false);
       return;
     }
 
-    if (errors.banner) {
-      setErrors({
-        ...errors,
-        banner: null
-      });
+    const { filePath } = uploadResult;
+
+    if (!filePath) {
+      setErrors({ ...errors, banner: "No file path received from server" });
+      setIsUploading(false);
+      return;
     }
 
-    setNewModule({ ...newModule, banner: file });
+    // Clean and construct URL
+    const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
+    const cleanFilePath = filePath.replace(/^\/+/, "");
+    const imageUrl = `${baseUploadsUrl}/${cleanFilePath}`;
+
+    // Store ONLY the file path string, not the entire object
+    setNewModule((prev) => ({
+      ...prev,
+      bannerPath: cleanFilePath,
+      bannerUrl: imageUrl,
+      banner: {
+        success: uploadResult.success,
+        filePath: cleanFilePath,
+        fileName: uploadResult.fileName,
+        fileSize: uploadResult.fileSize,
+      },
+    }));
+
+    // Mark banner as touched and clear error
+    setTouched((prev) => ({ ...prev, banner: true }));
+    setErrors((prev) => ({ ...prev, banner: null }));
+
+    setIsUploading(false);
+  };
+
+  const handleRemoveImage = () => {
+    setNewModule((prev) => ({
+      ...prev,
+      banner: null,
+      bannerPath: null,
+      bannerUrl: null,
+    }));
+
+    // Set error if banner was required
+    setErrors((prev) => ({ ...prev, banner: "Banner image is required" }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewModule((prev) => ({ ...prev, [name]: value }));
+
+    // Mark field as touched
+    if (!touched[name]) {
+      setTouched((prev) => ({ ...prev, [name]: true }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    if (!touched[name]) {
+      setTouched((prev) => ({ ...prev, [name]: true }));
+    }
+  };
+
+  // Character counter component
+  const CharacterCounter = ({ value, maxLength, fieldName }) => {
+    if (!maxLength) return null;
+
+    const currentLength = value?.trim().length || 0;
+    const isNearLimit = currentLength > maxLength * 0.8;
+    const isExceeding = currentLength > maxLength;
+
+    return (
+      <div
+        className={`text-xs mt-1 ${
+          isExceeding
+            ? "text-red-500 font-semibold"
+            : isNearLimit
+            ? "text-yellow-500"
+            : "text-gray-500"
+        }`}
+      >
+        {currentLength}/{maxLength} characters
+        {isExceeding && <span className="ml-2">(Exceeds limit!)</span>}
+      </div>
+    );
+  };
+
+  // Render validation error
+  const renderError = (fieldName) => {
+    if (errors[fieldName] && touched[fieldName]) {
+      return (
+        <div className="flex items-center mt-1 text-red-500 text-sm">
+          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clipRule="evenodd"
+            />
+          </svg>
+          {errors[fieldName]}
+        </div>
+      );
+    }
+    return null;
   };
 
   if (isCreated) {
@@ -86,10 +283,12 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
       ...existingModules,
       {
         ...newModule,
-        banner: newModule.banner ? URL.createObjectURL(newModule.banner) : null,
+        banner:
+          newModule.bannerUrl ||
+          (newModule.banner ? URL.createObjectURL(newModule.banner) : null),
         subModules: [],
-        createdAt: new Date().toISOString()
-      }
+        createdAt: new Date().toISOString(),
+      },
     ];
 
     return (
@@ -136,9 +335,11 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
                   setIsCreated(false);
                   setNewModule({
                     id: uuidv4(),
-                    name: '',
-                    description: '',
-                    banner: null
+                    name: "",
+                    description: "",
+                    banner: null,
+                    bannerPath: null,
+                    bannerUrl: null,
                   });
                 }}
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-all duration-200 font-medium"
@@ -183,12 +384,21 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
               className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-200"
             >
               <div className="flex items-start gap-3">
-                {module.banner && (
+                {(module.bannerUrl || module.banner) && (
                   <div className="flex-shrink-0 w-16 h-16 overflow-hidden rounded-lg border">
                     <img
-                      src={module.banner}
+                      src={
+                        module.bannerUrl ||
+                        (module.banner && typeof module.banner !== "string"
+                          ? URL.createObjectURL(module.banner)
+                          : module.banner)
+                      }
                       alt={module.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/default-image.png"; // Add a fallback
+                      }}
                     />
                   </div>
                 )}
@@ -233,120 +443,136 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 4v16m8-8H4"
+          />
         </svg>
         Create New Module
       </h2>
 
       <div className="space-y-5">
+        {/* Module Name Field */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Module Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
+            name="name"
             placeholder="e.g., Introduction to React"
-            className={`border w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
-              errors.name ? 'border-red-500' : 'border-gray-300'
+            className={`border w-full p-3 rounded-lg focus:outline-none transition ${
+              errors.name && touched.name
+                ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                : "border-gray-300 focus:ring-2 focus:ring-blue-500"
             }`}
             value={newModule.name}
-            onChange={(e) => {
-              setNewModule({ ...newModule, name: e.target.value });
-              if (errors.name) setErrors({ ...errors, name: null });
-            }}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
           />
-          {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+          {renderError("name")}
+          <CharacterCounter
+            value={newModule.name}
+            maxLength={validationRules.name.maxLength}
+            fieldName="name"
+          />
         </div>
 
+        {/* Description Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Description <span className="text-red-500">*</span>
+          </label>
           <textarea
+            name="description"
             placeholder="Brief description of what this module covers..."
-            className="border w-full p-3 rounded-lg border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 transition"
+            className={`border w-full p-3 rounded-lg focus:outline-none transition h-32 ${
+              errors.description && touched.description
+                ? "border-red-500 focus:ring-2 focus:ring-red-500"
+                : "border-gray-300 focus:ring-2 focus:ring-blue-500"
+            }`}
             value={newModule.description}
-            onChange={(e) => setNewModule({ ...newModule, description: e.target.value })}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+          />
+          {renderError("description")}
+          <CharacterCounter
+            value={newModule.description}
+            maxLength={validationRules.description.maxLength}
+            fieldName="description"
           />
         </div>
 
+        {/* Banner Image Field */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Banner Image</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Banner Image <span className="text-red-500">*</span>
+          </label>
           <p className="text-xs text-blue-500 mb-2">
-            Recommended size: <strong>800×400px</strong> | Max: <strong>200KB</strong>
+            Recommended size: <strong>800×400px</strong> | Max:{" "}
+            <strong>200KB</strong>
           </p>
-          <div className="relative">
-            <div className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
-              {newModule.banner ? (
-                <>
-                  <img
-                    src={URL.createObjectURL(newModule.banner)}
-                    alt="Preview"
-                    className="h-32 object-contain mb-3 rounded-lg"
-                  />
-                  <button
-                    onClick={() => setNewModule({ ...newModule, banner: null })}
-                    className="text-sm text-red-500 hover:text-red-600 font-medium"
-                  >
-                    Remove Image
-                  </button>
-                </>
-              ) : (
-                <label className="flex flex-col items-center justify-center w-full cursor-pointer">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    ></path>
-                  </svg>
-                  <p className="text-sm text-gray-500 mb-1 font-medium">
-                    Click to upload or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-400">PNG, JPG up to 200KB</p>
-                  <input
-                    type="file"
-                    className="hidden"
-                    id="module-banner-upload"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                </label>
-              )}
-            </div>
-            {errors.banner && <p className="mt-1 text-sm text-red-500">{errors.banner}</p>}
-          </div>
-        </div>
-      </div>
 
-      <div className="flex justify-end gap-4 pt-8 border-t mt-8">
-        <button
-          onClick={onCancel}
-          className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 active:scale-95 transition-all duration-200 font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleCreate}
-          disabled={isCompressing || (newModule.banner && newModule.banner.size > 200 * 1024)}
-          className={`px-6 py-2.5 rounded-lg text-white font-medium transition-all duration-200 ${
-            isCompressing || (newModule.banner && newModule.banner.size > 200 * 1024)
-              ? 'bg-blue-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
-          }`}
-        >
-          {isCompressing ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
+          {newModule.bannerUrl || newModule.banner ? (
+            <div className="relative">
+              <img
+                src={
+                  newModule.bannerUrl ||
+                  (newModule.banner && typeof newModule.banner !== "string"
+                    ? URL.createObjectURL(newModule.banner)
+                    : newModule.banner)
+                }
+                alt="Preview"
+                className="h-40 w-full object-contain border rounded-lg mb-3 bg-gray-50"
+              />
+              <button
+                onClick={handleRemoveImage}
+                className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors"
+                title="Remove image"
+                type="button"
               >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div
+              className={
+                errors.banner && touched.banner
+                  ? "border border-red-500 rounded-lg p-2"
+                  : ""
+              }
+            >
+              <FileUploader
+                moduleName="LMS"
+                folderName="module-banners"
+                onUploadComplete={handleImageUpload}
+                accept="image/*"
+                maxSize={200 * 1024}
+                label="Upload Banner Image"
+                previewType="image"
+              />
+            </div>
+          )}
+
+          {renderError("banner")}
+
+          {isUploading && (
+            <div className="flex items-center gap-2 text-blue-600 text-sm mt-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
                   cx="12"
@@ -354,18 +580,62 @@ const ModuleCreator = ({ onCreate, onCancel, existingModules = [] }) => {
                   r="10"
                   stroke="currentColor"
                   strokeWidth="4"
-                ></circle>
+                  fill="none"
+                />
                 <path
                   className="opacity-75"
                   fill="currentColor"
                   d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
+                />
               </svg>
-              Creating...
-            </span>
-          ) : (
-            'Create Module'
+              Uploading image...
+            </div>
           )}
+        </div>
+      </div>
+
+      {errors.submit && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{errors.submit}</p>
+        </div>
+      )}
+
+      {/* Validation Summary */}
+      {Object.keys(errors).length > 0 && Object.keys(touched).length > 0 && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-700 text-sm font-semibold mb-1">
+            Please fix the following issues:
+          </p>
+          <ul className="list-disc list-inside text-yellow-600 text-sm">
+            {errors.name && touched.name && <li>Module Name: {errors.name}</li>}
+            {errors.description && touched.description && (
+              <li>Description: {errors.description}</li>
+            )}
+            {errors.banner && touched.banner && (
+              <li>Banner Image: {errors.banner}</li>
+            )}
+          </ul>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-4 pt-8 border-t mt-8">
+        <button
+          onClick={onCancel}
+          type="button"
+          className="px-5 py-2.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 active:scale-95 transition-all duration-200 font-medium"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleCreate}
+          disabled={!isFormValid() || isUploading}
+          className={`px-6 py-2.5 rounded-lg text-white font-medium transition-all duration-200 ${
+            !isFormValid() || isUploading
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 active:scale-95"
+          }`}
+        >
+          {isUploading ? "Uploading..." : "Create Module"}
         </button>
       </div>
     </motion.div>

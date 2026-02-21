@@ -1,29 +1,22 @@
-// models/FilesDetails.js
+// models/RoleMaster.js
 export default (sequelize, DataTypes) => {
-  const FilesDetails = sequelize.define(
-    "FilesDetails",
+  const RoleMaster = sequelize.define(
+    "RoleMaster",
     {
-      FileID: {
+      RoleID: {
         type: DataTypes.INTEGER,
-        autoIncrement: true, 
         primaryKey: true,
+        autoIncrement: true,
         allowNull: false,
       },
-      FilesName: {
+      RoleName: {
         type: DataTypes.STRING(500),
         allowNull: false,
       },
-      FilePath: {
-        type: DataTypes.STRING(800),
-        allowNull: true,
-      },
-      FileType: {
-        type: DataTypes.STRING(200),
-        allowNull: true,
-      },
-      UnitID: {
-        type: DataTypes.INTEGER,
+      CanRoleEdit: {
+        type: DataTypes.TINYINT, 
         allowNull: false,
+        defaultValue: 0,
       },
       AuthAdd: {
         type: DataTypes.STRING(800),
@@ -32,49 +25,39 @@ export default (sequelize, DataTypes) => {
       AuthDel: {
         type: DataTypes.STRING(800),
         allowNull: true,
+        defaultValue: null,
       },
       AuthLstEdt: {
         type: DataTypes.STRING(800),
         allowNull: true,
+        defaultValue: null,
       },
       delOnDt: {
         type: DataTypes.DATE,
         allowNull: true,
+        defaultValue: null,
       },
       AddOnDt: {
         type: DataTypes.DATE,
         allowNull: false,
+        defaultValue: DataTypes.NOW,
       },
       editOnDt: {
         type: DataTypes.DATE,
         allowNull: true,
+        defaultValue: null,
       },
       delStatus: {
         type: DataTypes.INTEGER,
         allowNull: false,
-      },
-      Percentage: {
-        type: DataTypes.DECIMAL(18, 2),
-        allowNull: true,
-      },
-      Description: {
-        type: DataTypes.STRING(800),
-        allowNull: true,
-      },
-      SortingOrder: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-      },
-      EstimatedTime: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
+        defaultValue: 0,
       },
     },
     {
-      tableName: "FilesDetails",
+      tableName: "RoleMaster",
       timestamps: false,
-    }
+    },
   );
 
-  return FilesDetails;
+  return RoleMaster;
 };

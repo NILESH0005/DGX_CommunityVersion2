@@ -51,7 +51,6 @@ export const getModuleSubmoduleProgressService = async (
 };
 
 export const getUserFileIDsService = async (userEmail) => {
-  // Find user by email
   const user = await db.User.findOne({
     where: { EmailId: userEmail, delStatus: 0 },
     attributes: ["UserID"],
@@ -125,14 +124,12 @@ export class ViewService {
       const currentDate = new Date();
 
       const result = await db.sequelize.transaction(async (transaction) => {
-        // Check if user has already viewed this content EVER
-        // Look for ANY existing view record
         const existingView = await ContentInteractionLog.findOne({
           where: {
             ProcessName,
             UserID: userId,
             reference,
-            View: 1, // Specifically look for view records
+            View: 1,
             delStatus: 0,
           },
           transaction,
@@ -151,17 +148,15 @@ export class ViewService {
           };
         }
 
-        // ALWAYS create a NEW entry for view in log table
-        // This preserves the timestamp of when view happened
         const newViewRecord = await ContentInteractionLog.create(
           {
             ProcessName,
             UserID: userId,
             reference,
-            Likes: null, // View-only record
-            Dislike: null, // View-only record
+            Likes: null,
+            Dislike: null,
             Rating: null,
-            View: 1, // This marks it as a view
+            View: 1, 
             Comments: null,
             AuthAdd: userId.toString(),
             AuthDel: null,

@@ -64,11 +64,43 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   const fileExtension = fileUrl?.split(".").pop()?.toLowerCase() || "";
   const fileName = filesName || fileUrl?.split("/").pop() || "file";
 
+  // ALWAYS CALL ALL HOOKS FIRST, NO EARLY RETURNS BEFORE THIS
   useEffect(() => {
     loadExternalLibraries().then(() => {
       setLibrariesLoaded(true);
     });
   }, []);
+
+  // Handle Jupyter Notebook files - ALWAYS called
+  useEffect(() => {
+    if (fileExtension === "ipynb" && librariesLoaded) {
+      const loadNotebook = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          if (
+            !fileUrl.startsWith("http://localhost") &&
+            !fileUrl.startsWith("file://")
+          ) {
+            return;
+          }
+
+          // Fallback for local files
+          const response = await fetch(fileUrl);
+          if (!response.ok) throw new Error("Failed to fetch notebook");
+          const notebook = await response.json();
+          setNotebookContent(renderNotebook(notebook));
+        } catch (err) {
+          console.error("Error loading notebook:", err);
+          setError("Could not load notebook. " + err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadNotebook();
+    }
+  }, [fileUrl, fileExtension, librariesLoaded]);
 
   // const handleDownload = () => {
   //   const link = document.createElement('a');
@@ -107,53 +139,6 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     console.error("PDF load error:", error);
     setPdfError("Failed to load PDF. The file may be corrupted or invalid.");
   };
-
-  // 👉 Handle YouTube Links
-  if (
-    fileUrl &&
-    (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be"))
-  ) {
-    let videoId = "";
-
-    // Handle youtube.com/live/VIDEO_ID
-    const liveMatch = fileUrl.match(/youtube\.com\/live\/([^?&]+)/);
-    if (liveMatch) {
-      videoId = liveMatch[1];
-    }
-
-    // Handle youtube.com/watch?v=VIDEO_ID
-    const watchMatch = fileUrl.match(/[?&]v=([^?&]+)/);
-    if (watchMatch) {
-      videoId = watchMatch[1];
-    }
-
-    // Handle youtu.be/VIDEO_ID
-    const shortMatch = fileUrl.match(/youtu\.be\/([^?&]+)/);
-    if (shortMatch) {
-      videoId = shortMatch[1];
-    }
-
-    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-
-    return (
-      <div className="relative w-full flex flex-col items-center">
-        {renderSubmoduleHeader()}
-        <div className="w-full max-w-4xl aspect-video">
-          <iframe
-            key={iframeKey}
-            src={embedUrl}
-            title="YouTube video"
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="rounded-lg shadow"
-          />
-        </div>
-      </div>
-    );
-  }
 
   const renderNotebook = (notebook) => {
     return (
@@ -202,7 +187,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
                               : ""}
                           </pre>
                         ) : output.output_type === "execute_result" ||
-                          output.output_type === "display_data" ? (
+                          output_output_type === "display_data" ? (
                           output.data?.["text/html"] ? (
                             <div
                               dangerouslySetInnerHTML={{
@@ -267,36 +252,52 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     );
   };
 
-  // Handle Jupyter Notebook files
-  useEffect(() => {
-    if (fileExtension === "ipynb" && librariesLoaded) {
-      const loadNotebook = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          if (
-            !fileUrl.startsWith("http://localhost") &&
-            !fileUrl.startsWith("file://")
-          ) {
-            return;
-          }
+  // 👉 Handle YouTube Links
+  if (
+    fileUrl &&
+    (fileUrl.includes("youtube.com") || fileUrl.includes("youtu.be"))
+  ) {
+    let videoId = "";
 
-          // Fallback for local files
-          const response = await fetch(fileUrl);
-          if (!response.ok) throw new Error("Failed to fetch notebook");
-          const notebook = await response.json();
-          setNotebookContent(renderNotebook(notebook));
-        } catch (err) {
-          console.error("Error loading notebook:", err);
-          setError("Could not load notebook. " + err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadNotebook();
+    // Handle youtube.com/live/VIDEO_ID
+    const liveMatch = fileUrl.match(/youtube\.com\/live\/([^?&]+)/);
+    if (liveMatch) {
+      videoId = liveMatch[1];
     }
-  }, [fileUrl, fileExtension, librariesLoaded]);
+
+    // Handle youtube.com/watch?v=VIDEO_ID
+    const watchMatch = fileUrl.match(/[?&]v=([^?&]+)/);
+    if (watchMatch) {
+      videoId = watchMatch[1];
+    }
+
+    // Handle youtu.be/VIDEO_ID
+    const shortMatch = fileUrl.match(/youtu\.be\/([^?&]+)/);
+    if (shortMatch) {
+      videoId = shortMatch[1];
+    }
+
+    const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+
+    return (
+      <div className="relative w-full flex flex-col items-center">
+        {renderSubmoduleHeader()}
+        <div className="w-full max-w-4xl aspect-video">
+          <iframe
+            key={iframeKey}
+            src={embedUrl}
+            title="YouTube video"
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="rounded-lg shadow"
+          />
+        </div>
+      </div>
+    );
+  }
 
   // Handle link file type
   if (fileType === "link") {
@@ -375,7 +376,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
                 </div>
               }
             >
-              <div className="overflow-y-auto max-h-[80vh]">
+              <div className="overflow-y-auto max-h-[50vh]">
                 {Array.from(new Array(numPages), (el, index) => (
                   <div
                     key={`page_${index + 1}`}
@@ -483,10 +484,8 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
       );
     }
 
-    // Local notebook rendering remains the same
     return (
       <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
-        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         {loading ? (
           <div className="flex justify-center items-center h-64">

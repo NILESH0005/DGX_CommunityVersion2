@@ -13,14 +13,7 @@ import {
   faClock,
   faUserTie,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  ChevronDown,
-  Shield,
-  Users,
-  Zap,
-  Flag,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import ApiContext from "../context/ApiContext.jsx";
 import { momentLocalizer } from "react-big-calendar";
 import moment from "moment-timezone";
@@ -284,6 +277,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [eventViewCounts, setEventViewCounts] = useState({});
+  const [eventUserViewedMap, setEventUserViewedMap] = useState({});
 
   useEffect(() => {
     setMounted(true);
@@ -296,10 +290,39 @@ const EventWorkshopPage = ({ events, setEvents }) => {
         return;
       }
 
+      // Enhanced duplicate prevention with session storage
+      const sessionKey = `view_recorded_${eventId}`;
+      const permanentKey = `view_permanent_${eventId}`;
+      const now = Date.now();
+
+      // Check if already recorded in this session (prevents quick double-clicks)
+      if (sessionStorage.getItem(sessionKey)) {
+        console.log(
+          "View already recorded in this session for event:",
+          eventId,
+        );
+        return;
+      }
+
+      const lastRecordedPermanent = localStorage.getItem(permanentKey);
+      if (lastRecordedPermanent) {
+        const timeDiff = now - parseInt(lastRecordedPermanent);
+        const THIRTY_MINUTES = 30 * 60 * 1000;
+        if (timeDiff < THIRTY_MINUTES) {
+          console.log(
+            "View recorded recently (within 30 minutes) for event:",
+            eventId,
+          );
+          return;
+        }
+      }
+
       const viewData = {
         ProcessName: "Event",
         reference: eventId,
       };
+
+      console.log("Recording view for event:", eventId);
 
       const response = await fetchData(
         "progressTrack/recordView",
@@ -308,19 +331,25 @@ const EventWorkshopPage = ({ events, setEvents }) => {
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (response?.success) {
         if (response.data.alreadyViewed) {
-          console.log("Event view was already recorded previously");
+          console.log("Event view was already recorded previously in database");
         } else {
           console.log(
             "First-time event view recorded successfully:",
-            response.data
+            response.data,
           );
-          await fetchEventViewCounts(eventId);
+          await fetchEventViewCounts();
         }
+
+        sessionStorage.setItem(sessionKey, "true");
+        localStorage.setItem(permanentKey, now.toString());
+        setTimeout(() => {
+          sessionStorage.removeItem(sessionKey);
+        }, 5000);
       } else {
         console.error("Error recording event view:", response?.message);
       }
@@ -329,7 +358,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
     }
   };
 
-  const handleMoreInfoClick = (event) => {
+  const handleEventClick = async (event) => {
     if (!userToken) {
       Swal.fire({
         icon: "warning",
@@ -350,9 +379,19 @@ const EventWorkshopPage = ({ events, setEvents }) => {
       return;
     }
 
-    // Record view and navigate to event page
-    recordEventView(event.EventID);
-    navigate(`/event/${event.EventID}`);
+    const button = event.target;
+    if (button) {
+      button.disabled = true;
+      setTimeout(() => {
+        button.disabled = false;
+      }, 1000);
+    }
+
+    await recordEventView(event.EventID);
+
+    setTimeout(() => {
+      navigate(`/event/${event.EventID}`);
+    }, 100);
   };
 
   const fetchEventViewCounts = async () => {
@@ -363,17 +402,24 @@ const EventWorkshopPage = ({ events, setEvents }) => {
         {},
         {
           "Content-Type": "application/json",
-        }
+          "auth-token": userToken,
+        },
       );
 
       if (response?.success) {
-        // Convert array to object for easier access
         const viewCountsObj = {};
+        const userViewedObj = {};
+
         response.data.forEach((event) => {
           viewCountsObj[event.eventID] = event.totalViews;
+          userViewedObj[event.eventID] = event.HasUserViewed;
         });
+
         setEventViewCounts(viewCountsObj);
+        setEventUserViewedMap(userViewedObj);
+
         console.log("Event view counts loaded:", viewCountsObj);
+        console.log("User viewed map:", userViewedObj);
       }
     } catch (error) {
       console.error("Error fetching event view counts:", error);
@@ -387,32 +433,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
-  };
-
-  const handleViewDetails = (event) => {
-    if (!userToken) {
-      Swal.fire({
-        icon: "warning",
-        title: "Login Required",
-        text: "Please sign in to view event details.",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#aaa",
-        confirmButtonText: "Sign In",
-        cancelButtonText: "Cancel",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          setTimeout(() => {
-            navigate("/SignInn");
-          }, 100);
-        }
-      });
-      return;
-    }
-
-    // Record view and navigate to event page
-    recordEventView(event.EventID);
-    navigate(`/event/${event.EventID}`);
   };
 
   const handleCloseModal = () => {
@@ -549,6 +569,8 @@ const EventWorkshopPage = ({ events, setEvents }) => {
                 .filter((event) => event.Status === "Approved")
                 .map((event, index) => {
                   const viewCount = eventViewCounts[event.EventID] || 0;
+                  const hasUserViewed =
+                    eventUserViewedMap[event.EventID] || false;
 
                   return (
                     <motion.div
@@ -557,7 +579,7 @@ const EventWorkshopPage = ({ events, setEvents }) => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: index * 0.1 }}
                       whileHover={{ y: -5, scale: 1.02 }}
-                      className="bg-white rounded-xl shadow-lg overflow-hidden transition-shadow duration-300"
+                      className="bg-white rounded-xl shadow-lg overflow-visible transition-shadow duration-300"
                     >
                       <div className="relative">
                         <motion.img
@@ -576,12 +598,28 @@ const EventWorkshopPage = ({ events, setEvents }) => {
                           Upcoming
                         </motion.div>
 
-                        {/* View Count Badge */}
-                        <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-full text-xs backdrop-blur-sm">
+                        <div
+                          className={`group absolute top-2 left-2 px-2 py-1 rounded-full text-xs backdrop-blur-sm ${
+                            hasUserViewed
+                              ? "bg-green-600/90 text-white"
+                              : "bg-black/70 text-white"
+                          }`}
+                        >
                           <div className="flex items-center space-x-1">
-                            <FaEye className="text-gray-400 text-base" />
+                            <FaEye
+                              className={`text-base ${
+                                hasUserViewed ? "text-white" : "text-gray-400"
+                              }`}
+                            />
                             <span>{viewCount}</span>
                           </div>
+
+                          {hasUserViewed && (
+                            <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-lg">
+                              You’ve viewed this
+                              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="p-6">
@@ -611,10 +649,11 @@ const EventWorkshopPage = ({ events, setEvents }) => {
                           transition={{ delay: 0.2 }}
                         >
                           <motion.button
-                            onClick={() => handleViewDetails(event)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEventClick(event);
+                            }}
                             className="flex-1 bg-DGXblue hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
                           >
                             Details
                           </motion.button>
@@ -640,7 +679,6 @@ const EventWorkshopPage = ({ events, setEvents }) => {
         </div>
       </section>
 
-      {/* Calendar Section */}
       <motion.section
         className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto bg-white rounded-xl shadow-sm mb-12"
         initial={{ opacity: 0, y: 20 }}
@@ -779,19 +817,17 @@ const EventWorkshopPage = ({ events, setEvents }) => {
                     >
                       {event.EventDescription.replace(/<[^>]+>/g, "").substring(
                         0,
-                        200
+                        200,
                       )}
                       ...
                     </motion.div>
 
                     <motion.button
-                      onClick={() => handleMoreInfoClick(event)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEventClick(event);
+                      }}
                       className="mt-6 inline-flex items-center text-DGXblue hover:text-DGXgreen font-medium"
-                      whileHover={{ x: 5 }}
-                      whileTap={{ scale: 0.95 }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.5 }}
                     >
                       View Event Details
                       <ArrowRight className="w-4 h-4 ml-2" />

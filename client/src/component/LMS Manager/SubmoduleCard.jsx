@@ -22,8 +22,8 @@ import {
 } from "react-icons/fa";
 import images from "../../../public/images";
 import { motion, AnimatePresence } from "framer-motion";
-import HeroModel from "./ChatBot";
-import ChatBotModal from "./ChatBotModal";
+// import HeroModel from "./ChatBot";
+// import ChatBotModal from "./ChatBotModal";
 import Swal from "sweetalert2";
 
 const containerVariants = {
@@ -111,8 +111,6 @@ const SubModuleCard = () => {
     }
   };
 
-
-
   const recordSubModuleView = async (subModuleId) => {
     try {
       if (!userToken) {
@@ -149,7 +147,6 @@ const SubModuleCard = () => {
     }
   };
 
-  // Rate submodule with SweetAlert integration
   const rateSubModule = async (subModuleId, ratingValue, subModuleName) => {
     try {
       if (!userToken) {
@@ -162,7 +159,6 @@ const SubModuleCard = () => {
         return;
       }
 
-      // Check if already rated
       if (Number.isFinite(subModuleRatings[subModuleId]?.myRating)) {
         Swal.fire({
           icon: "info",
@@ -175,7 +171,6 @@ const SubModuleCard = () => {
         return;
       }
 
-      // Confirmation dialog before rating
       const result = await Swal.fire({
         title: "Rate Submodule",
         html: `
@@ -226,7 +221,6 @@ const SubModuleCard = () => {
       });
 
       if (response?.success) {
-        // Fetch updated ratings data from server
         const updatedRatingResponse = await fetchData(
           `lms/submodule-rating/${subModuleId}`,
           "GET",
@@ -237,7 +231,6 @@ const SubModuleCard = () => {
         );
 
         if (updatedRatingResponse?.success) {
-          // Update local state with fresh data from server
           setSubModuleRatings((prev) => ({
             ...prev,
             [subModuleId]: {
@@ -248,7 +241,6 @@ const SubModuleCard = () => {
             },
           }));
 
-          // Show success message with updated average rating
           const newAvgRating = updatedRatingResponse.data?.avgRating || 0;
 
           Swal.fire({
@@ -284,7 +276,6 @@ const SubModuleCard = () => {
             timer: 5000,
           });
         } else {
-          // Fallback if fetching updated data fails
           const updatedRatings = {
             ...subModuleRatings,
             [subModuleId]: {
@@ -352,7 +343,6 @@ const SubModuleCard = () => {
     }
   };
 
-  // Handle submodule click
   const handleSubModuleClick = async (subModule) => {
     await recordSubModuleView(subModule.SubModuleID);
     navigate(`/submodule/${subModule.SubModuleID}`, {
@@ -428,7 +418,6 @@ const SubModuleCard = () => {
     }
   };
 
-  // Time formatting functions
   const formatTime = (totalSeconds) => {
     if (!totalSeconds || totalSeconds === 0) return "Not started";
 
@@ -442,34 +431,6 @@ const SubModuleCard = () => {
       return `${minutes}m ${seconds}s`;
     } else {
       return `${seconds}s`;
-    }
-  };
-
-  const formatTimeCompact = (totalSeconds) => {
-    if (!totalSeconds || totalSeconds === 0) return "0s";
-
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    } else {
-      return `${seconds}s`;
-    }
-  };
-
-  const getTimeSpentColor = (totalSeconds) => {
-    if (!totalSeconds || totalSeconds === 0) return `text-gray-500 bg-gray-100`;
-
-    if (totalSeconds < 60) {
-      return `text-${DGX_COLORS.green[700]} bg-${DGX_COLORS.green[100]}`;
-    } else if (totalSeconds < 300) {
-      return `text-${DGX_COLORS.blue[700]} bg-${DGX_COLORS.blue[100]}`;
-    } else {
-      return `text-${DGX_COLORS.green[700]} bg-${DGX_COLORS.green[100]}`;
     }
   };
 
@@ -617,7 +578,6 @@ const SubModuleCard = () => {
     });
   };
 
-  // Helper function to handle star click when already rated
   const handleStarClickWhenRated = (subModuleId, subModuleName, myRating) => {
     Swal.fire({
       icon: "info",
@@ -787,10 +747,9 @@ const SubModuleCard = () => {
                     }
                   }}
                 >
-                  {/* Image Section with Overlays */}
+                  {" "}
                   <div className="h-48 sm:h-44 md:h-40 bg-gray-100 dark:bg-gray-700 overflow-hidden relative">
                     {renderSubModuleImage(subModule)}
-                    {/* Progress Bar Overlay */}
                     {totalTimeSpent > 0 && (
                       <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30">
                         <div
@@ -800,16 +759,12 @@ const SubModuleCard = () => {
                       </div>
                     )}
                   </div>
-
-                  {/* Content Section */}
                   <div className="p-6 flex flex-col flex-grow">
                     <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 break-words hover:text-blue-600 dark:hover:text-green-400 transition-colors duration-200 select-text group-hover:text-blue-700">
                       {subModule.SubModuleName}
                     </h3>
 
-                    {/* Stats Row - Now with Average Rating on the right */}
                     <div className="flex items-center justify-between mb-4">
-                      {/* Left side: Views and Time */}
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1.5">
                           <FaEye className="text-blue-400" />
@@ -825,7 +780,6 @@ const SubModuleCard = () => {
                         </div>
                       </div>
 
-                      {/* Right side: Average Rating */}
                       <div
                         className="flex items-center gap-2 cursor-pointer hover:text-blue-600 transition-colors"
                         onClick={(e) => {
@@ -844,16 +798,43 @@ const SubModuleCard = () => {
                             {avgRating.toFixed(1)}
                           </span>
                           <div className="flex">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <FaStar
-                                key={star}
-                                className={`text-xs ${
-                                  star <= avgRating
-                                    ? "text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
+                            {[1, 2, 3, 4, 5].map((star) => {
+                              const rating = avgRating;
+                              if (star <= Math.floor(rating)) {
+                                return (
+                                  <FaStar
+                                    key={star}
+                                    className="text-xs text-yellow-400"
+                                  />
+                                );
+                              }
+                              else if (
+                                star === Math.ceil(rating) &&
+                                rating % 1 > 0
+                              ) {
+                                return (
+                                  <div key={star} className="relative">
+                                    <FaStar className="text-xs text-gray-300 absolute" />
+                                    <FaStar
+                                      className="text-xs text-yellow-400"
+                                      style={{
+                                        clipPath: `inset(0 ${
+                                          100 - (rating % 1) * 100
+                                        }% 0 0)`,
+                                      }}
+                                    />
+                                  </div>
+                                );
+                              }
+                              else {
+                                return (
+                                  <FaStar
+                                    key={star}
+                                    className="text-xs text-gray-300"
+                                  />
+                                );
+                              }
+                            })}
                           </div>
                           <span className="text-xs text-gray-500">
                             ({totalRatings})
@@ -862,7 +843,6 @@ const SubModuleCard = () => {
                       </div>
                     </div>
 
-                    {/* Your Rating Section - ALWAYS VISIBLE */}
                     <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -872,7 +852,11 @@ const SubModuleCard = () => {
                                 ? myRating
                                 : hoverRatings[subModule.SubModuleID] || 0;
 
-                              const filled = star <= displayRating;
+                              const isFilled = star <= displayRating;
+
+                              const isPartial =
+                                star > displayRating &&
+                                star - 1 < displayRating;
 
                               return (
                                 <motion.button
@@ -892,7 +876,11 @@ const SubModuleCard = () => {
                                       ? "cursor-default"
                                       : "cursor-pointer"
                                   } ${
-                                    filled ? "text-yellow-400" : "text-gray-300"
+                                    isFilled
+                                      ? "text-yellow-400"
+                                      : isPartial
+                                      ? "text-yellow-400 opacity-70"
+                                      : "text-gray-300"
                                   }`}
                                   onMouseEnter={() => {
                                     if (!isRated && !ratingLoading) {
@@ -932,7 +920,17 @@ const SubModuleCard = () => {
                                   }}
                                   disabled={isRated || ratingLoading}
                                 >
-                                  <FaStar className="text-xl" />
+                                  {isPartial ? (
+                                    <div className="relative">
+                                      <FaStar className="text-xl text-gray-300 absolute" />
+                                      <FaStar
+                                        className="text-xl text-yellow-400"
+                                        style={{ clipPath: "inset(0 50% 0 0)" }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <FaStar className="text-xl" />
+                                  )}
                                 </motion.button>
                               );
                             })}
@@ -956,7 +954,6 @@ const SubModuleCard = () => {
                       )}
                     </div>
 
-                    {/* Description */}
                     <motion.div
                       className="relative overflow-hidden text-gray-700 dark:text-gray-300 text-base mb-4 select-text"
                       initial={false}
@@ -1024,13 +1021,13 @@ const SubModuleCard = () => {
         onClick={() => setIsChatOpen(true)}
         className="fixed bottom-6 right-6 z-50"
       >
-        <div className="w-[120px] h-[120px] flex justify-center items-center">
+        {/* <div className="w-[120px] h-[120px] flex justify-center items-center">
           <HeroModel />
-        </div>
+        </div> */}
       </button>
 
       {/* 👇 Chat Modal */}
-      <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      {/* <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} /> */}
     </div>
   );
 };

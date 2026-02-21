@@ -28,9 +28,6 @@ const DiscussionForm = ({
 
   const BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
 
-  // --------------------------
-  // Validation functions
-  // --------------------------
   const validateTitle = () => {
     if (!title.trim()) {
       setErrors((prev) => ({ ...prev, title: "Title is required" }));
@@ -101,9 +98,6 @@ const DiscussionForm = ({
     return true;
   };
 
-  // --------------------------
-  // Toxicity Validation
-  // --------------------------
   const validateToxicity = async () => {
     setIsCheckingToxicity(true);
     try {
@@ -135,9 +129,7 @@ const DiscussionForm = ({
     }
   };
 
-  // --------------------------
-  // Handlers
-  // --------------------------
+
   const handleTagAdd = () => {
     if (tagInput.trim() && tags.length < 5) {
       setTags([...tags, tagInput.trim()]);
@@ -171,13 +163,9 @@ const DiscussionForm = ({
     setBannerFilePath(filePath);
   };
 
-  // --------------------------
-  // Submit
-  // --------------------------
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // 🚫 NEW ADDITION: Check login before submitting
     if (!userToken || !user) {
       Swal.fire({
         icon: "warning",
@@ -235,9 +223,6 @@ const DiscussionForm = ({
     }
   };
 
-  // --------------------------
-  // 🚫 Prevent form rendering if user not logged in
-  // --------------------------
   useEffect(() => {
     if (!userToken || !user) {
       Swal.fire({
@@ -246,13 +231,10 @@ const DiscussionForm = ({
         text: "Please login first to start a discussion.",
         confirmButtonText: "OK",
       });
-      onClose && onClose(); // close form if user not logged in
+      onClose && onClose(); 
     }
   }, [userToken, user]);
 
-  // --------------------------
-  // Render
-  // --------------------------
   return (
     <div className="animate-slide-down mb-6">
       <div className="bg-white border-2 border-DGXgreen/20 rounded-xl shadow-lg overflow-hidden">
@@ -263,7 +245,6 @@ const DiscussionForm = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Title */}
           <div>
             <label className="font-semibold text-gray-700">Title *</label>
             <input
@@ -282,7 +263,6 @@ const DiscussionForm = ({
             )}
           </div>
 
-          {/* Content */}
           <div>
             <label className="font-semibold text-gray-700">Content *</label>
             <ReactQuill
@@ -304,7 +284,6 @@ const DiscussionForm = ({
             )}
           </div>
 
-          {/* Tags */}
           <div>
             <label className="font-semibold text-gray-700">Tags *</label>
             <div className="flex gap-2 mt-1">
@@ -350,7 +329,6 @@ const DiscussionForm = ({
             )}
           </div>
 
-          {/* Links */}
           <div>
             <label className="font-semibold text-gray-700">
               Reference Links

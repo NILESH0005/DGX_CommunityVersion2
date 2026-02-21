@@ -1,68 +1,68 @@
+// models/UserQueryReplies.js
 export default (sequelize, DataTypes) => {
-  const UserLmsProgress = sequelize.define(
-    "UserLmsProgress",
+  return sequelize.define(
+    "UserQueryReplies",
     {
-      ID: {
+      ReplyID: {
         type: DataTypes.INTEGER,
-        allowNull: false,
         primaryKey: true,
         autoIncrement: true,
       },
-      UserID: {
+
+      QueryID: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
-      FileID: {
+
+      RepliedBy: {
         type: DataTypes.INTEGER,
         allowNull: true,
       },
+
+      ReplyText: {
+        type: DataTypes.STRING(1000),
+        allowNull: true,
+      },
+
       AuthAdd: {
-        type: DataTypes.STRING(200),
+        type: DataTypes.STRING(800),
         allowNull: true,
       },
-      AuthLstEdt: {
-        type: DataTypes.STRING(200),
-        allowNull: true,
-      },
+
       AuthDel: {
-        type: DataTypes.STRING(200),
+        type: DataTypes.STRING(800),
         allowNull: true,
       },
-      AddOnDt: {
-        type: DataTypes.DATE,
+
+      AuthLstEdt: {
+        type: DataTypes.STRING(800),
         allowNull: true,
       },
-      editOnDt: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
+
       delOnDt: {
         type: DataTypes.DATE,
         allowNull: true,
       },
+
+      AddOnDt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+
+      editOnDt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+
       delStatus: {
         type: DataTypes.INTEGER,
         allowNull: true,
-      },
-      StartTime: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      EndTime: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      TimeSpentSeconds: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
+        defaultValue: 0,
       },
     },
     {
-      tableName: "UserLmsProgress",
+      tableName: "UserQueryReplies",
       timestamps: false,
-      freezeTableName: true,
-    }
+    },
   );
-
-  return UserLmsProgress;
 };

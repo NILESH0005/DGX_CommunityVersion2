@@ -10,6 +10,7 @@ import {
   FaImage,
   FaAngleDown,
   FaAngleUp,
+  FaExclamationCircle,
 } from "react-icons/fa";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 import Swal from "sweetalert2";
@@ -26,37 +27,105 @@ const EditModule = ({
   const [isImageEditing, setIsImageEditing] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const textareaRef = useRef(null);
   const descriptionRef = useRef(null);
   const [isDescriptionClamped, setIsDescriptionClamped] = useState(false);
   const { userToken, fetchData } = useContext(ApiContext);
 
+  // Validation rules
+  const validationRules = {
+    ModuleName: {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+      pattern: /^[a-zA-Z0-9\s\-_&@.,!?()]+$/,
+      message: {
+        required: "Module name is required",
+        minLength: "Module name must be at least 2 characters",
+        maxLength: "Module name cannot exceed 100 characters",
+        pattern: "Module name contains invalid characters",
+      },
+    },
+    ModuleDescription: {
+      required: true,
+      minLength: 10,
+      maxLength: 1000,
+      pattern: /^[a-zA-Z0-9\s\-_&@.,!?()\n\r]*$/,
+      message: {
+        required: "Description is required",
+        minLength: "Description must be at least 10 characters",
+        maxLength: "Description cannot exceed 1000 characters",
+        pattern: "Description contains invalid characters",
+      },
+    },
+  };
+
+  // Validation function
+  const validateField = (name, value) => {
+    const rules = validationRules[name];
+    if (!rules) return "";
+
+    const errors = [];
+
+    if (rules.required && (!value || value.trim() === "")) {
+      errors.push(rules.message.required);
+    }
+
+    if (rules.minLength && value && value.length < rules.minLength) {
+      errors.push(rules.message.minLength);
+    }
+
+    if (rules.maxLength && value && value.length > rules.maxLength) {
+      errors.push(rules.message.maxLength);
+    }
+
+    if (rules.pattern && value && !rules.pattern.test(value)) {
+      errors.push(rules.message.pattern);
+    }
+
+    return errors.length > 0 ? errors[0] : "";
+  };
+
+  // Validate all fields
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    Object.keys(validationRules).forEach((field) => {
+      const error = validateField(field, editedModule[field] || "");
+      if (error) {
+        newErrors[field] = error;
+        isValid = false;
+      }
+    });
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   useEffect(() => {
     setEditedModule(module);
 
-    // ✅ Priority 1: If ModuleImageUrl exists → use it directly (ensure it's a string)
-    if (module.ModuleImageUrl && typeof module.ModuleImageUrl === 'string') {
+    if (module.ModuleImageUrl && typeof module.ModuleImageUrl === "string") {
       setImagePreview(module.ModuleImageUrl);
       return;
     }
-
-    // ✅ Priority 2: If ModuleImage (byte array) exists → render as base64
-    if (module.ModuleImage?.data && typeof module.ModuleImage.data === 'string') {
+    if (module.ModuleImage?.data && typeof module.ModuleImage.data === "string") {
       setImagePreview(
-        `data:${module.ModuleImage.contentType || "image/jpeg"};base64,${module.ModuleImage.data}`
+        `data:${module.ModuleImage.contentType || "image/jpeg"};base64,${
+          module.ModuleImage.data
+        }`
       );
       return;
     }
-
-    // ✅ Priority 3: If ModuleImagePath exists → serve from local upload folder
-    if (module.ModuleImagePath && typeof module.ModuleImagePath === 'string') {
-      // Ensure we're not creating a malformed URL
-      const cleanPath = module.ModuleImagePath.replace(/^\/+/, ''); // Remove leading slashes
+    if (module.ModuleImagePath && typeof module.ModuleImagePath === "string") {
+      const cleanPath = module.ModuleImagePath.replace(/^\/+/, "");
       setImagePreview(`${window.location.origin}/${cleanPath}`);
       return;
     }
 
-    // ✅ Fallback → No image
     setImagePreview(null);
   }, [module]);
 
@@ -77,36 +146,69 @@ const EditModule = ({
     }
   }, [editedModule.ModuleDescription, isEditing]);
 
+  // Auto-validate when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      validateForm();
+    } else {
+      setErrors({});
+      setTouched({});
+    }
+  }, [isEditing]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEditedModule((prev) => ({
       ...prev,
       [name]: value,
     }));
+
+    // Mark field as touched
+    setTouched((prev) => ({
+      ...prev,
+      [name]: true,
+    }));
+
+    // Validate field in real-time
+    if (touched[name]) {
+      const error = validateField(name, value);
+      setErrors((prev) => ({
+        ...prev,
+        [name]: error,
+      }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched((prev) => ({
+      ...prev,
+      [name]: true,
+    }));
+
+    const error = validateField(name, value);
+    setErrors((prev) => ({
+      ...prev,
+      [name]: error,
+    }));
   };
 
   const handleImageUpload = (uploadResult) => {
-    // Add validation
-    if (!uploadResult || typeof uploadResult !== 'object') {
-      console.error('Invalid upload result:', uploadResult);
+    if (!uploadResult || typeof uploadResult !== "object") {
+      console.error("Invalid upload result:", uploadResult);
       return;
     }
 
     const { filePath } = uploadResult;
 
-    // Validate filePath is a string
-    if (typeof filePath !== 'string') {
-      console.error('Invalid filePath:', filePath);
+    if (typeof filePath !== "string") {
+      console.error("Invalid filePath:", filePath);
       return;
     }
 
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
-
-    // Ensure we're creating a proper URL
-    const cleanFilePath = filePath.replace(/^\/+/, '');
+    const cleanFilePath = filePath.replace(/^\/+/, "");
     const newImageUrl = `${baseUploadsUrl}/${cleanFilePath}`;
-
-    console.log('Setting image preview to:', newImageUrl); // Debug log
 
     setImagePreview(newImageUrl);
     setIsImageEditing(false);
@@ -128,6 +230,38 @@ const EditModule = ({
   };
 
   const handleSaveChanges = async () => {
+    // Mark all fields as touched
+    const allTouched = Object.keys(validationRules).reduce((acc, field) => {
+      acc[field] = true;
+      return acc;
+    }, {});
+    setTouched(allTouched);
+
+    // Validate form
+    const isValid = validateForm();
+
+    if (!isValid) {
+      // Show error message for first invalid field
+      const firstErrorField = Object.keys(errors)[0];
+      const firstError = errors[firstErrorField];
+      
+      Swal.fire({
+        icon: "error",
+        title: "Validation Error",
+        text: `${firstErrorField}: ${firstError}`,
+        confirmButtonColor: "#3085d6",
+      });
+      
+      // Scroll to first error field
+      const errorElement = document.getElementById(firstErrorField);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        errorElement.focus();
+      }
+      
+      return;
+    }
+
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "Do you want to save these changes?",
@@ -148,12 +282,11 @@ const EditModule = ({
           "auth-token": userToken,
         };
 
-        // Preserve the existing image paths/URLs
         const body = {
-          ModuleName: editedModule.ModuleName,
-          ModuleDescription: editedModule.ModuleDescription,
-          ModuleImageUrl: editedModule.ModuleImageUrl, // Keep original URL
-          ModuleImagePath: editedModule.ModuleImagePath, // Keep original path
+          ModuleName: editedModule.ModuleName.trim(),
+          ModuleDescription: editedModule.ModuleDescription.trim(),
+          ModuleImageUrl: editedModule.ModuleImageUrl,
+          ModuleImagePath: editedModule.ModuleImagePath,
           SortingOrder: editedModule.SortingOrder || 1,
         };
 
@@ -167,18 +300,19 @@ const EditModule = ({
           });
 
           const updatedModule = {
-            ...module, // Start with original module
-            ...response.data, // Apply server updates
+            ...module,
+            ...response.data,
             ModuleImageUrl: editedModule.ModuleImageUrl,
             ModuleImagePath: editedModule.ModuleImagePath,
           };
-
-          // Notify parent of the update
+          
           if (onUpdateSuccess) {
             onUpdateSuccess(updatedModule);
           }
 
           setIsEditing(false);
+          setErrors({});
+          setTouched({});
         } else {
           throw new Error(response.message || "Failed to update module.");
         }
@@ -190,6 +324,30 @@ const EditModule = ({
         });
       }
     }
+  };
+
+  const handleCancelEdit = () => {
+    // Reset form to original values
+    setEditedModule(module);
+    setErrors({});
+    setTouched({});
+    setIsEditing(false);
+  };
+
+  // Character counter component
+  const CharacterCounter = ({ value, maxLength, fieldName }) => {
+    if (!maxLength) return null;
+    
+    const currentLength = value?.length || 0;
+    const isNearLimit = currentLength > maxLength * 0.8;
+    const isExceeding = currentLength > maxLength;
+    
+    return (
+      <div className={`text-xs mt-1 ${isExceeding ? 'text-red-500' : isNearLimit ? 'text-yellow-500' : 'text-gray-500'}`}>
+        {currentLength}/{maxLength} characters
+        {isExceeding && <span className="ml-2 font-semibold">Exceeds limit!</span>}
+      </div>
+    );
   };
 
   return (
@@ -236,10 +394,6 @@ const EditModule = ({
             src={imagePreview}
             alt={editedModule.ModuleName}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-            // onError={(e) => {
-            //   e.target.onerror = null;
-            //   // e.target.src = Noimage;
-            // }}
           />
           {isEditing && (
             <button
@@ -278,63 +432,134 @@ const EditModule = ({
           )}
         </div>
       )}
-
-      {/* ✅ Content Section */}
       <div className="p-4 sm:p-6 flex-grow flex flex-col">
         <div className="flex-grow">
           {isEditing ? (
             <div className="space-y-4 h-full flex flex-col">
+              {/* Module Name Field */}
               <div>
                 <label
                   htmlFor="ModuleName"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Module Name
+                  Module Name *
                 </label>
-                <input
-                  type="text"
-                  id="ModuleName"
-                  name="ModuleName"
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="ModuleName"
+                    name="ModuleName"
+                    value={editedModule.ModuleName || ""}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`w-full border ${
+                      errors.ModuleName && touched.ModuleName
+                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                        : "border-DGXgreen dark:border-DGXgreen focus:ring-2 focus:ring-DGXgreen focus:border-DGXgreen"
+                    } dark:bg-DGXblue dark:text-DGXwhite p-2 rounded-md transition-all duration-200`}
+                    placeholder="Enter module name"
+                  />
+                  {errors.ModuleName && touched.ModuleName && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <FaExclamationCircle className="text-red-500" />
+                    </div>
+                  )}
+                </div>
+                {errors.ModuleName && touched.ModuleName && (
+                  <div className="flex items-center mt-1 text-red-500 text-xs">
+                    <FaExclamationCircle className="mr-1" size={10} />
+                    {errors.ModuleName}
+                  </div>
+                )}
+                <CharacterCounter
                   value={editedModule.ModuleName}
-                  onChange={handleChange}
-                  className="w-full border border-DGXgreen dark:border-DGXgreen dark:bg-DGXblue dark:text-DGXwhite p-2 rounded-md focus:ring-2 focus:ring-DGXgreen focus:border-DGXgreen transition-all duration-200"
-                  placeholder="Module Name"
+                  maxLength={validationRules.ModuleName.maxLength}
+                  fieldName="ModuleName"
                 />
               </div>
+
+              {/* Module Description Field */}
               <div className="flex-grow">
                 <label
                   htmlFor="ModuleDescription"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                 >
-                  Description
+                  Description *
                 </label>
-                <textarea
-                  ref={textareaRef}
-                  id="ModuleDescription"
-                  name="ModuleDescription"
-                  value={editedModule.ModuleDescription || ""}
-                  onChange={handleChange}
-                  className="w-full border border-DGXgreen dark:border-DGXgreen dark:bg-DGXblue dark:text-DGXwhite p-2 rounded-md focus:ring-2 focus:ring-DGXgreen focus:border-DGXgreen transition-all duration-200 flex-grow"
-                  placeholder="Module Description"
-                  style={{ minHeight: "100px" }}
+                <div className="relative">
+                  <textarea
+                    ref={textareaRef}
+                    id="ModuleDescription"
+                    name="ModuleDescription"
+                    value={editedModule.ModuleDescription || ""}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={`w-full border ${
+                      errors.ModuleDescription && touched.ModuleDescription
+                        ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                        : "border-DGXgreen dark:border-DGXgreen focus:ring-2 focus:ring-DGXgreen focus:border-DGXgreen"
+                    } dark:bg-DGXblue dark:text-DGXwhite p-2 rounded-md transition-all duration-200 flex-grow`}
+                    placeholder="Enter module description (minimum 10 characters)"
+                    style={{ minHeight: "100px" }}
+                    rows={4}
+                  />
+                  {errors.ModuleDescription && touched.ModuleDescription && (
+                    <div className="absolute right-3 top-3">
+                      <FaExclamationCircle className="text-red-500" />
+                    </div>
+                  )}
+                </div>
+                {errors.ModuleDescription && touched.ModuleDescription && (
+                  <div className="flex items-center mt-1 text-red-500 text-xs">
+                    <FaExclamationCircle className="mr-1" size={10} />
+                    {errors.ModuleDescription}
+                  </div>
+                )}
+                <CharacterCounter
+                  value={editedModule.ModuleDescription}
+                  maxLength={validationRules.ModuleDescription.maxLength}
+                  fieldName="ModuleDescription"
                 />
               </div>
-              {isEditing && (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSaveChanges}
-                    className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 flex items-center"
-                  >
-                    ✅ Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200 flex items-center"
-                  >
-                    ❌ Cancel
-                  </button>
+
+              {/* Save/Cancel Buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveChanges}
+                  disabled={Object.keys(errors).some(key => errors[key])}
+                  className={`px-4 py-2 rounded-md transition-colors duration-200 flex items-center ${
+                    Object.keys(errors).some(key => errors[key])
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600"
+                  } text-white`}
+                >
+                  ✅ Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors duration-200 flex items-center"
+                >
+                  ❌ Cancel
+                </button>
+              </div>
+
+              {/* Validation Summary (optional) */}
+              {Object.keys(errors).length > 0 && (
+                <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                  <p className="text-red-600 dark:text-red-400 text-sm font-semibold">
+                    Please fix the following errors:
+                  </p>
+                  <ul className="list-disc list-inside text-red-500 dark:text-red-300 text-xs mt-1">
+                    {Object.entries(errors).map(([field, error]) => (
+                      error && (
+                        <li key={field}>
+                          {field === "ModuleName" ? "Module Name" : "Description"}: {error}
+                        </li>
+                      )
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
@@ -346,8 +571,9 @@ const EditModule = ({
               <div className="prose dark:prose-invert max-w-none mb-2">
                 <div
                   ref={descriptionRef}
-                  className={`text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm sm:text-base ${!showFullDescription ? "line-clamp-3" : ""
-                    }`}
+                  className={`text-gray-600 dark:text-gray-300 whitespace-pre-line text-sm sm:text-base ${
+                    !showFullDescription ? "line-clamp-3" : ""
+                  }`}
                 >
                   {editedModule.ModuleDescription || "No description provided"}
                 </div>
@@ -405,8 +631,6 @@ const EditModule = ({
           </div>
         )}
       </div>
-
-      {/* ✅ Tooltips */}
       <ReactTooltip id="edit-tooltip" place="top" effect="solid" />
       <ReactTooltip id="delete-tooltip" place="top" effect="solid" />
       <ReactTooltip id="submodules-tooltip" place="top" effect="solid" />

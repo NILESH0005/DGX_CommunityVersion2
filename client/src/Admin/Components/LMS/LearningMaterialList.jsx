@@ -12,33 +12,43 @@ const LearningMaterialList = () => {
   const [selectedModule, setSelectedModule] = useState(null);
   const [showModuleOrder, setShowModuleOrder] = useState(false);
   const { fetchData, userToken } = useContext(ApiContext);
-  const [reloadKey, setReloadKey] = useState(0); // Add this line
-  const [submodules, setSubmodules] = useState([]); // Add this line
+  const [reloadKey, setReloadKey] = useState(0);
+  const [submodules, setSubmodules] = useState([]);
 
   useEffect(() => {
     const fetchModules = async () => {
       try {
         setLoading(true);
-        const response = await fetchData("dropdown/getModules", "GET");
+
+        const headers = {
+          "auth-token": userToken,
+        };
+
+        const response = await fetchData(
+          "dropdown/getAdminModules",
+          "GET",
+          {},
+          headers,
+        );
+
         if (response?.success) {
-          // Sort modules by SortingOrder then by ModuleID
           const sortedModules = [...response.data].sort((a, b) => {
             const orderA = a.SortingOrder || Number.MAX_SAFE_INTEGER;
             const orderB = b.SortingOrder || Number.MAX_SAFE_INTEGER;
             return orderA - orderB || a.ModuleID - b.ModuleID;
           });
+
           setModules(sortedModules);
         } else {
           setError(response?.message || "Failed to fetch modules");
         }
       } catch (err) {
         setError(err.message || "An error occurred while fetching modules");
-        // console.error("Error fetching modules:", err);
       } finally {
         setLoading(false);
       }
     };
-
+ 
     fetchModules();
   }, [fetchData, reloadKey]);
 
@@ -55,8 +65,8 @@ const LearningMaterialList = () => {
       prev.map((sub) =>
         sub.SubModuleID === updatedSubmodule.SubModuleID
           ? updatedSubmodule
-          : sub
-      )
+          : sub,
+      ),
     );
   };
 
@@ -87,7 +97,7 @@ const LearningMaterialList = () => {
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (response?.success) {
@@ -105,8 +115,8 @@ const LearningMaterialList = () => {
   const handleModuleUpdated = (updatedModule) => {
     setModules((prevModules) =>
       prevModules.map((mod) =>
-        mod.ModuleID === updatedModule.ModuleID ? updatedModule : mod
-      )
+        mod.ModuleID === updatedModule.ModuleID ? updatedModule : mod,
+      ),
     );
     setReloadKey((prev) => prev + 1);
   };
@@ -126,14 +136,14 @@ const LearningMaterialList = () => {
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (response?.success) {
         const updatedModules = [...modules]
           .map((module) => {
             const updatedModule = modulesWithOrder.find(
-              (m) => m.ModuleID === module.ModuleID
+              (m) => m.ModuleID === module.ModuleID,
             );
             return updatedModule
               ? { ...module, SortingOrder: updatedModule.SortingOrder }
@@ -152,7 +162,7 @@ const LearningMaterialList = () => {
       Swal.fire(
         "Error!",
         `Failed to update module order: ${err.message}`,
-        "error"
+        "error",
       );
     }
   };

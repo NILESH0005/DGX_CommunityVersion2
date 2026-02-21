@@ -23,6 +23,11 @@ import ContactUsModel from "../models/Contact_Us.js";
 import ContentInteractionLogModel from "./Content_Interaction_Log.js";
 import userLoginLogModel from "./Community_User_Login_Log.js";
 import ContentInteractionModel from "./Content_Interaction.js";
+import RoleMaster from "./RoleMaster.js";
+import PageMaster from "./PageMaster.js";
+import RolePageAccess from "./RolePageAccess.js";
+import UserQueryTable from "./UserQueryTable.js";
+import UserQueryReplies from "./UserQueryReplies.js";
 
 const User = UserModel(sequelize, DataTypes);
 const UserLoginLog = userLoginLogModel(sequelize, DataTypes);
@@ -47,6 +52,11 @@ const ContentEngagement = ContentEngagementModel(sequelize, DataTypes);
 const ContactUs = ContactUsModel(sequelize, DataTypes);
 const ContentInteractionLog = ContentInteractionLogModel(sequelize, DataTypes);
 const ContentInteraction = ContentInteractionModel(sequelize, DataTypes);
+const Role_Master = RoleMaster(sequelize, DataTypes);
+const Page_Master = PageMaster(sequelize, DataTypes);
+const Role_Page_Access = RolePageAccess(sequelize, DataTypes);
+const User_Query_Table = UserQueryTable(sequelize, DataTypes);
+const User_Query_Replies = UserQueryReplies(sequelize, DataTypes);
 
 const db = {
   sequelize,
@@ -73,6 +83,12 @@ const db = {
   UserActivity,
   ContentEngagement,
   ContactUs,
+  Role_Master,
+  Page_Master,
+  Role_Page_Access,
+  User_Query_Table,
+  User_Query_Replies,
+  
 };
 
 Object.values(db).forEach((model) => {

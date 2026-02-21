@@ -1,6 +1,6 @@
 // services/lmsService.js
 import db, { sequelize } from "../models/index.js";
-import { Op, Sequelize } from "sequelize";
+import { Op, QueryTypes, Sequelize } from "sequelize";
 
 const {
   LMSModulesDetails,
@@ -12,6 +12,7 @@ const {
   User,
   ContentInteraction,
   ContentInteractionLog,
+  User_Query_Table,
 } = db;
 
 export class LMSService {
@@ -46,7 +47,7 @@ export class LMSService {
           AddOnDt: new Date(),
           delStatus: 0,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // ✅ Insert into GroupMaster for Module
@@ -58,7 +59,7 @@ export class LMSService {
           AddOnDt: new Date(),
           delStatus: 0,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // === Loop Submodules ===
@@ -77,7 +78,7 @@ export class LMSService {
             AddOnDt: new Date(),
             delStatus: 0,
           },
-          { transaction: t }
+          { transaction: t },
         );
 
         // ✅ Insert into GroupMaster for SubModule
@@ -90,7 +91,7 @@ export class LMSService {
             AddOnDt: new Date(),
             delStatus: 0,
           },
-          { transaction: t }
+          { transaction: t },
         );
 
         // === Loop Units ===
@@ -105,7 +106,7 @@ export class LMSService {
               AddOnDt: new Date(),
               delStatus: 0,
             },
-            { transaction: t }
+            { transaction: t },
           );
 
           // === Loop Files ===
@@ -122,7 +123,7 @@ export class LMSService {
                 Percentage: file.Percentage || 0,
                 EstimatedTime: file.EstimatedTime || 0,
               },
-              { transaction: t }
+              { transaction: t },
             );
           }
         }
@@ -159,7 +160,7 @@ export class LMSService {
       // ✅ Step 3: Update existing files with new percentage
       await db.LMSFilesDetails.update(
         { Percentage: equalPercentage },
-        { where: { UnitID: unitId, delStatus: 0 }, transaction: t }
+        { where: { UnitID: unitId, delStatus: 0 }, transaction: t },
       );
 
       // ✅ Step 4: Create new file or link
@@ -190,7 +191,7 @@ export class LMSService {
     file,
     description,
     sortingOrder,
-    estimatedTime
+    estimatedTime,
   ) {
     return await db.sequelize.transaction(async (t) => {
       const user = await db.User.findOne({
@@ -216,7 +217,7 @@ export class LMSService {
           SortingOrder: sortingOrder || 0,
           EstimatedTime: estimatedTime || 0,
         },
-        { transaction: t }
+        { transaction: t },
       );
 
       // ✅ Step 3: Fetch all active files for the unit
@@ -231,8 +232,6 @@ export class LMSService {
       for (const f of allFiles) {
         await f.update({ Percentage: percentage }, { transaction: t });
       }
-
-      // ✅ Step 5: Return useful info
       return {
         unitId,
         percentage,
@@ -327,7 +326,7 @@ export class LMSViewsService {
             totalViews,
             totalTimeSpent,
           };
-        })
+        }),
       );
 
       return results;
@@ -436,7 +435,7 @@ export class LMSViewsService {
 
       const results = await Promise.all(
         modules.map(async (module) => {
-          // Find all submodules under this module
+          // 1️⃣ Get submodules for this module
           const subModules = await LMSSubModulesDetails.findAll({
             where: { ModuleID: module.ModuleID, delStatus: 0 },
             attributes: ["SubModuleID"],
@@ -445,25 +444,36 @@ export class LMSViewsService {
 
           const subModuleIDs = subModules.map((s) => s.SubModuleID);
 
-          if (subModuleIDs.length === 0)
-            return { ...module, totalViews: 0, totalTimeSpent: 0 };
+          if (subModuleIDs.length === 0) {
+            return {
+              moduleID: module.ModuleID,
+              moduleName: module.ModuleName,
+              totalViews: 0,
+              totalTimeSpent: 0,
+              effectiveTimeSpent: 0,
+              estimatedTimeTotal: 0,
+              totalFiles: 0,
+              completedFiles: 0,
+              engagementPercentage: 0,
+              avgRating: 0,
+              ratingCount: 0,
+            };
+          }
 
-          // Count unique UserIDs across all submodules (distinct users)
           const [viewsResult] = await ContentInteractionLog.sequelize.query(
             `
           SELECT COUNT(DISTINCT UserID) AS uniqueUsers
           FROM Content_Interaction_Log
           WHERE ProcessName = 'LMS'
-          AND delStatus = 0
-          AND View = 1
-          AND reference IN (:subModuleIDs)
-        `,
-            { replacements: { subModuleIDs } }
+            AND delStatus = 0
+            AND View = 1
+            AND reference IN (:subModuleIDs)
+          `,
+            { replacements: { subModuleIDs } },
           );
 
           const totalViews = viewsResult?.[0]?.uniqueUsers || 0;
 
-          // Get all units of the submodules
           const units = await LMSUnitsDetails.findAll({
             where: { SubModuleID: subModuleIDs, delStatus: 0 },
             attributes: ["UnitID"],
@@ -473,39 +483,117 @@ export class LMSViewsService {
           const unitIDs = units.map((u) => u.UnitID);
 
           let totalTimeSpent = 0;
+          let effectiveTimeSpent = 0;
+          let totalEstimatedTime = 0;
+          let totalFiles = 0;
+          let completedFiles = 0;
+
           if (unitIDs.length > 0) {
-            // Get all files of the units
             const files = await LMSFilesDetails.findAll({
-              where: { UnitID: unitIDs, delStatus: 0 },
-              attributes: ["FileID"],
+              where: {
+                UnitID: unitIDs,
+                delStatus: 0,
+                EstimatedTime: { [Sequelize.Op.not]: null },
+              },
+              attributes: ["FileID", "EstimatedTime"],
               raw: true,
             });
 
             const fileIDs = files.map((f) => f.FileID);
+            totalFiles = files.length;
+
+            totalEstimatedTime = files.reduce((sum, file) => {
+              return sum + (Number(file.EstimatedTime) || 0);
+            }, 0);
 
             if (fileIDs.length > 0) {
-              const timeResult = await LMSUserProgress.findAll({
-                where: { FileID: fileIDs },
+              // 6️⃣ Get time spent per file from userlmsprogress
+              const timeResults = await LMSUserProgress.findAll({
+                where: { FileID: fileIDs, delStatus: 0 },
                 attributes: [
+                  "FileID",
                   [
                     Sequelize.fn("SUM", Sequelize.col("TimeSpentSeconds")),
-                    "totalTime",
+                    "fileTimeSpent",
                   ],
                 ],
+                group: ["FileID"],
                 raw: true,
               });
 
-              totalTimeSpent = timeResult[0].totalTime || 0;
+              // Create a map of file times for quick lookup
+              const fileTimeMap = {};
+              timeResults.forEach((result) => {
+                fileTimeMap[result.FileID] = Number(result.fileTimeSpent) || 0;
+              });
+
+              // 7️⃣ Calculate total and effective time spent
+              files.forEach((file) => {
+                const fileEstimatedTimeSeconds =
+                  (Number(file.EstimatedTime) || 0) * 60;
+                const userTimeSpent = fileTimeMap[file.FileID] || 0;
+
+                totalTimeSpent += userTimeSpent;
+
+                // Effective time = min(user time, estimated time)
+                const effectiveTime = Math.min(
+                  userTimeSpent,
+                  fileEstimatedTimeSeconds,
+                );
+                effectiveTimeSpent += effectiveTime;
+
+                // Check if file is completed (at least 80% of estimated time)
+                if (userTimeSpent >= fileEstimatedTimeSeconds * 0.8) {
+                  completedFiles++;
+                }
+              });
             }
           }
+
+          // 8️⃣ Calculate engagement percentage
+          const totalEstimatedTimeSeconds = totalEstimatedTime * 60;
+          const engagementPercentage =
+            totalEstimatedTimeSeconds > 0
+              ? (effectiveTimeSpent / totalEstimatedTimeSeconds) * 100
+              : 0;
+
+          // 9️⃣ Get ratings
+          const [ratingResult] = await ContentInteractionLog.sequelize.query(
+            `SELECT 
+            AVG(Rating) AS avgRating,
+            COUNT(Rating) AS ratingCount
+          FROM content_interaction
+          WHERE Type = 'LMS'
+            AND delStatus = 0
+            AND Rating IS NOT NULL
+            AND ReferenceId IN (:subModuleIDs)
+          `,
+            {
+              replacements: { subModuleIDs },
+              type: Sequelize.QueryTypes.SELECT,
+            },
+          );
+
+          const avgRating = ratingResult?.avgRating
+            ? Number(parseFloat(ratingResult.avgRating).toFixed(2))
+            : 0;
+
+          const ratingCount = ratingResult?.ratingCount || 0;
 
           return {
             moduleID: module.ModuleID,
             moduleName: module.ModuleName,
             totalViews,
-            totalTimeSpent, // <-- include total time here
+            totalTimeSpent, // Raw total time spent
+            effectiveTimeSpent, // Capped time (max = estimated time per file)
+            estimatedTimeTotal: totalEstimatedTime, // in minutes
+            totalFiles,
+            completedFiles,
+            engagementPercentage: Number(engagementPercentage.toFixed(2)),
+            avgRating,
+            ratingCount,
           };
-        })
+        }),
       );
 
       return results;
@@ -548,13 +636,10 @@ export const getAllActiveFilesService = async () => {
     `;
 
     const [results] = await sequelize.query(query);
-
-    // Use server environment variable
     const BASE_URL = process.env.API_BASE_URL;
     const UPLOADS_URL = process.env.API_UPLOADS_URL || BASE_URL;
 
     const updatedResults = results.map((file) => {
-      // If it's an external link, leave as is
       if (file.FileType === "link" || file.FilePath?.startsWith("http")) {
         return {
           ...file,
@@ -562,12 +647,10 @@ export const getAllActiveFilesService = async () => {
         };
       }
 
-      // For local files, create the proper download URL
-      // Use the download endpoint instead of direct file path
       return {
         ...file,
-        FileURL: `${BASE_URL}/lms/download/${file.FileID}`, // Use download endpoint
-        DirectFileURL: `${UPLOADS_URL}/${file.FilePath}`, // Direct file access (if files are served statically)
+        FileURL: `${BASE_URL}/lms/download/${file.FileID}`,
+        DirectFileURL: `${UPLOADS_URL}/${file.FilePath}`,
       };
     });
 
@@ -660,9 +743,7 @@ export const getSubModuleRatingService = async (userEmail, subModuleId) => {
     raw: true,
   });
 
-  const avgRating = ratingStats?.avgRating
-    ? Number(ratingStats.avgRating)
-    : 0;
+  const avgRating = ratingStats?.avgRating ? Number(ratingStats.avgRating) : 0;
 
   const ratingCount = ratingStats?.ratingCount
     ? Number(ratingStats.ratingCount)
@@ -698,10 +779,9 @@ export const getSubModuleRatingService = async (userEmail, subModuleId) => {
   return {
     avgRating: Number(avgRating.toFixed(1)),
     totalRatings: ratingCount, // ✅ MATCH FRONTEND
-    myRating,                  // ✅ REQUIRED
+    myRating, // ✅ REQUIRED
   };
 };
-
 
 export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
   try {
@@ -744,7 +824,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
       if (existingRating) {
         await transaction.rollback();
         throw new Error(
-          "You have already rated this submodule. You can rate only once."
+          "You have already rated this submodule. You can rate only once.",
         );
       }
 
@@ -770,7 +850,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
           {
             where: { Id: mainInteraction.Id },
             transaction,
-          }
+          },
         );
       } else {
         // Create new interaction
@@ -793,7 +873,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
             editOnDt: null,
             delStatus: 0,
           },
-          { transaction }
+          { transaction },
         );
       }
 
@@ -817,7 +897,7 @@ export const handleLmsSubmoduleRateAction = async (userEmail, postData) => {
           editOnDt: null,
           delStatus: 0,
         },
-        { transaction }
+        { transaction },
       );
 
       await transaction.commit();
@@ -872,9 +952,7 @@ export const getModuleRatingService = async (moduleId) => {
     raw: true,
   });
 
-  const avgRating = ratingStats?.avgRating
-    ? Number(ratingStats.avgRating)
-    : 0;
+  const avgRating = ratingStats?.avgRating ? Number(ratingStats.avgRating) : 0;
 
   const ratingCount = ratingStats?.ratingCount
     ? Number(ratingStats.ratingCount)
@@ -884,4 +962,152 @@ export const getModuleRatingService = async (moduleId) => {
     avgRating: Number(avgRating.toFixed(1)),
     totalRatings: ratingCount,
   };
+};
+
+export const createUserQuery = async (queryData, userId) => {
+  try {
+    const requiredFields = [
+      "ModuleID",
+      "SubModuleID",
+      "UnitID",
+      "FileID",
+      "QueryText",
+    ];
+    const missingFields = requiredFields.filter(
+      (field) => !queryData[field] && queryData[field] !== 0,
+    );
+
+    if (missingFields.length > 0) {
+      console.warn(`Missing required fields: ${missingFields.join(", ")}`);
+      return {
+        status: 400,
+        response: {
+          success: false,
+          data: {},
+          message: `Missing required fields: ${missingFields.join(", ")}`,
+        },
+      };
+    }
+
+    if (queryData.QueryText.length > 1000) {
+      console.warn("Query text exceeds 1000 characters");
+      return {
+        status: 400,
+        response: {
+          success: false,
+          data: {},
+          message: "Query text cannot exceed 1000 characters",
+        },
+      };
+    }
+
+    // Get module creator ID
+    const module = await LMSModulesDetails.findOne({
+      where: { ModuleID: queryData.ModuleID, delStatus: 0 },
+      attributes: ["AuthAdd"],
+    });
+
+    const moduleCreatorId = module ? module.AuthAdd : null;
+
+    const userQuery = await User_Query_Table.create({
+      ModuleID: queryData.ModuleID,
+      SubModuleID: queryData.SubModuleID,
+      UnitID: queryData.UnitID,
+      FileID: queryData.FileID,
+      ModuleCreatorID: moduleCreatorId,
+      UserID: userId,
+      QueryText: queryData.QueryText,
+      Status: "Pending",
+      AuthAdd: userId.toString(),
+      AddOnDt: new Date(),
+      delStatus: 0,
+    });
+
+    console.log(`User query created successfully: ${userQuery.QueryID}`);
+
+    return {
+      status: 201,
+      response: {
+        success: true,
+        data: {
+          queryId: userQuery.QueryID,
+          queryText: userQuery.QueryText,
+          status: userQuery.Status,
+          createdAt: userQuery.AddOnDt,
+        },
+        message: "Query submitted successfully!",
+      },
+    };
+  } catch (error) {
+    console.error("User query creation failed:", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: error,
+        message: "Something went wrong while submitting the query",
+      },
+    };
+  }
+};
+
+export const getUserQueries = async (filters = {}, userId) => {
+  try {
+    let whereConditions = "q.delStatus = 0";
+    let replacements = {};
+
+    const query = `
+      SELECT 
+        q.QueryID AS queryId,
+        q.ModuleID AS moduleId,
+        q.SubModuleID AS subModuleId,
+        q.UnitID AS unitId,
+        q.FileID AS fileId,
+        q.ModuleCreatorID AS moduleCreatorId,
+        q.UserID AS userId,
+        q.QueryText AS queryText,
+        q.Status AS status,
+        q.AddOnDt AS createdAt,
+        q.editOnDt AS updatedAt,
+        
+        u.Name AS userName,
+        u.EmailId AS userEmail,
+        u.isAdmin AS isAdmin,
+        u.ProfilePicture AS profilePicture
+
+      FROM userquerytable q
+      LEFT JOIN community_user u 
+        ON q.UserID = u.UserID
+
+      WHERE ${whereConditions}
+
+      ORDER BY q.AddOnDt DESC
+    `;
+
+    const queries = await sequelize.query(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    console.log(`Retrieved ${queries.length} queries`);
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: queries,
+        message: "Queries retrieved successfully",
+      },
+    };
+  } catch (error) {
+    console.error("Failed to retrieve queries:", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: {},
+        message: "Something went wrong while retrieving queries",
+      },
+    };
+  }
 };

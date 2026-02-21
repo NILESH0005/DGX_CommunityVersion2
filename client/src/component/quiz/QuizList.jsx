@@ -240,9 +240,8 @@ const QuizList = () => {
       </div>
 
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
-        {/* QUIZ LIST - MAIN CONTENT */}
         <div className="w-full lg:w-8/12" ref={quizCategoriesRef}>
-          <div className="sticky top-4 z-10 bg-white/80 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200 shadow-lg">
+          <div className=" top-4 z-10 bg-white/80 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-200 shadow-lg">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Available Quizzes</h2>
@@ -259,8 +258,7 @@ const QuizList = () => {
                   key={group.id} 
                   className="relative group"
                 >
-                  {/* Category Header */}
-                  <div className="sticky top-24 z-10 mb-8">
+                  <div className=" top-24 z-10 mb-8">
                     <div className="inline-flex items-center gap-3 bg-gradient-to-r from-white to-gray-50/50 backdrop-blur-sm px-6 py-4 rounded-2xl border border-gray-200 shadow-lg">
                       <div className="w-3 h-12 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
                       <div>
@@ -270,7 +268,6 @@ const QuizList = () => {
                     </div>
                   </div>
 
-                  {/* Quiz Cards Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {group.quizzes.map(quiz => {
                       const status = getQuizStatus(quiz);
@@ -292,7 +289,6 @@ const QuizList = () => {
                             flex flex-col h-full group/card
                           "
                         >
-                          {/* Image Section */}
                           <div className="relative h-48 overflow-hidden">
                             <img 
                               src={imageUrl} 
@@ -317,7 +313,6 @@ const QuizList = () => {
                             <div className="absolute inset-0 bg-gradient-to-t from-white/20 via-transparent to-transparent"></div>
                           </div>
 
-                          {/* Content Section */}
                           <div className="p-6 flex-grow">
                             <div className="mb-4">
                               <h4 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
@@ -346,7 +341,6 @@ const QuizList = () => {
                             {(status === "upcoming" || status === "active") &&
                               renderCountdown(time, status)}
 
-                            {/* Action Button */}
                             <div className="mt-6 pt-6 border-t border-gray-100">
                               {status === "active" ? (
                                 <button

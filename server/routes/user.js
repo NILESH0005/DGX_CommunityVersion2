@@ -15,9 +15,18 @@ import {
   getAllUser,
   deleteUser,
   addUser,
-  sendContactEmail
+  sendContactEmail,
+  addRole,
+  getRoles,
+  getPages,
+  assignPagesToRole,
+  getRolePageAccess,
+  getUserRole,
+  assignSingleRole,
+  getPagesByRole
 
 } from "../controllers/user.js";
+import { removeUserRole } from "../services/userService.js";
 
 const router = express.Router();
 
@@ -68,6 +77,25 @@ router.post(
 
 router.post('/deleteUser', fetchUser, deleteUser)
 router.post('/addUser', addUser)
+router.post('/addRole', fetchUser, addRole)
+router.get("/getRoles", fetchUser, getRoles);
+router.get("/getPages", fetchUser, getPages);
+router.post('/assignPagesToRole', fetchUser, assignPagesToRole);
+router.get('/rolePageAccess', fetchUser, getRolePageAccess);
+router.post("/assignRoles", fetchUser, assignSingleRole);
+router.get("/getUserRoles", fetchUser, getUserRole );
+router.post("/removeUserRole", fetchUser, removeUserRole);
+router.get("/pages-by-role", fetchUser, getPagesByRole);
+
+
+
+
+
+
+
+
+
+
 
 
 

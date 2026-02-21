@@ -82,7 +82,7 @@ const GeneralUserCalendar = (props) => {
     const now = moment();
     const start = moment(event.StartDate);
     const end = moment(event.EndDate);
-    
+
     if (end.isBefore(now)) {
       return "PAST_EVENT";
     } else if (start.isAfter(now)) {
@@ -95,7 +95,7 @@ const GeneralUserCalendar = (props) => {
   const eventStyleGetter = (event) => {
     // Determine event status (past or upcoming)
     const eventStatus = getEventStatus(event);
-    
+
     // Get color based on category or status
     let backgroundColor;
     if (eventStatus === "PAST_EVENT") {
@@ -106,11 +106,12 @@ const GeneralUserCalendar = (props) => {
       // For current events or if no status determined, use category colors
       backgroundColor = eventColors[event.Category] || "#C0C0C0";
     }
-    
+
     // Add strikethrough for past events
-    const textDecoration = eventStatus === "PAST_EVENT" ? "line-through" : "none";
+    const textDecoration =
+      eventStatus === "PAST_EVENT" ? "line-through" : "none";
     const opacity = eventStatus === "PAST_EVENT" ? 0.8 : 1;
-    
+
     return {
       style: {
         backgroundColor,
@@ -149,14 +150,13 @@ const GeneralUserCalendar = (props) => {
     }
   };
 
-  // Sort events: upcoming first, then past events
   const sortedEvents = props.events
     ?.filter((event) => event.Status === "Approved")
     .sort((a, b) => {
       const aStart = moment(a.StartDate);
       const bStart = moment(b.StartDate);
       const now = moment();
-      
+
       // Both events are upcoming - sort by date ascending
       if (aStart.isAfter(now) && bStart.isAfter(now)) {
         return aStart.diff(bStart);
@@ -172,32 +172,32 @@ const GeneralUserCalendar = (props) => {
       const status = getEventStatus(event);
       return {
         ...event,
-        start: moment(event.StartDate).toDate(),
-        end: moment(event.EndDate).toDate(),
+        start: moment.utc(event.StartDate).local().toDate(),
+        end: moment.utc(event.EndDate).local().toDate(),
         title: event.EventTitle,
-        status: status, // Add status for reference
+        status,
       };
     });
 
   const formats = {
     timeGutterFormat: (date, culture, localizer) =>
-      localizer.format(date, "HH:mm", culture),
+      localizer.format(date, "h:mm A", culture),
+
     eventTimeRangeFormat: ({ start, end }) =>
-      `${moment(start).format("MMMM D, YYYY h:mm A")} - ${moment(end).format(
-        "MMMM D, YYYY h:mm A"
-      )}`,
+      `${moment(start).format("h:mm A")} - ${moment(end).format("h:mm A")}`,
   };
 
   const renderMobileEventCard = (event, index) => {
     const eventStatus = getEventStatus(event);
-    const statusColor = eventStatus === "PAST_EVENT" 
-      ? eventColors.PAST_EVENT 
-      : eventStatus === "UPCOMING_EVENT" 
-        ? eventColors.UPCOMING_EVENT 
+    const statusColor =
+      eventStatus === "PAST_EVENT"
+        ? eventColors.PAST_EVENT
+        : eventStatus === "UPCOMING_EVENT"
+        ? eventColors.UPCOMING_EVENT
         : eventColors[event.Category] || "#C0C0C0";
-    
+
     const isPastEvent = eventStatus === "PAST_EVENT";
-    
+
     return (
       <div
         key={event.EventID}
@@ -211,20 +211,28 @@ const GeneralUserCalendar = (props) => {
       >
         <div className="flex justify-between items-start">
           <div>
-            <h3 
-              className={`font-bold text-lg ${isPastEvent ? "line-through" : ""}`}
+            <h3
+              className={`font-bold text-lg ${
+                isPastEvent ? "line-through" : ""
+              }`}
               style={{ color: isPastEvent ? "#6B7280" : "inherit" }}
             >
               {event.EventTitle}
             </h3>
             <p className="text-sm text-gray-600">{event.Venue}</p>
             <div className="mt-1">
-              <span 
-                className={`text-xs px-2 py-1 rounded-full ${isPastEvent ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"}`}
+              <span
+                className={`text-xs px-2 py-1 rounded-full ${
+                  isPastEvent
+                    ? "bg-red-100 text-red-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }`}
               >
-                {eventStatus === "PAST_EVENT" ? "Past Event" : 
-                 eventStatus === "UPCOMING_EVENT" ? "Upcoming Event" : 
-                 "Current Event"}
+                {eventStatus === "PAST_EVENT"
+                  ? "Past Event"
+                  : eventStatus === "UPCOMING_EVENT"
+                  ? "Upcoming Event"
+                  : "Current Event"}
               </span>
               {event.Category && (
                 <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800 ml-2">
@@ -269,22 +277,38 @@ const GeneralUserCalendar = (props) => {
   // Legend component for color coding
   const ColorLegend = () => (
     <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <h3 className="text-sm font-semibold mb-2 text-gray-700">Event Color Legend:</h3>
+      <h3 className="text-sm font-semibold mb-2 text-gray-700">
+        Event Color Legend:
+      </h3>
       <div className="flex flex-wrap gap-3">
         <div className="flex items-center">
-          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors.UPCOMING_EVENT }}></div>
+          <div
+            className="w-4 h-4 rounded mr-2"
+            style={{ backgroundColor: eventColors.UPCOMING_EVENT }}
+          ></div>
           <span className="text-sm">Upcoming Events</span>
         </div>
         <div className="flex items-center">
-          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors.PAST_EVENT }}></div>
+          <div
+            className="w-4 h-4 rounded mr-2"
+            style={{ backgroundColor: eventColors.PAST_EVENT }}
+          ></div>
           <span className="text-sm">Past Events</span>
         </div>
         <div className="flex items-center">
-          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors.NVIDIA }}></div>
+          <div
+            className="w-4 h-4 rounded mr-2"
+            style={{ backgroundColor: eventColors.NVIDIA }}
+          ></div>
           <span className="text-sm">NVIDIA Events</span>
         </div>
         <div className="flex items-center">
-          <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: eventColors["Global Infoventures Event"] }}></div>
+          <div
+            className="w-4 h-4 rounded mr-2"
+            style={{
+              backgroundColor: eventColors["Global Infoventures Event"],
+            }}
+          ></div>
           <span className="text-sm">Global Infoventures Events</span>
         </div>
         {/* <div className="flex items-center">
@@ -334,24 +358,37 @@ const GeneralUserCalendar = (props) => {
           style={{ height: 600 }}
           className="bg-white rounded-lg border-2 border-DGXgreen shadow-lg p-5 mb-10"
           onSelectEvent={handleSelectEvent}
+          timeslots={2}
+          step={30}
+          now={new Date()}
+          showMultiDayTimes
           views={["month", "week"]} // Only show Month and Week views
-          components={{
-            event: ({ event }) => {
-              const eventStatus = getEventStatus(event);
-              const isPast = eventStatus === "PAST_EVENT";
-              return (
-                <div 
-                  className={`rbc-event-content ${isPast ? "line-through" : ""}`}
-                  style={{
-                    textDecoration: isPast ? "line-through" : "none",
-                    opacity: isPast ? 0.8 : 1
-                  }}
-                >
-                  {event.EventTitle}
-                </div>
-              );
-            }
-          }}
+         components={{
+  event: ({ event }) => {
+    const isPast = event.status === "PAST_EVENT";
+
+    return (
+      <div
+        style={{
+          fontSize: "0.85rem",
+          fontWeight: 600,
+          lineHeight: "1.3",
+          padding: "4px 6px",
+          borderRadius: "4px",
+          opacity: isPast ? 0.7 : 1,
+          whiteSpace: "normal",
+        }}
+      >
+        <div>{event.title}</div>
+        <div style={{ fontSize: "0.7rem", opacity: 0.9 }}>
+          {moment(event.start).format("h:mm A")} –{" "}
+          {moment(event.end).format("h:mm A")}
+        </div>
+      </div>
+    );
+  },
+}}
+
         />
       )}
 

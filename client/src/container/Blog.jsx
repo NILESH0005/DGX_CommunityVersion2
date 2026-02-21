@@ -71,9 +71,9 @@ const getProfileUrl = (path) => {
   return `${base}/${path.replace(/^\/+/, "")}`;
 };
 
-// Fixed RepostCard Component for horizontal scrollable users
 const RepostCard = ({ reposts = [] }) => {
-  console.log("ccccccccccccccccc", reposts);
+  console.log("Reposts data analysis:", reposts);
+
   if (!reposts || reposts.length === 0) return null;
 
   // Sort reposts by AddOnDt descending (latest first)
@@ -96,35 +96,81 @@ const RepostCard = ({ reposts = [] }) => {
       {/* Horizontal Scrollable Users */}
       <div className="overflow-x-auto">
         <div className="flex space-x-4 pb-2 min-w-max">
-          {sortedReposts.map((repost, index) => (
-            <div
-              key={`${repost.UserID}-${index}`}
-              className="flex flex-col items-center text-center min-w-[80px]"
-            >
-              {/* User Avatar */}
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-sm font-bold mb-2 shadow-sm">
-                {repost.RepostUser.Name
-                  ? repost.RepostUser.Name.split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                  : "U"}
-              </div>
+          {sortedReposts.map((repost, index) => {
+            // DEBUG: Log what data we have
+            console.log(`Repost ${index}:`, {
+              authorField: repost.author,
+              userId: repost.UserID,
+              repostUserId: repost.RepostUserID,
+              repostUserData: repost.RepostUser,
+            });
 
-              {/* User Name */}
-              <div className="text-xs font-medium text-gray-900 truncate max-w-[70px]">
-                {repost.RepostUser.Name || "Unknown User"}
-              </div>
+            // Extract the correct repost author information
+            // Use 'author' field first, fallback to RepostUser.Name
+            let userName =
+              repost.author || repost.RepostUser?.Name || "Unknown User";
+            let userProfile = repost.RepostUser?.ProfilePicture || null;
+            const userId = repost.UserID || repost.RepostUser?.UserID;
 
-              {/* Repost Date */}
-              <div className="text-xs text-gray-500 mt-1">
-                {new Date(repost.AddOnDt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
+            // If author field has the correct name but User object has wrong one
+            // Create a clean user object
+            const repostUser = {
+              UserID: userId,
+              Name: userName,
+              ProfilePicture: userProfile,
+            };
+
+            return (
+              <div
+                key={`${userId}-${index}`}
+                className="flex flex-col items-center text-center min-w-[80px]"
+              >
+                {/* User Avatar with fallback */}
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-r from-DGXblue to-DGXgreen flex items-center justify-center text-white text-sm font-bold mb-2 shadow-sm">
+                  {userProfile ? (
+                    <img
+                      src={getProfileUrl(userProfile)}
+                      alt={userName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        // Show initials as fallback
+                        const initials = userName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .substring(0, 2);
+                        e.target.parentElement.textContent = initials;
+                      }}
+                    />
+                  ) : (
+                    <span>
+                      {userName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .substring(0, 2)}
+                    </span>
+                  )}
+                </div>
+
+                {/* User Name */}
+                <div className="text-xs font-medium text-gray-900 truncate max-w-[70px]">
+                  {userName}
+                </div>
+
+                {/* Repost Date */}
+                <div className="text-xs text-gray-500 mt-1">
+                  {new Date(repost.AddOnDt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
@@ -252,13 +298,11 @@ const BlogPage = () => {
       return imagePath;
     }
 
-    // If it's already a full URL, use it directly
     if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
       console.log("Full URL detected:", imagePath);
       return imagePath;
     }
 
-    // If it's a relative path, construct the full URL
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
 
     if (!baseUploadsUrl) {
@@ -269,10 +313,8 @@ const BlogPage = () => {
     console.log("Base uploads URL:", baseUploadsUrl);
     console.log("Original image path:", imagePath);
 
-    // Remove any leading slashes from the path
     const cleanPath = imagePath.replace(/^\/+/, "");
 
-    // Construct the full URL
     const fullUrl = `${baseUploadsUrl}/${cleanPath}`;
 
     console.log("Constructed image URL:", fullUrl);
@@ -315,7 +357,6 @@ const BlogPage = () => {
         console.log("Fetched blogs raw data:", result);
 
         if (result && result.data) {
-          // Use the data directly as it comes from backend
           setBlogs(result.data);
         } else {
           console.error("Invalid data format:", result);
@@ -397,10 +438,7 @@ const BlogPage = () => {
       return;
     }
 
-    // Record the view
     recordBlogView(blog.BlogID);
-
-    // Navigate to the blog page instead of opening modal
     navigate(`/blog/${blog.BlogID}`);
   };
 
@@ -446,36 +484,20 @@ const BlogPage = () => {
     const isAccordionOpen = expandedAccordions[BlogID];
     const hasReposts = reposts && reposts.length > 0;
     const userName = User?.Name;
-    // Helper: remove HTML tags and decode basic entities
     const stripHtml = (html) => {
       if (!html) return "";
       const div = document.createElement("div");
       div.innerHTML = html;
-      // decode & return plain text
       return div.textContent || div.innerText || "";
     };
 
-    // Helper: truncate to N characters without cutting words (optional)
     const truncate = (text, max = 180) => {
       if (!text) return "";
       if (text.length <= max) return text;
-      // try to cut at last space inside limit
       const truncated = text.slice(0, max);
       const lastSpace = truncated.lastIndexOf(" ");
       return (
         (lastSpace > 40 ? truncated.slice(0, lastSpace) : truncated) + "..."
-      );
-    };
-
-    const getAuthorInitials = (name) => {
-      if (!name) return "U";
-      return (
-        name
-          .split(" ")
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase() || "U"
       );
     };
 
@@ -528,7 +550,6 @@ const BlogPage = () => {
         viewport={{ once: true }}
         whileHover={{ scale: 1.02 }}
       >
-        {/* Cover Image */}
         <div className="relative h-48 w-full overflow-hidden">
           {currentImageSrc && !imageError ? (
             <motion.img
@@ -563,28 +584,11 @@ const BlogPage = () => {
               {Category}
             </motion.span>
           )}
-
-          {/* Repost Count Badge */}
-          {/* {hasReposts && (
-            <motion.span
-              className="absolute top-3 right-3 bg-DGXgreen text-black px-3 py-1 rounded-full text-xs font-semibold shadow-sm flex items-center gap-1"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              <PiRepeat size={12} />
-              {reposts.length}
-            </motion.span>
-          )} */}
         </div>
 
-        {/* Rest of the BlogCard content remains the same */}
         <div className="p-5 flex-grow flex flex-col">
-          {/* Top Row: Left (date + read time), Right (rating) */}
           <div className="flex items-center justify-between text-xs text-gray-500 mb-3 w-full">
-            {/* LEFT: Date + Read Time */}
             <div className="flex items-center gap-2">
-              {/* Date */}
               <span className="flex items-center">
                 <CalendarDays className="mr-1" size={14} />
                 {new Date(AddOnDt || publishedDate).toLocaleDateString(
@@ -596,8 +600,6 @@ const BlogPage = () => {
                   }
                 )}
               </span>
-
-              {/* Read Time */}
               {readTime && (
                 <>
                   <span className="">•</span>
@@ -609,10 +611,7 @@ const BlogPage = () => {
               )}
             </div>
 
-            {/* RIGHT: Rating Badge */}
-            {/* ⭐ Rating + 👁 Views */}
             <div className="flex items-center gap-4 mt-1">
-              {/* ⭐ Average Rating */}
               <div className="flex items-center gap-2">
                 <FaUsers className="text-purple-400" size={14} />
                 <div className="flex items-center gap-1">
@@ -621,25 +620,36 @@ const BlogPage = () => {
                   </span>
 
                   <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FaStar
-                        key={star}
-                        className={`text-xs ${
-                          star <= blogStats.averageRating
-                            ? "text-yellow-400"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const rating = blogStats.averageRating || 0;
+                      const fillAmount = Math.max(
+                        0,
+                        Math.min(1, rating - star + 1)
+                      );
+
+                      return (
+                        <div key={star} className="relative">
+                          <FaStar className="text-xs text-gray-300 absolute" />
+                          {fillAmount > 0 && (
+                            <FaStar
+                              className="text-xs text-yellow-400"
+                              style={{
+                                clipPath: `inset(0 ${
+                                  100 - fillAmount * 100
+                                }% 0 0)`,
+                              }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  <span className="text-xs text-gray-500">
+                  {/* <span className="text-xs text-gray-500">
                     ({blogStats.totalRatings || 0})
-                  </span>
+                  </span> */}
                 </div>
               </div>
-
-              {/* 👁 Views */}
               <div className="flex items-center gap-1">
                 <FiEye className="text-blue-600" size={14} />
                 <span className="text-gray-700 text-sm font-semibold">

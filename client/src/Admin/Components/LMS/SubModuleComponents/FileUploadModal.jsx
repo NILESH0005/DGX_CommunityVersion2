@@ -27,8 +27,6 @@ const FileUploadModal = ({
             setErrors({ fileName: 'Please enter a file name' });
             return;
         }
-
-        // Pass file, custom name, AND estimated time to parent component
         onSubmit(uploadedFile, customFileName.trim(), estimatedTime);
     };
 
@@ -38,7 +36,6 @@ const FileUploadModal = ({
 
     const handleFileSelected = (file) => {
         onFileSelect(file);
-        // Set initial file name (without extension) as default
         const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
         setCustomFileName(fileNameWithoutExt);
         setErrors({ ...errors, file: null });

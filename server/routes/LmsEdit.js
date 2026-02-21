@@ -19,12 +19,10 @@ router.post('/deleteModule', fetchUser, deleteModule)
 router.post('/deleteUnit', fetchUser, deleteUnit)
 router.post('/deleteFile', fetchUser, deleteFile)
 router.post('/deleteMultipleFiles', fetchUser, deleteMultipleFiles)
-
 router.post('/deleteSubModule', fetchUser, deleteSubModule)
 router.post('/addSubmodule', fetchUser, addSubmodule)
 router.post('/addUnit', fetchUser, addUnit)
 router.post('/recordFileView', fetchUser, recordFileView)
-
 router.post('/updateFile', fetchUser, updateFile)
 router.post('/updateFileViewEndTime', fetchUser, updateFileViewEndTime)
 

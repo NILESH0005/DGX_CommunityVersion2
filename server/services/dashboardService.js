@@ -511,11 +511,10 @@ SELECT
         IFNULL(a.InteractionScore, 0)
     ) AS TotalScore
 FROM Community_User u
-LEFT JOIN LoginScore l ON u.UserID = l.UserID
-LEFT JOIN ActivityScore a ON u.UserID = a.UserID
-WHERE IFNULL(u.delStatus, 0) = 0
+inner JOIN LoginScore l ON u.UserID = l.UserID
+inner JOIN ActivityScore a ON u.UserID = a.UserID
+WHERE IFNULL(u.delStatus, 0) = 0 
 ORDER BY TotalScore DESC;
-
     `;
 
     const results = await db.sequelize.query(query, {

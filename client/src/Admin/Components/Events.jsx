@@ -4,6 +4,7 @@ import ApiContext from "../../context/ApiContext";
 import EventTable from "../../component/EventTable";
 import { MdTableChart } from "react-icons/md";
 import { FaCalendarAlt, FaPlus } from "react-icons/fa";
+import EventForm from "../../component/eventAndWorkshop/EventForm";
 
 const Events = ({ events, setEvents }) => {
   const { fetchData, userToken } = useContext(ApiContext);
@@ -11,7 +12,8 @@ const Events = ({ events, setEvents }) => {
   const [showEventForm, setShowEventForm] = useState(false);
 
   const [showTable, setShowTable] = useState(() => {
-    return sessionStorage.getItem("showTable") === "true";
+    const storedValue = sessionStorage.getItem("showTable");
+    return storedValue !== null ? storedValue === "true" : true;
   });
 
   const fetchEventData = async () => {
@@ -20,13 +22,11 @@ const Events = ({ events, setEvents }) => {
         console.log("No user token, skipping events fetch");
         return;
       }
-
       const endpoint = "eventandworkshop/getEvent";
       const headers = {
         "Content-Type": "application/json",
         "auth-token": userToken,
       };
-
       console.log("Fetching events...");
       const eventData = await fetchData(endpoint, "GET", null, headers);
 
@@ -55,12 +55,7 @@ const Events = ({ events, setEvents }) => {
 
   const handleReloadEvents = () => {
     console.log("Triggering events reload...");
-    setReloadEvents(prev => !prev);
-  };
-
-  const handleAddEventSuccess = () => {
-    setShowEventForm(false);
-    handleReloadEvents();
+    setReloadEvents((prev) => !prev);
   };
 
   return (
@@ -73,8 +68,14 @@ const Events = ({ events, setEvents }) => {
           {showTable ? "Show Calendar" : "Show Table"}
           {showTable ? <FaCalendarAlt /> : <MdTableChart />}
         </button>
-        
-       
+
+        <button
+          onClick={() => setShowEventForm(!showEventForm)}
+          className="flex items-center gap-2 bg-DGXblue text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+        >
+          {showEventForm ? "Cancel" : "Add New Event"}
+          <FaPlus />
+        </button>
       </div>
 
       {showEventForm ? (
@@ -82,23 +83,26 @@ const Events = ({ events, setEvents }) => {
           events={events}
           setEvents={setEvents}
           reloadEvents={handleReloadEvents}
-          onSuccess={handleAddEventSuccess}
+          onSuccess={() => {
+            setShowEventForm(false);
+            handleReloadEvents(); 
+          }}
           onCancel={() => setShowEventForm(false)}
         />
+      ) : showTable ? (
+        <EventTable
+          events={events}
+          setEvents={setEvents}
+          reloadEvents={handleReloadEvents}
+          onAddEventClick={() => setShowEventForm(true)}
+        />
       ) : (
-        showTable ? (
-          <EventTable
-            events={events}
-            setEvents={setEvents}
-            reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
-          />
-        ) : (
-          <GeneralUserCalendar
-            events={events}
-            setEvents={setEvents}
-            reloadEvents={handleReloadEvents} // ✅ PASS reloadEvents prop
-          />
-        )
+        <GeneralUserCalendar
+          events={events}
+          setEvents={setEvents}
+          reloadEvents={handleReloadEvents}
+          onAddEventClick={() => setShowEventForm(true)}
+        />
       )}
     </div>
   );

@@ -148,7 +148,7 @@ export const getModulesService = async (baseUrl) => {
       order: [
         [
           db.sequelize.literal(
-            "CASE WHEN SortingOrder IS NULL THEN 1 ELSE 0 END"
+            "CASE WHEN SortingOrder IS NULL THEN 1 ELSE 0 END",
           ),
         ],
         ["SortingOrder", "ASC"],
@@ -167,7 +167,7 @@ export const getModulesService = async (baseUrl) => {
         } else {
           const filePath = moduleData.ModuleImagePath.replace(
             /^\/?uploads\//,
-            ""
+            "",
           );
           imageUrl = `${baseUrl}/uploads/${filePath}`;
         }
@@ -179,6 +179,71 @@ export const getModulesService = async (baseUrl) => {
       };
     });
     console.log("imggg", modulesWithImageUrls);
+
+    return {
+      success: true,
+      data: modulesWithImageUrls,
+      message: "Modules fetched successfully",
+    };
+  } catch (error) {
+    throw new Error(error.message || "Error fetching modules");
+  }
+};
+
+export const getAdminModulesService = async (baseUrl, user) => {
+  try {
+    let whereCondition = { delStatus: 0 };
+
+    console.log("User inside service:", user);
+
+    // If NOT admin
+    if (user.isAdmin !== 1) {
+      whereCondition.AuthAdd = String(user.uniqueId);
+    }
+
+    const modules = await LMSModulesDetails.findAll({
+      where: whereCondition,
+      attributes: [
+        "ModuleID",
+        "ModuleName",
+        "ModuleImage",
+        "ModuleImagePath",
+        "ModuleDescription",
+        "SortingOrder",
+        "AuthAdd",
+      ],
+      order: [
+        [
+          db.sequelize.literal(
+            "CASE WHEN SortingOrder IS NULL THEN 1 ELSE 0 END",
+          ),
+        ],
+        ["SortingOrder", "ASC"],
+        ["ModuleID", "ASC"],
+      ],
+    });
+
+    const modulesWithImageUrls = modules.map((module) => {
+      const moduleData = module.toJSON();
+      let imageUrl = null;
+
+      if (moduleData.ModuleImagePath) {
+        if (moduleData.ModuleImagePath.startsWith("http")) {
+          imageUrl = moduleData.ModuleImagePath;
+        } else {
+          const filePath = moduleData.ModuleImagePath.replace(
+            /^\/?uploads\//,
+            "",
+          );
+          imageUrl = `${baseUrl}/uploads/${filePath}`;
+        }
+      }
+
+      return {
+        ...moduleData,
+        ModuleImageUrl: imageUrl,
+      };
+    });
 
     return {
       success: true,
@@ -208,7 +273,7 @@ export const getSubModulesService = async (moduleId, baseUrl) => {
       order: [
         [
           db.sequelize.literal(
-            "CASE WHEN SortingOrder IS NULL THEN 1 ELSE 0 END"
+            "CASE WHEN SortingOrder IS NULL THEN 1 ELSE 0 END",
           ),
         ],
         ["SortingOrder", "ASC"],
@@ -226,7 +291,7 @@ export const getSubModulesService = async (moduleId, baseUrl) => {
         } else {
           const cleanPath = subModuleData.SubModuleImagePath.replace(
             /^\/?uploads\//,
-            ""
+            "",
           );
           imageUrl = `${baseUrl}/uploads/${cleanPath}`;
         }
@@ -291,7 +356,7 @@ export const getUnitsWithFilesService = async (subModuleId, userId) => {
       order: [
         [
           sequelize.literal(
-            "CASE WHEN `UnitsDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"
+            "CASE WHEN `UnitsDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END",
           ),
           "ASC",
         ],
@@ -299,7 +364,7 @@ export const getUnitsWithFilesService = async (subModuleId, userId) => {
         ["UnitID", "ASC"],
         [
           sequelize.literal(
-            "CASE WHEN `FilesDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END"
+            "CASE WHEN `FilesDetails`.`SortingOrder` IS NULL THEN 1 ELSE 0 END",
           ),
           "ASC",
         ],
@@ -317,7 +382,7 @@ export const getUnitsWithFilesService = async (subModuleId, userId) => {
       const filesWithTime = (unitData.FilesDetails || []).map((file) => {
         const fileTime = (file.UserLmsProgresses || []).reduce(
           (sum, progress) => sum + (progress.TimeSpentSeconds || 0),
-          0
+          0,
         );
         totalTimePerUnit += fileTime;
         return { ...file, totalTimeSpent: fileTime };
@@ -476,7 +541,7 @@ export const getQuizDropdownService = async () => {
   }
 };
 
-export const getDiscussionStatsService = async () => {
+export const getDiscussionStatsService = async (userId) => {
   try {
     const discussions = await CommunityDiscussion.findAll({
       where: {
@@ -488,7 +553,7 @@ export const getDiscussionStatsService = async () => {
 
     const results = await Promise.all(
       discussions.map(async (discussion) => {
-        // ✅ Count only top-level comments
+        // ✅ Total comments
         const commentCount = await CommunityDiscussion.count({
           where: {
             Reference: discussion.DiscussionID,
@@ -500,6 +565,7 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
+        // ✅ Total likes
         const likeCount = await ContentInteraction.count({
           where: {
             Type: "Discussion",
@@ -509,14 +575,32 @@ export const getDiscussionStatsService = async () => {
           },
         });
 
-        const viewCount = await ContentInteractionLog.count({
+        // ✅ Total views
+        const viewCount = await ContentInteraction.count({
           where: {
-            ProcessName: "Discussion",
-            reference: discussion.DiscussionID,
-            delStatus: 0,
+            Type: "Discussion",
+            ReferenceId: discussion.DiscussionID,
             View: 1,
+            delStatus: { [Op.or]: [0, null] },
           },
         });
+
+        // ✅ Check if THIS USER has viewed it
+        let userHasViewed = false;
+
+        if (userId) {
+          const userView = await ContentInteraction.findOne({
+            where: {
+              Type: "Discussion",
+              ReferenceId: discussion.DiscussionID,
+              UserID: userId,
+              View: 1,
+              delStatus: { [Op.or]: [0, null] },
+            },
+          });
+
+          userHasViewed = !!userView;
+        }
 
         return {
           DiscussionID: discussion.DiscussionID,
@@ -524,8 +608,9 @@ export const getDiscussionStatsService = async () => {
           TotalLikes: likeCount,
           TotalComments: commentCount,
           TotalViews: viewCount,
+          HasUserViewed: userHasViewed, // ✅ NEW FIELD
         };
-      })
+      }),
     );
 
     return { success: true, data: results };
@@ -589,7 +674,7 @@ export const getBlogStatsService = async () => {
           AvgRating: avgRating,
           TotalViews: viewCount,
         };
-      })
+      }),
     );
 
     return { success: true, data: results };

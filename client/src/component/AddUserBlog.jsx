@@ -285,7 +285,7 @@ const AddUserBlog = (props) => {
                   )}
 
                   {/* Image Section - Using the unified helper function */}
-                  <div className="w-full h-48 bg-gray-100 overflow-hidden">
+                  {/* <div className="w-full h-48 bg-gray-100 overflow-hidden">
                     {blog.image ? (
                       <img
                         src={imageUrl}
@@ -307,7 +307,7 @@ const AddUserBlog = (props) => {
                         className="w-full h-full object-contain p-4 opacity-80"
                       />
                     )}
-                  </div>
+                  </div> */}
 
                   {/* Content Section */}
                   <div className="p-4 flex flex-col flex-grow">

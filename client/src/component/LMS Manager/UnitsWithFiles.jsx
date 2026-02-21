@@ -22,6 +22,7 @@ import {
   FiBarChart2,
 } from "react-icons/fi";
 import FetchQuizQuestions from "../quiz/DemoQuiz";
+import UnitQueryPanel from "./UnitQueryPanel";
 
 const UnitsWithFiles = () => {
   const { subModuleId } = useParams();
@@ -45,13 +46,11 @@ const UnitsWithFiles = () => {
   const currentFileIdRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Detect screen size changes
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
 
-      // Auto-collapse sidebar on mobile when content is selected
       if (mobile && (selectedFile || selectedQuiz)) {
         setIsSidebarCollapsed(true);
       }
@@ -100,7 +99,7 @@ const UnitsWithFiles = () => {
           {
             "Content-Type": "application/json",
             "auth-token": userToken,
-          }
+          },
         );
 
         if (response?.success) {
@@ -132,7 +131,7 @@ const UnitsWithFiles = () => {
           {
             "Content-Type": "application/json",
             "auth-token": userToken, // <-- send user token
-          }
+          },
         );
         console.log("rrrrrrrrrrrrrr", unitsResponse);
 
@@ -143,7 +142,7 @@ const UnitsWithFiles = () => {
           {
             "Content-Type": "application/json",
             "auth-token": userToken,
-          }
+          },
         );
 
         console.log("reessspoonnseee", quizzesResponse);
@@ -154,7 +153,7 @@ const UnitsWithFiles = () => {
               const totalTimeSpent =
                 file.UserLmsProgresses?.reduce(
                   (acc, progress) => acc + (progress.TimeSpentSeconds || 0),
-                  0
+                  0,
                 ) || 0;
 
               return {
@@ -172,7 +171,7 @@ const UnitsWithFiles = () => {
           setAllUnits(unitsWithTotalTime);
 
           const filtered = unitsWithTotalTime.filter(
-            (unit) => String(unit.SubModuleID) === String(subModuleId)
+            (unit) => String(unit.SubModuleID) === String(subModuleId),
           );
           setFilteredUnits(filtered);
 
@@ -215,7 +214,7 @@ const UnitsWithFiles = () => {
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
     } catch (error) {
       console.error("Error sending file view end time:", error);
@@ -232,7 +231,6 @@ const UnitsWithFiles = () => {
 
   const recordFileView = async (fileId, unitId) => {
     try {
-      // First, end the current file view if any
       if (currentFileIdRef.current) {
         await sendFileViewEndTime(currentFileIdRef.current);
       }
@@ -244,14 +242,13 @@ const UnitsWithFiles = () => {
         {
           "Content-Type": "application/json",
           "auth-token": userToken,
-        }
+        },
       );
 
       if (response?.success) {
         if (response.message !== "File view already recorded for this user") {
           setViewedFiles((prev) => new Set(prev).add(fileId));
         }
-        // Set the current file ID
         currentFileIdRef.current = fileId;
       } else {
         console.error("Error recording file view:", response?.message);
@@ -262,7 +259,6 @@ const UnitsWithFiles = () => {
   };
 
   const handleFileSelect = (file, unit) => {
-    // End current file view if any
     if (currentFileIdRef.current) {
       sendFileViewEndTime(currentFileIdRef.current);
     }
@@ -273,9 +269,9 @@ const UnitsWithFiles = () => {
       ...file,
       unitName: unit.UnitName,
       unitDescription: unit.UnitDescription,
+      UnitID: unit.UnitID, 
     });
 
-    // Auto-collapse sidebar on mobile when content is selected
     if (isMobile) {
       setIsSidebarCollapsed(true);
     }
@@ -355,7 +351,6 @@ const UnitsWithFiles = () => {
   };
 
   const isExternalLink = (file) => {
-    // Exclude YouTube links from being treated as regular external links
     if (
       file.FilePath &&
       (file.FilePath.includes("youtube.com") ||
@@ -544,7 +539,7 @@ const UnitsWithFiles = () => {
             {filteredUnits.map((unit) => {
               const needsReadMoreUnit = needsReadMore(unit.UnitDescription);
               const isExpanded = expandedDescriptions.has(
-                `unit-${unit.UnitID}`
+                `unit-${unit.UnitID}`,
               );
               const isUnitExpanded = expandedUnits.has(unit.UnitID);
               const hasFiles = unit.files?.length > 0;
@@ -608,8 +603,8 @@ const UnitsWithFiles = () => {
                                   unit.files.reduce(
                                     (acc, file) =>
                                       acc + (file.EstimatedTime || 0),
-                                    0
-                                  )
+                                    0,
+                                  ),
                                 )}{" "}
                                 min total
                               </span>
@@ -658,8 +653,8 @@ const UnitsWithFiles = () => {
                                 unit.files.reduce(
                                   (acc, file) =>
                                     acc + (file.EstimatedTime || 0),
-                                  0
-                                )
+                                  0,
+                                ),
                               )}{" "}
                               min total
                             </span>
@@ -681,7 +676,7 @@ const UnitsWithFiles = () => {
                         const estimatedTime = file.EstimatedTime * 60;
                         const percentageSpent = Math.min(
                           (timeSpent / estimatedTime) * 100,
-                          100
+                          100,
                         );
 
                         return (
@@ -747,8 +742,8 @@ const UnitsWithFiles = () => {
                                         Math.floor(
                                           (file.totalTimeSpent /
                                             (file.EstimatedTime * 60)) *
-                                            100
-                                        )
+                                            100,
+                                        ),
                                       )}%`,
                                     }}
                                   ></div>
@@ -772,7 +767,7 @@ const UnitsWithFiles = () => {
                         const estimatedTime = file.EstimatedTime * 60;
                         const percentageSpent = Math.min(
                           (timeSpent / estimatedTime) * 100,
-                          100
+                          100,
                         );
 
                         return (
@@ -925,13 +920,13 @@ const UnitsWithFiles = () => {
               )}
             </div>
           </div>
-          <hr className="my-4 border-gray-200" />
+          <hr className="my-2 border-gray-200" />
         </div>
 
         {/* Content Area */}
         {selectedQuiz ? (
           <div className="flex-1 overflow-auto">
-            <div className="mb-4">
+            <div className="mb-2">
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200">
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-800 break-words mb-2">
                   {selectedQuiz.QuizName}
@@ -974,6 +969,11 @@ const UnitsWithFiles = () => {
           </div>
         ) : selectedFile ? (
           <>
+            {console.log("Module ID:", localStorage.getItem("moduleId"))}
+            {console.log("SubModule ID:", subModuleId)}
+            {console.log("Selected File:", selectedFile)}
+            {console.log("Unit ID:", selectedFile?.UnitID)}
+            {console.log("File ID:", selectedFile?.FileID)}
             <div className="mb-4">
               <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200">
                 <h2 className="text-xl md:text-2xl font-semibold text-gray-800 break-words mb-2">
@@ -1016,46 +1016,60 @@ const UnitsWithFiles = () => {
                 </div>
               </div>
             ) : (
-              <div
-                className={`flex-1 w-full rounded-2xl shadow-lg relative overflow-hidden min-h-[500px] bg-white border border-gray-200 ${
-                  selectedFile?.fileType === "ipynb" ? "bg-[#f8f9fa]" : ""
-                }`}
-              >
-                {selectedFile?.fileType === "ipynb" && (
-                  <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center px-6 z-10">
-                    <div className="flex space-x-2 mr-4">
-                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    </div>
-                    <div className="text-sm text-gray-300 font-medium truncate">
-                      {removeFileExtension(selectedFile.FilesName)}.ipynb
+              <div className=" w-full h-full rounded-2xl shadow-lg bg-white border border-gray-200 overflow-hidden">
+                {/* File Viewer Container */}
+                <div className="relative min-h-screen">
+                  <div
+                    className={`relative h-full w-full ${
+                      selectedFile?.fileType === "ipynb" ? "bg-[#f8f9fa]" : ""
+                    }`}
+                  >
+                    {selectedFile?.fileType === "ipynb" && (
+                      <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center px-6 z-10">
+                        <div className="flex space-x-2 mr-4">
+                          <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div className="text-sm text-gray-300 font-medium truncate">
+                          {removeFileExtension(selectedFile.FilesName)}.ipynb
+                        </div>
+                      </div>
+                    )}
+
+                    <div
+                      className={
+                        selectedFile?.fileType === "ipynb"
+                          ? "pt-10 h-full w-full"
+                          : "h-full w-full"
+                      }
+                    >
+                      <FileViewer
+                        fileUrl={`${import.meta.env.VITE_API_BASEURL.replace(
+                          /\/$/,
+                          "",
+                        )}/${selectedFile?.FilePath.replace(/^\//, "")}`}
+                        className="w-full h-full"
+                      />
                     </div>
                   </div>
-                )}
-                <div
-                  className={
-                    selectedFile?.fileType === "ipynb"
-                      ? "h-full pt-10"
-                      : "h-full"
-                  }
-                >
-                  <FileViewer
-                    fileUrl={`${import.meta.env.VITE_API_BASEURL.replace(
-                      /\/$/,
-                      ""
-                    )}/${selectedFile?.FilePath.replace(/^\//, "")}`}
-                    className="w-full h-full"
-                  />
                 </div>
-                {selectedFile?.fileType === "ipynb" && (
-                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gray-100 flex items-center justify-between px-6 border-t border-gray-300 text-xs text-gray-600">
-                    <span>Python 3 Kernel</span>
-                    <span>Jupyter Notebook</span>
-                  </div>
-                )}
+
+                {/* Resizable Handle */}
+                <div className="h-2 bg-gray-100 border-t border-b border-gray-200 cursor-ns-resize hover:bg-gray-200 transition-colors flex items-center justify-center flex-shrink-0">
+                  <div className="w-20 h-1 bg-gray-300 rounded-full"></div>
+                </div>
               </div>
             )}
+
+            <div className="w-full rounded-2xl">
+              <UnitQueryPanel
+                moduleId={localStorage.getItem("moduleId")}
+                subModuleId={subModuleId}
+                unitId={selectedFile?.UnitID}
+                fileId={selectedFile?.FileID}
+              />
+            </div>
           </>
         ) : (
           <div className="flex items-center justify-center h-full min-h-[400px]">

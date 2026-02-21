@@ -157,15 +157,15 @@ export const createBlogPost = async (userEmail, blogData) => {
         if (existingRepost) {
           logWarning("Duplicate repost attempt detected.");
           return {
-            status: 400,
+            status: 409, 
             response: {
               success: false,
+              errorCode: "ALREADY_REPOSTED",
               message: "You have already reposted this blog.",
             },
           };
         }
 
-        // ✅ Auto-approve repost if original was approved
         if (originalBlog.Status === "Approved") {
           status = "Approved";
           approvedBy = originalBlog.ApprovedBy || "System Auto-Approval";
@@ -241,7 +241,6 @@ const recordBlogRepostInInteractionTables = async (
   const currentDate = new Date();
 
   try {
-    // ===== 1. For the user who is reposting (the current user) =====
     let reposterInteraction = await ContentInteraction.findOne({
       where: {
         Type: "Blog",

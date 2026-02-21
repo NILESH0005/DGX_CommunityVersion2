@@ -9,6 +9,8 @@ import {
   handleLmsSubmoduleRateAction as rateSubmoduleService,
   getSubModuleRatingService,
   getModuleRatingService,
+  createUserQuery,
+  getUserQueries,
 } from "../services/lmsService.js";
 import fs from "fs";
 import path from "path";
@@ -117,7 +119,7 @@ export class LMS {
 
       const module = await LMSService.saveLearningMaterials(
         { ModuleName, ModuleImagePath, ModuleDescription, subModules },
-        userName
+        userName,
       );
 
       res.status(201).json({
@@ -169,7 +171,7 @@ export class LMS {
       const newFile = await LMSService.saveFileOrLink(
         unitId,
         userName,
-        fileData
+        fileData,
       );
 
       res
@@ -198,7 +200,7 @@ export class LMS {
         req.file,
         description,
         sortingOrder,
-        estimatedTime
+        estimatedTime,
       );
 
       res.status(201).json({
@@ -236,7 +238,9 @@ export const checkModuleExist = async (req, res) => {
 
 export const getSubModuleViews = async (req, res) => {
   try {
-    const result = await LMSViewsService.getSubModuleViews();
+    const userId = req.user?.uniqueId;
+
+    const result = await LMSViewsService.getSubModuleViews(userId);
     res.status(200).json({ success: true, data: result });
   } catch (error) {
     console.error("Error fetching submodule views:", error);
@@ -379,7 +383,7 @@ export const downloadFileById = async (req, res) => {
 
     const filePath = path.join(
       process.cwd(),
-      fileData.FilePath.replace(/^\//, "")
+      fileData.FilePath.replace(/^\//, ""),
     );
     if (!fs.existsSync(filePath)) {
       return res
@@ -389,11 +393,11 @@ export const downloadFileById = async (req, res) => {
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${fileData.FilesName}"`
+      `attachment; filename="${fileData.FilesName}"`,
     );
     res.setHeader(
       "Content-Type",
-      fileData.FileType || "application/octet-stream"
+      fileData.FileType || "application/octet-stream",
     );
 
     fs.createReadStream(filePath).pipe(res);
@@ -475,3 +479,42 @@ export const getModuleRating = async (req, res) => {
     });
   }
 };
+
+export const createQuery = async (req, res) => {
+  try {
+    console.log("req.user:", req.user);
+
+    const userId = req.user.uniqueId; // From fetchUser middleware
+    const queryData = req.body;
+
+    const result = await createUserQuery(queryData, userId);
+    return res.status(result.status).json(result.response);
+  } catch (err) {
+    console.log("Controller Error:", err); // 👈 ADD THIS
+
+    return res.status(500).json({
+      success: false,
+      data: err,
+      message: "Unexpected error occurred",
+    });
+  }
+};
+
+export const getQueries = async (req, res) => {
+  try {
+    const userId = req.user.id; // From fetchUser middleware
+    const filters = req.query;
+
+    const result = await getUserQueries(filters, userId);
+    return res.status(result.status).json(result.response);
+  } catch (err) {
+    console.log("Unexpected Error in getQueries controller:", err);
+    return res.status(500).json({
+      success: false,
+      data: err,
+      message: "Unexpected error occurred while retrieving queries",
+    });
+  }
+};
+
+

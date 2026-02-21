@@ -5,7 +5,6 @@ const Survey = () => {
   const questions = [
     { id: 1, question: "How satisfied are you with our service?" },
     { id: 2, question: "Would you recommend us to a friend?" },
-    // Add more questions as needed
   ];
 
   const handleChange = (id, value) => {

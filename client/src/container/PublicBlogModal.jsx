@@ -43,10 +43,33 @@ const PublicBlogModal = ({
 
   const [currentImageSrc, setCurrentImageSrc] = useState("");
   const [imageError, setImageError] = useState(false);
+  const [hasAlreadyReposted, setHasAlreadyReposted] = useState(false);
+  const [isCheckingRepost, setIsCheckingRepost] = useState(false);
 
   const toggleFullScreen = () => {
     setIsFullScreen(!isFullScreen);
   };
+
+  useEffect(() => {
+    if (blog?.reposts && user?.UserID) {
+      // Check if current user has reposted this blog
+      const userRepost = blog.reposts.find(
+        (repost) => repost.UserID === user.UserID
+      );
+
+      if (userRepost) {
+        setHasAlreadyReposted(true);
+        console.log("User has already reposted this blog:", userRepost);
+      } else {
+        setHasAlreadyReposted(false);
+      }
+    }
+  }, [blog?.reposts, user?.UserID]);
+
+  const isMyBlog = blog?.UserID === user?.UserID;
+  const alreadyReposted = hasAlreadyReposted;
+  const canRepost =
+    blog?.allowRepost && !isMyBlog && !alreadyReposted && Status === "Approved";
 
   useEffect(() => {
     const handleEscape = (e) => {
@@ -77,19 +100,14 @@ const PublicBlogModal = ({
       return Noimage;
     }
 
-    // If it's already a base64 image, return it directly
     if (imagePath.startsWith("data:image/")) {
       console.log("Base64 image detected");
       return imagePath;
     }
-
-    // If it's already a full URL, use it directly
     if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
       console.log("Full URL detected:", imagePath);
       return imagePath;
     }
-
-    // If it's a relative path, construct the full URL
     const baseUploadsUrl = import.meta.env.VITE_API_UPLOADSURL;
 
     if (!baseUploadsUrl) {
@@ -99,11 +117,7 @@ const PublicBlogModal = ({
 
     console.log("Base uploads URL:", baseUploadsUrl);
     console.log("Original image path:", imagePath);
-
-    // Remove any leading slashes from the path
     const cleanPath = imagePath.replace(/^\/+/, "");
-
-    // Construct the full URL
     const fullUrl = `${baseUploadsUrl}/${cleanPath}`;
 
     console.log("Constructed image URL:", fullUrl);
@@ -127,82 +141,6 @@ const PublicBlogModal = ({
       img.src = src;
     }
   }, [image]);
-
-  const getBaseUrl = () => {
-    return import.meta.env.VITE_CLIENT_BASE_URL || window.location.origin;
-  };
-
-  const getBlogUrl = () => {
-    const baseUrl = getBaseUrl();
-    return `${baseUrl}/blog/${BlogID}`;
-  };
-
-  const safeCopyToClipboard = async (
-    text,
-    successMessage = "Blog link copied to clipboard!"
-  ) => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        Swal.fire({
-          title: "Copied!",
-          text: successMessage,
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        return true;
-      } catch (error) {
-        console.error("Clipboard API failed:", error);
-      }
-    }
-
-    try {
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-999999px";
-      textArea.style.top = "-999999px";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-
-      const successful = document.execCommand("copy");
-      document.body.removeChild(textArea);
-
-      if (successful) {
-        Swal.fire({
-          title: "Copied!",
-          text: successMessage,
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-        return true;
-      }
-
-      Swal.fire({
-        title: "Copy Manually",
-        html: `Please copy this URL:<br>
-          <div class="bg-gray-100 p-2 rounded border break-all text-sm mt-2 font-mono">${text}</div>`,
-        icon: "info",
-        confirmButtonText: "OK",
-        width: "500px",
-      });
-      return false;
-    } catch (err) {
-      console.error("Fallback copy failed:", err);
-      Swal.fire({
-        title: "Copy Manually",
-        html: `Please copy this URL:<br>
-          <div class="bg-gray-100 p-2 rounded border break-all text-sm mt-2 font-mono">${text}</div>`,
-        icon: "info",
-        confirmButtonText: "OK",
-        width: "500px",
-      });
-      return false;
-    }
-  };
 
   const [blogStats, setBlogStats] = useState({
     totalLikes: 0,
@@ -298,8 +236,6 @@ const PublicBlogModal = ({
 
         setIsLiked(serverLiked);
         setLikeCount(serverLikeCount);
-
-        // Refresh stats
         fetchBlogStats();
 
         if (refreshBlogs) {
@@ -505,6 +441,52 @@ const PublicBlogModal = ({
   };
 
   const handleRepost = async () => {
+    // Prevent repost if already reposted
+    if (hasAlreadyReposted) {
+      // Find the user's repost
+      const userRepost = blog?.reposts?.find(
+        (repost) => repost.UserID === user.UserID
+      );
+
+      Swal.fire({
+        title: "Already Shared!",
+        html: `
+        <div class="text-center py-4">
+          <div class="mb-4">
+            <i class="fas fa-check-circle text-emerald-500" style="font-size: 3rem;"></i>
+          </div>
+          <h4 class="text-lg font-semibold mb-2">You've already shared this post</h4>
+          <p class="text-gray-600 mb-4">
+            This blog is already in your shared content.
+            ${
+              userRepost?.AddOnDt
+                ? `<br/><small class="text-gray-500">Shared on ${new Date(
+                    userRepost.AddOnDt
+                  ).toLocaleDateString()}</small>`
+                : ""
+            }
+          </p>
+          <p class="text-sm text-gray-500 italic mb-4">
+            Tip: Want to share it again? Consider creating a new post with your updated thoughts!
+          </p>
+        </div>
+      `,
+        icon: "info",
+        confirmButtonText: "Got it!",
+        showCancelButton: true,
+        cancelButtonText: "View My Repost",
+        reverseButtons: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#6c757d",
+      }).then((result) => {
+        if (result.isDismissed && userRepost?.BlogID) {
+          // Navigate to user's reposted blog
+          window.location.href = `/blog/${userRepost.BlogID}`;
+        }
+      });
+      return;
+    }
+
     const endpoint = "blog/blogpost";
     const method = "POST";
     const headers = {
@@ -524,6 +506,7 @@ const PublicBlogModal = ({
 
     try {
       const result = await fetchData(endpoint, method, body, headers);
+
       if (result.success) {
         Swal.fire({
           title: "Success!",
@@ -536,16 +519,33 @@ const PublicBlogModal = ({
         }
         closeModal();
       } else {
-        Swal.fire("Error!", result.message, "error");
+        // Handle "already reposted" case from server response
+        if (result.message === "You have already reposted this blog.") {
+          setHasAlreadyReposted(true);
+          Swal.fire({
+            title: "Already Shared!",
+            html: `
+            <div class="text-center py-4">
+              <i class="fas fa-check-circle text-warning" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+              <p class="font-medium">You've already shared this blog before.</p>
+              <p class="text-muted text-sm mt-2">Want to share it again? Consider creating a new post with your updated thoughts!</p>
+            </div>
+          `,
+            icon: "info",
+            confirmButtonText: "Got it!",
+          });
+        } else {
+          Swal.fire("Error!", result.message, "error");
+        }
       }
     } catch (error) {
       Swal.fire("Error!", error.message, "error");
     }
   };
 
-  const isMyBlog = blog?.UserID === user?.UserID;
-  const alreadyReposted = blog?.RepostUserID === user?.UserID;
-  const canRepost = blog?.allowRepost && !isMyBlog && !alreadyReposted;
+  // const isMyBlog = blog?.UserID === user?.UserID;
+  // const alreadyReposted = blog?.RepostUserID === user?.UserID;
+  // const canRepost = blog?.allowRepost && !isMyBlog && !alreadyReposted;
 
   const EnhancedRatingStars = ({
     value,
@@ -820,8 +820,7 @@ const PublicBlogModal = ({
                     <span className="hidden sm:inline">Share</span>
                   </motion.button> */}
 
-                  {/* Repost Button */}
-                  {canRepost && Status === "Approved" && (
+                  {canRepost ? (
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -831,10 +830,50 @@ const PublicBlogModal = ({
                       <FiRepeat className="text-base lg:text-lg" />
                       <span className="hidden sm:inline">Repost</span>
                     </motion.button>
-                  )}
+                  ) : hasAlreadyReposted ? (
+                    <div className="relative group">
+                      <motion.button
+                        disabled
+                        className="flex items-center gap-1 lg:gap-3 px-3 lg:px-6 py-2 lg:py-3 rounded-full bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700 border border-emerald-200 shadow-lg transition-all duration-200 font-medium text-sm lg:text-base cursor-not-allowed"
+                      >
+                        <FiRepeat className="text-base lg:text-lg" />
+                        <span className="hidden sm:inline">
+                          Already Reposted
+                        </span>
+                      </motion.button>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        You've already shared this post
+                      </div>
+                    </div>
+                  ) : !blog?.allowRepost ? (
+                    <div className="relative group">
+                      <motion.button
+                        disabled
+                        className="flex items-center gap-1 lg:gap-3 px-3 lg:px-6 py-2 lg:py-3 rounded-full bg-gray-100 text-gray-400 border border-gray-200 transition-all duration-200 font-medium text-sm lg:text-base cursor-not-allowed"
+                      >
+                        <FiRepeat className="text-base lg:text-lg" />
+                        <span className="hidden sm:inline">Repost</span>
+                      </motion.button>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        Reposting not allowed for this blog
+                      </div>
+                    </div>
+                  ) : Status !== "Approved" ? (
+                    <div className="relative group">
+                      <motion.button
+                        disabled
+                        className="flex items-center gap-1 lg:gap-3 px-3 lg:px-6 py-2 lg:py-3 rounded-full bg-gray-100 text-gray-400 border border-gray-200 transition-all duration-200 font-medium text-sm lg:text-base cursor-not-allowed"
+                      >
+                        <FiRepeat className="text-base lg:text-lg" />
+                        <span className="hidden sm:inline">Repost</span>
+                      </motion.button>
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                        Only approved blogs can be reposted
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
-                {/* Right: Admin Controls */}
                 {user?.isAdmin == "1" && Status === "Pending" && (
                   <div className="flex items-center gap-2 lg:gap-3 justify-center lg:justify-end">
                     <motion.button

@@ -1,7 +1,20 @@
 // routes/lmsRoutes.js
 import express from "express";
 import { fetchUser } from "../middleware/fetchUser.js";
-import { checkModuleExist, getModuleViews, LMS,  getSubModuleViews, getAllActiveFiles, getFileById, downloadFileById, getSubModuleRating , handleLmsSubmoduleRateAction, getModuleRating } from "../controllers/lms.js";
+import {
+  checkModuleExist,
+  getModuleViews,
+  LMS,
+  getSubModuleViews,
+  getAllActiveFiles,
+  getFileById,
+  downloadFileById,
+  getSubModuleRating,
+  handleLmsSubmoduleRateAction,
+  getModuleRating,
+  createQuery,
+  getQueries,
+} from "../controllers/lms.js";
 
 const router = express.Router();
 
@@ -9,14 +22,14 @@ router.post(
   "/upload-learning-material",
   fetchUser,
   LMS.upload.single("file"),
-  LMS.uploadFile
+  LMS.uploadFile,
 );
 
 router.post(
   "/upload-learning-material-update",
   fetchUser,
   LMS.upload.single("file"),
-  LMS.uploadUpdatedFile
+  LMS.uploadUpdatedFile,
 );
 
 router.get("/sub-modules", fetchUser, LMS.getSubModules);
@@ -33,12 +46,14 @@ router.get("/module-views", getModuleViews);
 router.get("/getAllActiveFiles", getAllActiveFiles);
 router.post("/getFileById", getFileById);
 router.get("/download/:FileID", downloadFileById);
-router.post("/rate-submodule",fetchUser, handleLmsSubmoduleRateAction);
-router.get(  "/submodule-rating/:subModuleId",fetchUser, getSubModuleRating);
-router.get(
-  "/module-rating/:moduleId",
-  getModuleRating
-);
+router.post("/rate-submodule", fetchUser, handleLmsSubmoduleRateAction);
+router.get("/submodule-rating/:subModuleId", fetchUser, getSubModuleRating);
+router.get("/module-rating/:moduleId", getModuleRating);
+
+/* ================= USER QUERY ROUTE ================= */
+
+router.post("/user-query", fetchUser, createQuery);
+router.get("/query-list", fetchUser, getQueries);
 
 
 export default router;
