@@ -29,7 +29,7 @@ export default (sequelize, DataTypes) => {
         type: DataTypes.STRING(800),
         allowNull: false,
       },
-      AddDel: {
+      AuthDel: {
         type: DataTypes.STRING(800),
         allowNull: true,
       },

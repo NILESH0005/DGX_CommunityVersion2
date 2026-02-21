@@ -1,6 +1,6 @@
 // services/lmsService.js
 import db, { sequelize } from "../models/index.js";
-import { Op, Sequelize } from "sequelize";
+import { Op, QueryTypes, Sequelize } from "sequelize";
 
 const {
   LMSModulesDetails,
@@ -12,6 +12,7 @@ const {
   User,
   ContentInteraction,
   ContentInteractionLog,
+  User_Query_Table,
 } = db;
 
 export class LMSService {
@@ -961,4 +962,152 @@ export const getModuleRatingService = async (moduleId) => {
     avgRating: Number(avgRating.toFixed(1)),
     totalRatings: ratingCount,
   };
+};
+
+export const createUserQuery = async (queryData, userId) => {
+  try {
+    const requiredFields = [
+      "ModuleID",
+      "SubModuleID",
+      "UnitID",
+      "FileID",
+      "QueryText",
+    ];
+    const missingFields = requiredFields.filter(
+      (field) => !queryData[field] && queryData[field] !== 0,
+    );
+
+    if (missingFields.length > 0) {
+      console.warn(`Missing required fields: ${missingFields.join(", ")}`);
+      return {
+        status: 400,
+        response: {
+          success: false,
+          data: {},
+          message: `Missing required fields: ${missingFields.join(", ")}`,
+        },
+      };
+    }
+
+    if (queryData.QueryText.length > 1000) {
+      console.warn("Query text exceeds 1000 characters");
+      return {
+        status: 400,
+        response: {
+          success: false,
+          data: {},
+          message: "Query text cannot exceed 1000 characters",
+        },
+      };
+    }
+
+    // Get module creator ID
+    const module = await LMSModulesDetails.findOne({
+      where: { ModuleID: queryData.ModuleID, delStatus: 0 },
+      attributes: ["AuthAdd"],
+    });
+
+    const moduleCreatorId = module ? module.AuthAdd : null;
+
+    const userQuery = await User_Query_Table.create({
+      ModuleID: queryData.ModuleID,
+      SubModuleID: queryData.SubModuleID,
+      UnitID: queryData.UnitID,
+      FileID: queryData.FileID,
+      ModuleCreatorID: moduleCreatorId,
+      UserID: userId,
+      QueryText: queryData.QueryText,
+      Status: "Pending",
+      AuthAdd: userId.toString(),
+      AddOnDt: new Date(),
+      delStatus: 0,
+    });
+
+    console.log(`User query created successfully: ${userQuery.QueryID}`);
+
+    return {
+      status: 201,
+      response: {
+        success: true,
+        data: {
+          queryId: userQuery.QueryID,
+          queryText: userQuery.QueryText,
+          status: userQuery.Status,
+          createdAt: userQuery.AddOnDt,
+        },
+        message: "Query submitted successfully!",
+      },
+    };
+  } catch (error) {
+    console.error("User query creation failed:", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: error,
+        message: "Something went wrong while submitting the query",
+      },
+    };
+  }
+};
+
+export const getUserQueries = async (filters = {}, userId) => {
+  try {
+    let whereConditions = "q.delStatus = 0";
+    let replacements = {};
+
+    const query = `
+      SELECT 
+        q.QueryID AS queryId,
+        q.ModuleID AS moduleId,
+        q.SubModuleID AS subModuleId,
+        q.UnitID AS unitId,
+        q.FileID AS fileId,
+        q.ModuleCreatorID AS moduleCreatorId,
+        q.UserID AS userId,
+        q.QueryText AS queryText,
+        q.Status AS status,
+        q.AddOnDt AS createdAt,
+        q.editOnDt AS updatedAt,
+        
+        u.Name AS userName,
+        u.EmailId AS userEmail,
+        u.isAdmin AS isAdmin,
+        u.ProfilePicture AS profilePicture
+
+      FROM userquerytable q
+      LEFT JOIN community_user u 
+        ON q.UserID = u.UserID
+
+      WHERE ${whereConditions}
+
+      ORDER BY q.AddOnDt DESC
+    `;
+
+    const queries = await sequelize.query(query, {
+      replacements,
+      type: QueryTypes.SELECT,
+    });
+
+    console.log(`Retrieved ${queries.length} queries`);
+
+    return {
+      status: 200,
+      response: {
+        success: true,
+        data: queries,
+        message: "Queries retrieved successfully",
+      },
+    };
+  } catch (error) {
+    console.error("Failed to retrieve queries:", error);
+    return {
+      status: 500,
+      response: {
+        success: false,
+        data: {},
+        message: "Something went wrong while retrieving queries",
+      },
+    };
+  }
 };

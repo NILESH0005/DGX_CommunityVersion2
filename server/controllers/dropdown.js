@@ -3,6 +3,7 @@ import { connectToDatabase, closeConnection } from "../database/mySql.js";
 import dotenv from "dotenv";
 import { queryAsync, logError, logInfo } from "../helper/index.js";
 import {
+  getAdminModulesService,
   getBlogStatsService,
   getDiscussionStatsService,
   getDropdownValuesService,
@@ -160,6 +161,29 @@ export const getModules = async (req, res) => {
     });
   }
 };
+
+export const getAdminModules = async (req, res) => {
+  try {
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    const loggedInUser = req.user; // 👈 from fetchUser middleware
+
+    const result = await getAdminModulesService(baseUrl, loggedInUser);
+
+    if (!result.success) {
+      return res.status(404).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Unexpected error occurred",
+      data: error.message,
+    });
+  }
+};
+
 
 export const getSubModules = async (req, res) => {
   let success = false;

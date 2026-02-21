@@ -376,7 +376,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
                 </div>
               }
             >
-              <div className="overflow-y-auto max-h-[80vh]">
+              <div className="overflow-y-auto max-h-[50vh]">
                 {Array.from(new Array(numPages), (el, index) => (
                   <div
                     key={`page_${index + 1}`}
@@ -484,10 +484,8 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
       );
     }
 
-    // Local notebook rendering remains the same
     return (
       <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
-        {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
         {loading ? (
           <div className="flex justify-center items-center h-64">

@@ -9,6 +9,8 @@ import {
   handleLmsSubmoduleRateAction as rateSubmoduleService,
   getSubModuleRatingService,
   getModuleRatingService,
+  createUserQuery,
+  getUserQueries,
 } from "../services/lmsService.js";
 import fs from "fs";
 import path from "path";
@@ -236,7 +238,7 @@ export const checkModuleExist = async (req, res) => {
 
 export const getSubModuleViews = async (req, res) => {
   try {
-    const userId = req.user?.uniqueId; 
+    const userId = req.user?.uniqueId;
 
     const result = await LMSViewsService.getSubModuleViews(userId);
     res.status(200).json({ success: true, data: result });
@@ -477,3 +479,42 @@ export const getModuleRating = async (req, res) => {
     });
   }
 };
+
+export const createQuery = async (req, res) => {
+  try {
+    console.log("req.user:", req.user);
+
+    const userId = req.user.uniqueId; // From fetchUser middleware
+    const queryData = req.body;
+
+    const result = await createUserQuery(queryData, userId);
+    return res.status(result.status).json(result.response);
+  } catch (err) {
+    console.log("Controller Error:", err); // 👈 ADD THIS
+
+    return res.status(500).json({
+      success: false,
+      data: err,
+      message: "Unexpected error occurred",
+    });
+  }
+};
+
+export const getQueries = async (req, res) => {
+  try {
+    const userId = req.user.id; // From fetchUser middleware
+    const filters = req.query;
+
+    const result = await getUserQueries(filters, userId);
+    return res.status(result.status).json(result.response);
+  } catch (err) {
+    console.log("Unexpected Error in getQueries controller:", err);
+    return res.status(500).json({
+      success: false,
+      data: err,
+      message: "Unexpected error occurred while retrieving queries",
+    });
+  }
+};
+
+

@@ -37,6 +37,7 @@ import LearningMaterialList from "./Components/LMS/LearningMaterialList";
 import ModuleBuilder from "./Components/LMS/ModuleBuilder/ModuleBuilder";
 import DashboardPage from "./Components/Dashboard/DashboardPage";
 import ApiContext from "../context/ApiContext";
+import QueryManagement from "./Components/LMS/QueryManagement";
 
 const AdminDashboard = (props) => {
   const location = useLocation();
@@ -168,6 +169,8 @@ const AdminDashboard = (props) => {
         return <LearningMaterialManager />;
       case "edit_module":
         return <LearningMaterialList />;
+      case "query_management":
+        return <QueryManagement />;
       default:
         return <Home />;
     }
@@ -280,7 +283,7 @@ const AdminDashboard = (props) => {
               <li>
                 <div
                   className={`UnderLine py-3 px-4 cursor-pointer flex items-center ${
-                    ["select_module", "edit_module"].includes(activeComp)
+                    ["select_module", "edit_module", "query_management"].includes(activeComp)
                       ? "bg-gray-700 text-yellow-300"
                       : ""
                   }`}
@@ -315,7 +318,20 @@ const AdminDashboard = (props) => {
                             className="py-2 px-6 cursor-pointer"
                             onClick={() => handleMenuItemClick("edit_module")}
                           >
-                            {getPageLabel(17)}
+                            {getPageLabel(18)}
+                          </div>
+                        </li>
+                      )}
+
+                      {hasAccessById(23) && (
+                        <li>
+                          <div
+                            className="py-2 px-6 cursor-pointer"
+                            onClick={() =>
+                              handleMenuItemClick("query_management")
+                            }
+                          >
+                            {getPageLabel(23)}
                           </div>
                         </li>
                       )}
