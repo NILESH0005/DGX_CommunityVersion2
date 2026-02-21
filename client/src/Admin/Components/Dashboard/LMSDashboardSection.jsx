@@ -48,7 +48,7 @@ const LMSDashboardSection = () => {
             totalTimeSpent: Number(module.totalTimeSpent) || 0,
             // Adding placeholder values for missing properties from your ModuleCard
             subModulesCount: 3, // Default value - you might want to fetch this separately
-            avgRating: 4.0, // Default value - you might want to fetch ratings separately
+            avgRating: 5.0, // Default value - you might want to fetch ratings separately
             ratingCount: 5 // Default value
           }));
           setModuleData(processedModules);
