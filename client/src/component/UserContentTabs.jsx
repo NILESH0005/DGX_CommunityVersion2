@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaArrowRight, FaTrash, FaEdit } from "react-icons/fa";
 import AddUserEvent from "./AddUserEvent.jsx";
 import AddUserBlog from "./AddUserBlog.jsx";
+import UserQueriesTable from "./UserQueriesTable.jsx";
 import UserQuiz from "./UserQuiz.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import moment from "moment";
@@ -27,13 +28,14 @@ const UserContentTabs = ({
   setEditModalIsOpen,
   user,
   profileImage,
+  queries,
+  setQueries,
 }) => {
   console.log("Events :", events);
   const handleEditDiscussion = (discussion) => {
     setDiscussionToEdit(discussion);
     setEditModalIsOpen(true);
   };
-
   const UPLOADS_BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
 
   return (
@@ -225,6 +227,26 @@ const UserContentTabs = ({
             </span>
           </div>
           <AddUserBlog blogs={blogs} setBlogs={setBlogs} />
+        </div>
+      )}
+      {activeTab === "queries" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3 sm:gap-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+              My Queries
+            </h2>
+
+            <span className="px-3 py-1 bg-DGXgreen/20 text-DGXblue rounded-full text-sm font-medium">
+              {queries.length} {queries.length === 1 ? "Query" : "Queries"}
+            </span>
+          </div>
+
+          <UserQueriesTable
+            queries={queries}
+            onRemove={(id) =>
+              setQueries((prev) => prev.filter((q) => q.id !== id))
+            }
+          />
         </div>
       )}
 
