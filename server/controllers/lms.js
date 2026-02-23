@@ -11,6 +11,8 @@ import {
   getModuleRatingService,
   createUserQuery,
   getUserQueries,
+  createReply,
+  getReplyByQueryId,
 } from "../services/lmsService.js";
 import fs from "fs";
 import path from "path";
@@ -517,4 +519,52 @@ export const getQueries = async (req, res) => {
   }
 };
 
+export const addReply = async (req, res) => {
+  try {
+    const { QueryID, ReplyText } = req.body;
 
+    if (!QueryID || !ReplyText) {
+      return res.status(400).json({
+        success: false,
+        message: "QueryID and ReplyText are required",
+      });
+    }
+
+    const reply = await createReply({
+      QueryID,
+      ReplyText,
+      RepliedBy: req.user.uniqueId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Reply added successfully",
+      data: reply,
+    });
+  } catch (error) {
+    console.error("Add Reply Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const fetchSingleReply = async (req, res) => {
+  try {
+    const { queryId } = req.params;
+
+    const reply = await getReplyByQueryId(queryId);
+
+    return res.status(200).json({
+      success: true,
+      data: reply || null,
+    });
+  } catch (error) {
+    console.error("Fetch Reply Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
