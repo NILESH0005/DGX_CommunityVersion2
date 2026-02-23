@@ -14,6 +14,8 @@ import {
   getModuleRating,
   createQuery,
   getQueries,
+  addReply,
+  fetchSingleReply,
 } from "../controllers/lms.js";
 
 const router = express.Router();
@@ -54,6 +56,7 @@ router.get("/module-rating/:moduleId", getModuleRating);
 
 router.post("/user-query", fetchUser, createQuery);
 router.get("/query-list", fetchUser, getQueries);
-
+router.post("/query-answer", fetchUser, addReply);
+router.get("/query-reply/:queryId", fetchUser, fetchSingleReply);
 
 export default router;

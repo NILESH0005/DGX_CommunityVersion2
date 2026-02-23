@@ -13,6 +13,7 @@ const {
   ContentInteraction,
   ContentInteractionLog,
   User_Query_Table,
+  User_Query_Replies,
 } = db;
 
 export class LMSService {
@@ -1111,3 +1112,43 @@ export const getUserQueries = async (filters = {}, userId) => {
     };
   }
 };
+
+export const createReply = async (data) => {
+  const existingReply = await User_Query_Replies.findOne({
+    where: {
+      QueryID: data.QueryID,
+      delStatus: 0,
+    },
+  });
+
+  if (existingReply) {
+    throw new Error("Reply already exists for this query");
+  }
+
+  return await User_Query_Replies.create({
+    QueryID: data.QueryID,
+    RepliedBy: data.RepliedBy,
+    ReplyText: data.ReplyText,
+    AuthAdd: data.RepliedBy,
+    AddOnDt: new Date(),
+    delStatus: 0,
+  });
+};
+
+export const getReplyByQueryId = async (queryId) => {
+  const reply = await User_Query_Replies.findOne({
+    where: {
+      QueryID: queryId,
+      delStatus: 0,
+    },
+  });
+
+  return reply;
+};
+
+
+
+
+
+
+

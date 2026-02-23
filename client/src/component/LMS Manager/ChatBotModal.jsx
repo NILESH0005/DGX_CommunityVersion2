@@ -11,6 +11,9 @@ const ChatBotModal = ({ isOpen, onClose }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [input, setInput] = useState("");
   const [pdfIds, setPdfIds] = useState([]);
+  const [aiReplies, setAiReplies] = useState({});
+  const [aiLoadingId, setAiLoadingId] = useState(null);
+  const [chatHistoryMap, setChatHistoryMap] = useState({});
 
   // Initialize messages based on login status
   useEffect(() => {
@@ -56,20 +59,18 @@ const ChatBotModal = ({ isOpen, onClose }) => {
 
   const handleSend = async () => {
     if (!input.trim() || !userToken) return;
+    
 
-    // Add user message to chat
     const userMessage = { from: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    // Add a temporary "processing" message
     const processingMessage = {
       from: "bot",
       text: "🤖 *I'm processing your query...*",
     };
     setMessages((prev) => [...prev, processingMessage]);
 
-    // Prepare request body according to Learning Assistant requirements
     const body = {
       question: input,
       pdf_ids: pdfIds.map(String),
@@ -109,8 +110,8 @@ const ChatBotModal = ({ isOpen, onClose }) => {
         prev.map((m) =>
           m.text === processingMessage.text
             ? { from: "bot", text: botReply }
-            : m
-        )
+            : m,
+        ),
       );
     } catch (error) {
       console.error("Chat API error:", error);
@@ -121,8 +122,8 @@ const ChatBotModal = ({ isOpen, onClose }) => {
                 from: "bot",
                 text: "⚠️ **Connection Error.** Please check your connection and try again later.",
               }
-            : m
-        )
+            : m,
+        ),
       );
     }
   };

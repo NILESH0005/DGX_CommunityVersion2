@@ -3,6 +3,7 @@ import { FiMessageCircle, FiUser, FiSend, FiChevronDown } from "react-icons/fi";
 import ApiContext from "../../context/ApiContext";
 import { useContext } from "react";
 import Swal from "sweetalert2";
+import QueryReplies from "./QueryReplies";
 
 const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
   useEffect(() => {
@@ -15,59 +16,15 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
 
   const MAX_CHARS = 1000;
   const [queryText, setQueryText] = useState("");
+  const [useAIReply, setUseAIReply] = useState(false);
+  const [aiReplies, setAiReplies] = useState({});
+  const [aiLoadingId, setAiLoadingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const { fetchData, userToken, user } = useContext(ApiContext);
   const [queries, setQueries] = useState([]);
   const [expandedQueryId, setExpandedQueryId] = useState(null);
-  const [replyText, setReplyText] = useState({});
   const [replyLoading, setReplyLoading] = useState(null);
-
-  const handleSubmitReply = async (queryId) => {
-    if (!replyText[queryId]?.trim()) return;
-
-    setReplyLoading(queryId);
-
-    const headers = {
-      "Content-Type": "application/json",
-      "auth-token": userToken,
-    };
-
-    const body = {
-      QueryID: queryId,
-      ReplyText: replyText[queryId].trim(),
-    };
-
-    try {
-      const data = await fetchData("lms/reply-query", "POST", body, headers);
-
-      setReplyLoading(null);
-
-      if (data.success) {
-        setQueries((prev) =>
-          prev.map((q) =>
-            q.queryId === queryId
-              ? {
-                  ...q,
-                  replyText: replyText[queryId],
-                  repliedAt: new Date().toISOString(),
-                  repliedBy: user.Name,
-                }
-              : q,
-          ),
-        );
-
-        setReplyText((prev) => ({ ...prev, [queryId]: "" }));
-
-        Swal.fire("Success", "Reply submitted successfully!", "success");
-      } else {
-        Swal.fire("Error", data.message || "Reply failed", "error");
-      }
-    } catch (error) {
-      console.error("Reply submission error:", error);
-      setReplyLoading(null);
-      Swal.fire("Error", "Something went wrong.", "error");
-    }
-  };
+  const [chatHistory, setChatHistory] = useState([]);
 
   const fetchQueries = async () => {
     try {
@@ -79,7 +36,7 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
       console.log("Query API response:", data);
 
       if (data.success) {
-        const flattened = data.data.flat(); // 👈 IMPORTANT
+        const flattened = data.data.flat();
         setQueries(flattened);
       }
     } catch (error) {
@@ -100,7 +57,7 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
 
     const headers = {
       "Content-Type": "application/json",
-      "auth-token": userToken, // 👈 REQUIRED (fetchUser middleware)
+      "auth-token": userToken,
     };
 
     const body = {
@@ -131,8 +88,54 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
           userName: user.Name,
         };
 
-        // 🔥 Instantly update UI
         setQueries((prev) => [newQuery, ...prev]);
+        if (useAIReply && fileId) {
+          setAiLoadingId(newQuery.queryId);
+
+          const body = {
+            question: queryText.trim(),
+            pdf_ids: [fileId.toString()],
+            chat_history: chatHistory || [],
+            user_id:
+              user?.UserID?.toString() || user?.uniqueId?.toString() || "0",
+            organization_id: "GI",
+            platform: "DGX_Community_LMS",
+          };
+
+          try {
+            const CHATBOT_API = import.meta.env.VITE_CHATBOT_API_URL;
+
+            const res = await fetch(`${CHATBOT_API}/ask`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+
+            const aiData = await res.json();
+
+            if (aiData?.chat_history) {
+              setChatHistory(aiData.chat_history);
+            }
+
+            const aiAnswer =
+              aiData?.answer || "❌ Sorry, I couldn't generate a response.";
+
+            setAiReplies((prev) => ({
+              ...prev,
+              [newQuery.queryId]: aiAnswer,
+            }));
+          } catch (error) {
+            console.error("AI error:", error);
+
+            setAiReplies((prev) => ({
+              ...prev,
+              [newQuery.queryId]:
+                "⚠️ AI is currently unavailable. Please try again later.",
+            }));
+          }
+
+          setAiLoadingId(null);
+        }
 
         setQueryText("");
 
@@ -187,7 +190,26 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
               {queryText.length}/{MAX_CHARS} characters
             </span>
           </div>
+          <div className="flex items-center justify-between mt-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-800">
+                Get Instant AI Reply
+              </span>
+            </div>
 
+            <button
+              onClick={() => setUseAIReply(!useAIReply)}
+              className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${
+                useAIReply ? "bg-blue-600" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+                  useAIReply ? "translate-x-6" : ""
+                }`}
+              />
+            </button>
+          </div>
           <button
             onClick={handleSubmitQuery}
             disabled={!queryText.trim() || loading}
@@ -251,6 +273,8 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
                         {isExpanded ? data.queryText : previewText}
                       </p>
 
+                      <QueryReplies queryId={data.queryId} />
+
                       {data.queryText.length > 150 && (
                         <button
                           onClick={() =>
@@ -261,67 +285,15 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
                           {isExpanded ? "Show less" : "View more"}
                         </button>
                       )}
-
-                      {data.replyText && (
-                        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-3">
-                          <div className="flex items-center justify-between">
-                            <p className="text-xs font-semibold text-green-600">
-                              Reply by {data.repliedBy}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {new Date(data.repliedAt).toLocaleString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "2-digit",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                },
-                              )}
-                            </p>
-                          </div>
-
-                          <p className="text-sm text-gray-700 mt-1">
-                            {data.replyText}
+                      {aiLoadingId === data.queryId && (
+                        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4 animate-pulse">
+                          <p className="text-xs font-semibold text-blue-600 mb-2">
+                            AI Assistant is typing...
                           </p>
-                        </div>
-                      )}
-
-                      {/* Show Reply Box if No Reply */}
-                      {!data.replyText && (
-                        <div className="mt-4">
-                          <textarea
-                            placeholder="Write your reply..."
-                            value={replyText[data.queryId] || ""}
-                            onChange={(e) =>
-                              setReplyText((prev) => ({
-                                ...prev,
-                                [data.queryId]: e.target.value,
-                              }))
-                            }
-                            className="w-full p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
-                            rows="2"
-                          />
-
-                          <button
-                            onClick={() => handleSubmitReply(data.queryId)}
-                            disabled={
-                              !replyText[data.queryId]?.trim() ||
-                              replyLoading === data.queryId
-                            }
-                            className={`mt-2 px-3 py-1 text-xs rounded-lg
-        ${
-          replyText[data.queryId]?.trim() && replyLoading !== data.queryId
-            ? "bg-green-600 text-white hover:bg-green-700"
-            : "bg-gray-300 text-gray-500 cursor-not-allowed"
-        }`}
-                          >
-                            {replyLoading === data.queryId
-                              ? "Replying..."
-                              : "Submit Reply"}
-                          </button>
+                          <div className="space-y-2">
+                            <div className="h-2 bg-blue-200 rounded w-3/4"></div>
+                            <div className="h-2 bg-blue-200 rounded w-1/2"></div>
+                          </div>
                         </div>
                       )}
                     </div>
