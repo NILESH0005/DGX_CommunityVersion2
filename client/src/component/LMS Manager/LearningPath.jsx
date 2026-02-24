@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import DynamicModuleCard from "./ModuleCard";
 import LeaderBoard from "./LeaderBoard";
-import HeroModel from "./ChatBot"; // 👈 import your 3D model
-import ChatBotModal from "./ChatBotModal"; // 👈 import chatbot modal
+// import HeroModel from "./ChatBot"; // 👈 import your 3D model
+// import ChatBotModal from "./ChatBotModal"; // 👈 import chatbot modal
 import { FiHelpCircle } from "react-icons/fi";
 
 const LearningPath = () => {
@@ -84,15 +84,15 @@ const LearningPath = () => {
 
 
         {/* Model */}
-        <div className="w-[120px] h-[120px] flex justify-center items-center">
+        {/* <div className="w-[120px] h-[120px] flex justify-center items-center">
           <HeroModel />
-        </div>
+        </div> */}
 
       
       </button>
 
       {/* Chat Modal*/}
-      <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      {/* <ChatBotModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} /> */}
     </div>
   );
 };

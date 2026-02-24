@@ -127,7 +127,7 @@ const UnitsWithFiles = () => {
         const unitsResponse = await fetchData(
           `dropdown/getUnitsWithFiles/${subModuleId}`,
           "GET",
-          {}, // no body needed for GET
+          {},
           {
             "Content-Type": "application/json",
             "auth-token": userToken, // <-- send user token
@@ -269,7 +269,8 @@ const UnitsWithFiles = () => {
       ...file,
       unitName: unit.UnitName,
       unitDescription: unit.UnitDescription,
-      UnitID: unit.UnitID, 
+      UnitID: unit.UnitID,
+      creatorId: unit.creatorId,
     });
 
     if (isMobile) {
@@ -974,6 +975,9 @@ const UnitsWithFiles = () => {
             {console.log("Selected File:", selectedFile)}
             {console.log("Unit ID:", selectedFile?.UnitID)}
             {console.log("File ID:", selectedFile?.FileID)}
+            {console.log("CREATOR ID:", selectedFile?.FileAuthAdd)}
+
+
             <div className="mb-4">
               <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200">
                 <h2 className="text-xl md:text-2xl font-semibold text-gray-800 break-words mb-2">
@@ -1068,6 +1072,7 @@ const UnitsWithFiles = () => {
                 subModuleId={subModuleId}
                 unitId={selectedFile?.UnitID}
                 fileId={selectedFile?.FileID}
+                creatorId={selectedFile?.FileAuthAdd} // Use from selectedFile
               />
             </div>
           </>
