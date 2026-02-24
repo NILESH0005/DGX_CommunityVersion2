@@ -5,13 +5,20 @@ import { useContext } from "react";
 import Swal from "sweetalert2";
 import QueryReplies from "./QueryReplies";
 
-const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
+const UnitQueryPanel = ({
+  moduleId,
+  subModuleId,
+  unitId,
+  fileId,
+  creatorId,
+}) => {
   useEffect(() => {
     console.log("📝 UnitQueryPanel received:");
     console.log("Module ID:", moduleId);
     console.log("SubModule ID:", subModuleId);
     console.log("Unit ID:", unitId);
     console.log("File ID:", fileId);
+    console.log("creator id is ", creatorId);
   }, [moduleId, subModuleId, unitId, fileId]);
 
   const MAX_CHARS = 1000;
@@ -273,8 +280,10 @@ const UnitQueryPanel = ({ moduleId, subModuleId, unitId, fileId }) => {
                         {isExpanded ? data.queryText : previewText}
                       </p>
 
-                      <QueryReplies queryId={data.queryId} />
-
+                      <QueryReplies
+                        queryId={data.queryId}
+                        creatorId={creatorId} // Pass creatorId down
+                      />
                       {data.queryText.length > 150 && (
                         <button
                           onClick={() =>
