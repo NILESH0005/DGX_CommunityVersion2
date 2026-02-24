@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useContext } from "react";
 import Swal from "sweetalert2";
 import UserProfileChart from "./UserProfileChart";
-import { FaArrowRight, FaEdit, FaUsers, FaPoll, FaTrash } from "react-icons/fa";
+import {
+  FaArrowRight,
+  FaEdit,
+  FaUsers,
+  FaPoll,
+  FaTrash,
+  FaQuestionCircle,
+} from "react-icons/fa";
 import { GoCommentDiscussion } from "react-icons/go";
 import {
   FaArrowTrendDown,
@@ -39,7 +46,7 @@ const UserProfile = (props) => {
     useContext(ApiContext); // Add setUser from context
   const navigate = useNavigate();
   const [backgroundImage, setBackgroundImage] = useState(
-    images.NvidiaBackground
+    images.NvidiaBackground,
   );
   const BASE_URL = import.meta.env.VITE_API_UPLOADSURL;
   const [userDisscussions, setUserDisscussion] = useState([]);
@@ -49,7 +56,56 @@ const UserProfile = (props) => {
   const [editModalIsOpen, setEditModalIsOpen] = useState(false);
   const [discussionToEdit, setDiscussionToEdit] = useState(null);
   const [localUser, setLocalUser] = useState(user); // Add local user state
-
+  const [queries, setQueries] = useState([
+  {
+    id: 1,
+    module: "AI & Machine Learning",
+    submodule: "Computer Vision",
+    unit: "Object Detection",
+    file: "YOLOv8.pdf",
+    queryCreator: "Nilesh Thakur",
+    queryText:
+      "How can we optimize YOLOv8 for low-latency edge deployment? I am working on a project that requires real-time object detection on edge devices.",
+    date: "23 Feb 2026",
+    status: "Pending",
+  },
+  {
+    id: 2,
+    module: "Cloud Computing",
+    submodule: "AWS Services",
+    unit: "Lambda Functions",
+    file: "serverless-architecture.pdf",
+    queryCreator: "Nilesh Thakur",
+    queryText:
+      "What are the best practices for managing cold starts in AWS Lambda functions?",
+    date: "22 Feb 2026",
+    status: "Completed",
+  },
+  {
+    id: 3,
+    module: "Cloud Computing",
+    submodule: "Kubernetes",
+    unit: "Container Orchestration",
+    file: "k8s-best-practices.pdf",
+    queryCreator: "Nilesh Thakur",
+    queryText:
+      "What are the best practices for implementing horizontal pod autoscaling in Kubernetes?",
+    date: "13 Feb 2026",
+    status: "Pending",
+  },
+  {
+    id: 4,
+    module: "AI & Machine Learning",
+    submodule: "Deep Learning",
+    unit: "Neural Networks",
+    file: "backpropagation.pdf",
+    queryCreator: "Nilesh Thakur",
+    queryText:
+      "Can you explain how backpropagation works in neural networks with a simple example?",
+    date: "12 Feb 2026",
+    status: "Completed",
+  },
+]);
   // Sync localUser with context user
   useEffect(() => {
     if (user) {
@@ -128,8 +184,8 @@ const UserProfile = (props) => {
         prevDiscussions.map((d) =>
           d.DiscussionID === updatedDiscussion.DiscussionID
             ? updatedDiscussion
-            : d
-        )
+            : d,
+        ),
       );
 
       Swal.fire({
@@ -264,7 +320,7 @@ const UserProfile = (props) => {
                   Image: discussion.Image
                     ? `${BASE_URL}/${discussion.Image}`
                     : null,
-                })
+                }),
               );
               setUserDisscussion(discussionsWithFullUrls);
             })
@@ -319,8 +375,8 @@ const UserProfile = (props) => {
 
           setUserDisscussion((prevDiscussions) =>
             prevDiscussions.filter(
-              (d) => d.DiscussionID !== discussion.DiscussionID
-            )
+              (d) => d.DiscussionID !== discussion.DiscussionID,
+            ),
           );
         } else {
           throw new Error("Failed to delete the discussion.");
@@ -428,108 +484,140 @@ const UserProfile = (props) => {
             {/* Navigation Menu */}
             <div className="bg-DGXwhite rounded-lg shadow-xl p-4 border border-DGXgreen">
               <ul className="space-y-2">
-                <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "posts"
-                      ? "bg-DGXgreen/40"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => setActiveTab("posts")}
-                >
-                  <GoCommentDiscussion className="mr-3 text-lg md:text-xl" />
-                  <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "posts" ? "text-DGXblue font-bold" : ""
+                {/* My Discussions */}
+                <li>
+                  <div
+                    className={`flex items-center p-3 rounded-lg cursor-pointer ${
+                      activeTab === "posts"
+                        ? "bg-DGXgreen/40"
+                        : "hover:bg-gray-100"
                     }`}
+                    onClick={() => setActiveTab("posts")}
                   >
-                    My Discussions
-                  </li>
-                </div>
-                <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "events"
-                      ? "bg-DGXgreen/40"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => setActiveTab("events")}
-                >
-                  <MdEventAvailable className="mr-3 text-lg md:text-xl" />
-                  <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "events" ? "text-DGXblue font-bold" : ""
+                    <GoCommentDiscussion className="mr-3 text-lg md:text-xl" />
+                    <span
+                      className={`text-sm md:text-base ${
+                        activeTab === "posts" ? "text-DGXblue font-bold" : ""
+                      }`}
+                    >
+                      My Discussions
+                    </span>
+                  </div>
+                </li>
+
+                {/* My Events */}
+                <li>
+                  <div
+                    className={`flex items-center p-3 rounded-lg cursor-pointer ${
+                      activeTab === "events"
+                        ? "bg-DGXgreen/40"
+                        : "hover:bg-gray-100"
                     }`}
+                    onClick={() => setActiveTab("events")}
                   >
-                    My Events
-                  </li>
-                </div>
-                <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "blogs"
-                      ? "bg-DGXgreen/40"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => setActiveTab("blogs")}
-                >
-                  <LiaBlogSolid className="mr-3 text-lg md:text-xl" />
-                  <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "blogs" ? "text-DGXblue font-bold" : ""
+                    <MdEventAvailable className="mr-3 text-lg md:text-xl" />
+                    <span
+                      className={`text-sm md:text-base ${
+                        activeTab === "events" ? "text-DGXblue font-bold" : ""
+                      }`}
+                    >
+                      My Events
+                    </span>
+                  </div>
+                </li>
+
+                {/* My Blogs */}
+                <li>
+                  <div
+                    className={`flex items-center p-3 rounded-lg cursor-pointer ${
+                      activeTab === "blogs"
+                        ? "bg-DGXgreen/40"
+                        : "hover:bg-gray-100"
                     }`}
+                    onClick={() => setActiveTab("blogs")}
                   >
-                    My Blogs
-                  </li>
-                </div>
-                <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "quiz"
-                      ? "bg-DGXgreen/40"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => setActiveTab("quiz")}
-                >
-                  <FaPoll className="mr-3 text-lg md:text-xl" />
-                  <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "quiz" ? "text-DGXblue font-bold" : ""
+                    <LiaBlogSolid className="mr-3 text-lg md:text-xl" />
+                    <span
+                      className={`text-sm md:text-base ${
+                        activeTab === "blogs" ? "text-DGXblue font-bold" : ""
+                      }`}
+                    >
+                      My Blogs
+                    </span>
+                  </div>
+                </li>
+                <li>
+                  <div
+                    className={`flex items-center p-3 rounded-lg cursor-pointer ${
+                      activeTab === "queries"
+                        ? "bg-DGXgreen/40"
+                        : "hover:bg-gray-100"
                     }`}
+                    onClick={() => setActiveTab("queries")}
                   >
-                    Quiz Dashboard
-                  </li>
-                </div>
-                <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "password"
-                      ? "bg-DGXgreen/40"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => setActiveTab("password")}
-                >
-                  <CgPassword className="mr-3 text-lg md:text-xl" />
-                  <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "password" ? "text-DGXblue font-bold" : ""
+                    <FaQuestionCircle className="mr-3 text-lg md:text-xl" />
+                    <span
+                      className={`text-sm md:text-base ${
+                        activeTab === "queries" ? "text-DGXblue font-bold" : ""
+                      }`}
+                    >
+                      My Queries
+                    </span>
+                  </div>
+                </li>
+
+                {/* Quiz Dashboard */}
+                <li>
+                  <div
+                    className={`flex items-center p-3 rounded-lg cursor-pointer ${
+                      activeTab === "quiz"
+                        ? "bg-DGXgreen/40"
+                        : "hover:bg-gray-100"
                     }`}
+                    onClick={() => setActiveTab("quiz")}
                   >
-                    Change Password
-                  </li>
-                </div>
-                <div
-                  className={`flex items-center p-3 rounded-lg cursor-pointer ${
-                    activeTab === "logout"
-                      ? "bg-DGXgreen/40"
-                      : "hover:bg-gray-100"
-                  }`}
-                  onClick={handleLogout}
-                >
-                  <SlLogout className="mr-3 text-lg md:text-xl" />
-                  <li
-                    className={`text-sm md:text-base ${
-                      activeTab === "logout" ? "text-DGXblue font-bold" : ""
+                    <FaPoll className="mr-3 text-lg md:text-xl" />
+                    <span
+                      className={`text-sm md:text-base ${
+                        activeTab === "quiz" ? "text-DGXblue font-bold" : ""
+                      }`}
+                    >
+                      Quiz Dashboard
+                    </span>
+                  </div>
+                </li>
+
+                {/* Change Password */}
+                <li>
+                  <div
+                    className={`flex items-center p-3 rounded-lg cursor-pointer ${
+                      activeTab === "password"
+                        ? "bg-DGXgreen/40"
+                        : "hover:bg-gray-100"
                     }`}
+                    onClick={() => setActiveTab("password")}
                   >
-                    Logout
-                  </li>
-                </div>
+                    <CgPassword className="mr-3 text-lg md:text-xl" />
+                    <span
+                      className={`text-sm md:text-base ${
+                        activeTab === "password" ? "text-DGXblue font-bold" : ""
+                      }`}
+                    >
+                      Change Password
+                    </span>
+                  </div>
+                </li>
+
+                {/* Logout */}
+                <li>
+                  <div
+                    className="flex items-center p-3 rounded-lg cursor-pointer hover:bg-gray-100"
+                    onClick={handleLogout}
+                  >
+                    <SlLogout className="mr-3 text-lg md:text-xl" />
+                    <span className="text-sm md:text-base">Logout</span>
+                  </div>
+                </li>
               </ul>
             </div>
 
@@ -561,6 +649,8 @@ const UserProfile = (props) => {
             setQuiz={props.setQuiz}
             setDiscussionToEdit={setDiscussionToEdit}
             setEditModalIsOpen={setEditModalIsOpen}
+            queries={queries} 
+            setQueries={setQueries}
           />
         </div>
       </div>
