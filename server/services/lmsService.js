@@ -1,6 +1,7 @@
 // services/lmsService.js
 import db, { sequelize } from "../models/index.js";
 import { Op, QueryTypes, Sequelize } from "sequelize";
+import UserQueryReplies from "../models/UserQueryReplies.js";
 
 const {
   LMSModulesDetails,
@@ -14,7 +15,6 @@ const {
   ContentInteractionLog,
   User_Query_Table,
   User_Query_Replies,
-  
 } = db;
 
 export class LMSService {
@@ -1164,4 +1164,34 @@ export const getReplyByQueryId = async (queryId) => {
   });
 
   return reply;
+};
+
+export const getQueriesByUser = async (userId) => {
+  const queries = await User_Query_Table.findAll({
+    where: {
+      UserID: userId,
+      delStatus: 0,
+    },
+    order: [["AddOnDt", "DESC"]],
+  });
+
+  const queryIds = queries.map((q) => q.QueryID);
+
+  const replies = await User_Query_Replies.findAll({
+    where: {
+      QueryID: queryIds,
+      delStatus: 0,
+    },
+  });
+
+  const finalData = queries.map((query) => {
+    const reply = replies.find((r) => r.QueryID === query.QueryID);
+
+    return {
+      ...query.toJSON(),
+      Reply: reply ? reply.toJSON() : null,
+    };
+  });
+
+  return finalData;
 };

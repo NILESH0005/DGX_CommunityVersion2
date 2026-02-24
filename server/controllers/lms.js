@@ -13,6 +13,7 @@ import {
   getUserQueries,
   createReply,
   getReplyByQueryId,
+  getQueriesByUser,
 } from "../services/lmsService.js";
 import fs from "fs";
 import path from "path";
@@ -562,6 +563,25 @@ export const fetchSingleReply = async (req, res) => {
     });
   } catch (error) {
     console.error("Fetch Reply Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const fetchMyQueries = async (req, res) => {
+  try {
+    const userId = req.user.uniqueId; // from auth middleware
+
+    const queries = await getQueriesByUser(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: queries,
+    });
+  } catch (error) {
+    console.error("Fetch My Queries Error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
