@@ -14,6 +14,7 @@ const {
   ContentInteractionLog,
   User_Query_Table,
   User_Query_Replies,
+  
 } = db;
 
 export class LMSService {
@@ -1114,6 +1115,7 @@ export const getUserQueries = async (filters = {}, userId) => {
 };
 
 export const createReply = async (data) => {
+  // 1️⃣ Check if reply already exists
   const existingReply = await User_Query_Replies.findOne({
     where: {
       QueryID: data.QueryID,
@@ -1125,7 +1127,8 @@ export const createReply = async (data) => {
     throw new Error("Reply already exists for this query");
   }
 
-  return await User_Query_Replies.create({
+  // 2️⃣ Create Reply
+  const reply = await User_Query_Replies.create({
     QueryID: data.QueryID,
     RepliedBy: data.RepliedBy,
     ReplyText: data.ReplyText,
@@ -1133,6 +1136,23 @@ export const createReply = async (data) => {
     AddOnDt: new Date(),
     delStatus: 0,
   });
+
+  // 3️⃣ Update Query Status
+  await User_Query_Table.update(
+    {
+      Status: "Answered",
+      AuthLstEdt: data.RepliedBy,
+      editOnDt: new Date(),
+    },
+    {
+      where: {
+        QueryID: data.QueryID,
+        delStatus: 0,
+      },
+    },
+  );
+
+  return reply;
 };
 
 export const getReplyByQueryId = async (queryId) => {
@@ -1145,10 +1165,3 @@ export const getReplyByQueryId = async (queryId) => {
 
   return reply;
 };
-
-
-
-
-
-
-
