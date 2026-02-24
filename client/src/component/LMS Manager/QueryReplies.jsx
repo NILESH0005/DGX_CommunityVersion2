@@ -46,7 +46,7 @@ const QueryReplies = ({ queryId }) => {
         ReplyText: replyText.trim(),
       };
 
-      const data = await fetchData("lms/reply-query", "POST", body, headers);
+      const data = await fetchData("lms/query-answer", "POST", body, headers);
 
       if (data.success) {
         setReply(data.data); // 👈 store reply
