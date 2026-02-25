@@ -142,7 +142,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
 
   const renderNotebook = (notebook) => {
     return (
-      <div className="notebook-container p-4 bg-white rounded-lg shadow max-h-[80vh] overflow-y-auto overflow-x-auto">
+      <div className="notebook-container p-4 bg-white rounded-lg shadow">
         <h2 className="text-xl font-bold mb-4">
           {notebook.metadata?.name || "Jupyter Notebook"}
         </h2>
@@ -337,7 +337,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
       <div className="relative flex flex-col items-center">
         {/* {renderDownloadButton()} */}
         {renderSubmoduleHeader()}
-        <div className="max-w-full max-h-[80vh] overflow-auto">
+        <div className="max-w-full">
           <img
             src={fileUrl}
             alt={fileName}
@@ -352,13 +352,13 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
   // Handle PDF files
   if (fileExtension === "pdf") {
     return (
-      <div className="relative w-full flex flex-col items-center">
-        {/* {renderDownloadButton()}*/}
+      <div className="w-full h-full flex flex-col min-h-0">
         {renderSubmoduleHeader()}
-        <div className="w-full max-w-4xl bg-white rounded-lg shadow-md overflow-hidden">
+
+        <div className="flex-1 min-h-0 overflow-y-auto w-full">
           {pdfError ? (
-            <div className="p-8 text-center">
-              <div className="text-red-500 mb-4">Error loading PDF</div>
+            <div className="p-8 text-center text-red-500">
+              Error loading PDF
             </div>
           ) : (
             <Document
@@ -370,27 +370,14 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
                   <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
               }
-              error={
-                <div className="p-8 text-center text-red-500">
-                  Failed to load PDF document
-                </div>
-              }
             >
-              <div className="overflow-y-auto max-h-[50vh]">
-                {Array.from(new Array(numPages), (el, index) => (
-                  <div
-                    key={`page_${index + 1}`}
-                    className="mb-4 border-b border-gray-200 last:border-b-0"
-                  >
+              <div className="flex flex-col items-center">
+                {Array.from(new Array(numPages), (_, index) => (
+                  <div key={index} className="mb-6">
                     <Page
                       pageNumber={index + 1}
-                      width={800}
+                      width={Math.min(900, window.innerWidth * 0.8)}
                       renderTextLayer={false}
-                      loading={
-                        <div className="flex justify-center items-center h-64">
-                          Loading page {index + 1}...
-                        </div>
-                      }
                     />
                   </div>
                 ))}
@@ -413,7 +400,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
             key={iframeKey}
             title="Office viewer"
             src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(
-              fileUrl
+              fileUrl,
             )}`}
             width="100%"
             height="100%"
@@ -485,7 +472,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
     }
 
     return (
-      <div className="relative w-full h-full flex flex-col p-4 overflow-auto">
+      <div className="relative w-full flex flex-col p-4">
         {renderSubmoduleHeader()}
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -511,7 +498,7 @@ const FileViewer = ({ fileUrl, submoduleName, fileType, filesName }) => {
         <iframe
           key={iframeKey}
           src={`https://docs.google.com/spreadsheets/d/e/2PACX-1vR9xX9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ9ZQ/pubhtml?gid=0&single=true&output=csv&url=${encodeURIComponent(
-            fileUrl
+            fileUrl,
           )}`}
           width="100%"
           height="100%"
