@@ -470,7 +470,7 @@ const UnitsWithFiles = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-foreground overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-foreground">
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
         <button
@@ -879,31 +879,25 @@ const UnitsWithFiles = () => {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col p-4 md:p-6 overflow-hidden ${
+        className={`flex-1 flex flex-col min-h-0 p-4 md:p-6 ${
           isMobile && !isSidebarCollapsed ? "hidden" : "flex"
         }`}
       >
         {/* Content Header */}
-        <div className="mb-4">
+
+     
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <button
                   onClick={handleBackToSubmodules}
-                  className="hidden md:inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow border border-gray-300
-    hover:shadow-md hover:bg-gray-100 hover:border-gray-400
-    focus:outline-none focus:ring-2 focus:ring-blue-400
-    transition-all duration-150 group"
-                  aria-label="Go back to previous page"
+                  className="hidden md:inline-flex items-center space-x-1 px-2 py-1 text-sm rounded-md border border-gray-200 bg-white
+  hover:bg-gray-50 hover:border-gray-300 transition-all duration-150 group"
+                  aria-label="Go back"
                 >
-                  {/* Animated left arrow on hover */}
-                  <FiArrowLeft className="text-gray-600 group-hover:-translate-x-1 group-hover:text-blue-700 transition-transform  duration-150" />
-                  <span className="font-semibold text-gray-700 group-hover:text-blue-700 transition-colors duration-150">
-                    Back to Previous
-                  </span>
-                  {/* Tooltip for accessibility */}
-                  <span className="sr-only">
-                    Return to previous module or page
+                  <FiArrowLeft className="w-4 h-4 text-gray-600 group-hover:-translate-x-1 transition-transform duration-150" />
+                  <span className="text-gray-600 group-hover:text-blue-600">
+                    Back
                   </span>
                 </button>
                 {/* 
@@ -922,7 +916,7 @@ const UnitsWithFiles = () => {
             </div>
           </div>
           <hr className="my-2 border-gray-200" />
-        </div>
+       
 
         {/* Content Area */}
         {selectedQuiz ? (
@@ -977,14 +971,16 @@ const UnitsWithFiles = () => {
             {console.log("File ID:", selectedFile?.FileID)}
             {console.log("CREATOR ID:", selectedFile?.FileAuthAdd)}
 
+            <div className="mb-2">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base md:text-lg font-semibold text-gray-800 truncate">
+                    {removeFileExtension(selectedFile.FilesName)}
+                  </h2>
+                </div>
 
-            <div className="mb-4">
-              <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200">
-                <h2 className="text-xl md:text-2xl font-semibold text-gray-800 break-words mb-2">
-                  {removeFileExtension(selectedFile.FilesName)}
-                </h2>
                 {selectedFile.Description && (
-                  <p className="text-gray-600 text-sm md:text-base">
+                  <p className="text-xs text-gray-500 mt-1 truncate">
                     {selectedFile.Description}
                   </p>
                 )}
@@ -1004,7 +1000,7 @@ const UnitsWithFiles = () => {
                   <h3 className="text-xl font-bold text-gray-800 mb-4 break-words">
                     {selectedFile.FilesName || "External Content Link"}
                   </h3>
-                  <p className="mb-4 text-gray-600 text-sm md:text-base leading-relaxed">
+                  <p className=" text-gray-600 text-sm md:text-base leading-relaxed">
                     {selectedFile.Description ||
                       "This content is hosted externally. Click the button below to view it in a new tab."}
                   </p>
@@ -1020,11 +1016,11 @@ const UnitsWithFiles = () => {
                 </div>
               </div>
             ) : (
-              <div className=" w-full h-full rounded-2xl shadow-lg bg-white border border-gray-200 overflow-hidden">
+              <div className="flex-1 min-h-0 flex justify-center overflow-y-auto">
                 {/* File Viewer Container */}
-                <div className="relative min-h-screen">
+                <div className="relative flex flex-col flex-1 min-h-0">
                   <div
-                    className={`relative h-full w-full ${
+                    className={`relative flex-1 w-full ${
                       selectedFile?.fileType === "ipynb" ? "bg-[#f8f9fa]" : ""
                     }`}
                   >
@@ -1043,9 +1039,9 @@ const UnitsWithFiles = () => {
 
                     <div
                       className={
-                        selectedFile?.fileType === "ipynb"
-                          ? "pt-10 h-full w-full"
-                          : "h-full w-full"
+                        selectedFile?.FileType === "ipynb"
+                          ? "pt-10 flex-1 min-h-0 overflow-y-auto"
+                          : "flex-1 min-h-0 overflow-y-auto"
                       }
                     >
                       <FileViewer
@@ -1066,7 +1062,7 @@ const UnitsWithFiles = () => {
               </div>
             )}
 
-            <div className="w-full rounded-2xl">
+            <div className="h-[35vh] md:h-[300px] flex-shrink-0 overflow-y-auto rounded-2xl mt-4">
               <UnitQueryPanel
                 moduleId={localStorage.getItem("moduleId")}
                 subModuleId={subModuleId}
@@ -1085,7 +1081,7 @@ const UnitsWithFiles = () => {
               <h2 className="text-xl font-bold text-gray-800 mb-3">
                 Select Content to Begin
               </h2>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600">
                 Choose a file from the sidebar to start learning. Your progress
                 will be automatically saved.
               </p>
