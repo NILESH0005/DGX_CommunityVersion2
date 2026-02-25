@@ -10,7 +10,9 @@ import ApiContext from "../context/ApiContext";
 
 const UserQueriesTable = () => {
   const { fetchData, userToken } = useContext(ApiContext);
-
+  const [editingQuery, setEditingQuery] = useState(null);
+  const [updatedText, setUpdatedText] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [queries, setQueries] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -23,22 +25,17 @@ const UserQueriesTable = () => {
       try {
         const headers = { "auth-token": userToken };
 
-        const res = await fetchData(
-          "lms/my-queries",
-          "GET",
-          {},
-          headers
-        );
+        const res = await fetchData("lms/my-queries", "GET", {}, headers);
 
         if (res.success) {
           const formatted = res.data.map((q) => ({
             id: q.QueryID,
             queryText: q.QueryText,
             status: q.Status,
-            module: `Module ${q.ModuleID}`,
-            submodule: `SubModule ${q.SubModuleID}`,
-            unit: `Unit ${q.UnitID}`,
-            file: `File ${q.FileID}`,
+            module: q.Module?.ModuleName || "N/A",
+            submodule: q.SubModule?.SubModuleName || "N/A",
+            unit: q.Unit?.UnitName || "N/A",
+            file: q.File?.FilesName || "N/A",
             queryCreator: "You",
             date: new Date(q.AddOnDt).toLocaleString("en-US", {
               month: "short",
@@ -71,6 +68,43 @@ const UserQueriesTable = () => {
     fetchMyQueries();
   }, [userToken]);
 
+  const handleUpdateQuery = async () => {
+    try {
+      setIsSaving(true);
+
+      const headers = {
+        "auth-token": userToken,
+        "Content-Type": "application/json",
+      };
+      console.log(editingQuery);
+      const res = await fetchData(
+        "lms/update-query",
+        "POST",
+        {
+          QueryID: editingQuery.id,
+          QueryText: updatedText,
+        },
+        headers,
+      );
+
+      console.log("ress", res);
+
+      if (res && res.success) {
+        setQueries((prev) =>
+          prev.map((q) =>
+            q.id === editingQuery.id ? { ...q, queryText: updatedText } : q,
+          ),
+        );
+
+        setEditingQuery(null);
+      }
+    } catch (error) {
+      console.error("Update failed:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // 🔎 Filter Logic
   const filteredQueries = useMemo(() => {
     return queries.filter((q) => {
@@ -78,8 +112,7 @@ const UserQueriesTable = () => {
         q.queryText.toLowerCase().includes(search.toLowerCase()) ||
         q.module.toLowerCase().includes(search.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "All" || q.status === statusFilter;
+      const matchesStatus = statusFilter === "All" || q.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -89,12 +122,11 @@ const UserQueriesTable = () => {
   const totalPages = Math.ceil(filteredQueries.length / itemsPerPage);
   const paginatedData = filteredQueries.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   return (
     <div className="space-y-6">
-
       {/* Header */}
       <div>
         <p className="text-gray-500 mt-1">
@@ -146,7 +178,7 @@ const UserQueriesTable = () => {
         {paginatedData.length > 0 ? (
           paginatedData.map((query) => (
             <div
-              key={query.id}
+              key={query.QueryID}
               className="bg-white p-6 rounded-2xl shadow-sm border hover:shadow-md transition"
             >
               {/* Breadcrumb + Status */}
@@ -168,9 +200,7 @@ const UserQueriesTable = () => {
               </div>
 
               {/* Query Text */}
-              <p className="mt-4 text-gray-700">
-                {query.queryText}
-              </p>
+              <p className="mt-4 text-gray-700">{query.queryText}</p>
 
               {/* Reply Section */}
               {query.reply && (
@@ -178,9 +208,7 @@ const UserQueriesTable = () => {
                   <p className="text-sm font-semibold text-green-700">
                     Instructor Reply
                   </p>
-                  <p className="text-sm text-gray-700 mt-1">
-                    {query.reply}
-                  </p>
+                  <p className="text-sm text-gray-700 mt-1">{query.reply}</p>
                   <p className="text-xs text-gray-400 mt-2">
                     {query.replyDate}
                   </p>
@@ -191,9 +219,25 @@ const UserQueriesTable = () => {
               <div className="flex justify-between items-center mt-6 border-t pt-4">
                 <span className="text-sm text-gray-500">{query.date}</span>
 
-                <button className="flex items-center gap-1 px-3 py-1 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm">
-                  <FiTrash2 size={14} /> Remove
-                </button>
+                <div className="flex gap-3">
+                  {query.status === "Pending" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setEditingQuery(query);
+                          setUpdatedText(query.queryText);
+                        }}
+                        className="flex items-center gap-1 px-3 py-1 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 transition text-sm"
+                      >
+                        <FiEye size={14} /> Edit
+                      </button>
+
+                      <button className="flex items-center gap-1 px-3 py-1 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm">
+                        <FiTrash2 size={14} /> Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))
@@ -236,6 +280,40 @@ const UserQueriesTable = () => {
           >
             Next <FiChevronRight />
           </button>
+        </div>
+      )}
+
+      {editingQuery && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl p-6">
+            <h2 className="text-lg font-semibold text-gray-700 mb-4">
+              Edit Your Query
+            </h2>
+
+            <textarea
+              value={updatedText}
+              onChange={(e) => setUpdatedText(e.target.value)}
+              rows={5}
+              className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-green-400 outline-none resize-none"
+            />
+
+            <div className="flex justify-end gap-3 mt-5">
+              <button
+                onClick={() => setEditingQuery(null)}
+                className="px-4 py-2 rounded-lg border text-gray-600 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleUpdateQuery}
+                disabled={isSaving}
+                className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:opacity-50"
+              >
+                {isSaving ? "Saving..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

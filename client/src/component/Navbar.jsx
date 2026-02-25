@@ -101,8 +101,8 @@ const Navbar = () => {
       }
 
       return {
-        label: page.DisplayName, // UI text from DB
-        to: config.to, // Route from map
+        label: page.DisplayName, 
+        to: config.to, 
         icon: config.icon,
       };
     })
@@ -234,7 +234,7 @@ const Navbar = () => {
                   onError={(e) => {
                     e.target.src = images.defaultProfile;
                   }}
-                  key={getImageKey()} // Force re-render when image changes
+                  key={getImageKey()} 
                 />
               </div>
 

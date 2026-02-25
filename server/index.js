@@ -90,18 +90,6 @@ const uploadLearningMaterial = multer({
   },
 });
 
-connectToDatabase((err) => {
-  if (err) {
-    console.error("Failed to connect to the database. Exiting...");
-    process.exit(1);
-  } else {
-    console.log("Database connection successful.");
-    app.listen(port, () => {
-      console.log(`Server is running at http://localhost:${port}`);
-    });
-  }
-});
-
 (async () => {
   try {
     await sequelize.authenticate();

@@ -17,6 +17,7 @@ import {
   addReply,
   fetchSingleReply,
   fetchMyQueries,
+  updateUserQuery,
 } from "../controllers/lms.js";
 
 const router = express.Router();
@@ -60,5 +61,5 @@ router.get("/query-list", fetchUser, getQueries);
 router.post("/query-answer", fetchUser, addReply);
 router.get("/query-reply/:queryId", fetchUser, fetchSingleReply);
 router.get("/my-queries", fetchUser, fetchMyQueries);
-
+router.post("/update-query", fetchUser, updateUserQuery);
 export default router;

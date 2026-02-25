@@ -1167,6 +1167,7 @@ export const getReplyByQueryId = async (queryId) => {
 };
 
 export const getQueriesByUser = async (userId) => {
+  // 1️⃣ Get all queries of user
   const queries = await User_Query_Table.findAll({
     where: {
       UserID: userId,
@@ -1175,8 +1176,16 @@ export const getQueriesByUser = async (userId) => {
     order: [["AddOnDt", "DESC"]],
   });
 
-  const queryIds = queries.map((q) => q.QueryID);
+  if (!queries.length) return [];
 
+  // 2️⃣ Extract all IDs
+  const queryIds = queries.map((q) => q.QueryID);
+  const moduleIds = [...new Set(queries.map((q) => q.ModuleID))];
+  const subModuleIds = [...new Set(queries.map((q) => q.SubModuleID))];
+  const unitIds = [...new Set(queries.map((q) => q.UnitID))];
+  const fileIds = [...new Set(queries.map((q) => q.FileID))];
+
+  // 3️⃣ Fetch related data
   const replies = await User_Query_Replies.findAll({
     where: {
       QueryID: queryIds,
@@ -1184,14 +1193,87 @@ export const getQueriesByUser = async (userId) => {
     },
   });
 
+  const modules = await LMSModulesDetails.findAll({
+    where: { ModuleID: moduleIds, delStatus: 0 },
+  });
+
+  const subModules = await LMSSubModulesDetails.findAll({
+    where: { SubModuleID: subModuleIds, delStatus: 0 },
+  });
+
+  const units = await LMSUnitsDetails.findAll({
+    where: { UnitID: unitIds, delStatus: 0 },
+  });
+
+  const files = await LMSFilesDetails.findAll({
+    where: { FileID: fileIds, delStatus: 0 },
+  });
+
+  // 4️⃣ Convert to Map for fast lookup
+  const moduleMap = new Map(modules.map((m) => [m.ModuleID, m]));
+  const subModuleMap = new Map(subModules.map((s) => [s.SubModuleID, s]));
+  const unitMap = new Map(units.map((u) => [u.UnitID, u]));
+  const fileMap = new Map(files.map((f) => [f.FileID, f]));
+  const replyMap = new Map(replies.map((r) => [r.QueryID, r]));
+
+  // 5️⃣ Merge everything
   const finalData = queries.map((query) => {
-    const reply = replies.find((r) => r.QueryID === query.QueryID);
+    const module = moduleMap.get(query.ModuleID);
+    const subModule = subModuleMap.get(query.SubModuleID);
+    const unit = unitMap.get(query.UnitID);
+    const file = fileMap.get(query.FileID);
+    const reply = replyMap.get(query.QueryID);
 
     return {
       ...query.toJSON(),
+
+      Module: module
+        ? { ModuleID: module.ModuleID, ModuleName: module.ModuleName }
+        : null,
+
+      SubModule: subModule
+        ? {
+            SubModuleID: subModule.SubModuleID,
+            SubModuleName: subModule.SubModuleName,
+          }
+        : null,
+
+      Unit: unit ? { UnitID: unit.UnitID, UnitName: unit.UnitName } : null,
+
+      File: file ? { FileID: file.FileID, FilesName: file.FilesName } : null,
+
       Reply: reply ? reply.toJSON() : null,
     };
   });
 
   return finalData;
+};
+
+export const updateUserQueryService = async (queryId, userId, updatedText) => {
+  const query = await User_Query_Table.findOne({
+    where: {
+      QueryID: queryId,
+      delStatus: 0,
+    },
+  });
+
+  if (!query) {
+    throw new Error("Query not found");
+  }
+
+  if (query.UserID !== userId) {
+    throw new Error("Unauthorized");
+  }
+
+  if (query.Status !== "Pending") {
+    throw new Error("Answered queries cannot be edited");
+  }
+
+  await query.update({
+    QueryText: updatedText,
+    editOnDt: new Date(),
+    AuthLstEdt: userId.toString(),
+  });
+
+  return query;
 };

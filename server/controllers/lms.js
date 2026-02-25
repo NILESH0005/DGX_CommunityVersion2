@@ -14,6 +14,7 @@ import {
   createReply,
   getReplyByQueryId,
   getQueriesByUser,
+  updateUserQueryService,
 } from "../services/lmsService.js";
 import fs from "fs";
 import path from "path";
@@ -585,6 +586,45 @@ export const fetchMyQueries = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
+    });
+  }
+};
+
+export const updateUserQuery = async (req, res) => {
+  try {
+    const { QueryID, QueryText } = req.body;
+    const userId = req.user.uniqueId;
+    console.log("BODY:", req.body);
+
+    if (!QueryID) {
+      return res.status(400).json({
+        success: false,
+        message: "QueryID is required",
+      });
+    }
+
+    if (!QueryText || QueryText.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Query text cannot be empty",
+      });
+    }
+
+    const updatedQuery = await updateUserQueryService(
+      QueryID,
+      userId,
+      QueryText,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Query updated successfully",
+      data: updatedQuery,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
     });
   }
 };
