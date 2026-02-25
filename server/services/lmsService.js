@@ -1,6 +1,7 @@
 // services/lmsService.js
 import db, { sequelize } from "../models/index.js";
 import { Op, QueryTypes, Sequelize } from "sequelize";
+import UserQueryReplies from "../models/UserQueryReplies.js";
 
 const {
   LMSModulesDetails,
@@ -1114,6 +1115,7 @@ export const getUserQueries = async (filters = {}, userId) => {
 };
 
 export const createReply = async (data) => {
+  // 1️⃣ Check if reply already exists
   const existingReply = await User_Query_Replies.findOne({
     where: {
       QueryID: data.QueryID,
@@ -1125,7 +1127,8 @@ export const createReply = async (data) => {
     throw new Error("Reply already exists for this query");
   }
 
-  return await User_Query_Replies.create({
+  // 2️⃣ Create Reply
+  const reply = await User_Query_Replies.create({
     QueryID: data.QueryID,
     RepliedBy: data.RepliedBy,
     ReplyText: data.ReplyText,
@@ -1133,6 +1136,23 @@ export const createReply = async (data) => {
     AddOnDt: new Date(),
     delStatus: 0,
   });
+
+  // 3️⃣ Update Query Status
+  await User_Query_Table.update(
+    {
+      Status: "Answered",
+      AuthLstEdt: data.RepliedBy,
+      editOnDt: new Date(),
+    },
+    {
+      where: {
+        QueryID: data.QueryID,
+        delStatus: 0,
+      },
+    },
+  );
+
+  return reply;
 };
 
 export const getReplyByQueryId = async (queryId) => {
@@ -1146,9 +1166,32 @@ export const getReplyByQueryId = async (queryId) => {
   return reply;
 };
 
+export const getQueriesByUser = async (userId) => {
+  const queries = await User_Query_Table.findAll({
+    where: {
+      UserID: userId,
+      delStatus: 0,
+    },
+    order: [["AddOnDt", "DESC"]],
+  });
 
+  const queryIds = queries.map((q) => q.QueryID);
 
+  const replies = await User_Query_Replies.findAll({
+    where: {
+      QueryID: queryIds,
+      delStatus: 0,
+    },
+  });
 
+  const finalData = queries.map((query) => {
+    const reply = replies.find((r) => r.QueryID === query.QueryID);
 
+    return {
+      ...query.toJSON(),
+      Reply: reply ? reply.toJSON() : null,
+    };
+  });
 
-
+  return finalData;
+};

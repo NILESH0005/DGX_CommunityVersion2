@@ -1,12 +1,75 @@
-import React, { useState, useMemo } from "react";
-import { FiSearch, FiEye, FiTrash2, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import React, { useState, useMemo, useEffect, useContext } from "react";
+import {
+  FiSearch,
+  FiEye,
+  FiTrash2,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
+import ApiContext from "../context/ApiContext";
 
-const UserQueriesTable = ({ queries = [], onRemove }) => {
+const UserQueriesTable = () => {
+  const { fetchData, userToken } = useContext(ApiContext);
+
+  const [queries, setQueries] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-
   const itemsPerPage = 4;
+
+  // ✅ Fetch My Queries
+  useEffect(() => {
+    const fetchMyQueries = async () => {
+      try {
+        const headers = { "auth-token": userToken };
+
+        const res = await fetchData(
+          "lms/my-queries",
+          "GET",
+          {},
+          headers
+        );
+
+        if (res.success) {
+          const formatted = res.data.map((q) => ({
+            id: q.QueryID,
+            queryText: q.QueryText,
+            status: q.Status,
+            module: `Module ${q.ModuleID}`,
+            submodule: `SubModule ${q.SubModuleID}`,
+            unit: `Unit ${q.UnitID}`,
+            file: `File ${q.FileID}`,
+            queryCreator: "You",
+            date: new Date(q.AddOnDt).toLocaleString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }),
+            reply: q.Reply ? q.Reply.ReplyText : null,
+            replyDate: q.Reply
+              ? new Date(q.Reply.AddOnDt).toLocaleString("en-US", {
+                  month: "short",
+                  day: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })
+              : null,
+          }));
+
+          setQueries(formatted);
+        }
+      } catch (error) {
+        console.error("Error fetching user queries:", error);
+      }
+    };
+
+    fetchMyQueries();
+  }, [userToken]);
 
   // 🔎 Filter Logic
   const filteredQueries = useMemo(() => {
@@ -40,10 +103,16 @@ const UserQueriesTable = ({ queries = [], onRemove }) => {
 
         <div className="flex gap-4 mt-4">
           <div className="px-4 py-2 bg-gray-100 rounded-xl shadow-sm text-sm">
-            Total Queries: <span className="text-green-600 font-semibold">{queries.length}</span>
+            Total Queries:{" "}
+            <span className="text-green-600 font-semibold">
+              {queries.length}
+            </span>
           </div>
           <div className="px-4 py-2 bg-gray-100 rounded-xl shadow-sm text-sm">
-            Filtered Results: <span className="text-green-600 font-semibold">{filteredQueries.length}</span>
+            Filtered Results:{" "}
+            <span className="text-green-600 font-semibold">
+              {filteredQueries.length}
+            </span>
           </div>
         </div>
       </div>
@@ -68,7 +137,7 @@ const UserQueriesTable = ({ queries = [], onRemove }) => {
         >
           <option value="All">All Status</option>
           <option value="Pending">Pending</option>
-          <option value="Completed">Completed</option>
+          <option value="Answered">Answered</option>
         </select>
       </div>
 
@@ -98,28 +167,31 @@ const UserQueriesTable = ({ queries = [], onRemove }) => {
                 </span>
               </div>
 
-              {/* Name */}
-              <h3 className="mt-4 font-semibold text-gray-800">
-                {query.queryCreator}
-              </h3>
-
               {/* Query Text */}
-              <p className="mt-2 text-gray-600 line-clamp-2">
+              <p className="mt-4 text-gray-700">
                 {query.queryText}
               </p>
 
-              <button className="flex items-center gap-1 mt-2 text-green-600 text-sm hover:underline">
-                <FiEye size={14} /> View More
-              </button>
+              {/* Reply Section */}
+              {query.reply && (
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm font-semibold text-green-700">
+                    Instructor Reply
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {query.reply}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {query.replyDate}
+                  </p>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="flex justify-between items-center mt-6 border-t pt-4">
                 <span className="text-sm text-gray-500">{query.date}</span>
 
-                <button
-                  onClick={() => onRemove(query.id)}
-                  className="flex items-center gap-1 px-3 py-1 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm"
-                >
+                <button className="flex items-center gap-1 px-3 py-1 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm">
                   <FiTrash2 size={14} /> Remove
                 </button>
               </div>
