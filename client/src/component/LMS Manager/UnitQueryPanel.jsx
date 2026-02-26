@@ -169,9 +169,6 @@ const UnitQueryPanel = ({
             <h3 className="text-lg font-semibold text-gray-800">
               Query & Response
             </h3>
-            <p className="text-xs text-gray-500">
-              Unit: {unitId || "Current Unit"}
-            </p>
           </div>
         </div>
       </div>
@@ -232,7 +229,6 @@ const UnitQueryPanel = ({
           </button>
         </div>
 
-        {/* Questions List */}
         <div className="space-y-3">
           {queries.length === 0 ? (
             <p className="text-sm text-gray-500 text-center">

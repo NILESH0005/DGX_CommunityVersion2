@@ -1157,11 +1157,19 @@ export const createReply = async (data) => {
 
 export const getReplyByQueryId = async (queryId) => {
   const reply = await User_Query_Replies.findOne({
-    where: {
-      QueryID: queryId,
-      delStatus: 0,
-    },
+    where: { QueryID: queryId, delStatus: 0 },
   });
+  if (!reply) return null;
+
+  const user = await User.findOne({
+    where: { UserID: reply.RepliedBy },
+    attributes: ["Name"],
+  });
+
+  return {
+    ...reply.toJSON(),
+    InstructorName: user?.Name || null,
+  };
 
   return reply;
 };
@@ -1276,4 +1284,33 @@ export const updateUserQueryService = async (queryId, userId, updatedText) => {
   });
 
   return query;
+};
+
+export const deleteUserQueryService = async (queryId, userId) => {
+  const query = await User_Query_Table.findOne({
+    where: {
+      QueryID: queryId,
+      delStatus: 0,
+    },
+  });
+
+  if (!query) {
+    throw new Error("Query not found");
+  }
+
+  if (query.UserID !== userId) {
+    throw new Error("Unauthorized");
+  }
+
+  if (query.Status !== "Pending") {
+    throw new Error("Answered queries cannot be deleted");
+  }
+
+  await query.update({
+    delStatus: 1,
+    delOnDt: new Date(),
+    AuthDel: userId.toString(),
+  });
+
+  return true;
 };

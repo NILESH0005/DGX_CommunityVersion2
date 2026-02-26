@@ -7,6 +7,7 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 import ApiContext from "../context/ApiContext";
+import Swal from "sweetalert2";
 
 const UserQueriesTable = () => {
   const { fetchData, userToken } = useContext(ApiContext);
@@ -102,6 +103,40 @@ const UserQueriesTable = () => {
       console.error("Update failed:", error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteQuery = async (id) => {
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "This will delete your query.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await fetchData(
+        "lms/delete-query",
+        "POST",
+        { QueryID: id },
+        {
+          "auth-token": userToken,
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (res.success) {
+        setQueries((prev) => prev.filter((q) => q.id !== id));
+
+        Swal.fire("Deleted!", "Your query has been deleted.", "success");
+      } else {
+        Swal.fire("Error", res.message, "error");
+      }
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -232,7 +267,10 @@ const UserQueriesTable = () => {
                         <FiEye size={14} /> Edit
                       </button>
 
-                      <button className="flex items-center gap-1 px-3 py-1 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm">
+                      <button
+                        onClick={() => handleDeleteQuery(query.id)}
+                        className="flex items-center gap-1 px-3 py-1 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition text-sm"
+                      >
                         <FiTrash2 size={14} /> Delete
                       </button>
                     </>

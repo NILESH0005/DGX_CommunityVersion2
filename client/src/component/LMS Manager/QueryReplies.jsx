@@ -2,10 +2,14 @@ import React, { useEffect, useState, useContext } from "react";
 import ApiContext from "../../context/ApiContext";
 import Swal from "sweetalert2";
 
-const QueryReplies = ({ queryId }) => {
-  const { fetchData, userToken } = useContext(ApiContext);
+const QueryReplies = ({ queryId, creatorId }) => {
+  console.log("creator id is", creatorId);
+  const { fetchData, userToken, user } = useContext(ApiContext);
+  console.log("find user id", user);
 
   const [reply, setReply] = useState(null);
+  console.log("reply state is:", reply); // 👈 ADD HERE
+
   const [replyText, setReplyText] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -14,6 +18,8 @@ const QueryReplies = ({ queryId }) => {
     "auth-token": userToken,
   };
 
+  const canReply = user?.UserID?.toString() === creatorId?.toString();
+  
   const fetchReply = async () => {
     try {
       const data = await fetchData(
@@ -66,8 +72,13 @@ const QueryReplies = ({ queryId }) => {
     <div className="mt-4">
       {reply ? (
         <div className="bg-gray-50 border rounded-lg p-3">
+          <p className="text-xs font-semibold text-green-700 mb-1">
+            {reply.InstructorName}
+          </p>
+
           <p className="text-sm text-gray-700">{reply.ReplyText}</p>
-          <p className="text-xs text-gray-400 mt-1">
+
+          <p className="text-xs text-gray-400 mt-2">
             {new Date(reply.AddOnDt).toLocaleString("en-US", {
               month: "short",
               day: "2-digit",
@@ -75,10 +86,10 @@ const QueryReplies = ({ queryId }) => {
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
-            })}{" "}
+            })}
           </p>
         </div>
-      ) : (
+      ) : canReply ? (
         <>
           <textarea
             placeholder="Write your reply..."
@@ -100,7 +111,7 @@ const QueryReplies = ({ queryId }) => {
             {loading ? "Replying..." : "Submit Reply"}
           </button>
         </>
-      )}
+      ) : null}
     </div>
   );
 };
