@@ -1053,10 +1053,44 @@ export const createUserQuery = async (queryData, userId) => {
   }
 };
 
-export const getUserQueries = async (filters = {}, userId) => {
+export const getUserQueries = async (filters = {}, userId, roleId) => {
   try {
     let whereConditions = "q.delStatus = 0";
     let replacements = {};
+
+    const isUnitRequest =
+      filters.moduleId ||
+      filters.subModuleId ||
+      filters.unitId ||
+      filters.fileId;
+
+    if (isUnitRequest) {
+      if (filters.moduleId) {
+        whereConditions += " AND q.ModuleID = :moduleId";
+        replacements.moduleId = filters.moduleId;
+      }
+
+      if (filters.subModuleId) {
+        whereConditions += " AND q.SubModuleID = :subModuleId";
+        replacements.subModuleId = filters.subModuleId;
+      }
+
+      if (filters.unitId) {
+        whereConditions += " AND q.UnitID = :unitId";
+        replacements.unitId = filters.unitId;
+      }
+
+      if (filters.fileId) {
+        whereConditions += " AND q.FileID = :fileId";
+        replacements.fileId = filters.fileId;
+      }
+    } else {
+      if (roleId !== 1) {
+        // 🔥 Only queries asked by logged-in user
+        whereConditions += " AND q.UserID = :userId";
+        replacements.userId = userId;
+      }
+    }
 
     const query = `
       SELECT 
@@ -1071,18 +1105,31 @@ export const getUserQueries = async (filters = {}, userId) => {
         q.Status AS status,
         q.AddOnDt AS createdAt,
         q.editOnDt AS updatedAt,
-        
+
         u.Name AS userName,
         u.EmailId AS userEmail,
-        u.isAdmin AS isAdmin,
-        u.ProfilePicture AS profilePicture
+        u.isAdmin AS roleId,
+        u.ProfilePicture AS profilePicture,
+
+        r.RoleName AS roleName,
+
+        m.ModuleName AS moduleName,
+        sm.SubModuleName AS subModuleName,
+        un.UnitName AS unitName,
+
+        f.FilesName AS fileName,
+        f.FilePath AS filePath,
+        f.FileType AS fileType
 
       FROM userquerytable q
-      LEFT JOIN community_user u 
-        ON q.UserID = u.UserID
+      LEFT JOIN community_user u ON q.ModuleCreatorID = u.UserID
+      LEFT JOIN rolemaster r ON u.isAdmin = r.RoleID AND r.delStatus = 0
+      LEFT JOIN moduledetails m ON q.ModuleID = m.ModuleID AND m.delStatus = 0
+      LEFT JOIN submodulesdetails sm ON q.SubModuleID = sm.SubModuleID AND sm.delStatus = 0
+      LEFT JOIN unitsdetails un ON q.UnitID = un.UnitID AND un.delStatus = 0
+      LEFT JOIN filesdetails f ON q.FileID = f.FileID AND f.delStatus = 0
 
       WHERE ${whereConditions}
-
       ORDER BY q.AddOnDt DESC
     `;
 
@@ -1090,8 +1137,6 @@ export const getUserQueries = async (filters = {}, userId) => {
       replacements,
       type: QueryTypes.SELECT,
     });
-
-    console.log(`Retrieved ${queries.length} queries`);
 
     return {
       status: 200,
@@ -1107,7 +1152,6 @@ export const getUserQueries = async (filters = {}, userId) => {
       status: 500,
       response: {
         success: false,
-        data: {},
         message: "Something went wrong while retrieving queries",
       },
     };

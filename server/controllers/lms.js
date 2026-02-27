@@ -507,16 +507,17 @@ export const createQuery = async (req, res) => {
 
 export const getQueries = async (req, res) => {
   try {
-    const userId = req.user.id; // From fetchUser middleware
+    const userId = req.user.uniqueId;
+    const roleId = req.user.isAdmin; // roleId from token
     const filters = req.query;
 
-    const result = await getUserQueries(filters, userId);
+    const result = await getUserQueries(filters, userId, roleId);
+
     return res.status(result.status).json(result.response);
   } catch (err) {
-    console.log("Unexpected Error in getQueries controller:", err);
+    console.log("Unexpected Error:", err);
     return res.status(500).json({
       success: false,
-      data: err,
       message: "Unexpected error occurred while retrieving queries",
     });
   }

@@ -39,7 +39,12 @@ const UnitQueryPanel = ({
         "auth-token": userToken,
       };
 
-      const data = await fetchData(`lms/query-list`, "GET", {}, headers);
+      const data = await fetchData(
+        `lms/query-list?moduleId=${moduleId}&subModuleId=${subModuleId}&unitId=${unitId}&fileId=${fileId}`,
+        "GET",
+        {},
+        headers,
+      );
       console.log("Query API response:", data);
 
       if (data.success) {
